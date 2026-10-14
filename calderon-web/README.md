@@ -1,7 +1,7 @@
 # Transportes Calderón — frontend (Next.js 15)
 
 Proyecto base: autenticación con Supabase, sesión, permisos por rol, menú lateral dinámico y barra superior.
-Módulos de negocio implementados: **Flota > Camiones**. El resto de las entradas del menú muestran
+Módulos de negocio implementados: **Flota > Camiones** y **Flota > Choferes**. El resto de las entradas del menú muestran
 "Módulo en construcción" (con la verificación de permisos ya aplicada).
 
 ## Requisitos
@@ -96,6 +96,24 @@ src/modules/flota/
 ├─ queries/         keys.ts, hooks.ts (useCamiones, useCamion, useCrearCamion, useEditarCamion), precarga.ts
 └─ components/      camiones/ lista, ficha, formulario, chip de estado
 ```
+
+## Módulo Flota > Choferes
+
+Sobre la tabla `mae.chofer`. Ver con `flota.choferes:ver`; alta y edición con `flota.choferes:editar`
+(Operaciones, RR. HH. y TI). La lista lee la tabla con `eliminado_en IS NULL` (Gerencia no tiene permiso sobre `v_chofer`).
+
+| Ruta | Pantalla |
+| --- | --- |
+| `/flota/choferes` | Lista sin documento: búsqueda por legajo, nombre y apellido; filtros por estado, país y base |
+| `/flota/choferes/nuevo` | Alta (F-MAE-03); el documento es obligatorio |
+| `/flota/choferes/[id]` | Ficha, pestaña Datos; documento enmascarado con "Mostrar documento" |
+| `/flota/choferes/[id]/editar` | Edición con control de versión; baja = estado Baja + fecha de egreso |
+
+Documento (dato personal):
+- Nunca se lee en listas ni fichas. "Mostrar documento" (`flota.documento_chofer:ver`) registra el acceso con
+  `aud.fn_registrar_acceso_sensible` y recién entonces lo lee; se oculta a los 60 s y no se guarda en caché.
+- Cambiarlo en la edición requiere `flota.documento_chofer:editar` (RR. HH.); se escribe sin leer el anterior.
+- Se normaliza (sin puntos ni espacios) y se valida el dígito verificador de CUIL y RUT.
 
 ## Pendiente para próximas etapas
 

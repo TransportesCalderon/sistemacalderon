@@ -2,11 +2,14 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { browserDb } from '@/shared/supabase/browser';
-import type { CamionId } from '@/shared/types/dominio';
+import type { CamionId, ChoferId } from '@/shared/types/dominio';
 import { crearCamion, editarCamion } from '../actions/camion.actions';
+import { crearChofer, editarChofer, revelarDocumentoChofer } from '../actions/chofer.actions';
 import type { CamionEdicionInput, CamionFormInput } from '../domain/camion.schemas';
 import type { Camion, CamionListaParams } from '../domain/camion.types';
-import { camionesQueries, catalogosFlotaQueries } from './keys';
+import type { ChoferEdicionInput, ChoferFormInput } from '../domain/chofer.schemas';
+import type { Chofer, ChoferListaParams } from '../domain/chofer.types';
+import { basesQueries, camionesQueries, catalogosFlotaQueries, choferesQueries } from './keys';
 
 /** Lista paginada; conserva la página anterior mientras carga la nueva (sin parpadeo). */
 export function useCamiones(p: CamionListaParams) {
@@ -47,4 +50,52 @@ export function useEditarCamion() {
     mutationFn: (input: CamionEdicionInput) => editarCamion(input),
     onSuccess: (r) => (r.ok ? alGuardar(r.data) : undefined),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Choferes
+// ---------------------------------------------------------------------------
+
+export function useChoferes(p: ChoferListaParams) {
+  return useQuery({ ...choferesQueries.lista(browserDb(), p), placeholderData: keepPreviousData });
+}
+
+export function useChofer(id: ChoferId, opciones: { enabled?: boolean } = {}) {
+  return useQuery({ ...choferesQueries.detalle(browserDb(), id), enabled: opciones.enabled ?? true });
+}
+
+export function useBases() {
+  return useQuery(basesQueries.obtener(browserDb()));
+}
+
+function useAlGuardarChofer() {
+  const qc = useQueryClient();
+  return (chofer: Chofer) => {
+    qc.setQueryData(choferesQueries.detalle(browserDb(), chofer.id).queryKey, chofer);
+    return qc.invalidateQueries({ queryKey: choferesQueries.listas() });
+  };
+}
+
+export function useCrearChofer() {
+  const alGuardar = useAlGuardarChofer();
+  return useMutation({
+    mutationFn: (input: ChoferFormInput) => crearChofer(input),
+    onSuccess: (r) => (r.ok ? alGuardar(r.data) : undefined),
+  });
+}
+
+export function useEditarChofer() {
+  const alGuardar = useAlGuardarChofer();
+  return useMutation({
+    mutationFn: (input: ChoferEdicionInput) => editarChofer(input),
+    onSuccess: (r) => (r.ok ? alGuardar(r.data) : undefined),
+  });
+}
+
+/**
+ * "Mostrar documento": mutación (no consulta) para que el dato personal nunca quede en la
+ * caché de React Query. Cada clic registra un acceso en aud.acceso_sensible.
+ */
+export function useRevelarDocumento() {
+  return useMutation({ mutationFn: (id: ChoferId) => revelarDocumentoChofer({ id }), gcTime: 0 });
 }

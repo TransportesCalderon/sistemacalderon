@@ -7,6 +7,7 @@
 /** Identificador con marca: impide pasar el id de un camión donde se espera el de una carga. */
 export type Id<Marca extends string> = number & { readonly __marca: Marca };
 export type CamionId = Id<'Camion'>;
+export type ChoferId = Id<'Chofer'>;
 
 /** numeric de PostgreSQL como texto exacto. Nunca se convierte a number para operar. */
 export type DecimalStr = string & { readonly __decimal: true };

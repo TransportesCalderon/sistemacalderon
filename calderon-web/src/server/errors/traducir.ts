@@ -24,6 +24,15 @@ export const MENSAJES_RESTRICCION: Record<string, string> = {
   ck_camion_consumo_ref: 'El consumo de referencia debe ser mayor que cero.',
   camion_pais_patente_fkey: 'El país de la patente no existe en el catálogo.',
   camion_tipo_combustible_id_fkey: 'El tipo de combustible no existe en el catálogo.',
+  // --- mae.chofer (Flota > Choferes) ---
+  ux_chofer_legajo: 'Ya existe un chofer con ese legajo.',
+  ux_chofer_documento: 'Ya existe un chofer con ese documento.',
+  ux_chofer_optifleet: 'Ese identificador de conductor Optifleet ya está asignado a otro chofer.',
+  ck_chofer_documento_tipo: 'Tipo de documento no válido.',
+  ck_chofer_fechas: 'La fecha de egreso no puede ser anterior a la fecha de ingreso.',
+  ck_chofer_estado: 'Estado no válido: activo, licencia o baja.',
+  chofer_pais_residencia_fkey: 'El país de residencia no existe en el catálogo.',
+  chofer_base_ubicacion_id_fkey: 'La base elegida ya no existe.',
 };
 
 /** Campo del formulario al que se asocia cada restricción (para marcarlo en rojo). */
@@ -40,6 +49,14 @@ export const CAMPO_RESTRICCION: Record<string, string> = {
   ck_camion_consumo_ref: 'consumoReferencia',
   camion_pais_patente_fkey: 'paisPatente',
   camion_tipo_combustible_id_fkey: 'tipoCombustibleId',
+  ux_chofer_legajo: 'legajo',
+  ux_chofer_documento: 'documentoNumero',
+  ux_chofer_optifleet: 'idConductorOptifleet',
+  ck_chofer_documento_tipo: 'documentoTipo',
+  ck_chofer_fechas: 'fechaEgreso',
+  ck_chofer_estado: 'estado',
+  chofer_pais_residencia_fkey: 'paisResidencia',
+  chofer_base_ubicacion_id_fkey: 'baseUbicacionId',
 };
 
 export function traducirErrorDb(error: unknown): ErrorAccion {

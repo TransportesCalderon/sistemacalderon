@@ -2,7 +2,7 @@
  * Error de negocio detectado por un servicio antes de ir a la base (precondición).
  * Lleva su propio mensaje para el usuario; server/errors/traducir lo respeta tal cual.
  */
-export type CodigoErrorNegocio = 'inmutable' | 'regla_negocio' | 'referencia';
+export type CodigoErrorNegocio = 'inmutable' | 'regla_negocio' | 'referencia' | 'sin_permiso';
 
 export class ErrorNegocio extends Error {
   constructor(
