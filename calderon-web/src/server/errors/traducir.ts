@@ -1,4 +1,5 @@
 import type { ErrorAccion } from '@/server/actions/result';
+import { ErrorNegocio } from '@/shared/lib/errores';
 
 interface ErrorConCodigo {
   code?: string;
@@ -9,11 +10,54 @@ interface ErrorConCodigo {
  * Traduce un error de PostgREST / PostgreSQL (SQLSTATE) al lenguaje de negocio
  * (especificación §17). Los mensajes por restricción se agregan con cada módulo.
  */
-export const MENSAJES_RESTRICCION: Record<string, string> = {};
+export const MENSAJES_RESTRICCION: Record<string, string> = {
+  // --- mae.camion (Flota > Camiones) ---
+  ux_camion_codigo_interno: 'Ya existe un camión con ese código interno.',
+  ux_camion_patente: 'Ya existe un camión con esa patente.',
+  ux_camion_vin: 'Ya existe un camión con ese VIN.',
+  ux_camion_id_optifleet: 'Ese identificador Optifleet ya está asignado a otro camión.',
+  ck_camion_patente: 'La patente debe ir en mayúsculas y sin espacios.',
+  ck_camion_anio: 'El año debe estar entre 1990 y 2100.',
+  ck_camion_fechas: 'La fecha de baja no puede ser anterior a la fecha de alta.',
+  ck_camion_estado: 'Estado no válido: activo, taller o inactivo.',
+  ck_camion_propietario: 'Propietario no válido: propio, tercero o leasing.',
+  ck_camion_consumo_ref: 'El consumo de referencia debe ser mayor que cero.',
+  camion_pais_patente_fkey: 'El país de la patente no existe en el catálogo.',
+  camion_tipo_combustible_id_fkey: 'El tipo de combustible no existe en el catálogo.',
+};
+
+/** Campo del formulario al que se asocia cada restricción (para marcarlo en rojo). */
+export const CAMPO_RESTRICCION: Record<string, string> = {
+  ux_camion_codigo_interno: 'codigoInterno',
+  ux_camion_patente: 'patente',
+  ux_camion_vin: 'vin',
+  ux_camion_id_optifleet: 'idOptifleet',
+  ck_camion_patente: 'patente',
+  ck_camion_anio: 'anio',
+  ck_camion_fechas: 'fechaBaja',
+  ck_camion_estado: 'estado',
+  ck_camion_propietario: 'propietarioTipo',
+  ck_camion_consumo_ref: 'consumoReferencia',
+  camion_pais_patente_fkey: 'paisPatente',
+  camion_tipo_combustible_id_fkey: 'tipoCombustibleId',
+};
 
 export function traducirErrorDb(error: unknown): ErrorAccion {
+  if (error instanceof ErrorNegocio) return { codigo: error.codigo, mensaje: error.message };
+  const base = traducirSinCampo(error);
+  const restriccion = restriccionDe(error);
+  const campo = restriccion ? CAMPO_RESTRICCION[restriccion] : undefined;
+  return campo && base.codigo !== 'desconocido' ? { ...base, campos: { [campo]: base.mensaje } } : base;
+}
+
+function restriccionDe(error: unknown): string | undefined {
   const e = (error ?? {}) as ErrorConCodigo;
-  const restriccion = /constraint "([^"]+)"/.exec(e.message ?? '')?.[1];
+  return /constraint "([^"]+)"/.exec(e.message ?? '')?.[1];
+}
+
+function traducirSinCampo(error: unknown): ErrorAccion {
+  const e = (error ?? {}) as ErrorConCodigo;
+  const restriccion = restriccionDe(error);
   const especifico = restriccion ? MENSAJES_RESTRICCION[restriccion] : undefined;
 
   switch (e.code) {
@@ -29,6 +73,8 @@ export function traducirErrorDb(error: unknown): ErrorAccion {
       return { codigo: 'referencia', mensaje: especifico ?? 'Falta un dato relacionado.' };
     case '55000':
       return { codigo: 'inmutable', mensaje: 'Este dato ya no se modifica: usá Anular y reemplazar o Nueva versión.' };
+    case '22001':
+      return { codigo: 'validacion', mensaje: 'Uno de los textos es demasiado largo.' };
     case '42501':
       return { codigo: 'sin_permiso', mensaje: 'No tenés permiso para esta acción.' };
     default:

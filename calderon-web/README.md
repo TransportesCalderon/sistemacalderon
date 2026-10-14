@@ -1,8 +1,8 @@
 # Transportes Calderón — frontend (Next.js 15)
 
 Proyecto base: autenticación con Supabase, sesión, permisos por rol, menú lateral dinámico y barra superior.
-Todavía no incluye módulos de negocio: las 58 entradas del menú muestran "Módulo en construcción"
-(con la verificación de permisos ya aplicada).
+Módulos de negocio implementados: **Flota > Camiones**. El resto de las entradas del menú muestran
+"Módulo en construcción" (con la verificación de permisos ya aplicada).
 
 ## Requisitos
 
@@ -74,6 +74,28 @@ src/
    `createAction` (server actions) y `<Can>` / `useCan` (botones). La base de datos aplica la quinta barrera.
 4. Para agregar un módulo: crear su carpeta en `src/app/(app)/<grupo>/<pantalla>` (reemplaza al marcador)
    y llamar `requirePermiso('<pantalla>:ver')` al principio de la página.
+
+## Módulo Flota > Camiones
+
+Sobre la tabla `mae.camion` (lista desde la vista `mae.v_camion`). Ver con el permiso `flota.camiones:ver`;
+alta y edición con `flota.camiones:editar` (Operaciones y TI).
+
+| Ruta | Pantalla |
+| --- | --- |
+| `/flota/camiones` | Lista con búsqueda, filtros (estado, propietario, país, combustible, eliminados), orden y paginación en la URL |
+| `/flota/camiones/nuevo` | Alta (F-MAE-01) |
+| `/flota/camiones/[id]` | Ficha, pestaña Datos (las demás pestañas llegan con sus módulos) |
+| `/flota/camiones/[id]/editar` | Edición con control de versión; incluye la baja operativa (estado Inactivo + fecha de baja) |
+
+```text
+src/modules/flota/
+├─ domain/          camion.types.ts (dominio y CHECK), camion.schemas.ts (Zod), camion.lista.ts (filtros ⇄ URL)
+├─ repositories/    camion.repository.ts, catalogo-flota.repository.ts (ref.tipo_combustible, ref.pais)
+├─ services/        camion.service.ts (crear, editar)
+├─ actions/         camion.actions.ts (crearCamion, editarCamion)
+├─ queries/         keys.ts, hooks.ts (useCamiones, useCamion, useCrearCamion, useEditarCamion), precarga.ts
+└─ components/      camiones/ lista, ficha, formulario, chip de estado
+```
 
 ## Pendiente para próximas etapas
 

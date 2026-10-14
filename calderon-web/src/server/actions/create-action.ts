@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { revalidatePath } from 'next/cache';
 import type { z } from 'zod';
 import { getSessionContext } from '@/modules/core/auth/session';
 import type { ContextoAutenticado } from '@/modules/core/auth/guards';
@@ -8,6 +9,11 @@ import type { Alcance, Permiso } from '@/modules/core/permissions/types';
 import { createSupabaseServerClient, type SupabaseServerClient } from '@/server/supabase/server';
 import { traducirErrorDb } from '@/server/errors/traducir';
 import { fallo, ok, type ActionResult } from './result';
+
+/** Rutas de Server Components a revalidar después de una escritura exitosa. */
+export interface InvalidacionServidor {
+  paths: string[];
+}
 
 export interface AccionCtx {
   sesion: ContextoAutenticado;
@@ -24,6 +30,8 @@ export function createAction<S extends z.ZodType, T>(def: {
   permiso: Permiso;
   schema: S;
   handler: (input: z.infer<S>, ctx: AccionCtx) => Promise<T>;
+  /** Opcional: qué rutas revalidar al terminar bien (arquitectura §10). */
+  invalida?: (input: z.infer<S>, data: T) => InvalidacionServidor;
 }): (input: z.input<S>) => Promise<ActionResult<T>> {
   return async (input) => {
     const sesion = await getSessionContext();
@@ -43,6 +51,7 @@ export function createAction<S extends z.ZodType, T>(def: {
     try {
       const db = await createSupabaseServerClient();
       const data = await def.handler(parsed.data, { sesion: sesion as ContextoAutenticado, db, alcance });
+      if (def.invalida) for (const path of def.invalida(parsed.data, data).paths) revalidatePath(path);
       return ok(data);
     } catch (error) {
       const traducido = traducirErrorDb(error);
