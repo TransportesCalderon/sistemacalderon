@@ -33,6 +33,13 @@ export const MENSAJES_RESTRICCION: Record<string, string> = {
   ck_chofer_estado: 'Estado no válido: activo, licencia o baja.',
   chofer_pais_residencia_fkey: 'El país de residencia no existe en el catálogo.',
   chofer_base_ubicacion_id_fkey: 'La base elegida ya no existe.',
+  // --- mae.cliente (Comercial > Clientes) ---
+  ux_cliente_codigo: 'Ya existe un cliente con ese código.',
+  ux_cliente_fiscal: 'Ya existe un cliente con ese identificador fiscal en ese país.',
+  ck_cliente_condicion_pago: 'La condición de pago debe estar entre 0 y 365 días.',
+  ck_cliente_estado: 'Estado no válido: activo, inactivo o bloqueado.',
+  cliente_pais_fkey: 'El país no existe en el catálogo.',
+  cliente_moneda_facturacion_fkey: 'La moneda no existe en el catálogo.',
 };
 
 /** Campo del formulario al que se asocia cada restricción (para marcarlo en rojo). */
@@ -57,6 +64,12 @@ export const CAMPO_RESTRICCION: Record<string, string> = {
   ck_chofer_estado: 'estado',
   chofer_pais_residencia_fkey: 'paisResidencia',
   chofer_base_ubicacion_id_fkey: 'baseUbicacionId',
+  ux_cliente_codigo: 'codigo',
+  ux_cliente_fiscal: 'identificadorFiscal',
+  ck_cliente_condicion_pago: 'condicionPagoDias',
+  ck_cliente_estado: 'estado',
+  cliente_pais_fkey: 'pais',
+  cliente_moneda_facturacion_fkey: 'monedaFacturacion',
 };
 
 export function traducirErrorDb(error: unknown): ErrorAccion {

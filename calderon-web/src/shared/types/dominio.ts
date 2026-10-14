@@ -8,6 +8,7 @@
 export type Id<Marca extends string> = number & { readonly __marca: Marca };
 export type CamionId = Id<'Camion'>;
 export type ChoferId = Id<'Chofer'>;
+export type ClienteId = Id<'Cliente'>;
 
 /** numeric de PostgreSQL como texto exacto. Nunca se convierte a number para operar. */
 export type DecimalStr = string & { readonly __decimal: true };

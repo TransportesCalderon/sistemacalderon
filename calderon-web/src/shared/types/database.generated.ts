@@ -3,7 +3,7 @@
  *
  * ESTE ARCHIVO SE REGENERA con `npm run gen:types` (Supabase CLI) a partir del proyecto
  * desplegado. Esta versión inicial es un subconjunto escrito a mano con lo que usan el
- * núcleo (sesión y topbar) y los módulos Flota > Camiones y Flota > Choferes, con la misma forma que produce
+ * núcleo (sesión y topbar) y los módulos Flota (Camiones, Choferes) y Comercial (Clientes), con la misma forma que produce
  * la CLI. Al regenerar se reemplaza completo; no editar a mano.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -73,6 +73,33 @@ type ChoferInsert = {
   pais_residencia: string;
   fecha_ingreso: string;
 } & Partial<Omit<ChoferRow, 'id' | 'legajo' | 'nombre' | 'apellido' | 'documento_tipo' | 'documento_numero' | 'pais_residencia' | 'fecha_ingreso'>>;
+
+type ClienteRow = {
+  id: number;
+  codigo: string;
+  razon_social: string;
+  identificador_fiscal: string;
+  pais: string;
+  moneda_facturacion: string;
+  condicion_pago_dias: number;
+  segmento: string | null;
+  estado: string;
+  creado_en: string;
+  creado_por: number | null;
+  actualizado_en: string;
+  actualizado_por: number | null;
+  eliminado_en: string | null;
+  eliminado_por: number | null;
+  version_fila: number;
+};
+
+type ClienteInsert = {
+  codigo: string;
+  razon_social: string;
+  identificador_fiscal: string;
+  pais: string;
+  moneda_facturacion: string;
+} & Partial<Omit<ClienteRow, 'id' | 'codigo' | 'razon_social' | 'identificador_fiscal' | 'pais' | 'moneda_facturacion'>>;
 
 export type Database = {
   ref: {
@@ -173,6 +200,12 @@ export type Database = {
         Update: Partial<Omit<ChoferRow, 'id'>>;
         Relationships: [];
       };
+      cliente: {
+        Row: ClienteRow;
+        Insert: ClienteInsert;
+        Update: Partial<Omit<ClienteRow, 'id'>>;
+        Relationships: [];
+      };
       ubicacion: TablaSoloLectura<{
         id: number;
         codigo: string;
@@ -184,6 +217,10 @@ export type Database = {
       }>;
     };
     Views: {
+      v_cliente: {
+        Row: { [K in keyof ClienteRow]: ClienteRow[K] | null };
+        Relationships: [];
+      };
       v_chofer: {
         Row: { [K in keyof ChoferRow]: ChoferRow[K] | null };
         Relationships: [];

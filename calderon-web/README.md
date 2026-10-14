@@ -1,7 +1,7 @@
 # Transportes Calderón — frontend (Next.js 15)
 
 Proyecto base: autenticación con Supabase, sesión, permisos por rol, menú lateral dinámico y barra superior.
-Módulos de negocio implementados: **Flota > Camiones** y **Flota > Choferes**. El resto de las entradas del menú muestran
+Módulos de negocio implementados: **Flota > Camiones**, **Flota > Choferes** y **Comercial > Clientes**. El resto de las entradas del menú muestran
 "Módulo en construcción" (con la verificación de permisos ya aplicada).
 
 ## Requisitos
@@ -114,6 +114,32 @@ Documento (dato personal):
   `aud.fn_registrar_acceso_sensible` y recién entonces lo lee; se oculta a los 60 s y no se guarda en caché.
 - Cambiarlo en la edición requiere `flota.documento_chofer:editar` (RR. HH.); se escribe sin leer el anterior.
 - Se normaliza (sin puntos ni espacios) y se valida el dígito verificador de CUIL y RUT.
+
+## Módulo Comercial > Clientes
+
+Sobre la tabla `mae.cliente` (lista desde `mae.v_cliente`). Ver con `comercial.clientes:ver`; alta y edición con
+`comercial.clientes:editar` (Operaciones y Finanzas).
+
+| Ruta | Pantalla |
+| --- | --- |
+| `/comercial/clientes` | Lista: búsqueda por código, razón social o CUIT/RUT; filtros por estado, país, moneda y segmento |
+| `/comercial/clientes/nuevo` | Alta (P-CLI-01); avisa clientes con nombre parecido mientras se escribe la razón social |
+| `/comercial/clientes/[id]` | Ficha, pestaña Datos (Servicios, Ingresos, Rentabilidad y Auditoría llegan con sus módulos) |
+| `/comercial/clientes/[id]/editar` | Edición con control de versión; inactivar o bloquear es un cambio de estado |
+
+- Identificador fiscal único por país: CUIT (AR) o RUT (CL), normalizado y con dígito verificador.
+- La moneda de facturación se propone según el país (`ref.pais.moneda_defecto`).
+- Un cliente bloqueado no se ofrecerá al crear servicios comerciales (módulo Operación).
+
+```text
+src/modules/comercial/
+├─ domain/          cliente.types.ts, cliente.schemas.ts, cliente.lista.ts, identificador-fiscal.ts
+├─ repositories/    cliente.repository.ts, catalogo-comercial.repository.ts (ref.pais, ref.moneda)
+├─ services/        cliente.service.ts
+├─ actions/         cliente.actions.ts
+├─ queries/         keys.ts, hooks.ts, precarga.ts
+└─ components/      clientes/ lista, ficha, formulario, chip de estado
+```
 
 ## Pendiente para próximas etapas
 
