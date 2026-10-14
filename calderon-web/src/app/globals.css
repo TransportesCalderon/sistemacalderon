@@ -1,0 +1,36 @@
+@import 'tailwindcss';
+
+/* Tokens de diseño del ERP. Colores por rol, no por tono: se cambian aquí y se propagan. */
+@theme {
+  --color-fondo: #f6f7f9;
+  --color-panel: #ffffff;
+  --color-borde: #e3e6eb;
+  --color-hover: #f0f2f5;
+  --color-tinta: #1b2330;
+  --color-tinta-suave: #5d6878;
+  --color-marca: #0f5fa8;
+  --color-marca-suave: #e7f0fa;
+  --color-alerta: #9a5b00;
+  --color-alerta-suave: #fff6e5;
+  --color-error: #b42318;
+  --color-error-suave: #fdecea;
+  --color-exito: #1e7a45;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-fondo);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
