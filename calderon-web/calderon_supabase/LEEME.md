@@ -11,7 +11,8 @@ y del inicio de sesión de Supabase con el modelo.
 | `sql_editor/04_depositos_combustible.sql` | Combustible > Depósitos: mochila y tanque de base con saldo, libro de movimientos y controles (solo estructura, sin datos) |
 | `sql_editor/05_correccion_avisos_cierre.sql` | Corrección: el cálculo del cierre ya no falla cuando tiene que mostrar avisos (viaje sin telemetría, sin km) |
 | `sql_editor/06_cierre_viaje_depositos.sql` | Migración 24: cierre de viaje con depósitos (rediseño de las secciones 15 a 20). Solo estructura y parámetros provisionales |
-| `supabase/migrations/` | Lo mismo en 17 migraciones, para la CLI de Supabase (`supabase db push`) |
+| `sql_editor/07_ajuste_saldo_deposito.sql` | Ajuste menor de la 24 (vista de saldos y descripciones de parámetros provisionales). Sin datos; se puede ejecutar más de una vez |
+| `supabase/migrations/` | Lo mismo en 18 migraciones, para la CLI de Supabase (`supabase db push`) |
 
 ## Instalación desde el panel
 
@@ -23,6 +24,7 @@ y del inicio de sesión de Supabase con el modelo.
 3b. **SQL Editor** → ejecutar `04_depositos_combustible.sql`.
 3c. **SQL Editor** → ejecutar `05_correccion_avisos_cierre.sql`.
 3d. **SQL Editor** → ejecutar `06_cierre_viaje_depositos.sql` (una sola vez). Si encuentra cierres, depósitos, controles o movimientos, se cancela sin cambiar nada.
+3e. **SQL Editor** → ejecutar `07_ajuste_saldo_deposito.sql`.
 4. **Project Settings → Data API → Exposed schemas**: agregar `ref, mae, ops, fue, tel, ana, fin, aud, seg`.
 5. **Authentication → Hooks → Customize Access Token (JWT) Claims**: elegir la función `seg.fn_custom_access_token`.
 6. **Authentication → Users → Add user**: crear el usuario (email y contraseña).
