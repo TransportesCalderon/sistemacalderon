@@ -1,10 +1,14 @@
-# Proyecto completo calderon-web (16/10/2026 · migración 26)
+# Proyecto completo calderon-web (18/10/2026 · migraciones 26 y 27)
 
 Este zip trae el proyecto **entero**: Camiones, Choferes, Clientes y Combustible
-(Cargas, Movimientos del camión, Viajes, Cierres). No hace falta ningún zip anterior.
+(Cargas, Movimientos del camión, Viajes, Cierres con acta para firmar) y los Tanques del camión en Flota.
+No hace falta ningún zip anterior.
 
-**Orden:** primero aplicar la migración 26 en Supabase (zip `migracion_26.zip`) y después subir este proyecto.
-Si se sube el proyecto antes, las pantallas de Combustible muestran errores hasta que se aplique la migración.
+**Orden:** primero aplicar la migración 27 en Supabase (zip `migracion_27.zip`; la 26 ya la tenés) y después subir
+este proyecto. Si se sube antes, la sección Tanques de la ficha del camión muestra un error hasta aplicar la migración.
+
+**Esta vez no hay que borrar nada**: solo se agregan archivos nuevos y se reemplazan algunos. La lista de abajo
+es la de la vez anterior; si ya la borraste, saltá el paso 2.
 No incluye claves: las variables siguen configuradas en Vercel como hasta ahora.
 
 ## Cómo subirlo a GitHub (desde la página web)
@@ -35,4 +39,4 @@ Nota: GitHub no sube archivos que empiezan con punto si los arrastrás desde alg
 ## Qué NO hacer
 
 - No subas ningún archivo `.env.local` ni claves.
-- En Supabase solo hace falta la migración 26 (ver `migracion_26.zip`).
+- En Supabase solo hace falta la migración 27 (ver `migracion_27.zip`).

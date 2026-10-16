@@ -16,6 +16,27 @@ type TablaSoloLectura<Row> = {
   Relationships: [];
 };
 
+/** mae.tanque_combustible (migraciones 03 y 27). */
+type TanqueCombustibleRow = {
+  id: number;
+  camion_id: number;
+  numero_tanque: number;
+  tipo: string;
+  descripcion: string | null;
+  capacidad_nominal_l: number;
+  capacidad_util_l: number;
+  tolerancia_sobrecarga_pct: number;
+  vigente_desde: string;
+  vigente_hasta: string | null;
+  creado_en: string;
+  creado_por: number | null;
+  actualizado_en: string;
+  actualizado_por: number | null;
+  eliminado_en: string | null;
+  eliminado_por: number | null;
+  version_fila: number;
+};
+
 type CamionRow = {
   id: number;
   codigo_interno: string;
@@ -486,8 +507,35 @@ export type Database = {
         region: string | null;
         eliminado_en: string | null;
       }>;
+      tanque_combustible: {
+        Row: TanqueCombustibleRow;
+        /** numero_tanque lo asigna la base si no se informa (migración 27). */
+        Insert: {
+          camion_id: number;
+          tipo: string;
+          descripcion?: string | null;
+          numero_tanque?: number;
+          capacidad_nominal_l: number;
+          capacidad_util_l: number;
+          tolerancia_sobrecarga_pct?: number;
+          vigente_desde: string;
+          vigente_hasta?: string | null;
+        };
+        /** Solo descripción, cierre de la vigencia y eliminación lógica: el resto es inmutable. */
+        Update: {
+          descripcion?: string | null;
+          vigente_hasta?: string | null;
+          eliminado_en?: string | null;
+          version_fila?: number;
+        };
+        Relationships: [];
+      };
     };
     Views: {
+      v_capacidad_camion: {
+        Row: { camion_id: number | null; tanques: number | null; capacidad_util_l: number | null; capacidad_nominal_l: number | null };
+        Relationships: [];
+      };
       v_cliente: {
         Row: { [K in keyof ClienteRow]: ClienteRow[K] | null };
         Relationships: [];
@@ -501,6 +549,20 @@ export type Database = {
         Relationships: [];
       };
     };
+    Functions: {
+      fn_cambiar_capacidad_tanque: {
+        Args: { p_tanque: number; p_desde: string; p_capacidad_nominal_l: number; p_capacidad_util_l: number };
+        Returns: number;
+      };
+    };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
+  seg: {
+    Tables: {
+      usuario: TablaSoloLectura<{ id: number; nombre: string }>;
+    };
+    Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

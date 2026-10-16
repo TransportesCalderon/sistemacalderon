@@ -12,8 +12,9 @@ import type { CamionId } from '@/shared/types/dominio';
 import { ETIQUETA_PROPIETARIO } from '../../domain/camion.types';
 import { useCamion, useCatalogosFlota } from '../../queries/hooks';
 import { EstadoCamionChip } from './estado-camion';
+import { TanquesCamion } from './tanques-camion';
 
-/** Pestañas de la ficha según la especificación (P-MAE-01). Solo Datos está disponible en esta etapa. */
+/** Pestañas de la ficha según la especificación (P-MAE-01). Disponibles: Datos y Tanques (sección de esta misma página). */
 const PESTANAS = [
   'Datos',
   'Tanques',
@@ -103,17 +104,23 @@ export function CamionFicha({ id }: { id: CamionId }) {
         <ul className="flex min-w-max gap-1 border-b border-borde">
           {PESTANAS.map((p, i) => (
             <li key={p}>
-              <span
-                aria-current={i === 0 ? 'page' : undefined}
-                aria-disabled={i === 0 ? undefined : true}
-                title={i === 0 ? undefined : 'Disponible cuando se incorpore el módulo correspondiente'}
-                className={cn(
-                  'block border-b-2 px-3 py-2 text-sm whitespace-nowrap',
-                  i === 0 ? 'border-marca font-medium text-marca' : 'cursor-not-allowed border-transparent text-tinta-suave/60',
-                )}
-              >
-                {p}
-              </span>
+              {p === 'Tanques' ? (
+                <a href="#tanques" className="block border-b-2 border-transparent px-3 py-2 text-sm whitespace-nowrap text-tinta hover:text-marca">
+                  {p}
+                </a>
+              ) : (
+                <span
+                  aria-current={i === 0 ? 'page' : undefined}
+                  aria-disabled={i === 0 ? undefined : true}
+                  title={i === 0 ? undefined : 'Disponible cuando se incorpore el módulo correspondiente'}
+                  className={cn(
+                    'block border-b-2 px-3 py-2 text-sm whitespace-nowrap',
+                    i === 0 ? 'border-marca font-medium text-marca' : 'cursor-not-allowed border-transparent text-tinta-suave/60',
+                  )}
+                >
+                  {p}
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -155,6 +162,8 @@ export function CamionFicha({ id }: { id: CamionId }) {
           <Dato etiqueta="Versión">{camion.versionFila}</Dato>
         </Seccion>
       </div>
+
+      <TanquesCamion camion={camion} />
 
       <p className="text-xs text-tinta-suave">
         El consumo de referencia es una base teórica: no reemplaza la línea base real calculada con los datos del camión.

@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { browserDb } from '@/shared/supabase/browser';
 import type { CamionId, ChoferId } from '@/shared/types/dominio';
 import { crearCamion, editarCamion } from '../actions/camion.actions';
+import { cambiarCapacidadTanque, crearTanque, darDeBajaTanque, editarDescripcionTanque, eliminarTanque } from '../actions/tanque.actions';
 import { crearChofer, editarChofer, revelarDocumentoChofer } from '../actions/chofer.actions';
 import type { CamionEdicionInput, CamionFormInput } from '../domain/camion.schemas';
 import type { Camion, CamionListaParams } from '../domain/camion.types';
@@ -51,6 +52,30 @@ export function useEditarCamion() {
     onSuccess: (r) => (r.ok ? alGuardar(r.data) : undefined),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Tanques del camión (migración 27)
+// ---------------------------------------------------------------------------
+
+export function useTanques(camionId: CamionId) {
+  return useQuery(camionesQueries.tanques(browserDb(), camionId));
+}
+
+/** Cada mutación de tanques devuelve el ActionResult y, si salió bien, vuelve a leer tanques y capacidad. */
+function useMutacionTanque<I extends { camionId: number }, R extends { ok: boolean }>(accion: (input: I) => Promise<R>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: accion,
+    onSuccess: (r, input) =>
+      r.ok ? qc.invalidateQueries({ queryKey: camionesQueries.tanques(browserDb(), input.camionId as CamionId).queryKey }) : undefined,
+  });
+}
+
+export const useCrearTanque = () => useMutacionTanque(crearTanque);
+export const useCambiarCapacidadTanque = () => useMutacionTanque(cambiarCapacidadTanque);
+export const useDarDeBajaTanque = () => useMutacionTanque(darDeBajaTanque);
+export const useEliminarTanque = () => useMutacionTanque(eliminarTanque);
+export const useEditarDescripcionTanque = () => useMutacionTanque(editarDescripcionTanque);
 
 // ---------------------------------------------------------------------------
 // Choferes

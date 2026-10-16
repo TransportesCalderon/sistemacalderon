@@ -7,6 +7,7 @@ import type { ChoferListaParams } from '../domain/chofer.types';
 import { camionRepository } from '../repositories/camion.repository';
 import { catalogoFlotaRepository } from '../repositories/catalogo-flota.repository';
 import { choferRepository } from '../repositories/chofer.repository';
+import { tanqueRepository } from '../repositories/tanque.repository';
 
 /**
  * Claves y opciones de React Query del módulo Flota (arquitectura §12).
@@ -26,6 +27,13 @@ export const camionesQueries = {
     queryOptions({
       queryKey: [...camionesQueries.todas(), 'detalle', id] as const,
       queryFn: () => camionRepository(db).obtener(id),
+      staleTime: FRESCURA.maestro,
+    }),
+  /** Tanques del camión y su capacidad total (migración 27). */
+  tanques: (db: Db, id: CamionId) =>
+    queryOptions({
+      queryKey: [...camionesQueries.todas(), 'tanques', id] as const,
+      queryFn: () => tanqueRepository(db).delCamion(id),
       staleTime: FRESCURA.maestro,
     }),
 };

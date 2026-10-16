@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Ban, CircleAlert, FilePlus2, LoaderCircle, RefreshCw, ShieldCheck, Stamp, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, Ban, CircleAlert, FilePlus2, FileText, LoaderCircle, RefreshCw, ShieldCheck, Stamp, TriangleAlert } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
@@ -51,6 +51,11 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
         <h1 className="text-2xl font-semibold text-tinta">Cierre {cierre.numero}</h1>
         <EstadoCierreChip estado={cierre.estado} />
         {esBorrador && <span className="text-sm text-tinta-suave">Resultado en vivo: cambia si cambian las cargas o los controles del viaje.</span>}
+        {cierre.aprobadoEn && (
+          <a href={`/combustible/cierres/${cierre.id}/acta`} target="_blank" rel="noopener" className={`${BOTON_SECUNDARIO} ml-auto`}>
+            <FileText className="size-4" /> Acta para firmar
+          </a>
+        )}
       </header>
 
       <Identificacion cierre={cierre} resultado={resultado} />

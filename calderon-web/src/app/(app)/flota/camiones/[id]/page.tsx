@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { requirePermiso } from '@/modules/core/auth/guards';
 import { CamionFicha } from '@/modules/flota/components/camiones/camion-ficha';
-import { catalogosFlotaQueries } from '@/modules/flota/queries/keys';
+import { camionesQueries, catalogosFlotaQueries } from '@/modules/flota/queries/keys';
 import { idDeRuta, precargarCamion } from '@/modules/flota/queries/precarga';
 
 type Props = { params: Promise<{ id: string }> };
@@ -23,7 +23,7 @@ export default async function CamionPage({ params }: Props) {
 
   const { db, qc, camion } = await precargarCamion(id);
   if (!camion) notFound();
-  await qc.prefetchQuery(catalogosFlotaQueries.obtener(db));
+  await Promise.all([qc.prefetchQuery(catalogosFlotaQueries.obtener(db)), qc.prefetchQuery(camionesQueries.tanques(db, id))]);
 
   return (
     <HydrationBoundary state={dehydrate(qc)}>

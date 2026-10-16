@@ -84,15 +84,15 @@ alta y edición con `flota.camiones:editar` (Operaciones y TI).
 | --- | --- |
 | `/flota/camiones` | Lista con búsqueda, filtros (estado, propietario, país, combustible, eliminados), orden y paginación en la URL |
 | `/flota/camiones/nuevo` | Alta (F-MAE-01) |
-| `/flota/camiones/[id]` | Ficha, pestaña Datos (las demás pestañas llegan con sus módulos) |
+| `/flota/camiones/[id]` | Ficha: Datos y **Tanques** (migración 27: alta, cambio de capacidad con vigencia, baja con fecha, eliminación por error; capacidad total que calcula la base). Las demás pestañas llegan con sus módulos |
 | `/flota/camiones/[id]/editar` | Edición con control de versión; incluye la baja operativa (estado Inactivo + fecha de baja) |
 
 ```text
 src/modules/flota/
-├─ domain/          camion.types.ts (dominio y CHECK), camion.schemas.ts (Zod), camion.lista.ts (filtros ⇄ URL)
-├─ repositories/    camion.repository.ts, catalogo-flota.repository.ts (ref.tipo_combustible, ref.pais)
+├─ domain/          camion.types.ts (dominio y CHECK), camion.schemas.ts (Zod), camion.lista.ts (filtros ⇄ URL), tanque.*
+├─ repositories/    camion.repository.ts, tanque.repository.ts, catalogo-flota.repository.ts (ref.tipo_combustible, ref.pais)
 ├─ services/        camion.service.ts (crear, editar)
-├─ actions/         camion.actions.ts (crearCamion, editarCamion)
+├─ actions/         camion.actions.ts (crearCamion, editarCamion), tanque.actions.ts
 ├─ queries/         keys.ts, hooks.ts (useCamiones, useCamion, useCrearCamion, useEditarCamion), precarga.ts
 └─ components/      camiones/ lista, ficha, formulario, chip de estado
 ```
@@ -168,7 +168,8 @@ tolerancia no se imputa; por encima exige justificación y se imputa el faltante
 | `/combustible/movimientos/nuevo` | Alta de un movimiento del camión. `?camion=` | `movimientos:editar` |
 | `/combustible/viajes` | `fue.v_viaje` directo: camión, corte inicial y final, situación; «Crear borrador» o abrir el cierre | `combustible.cierre_viaje` |
 | `/combustible/cierres` | Lista de cierres (número, camión, responsable, fechas, diferencia, imputable, estado) | `combustible.cierre_viaje` |
-| `/combustible/cierres/[id]` | Identificación, Combustible del camión, Resultado, Verificación; Guardar borrador, Actualizar límites, Aprobar, Anular | ver / editar / transicionar |
+| `/combustible/cierres/[id]` | Identificación, Combustible del camión, Resultado, Verificación; Guardar borrador, Actualizar límites, Aprobar, Anular; «Acta para firmar» | ver / editar / transicionar |
+| `/combustible/cierres/[id]/acta` | Acta del cierre aprobado para imprimir o guardar como PDF (desde el navegador): valores congelados, justificación, aprobador y firmas de chofer y supervisor. Sin menú; sin test de alcohol | ver |
 
 **Arquitectura** (`src/modules/combustible/`)
 
@@ -191,6 +192,10 @@ components/    comun/ (Chip, ErrorBase, AccionConMotivo, Paginador…), cargas/,
 - La verificación (`fue.fn_verificar_cierre`) no es un estado: Verificado / Con diferencias / Con avisos.
 - El test de alcohol es dato sensible: solo lo ven quienes editan o aprueban cierres.
 - Parámetros de `fue.parametro` (tolerancia del camión 20 L, base 20 L, frecuencia 24 h, relevo «avisar»): **provisionales**.
+- La tolerancia `fue.cierre_tolerancia_camion_l` es configurable: la empresa puede modificarla. Cada cierre guarda al aprobarse la
+  tolerancia que usó (`tolerancia_l`), así que un cambio posterior no altera los cierres ya aprobados.
+- Migración 27: para declarar un faltante en el corte el camión tiene que tener sus tanques cargados (Flota > Camiones > Tanques)
+  a la fecha de la carga, y el faltante no puede superar su capacidad útil total.
 
 **Plan por etapas**
 

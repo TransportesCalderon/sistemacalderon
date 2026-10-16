@@ -14,6 +14,7 @@ export type CargaId = Id<'Carga'>;
 export type DepositoId = Id<'Deposito'>;
 export type MovimientoCamionId = Id<'MovimientoCamion'>;
 export type SolicitudId = Id<'Solicitud'>;
+export type TanqueId = Id<'Tanque'>;
 
 /** numeric de PostgreSQL como texto exacto. Nunca se convierte a number para operar. */
 export type DecimalStr = string & { readonly __decimal: true };
