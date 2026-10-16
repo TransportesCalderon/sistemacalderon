@@ -19,6 +19,15 @@ describe('matriz de permisos (especificación §16)', () => {
     }
   });
 
+  it('TI puede hacer todo en las pantallas de negocio (para probar el sistema), salvo Auditoría', () => {
+    const ti = permisosDe(['ti'], agregado);
+    for (const p of ['combustible.cargas:editar', 'combustible.cargas:transicionar', 'combustible.movimientos:editar',
+      'combustible.cierre_viaje:transicionar', 'flota.camiones:editar'] as const) {
+      expect(can(ti, p), p).toBe(true);
+    }
+    expect(can(ti, 'auditoria.accesos:ver')).toBe(false);
+  });
+
   it('administración de combustible valida cargas; operaciones no', () => {
     expect(can(permisosDe(['adm_combustible'], agregado), 'combustible.cargas:transicionar')).toBe(true);
     expect(can(permisosDe(['operaciones'], agregado), 'combustible.cargas:transicionar')).toBe(false);

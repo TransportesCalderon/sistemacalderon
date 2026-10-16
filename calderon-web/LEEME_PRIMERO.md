@@ -8,6 +8,9 @@ No hace falta ningún zip anterior.
 **Orden:** primero aplicar la migración 27 en Supabase (zip `migracion_27.zip`; la 26 ya la tenés) y después subir
 este proyecto. Si se sube antes, la sección Tanques de la ficha del camión muestra un error hasta aplicar la migración.
 
+El rol **TI** ahora puede hacer todo en las pantallas de negocio (salvo Auditoría). Después de subirlo, cerrá sesión
+y volvé a entrar.
+
 **Esta vez no hay que borrar nada**: solo se agregan archivos nuevos y se reemplazan algunos. La lista de abajo
 es la de la vez anterior; si ya la borraste, saltá el paso 2.
 No incluye claves: las variables siguen configuradas en Vercel como hasta ahora.

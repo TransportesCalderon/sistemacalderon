@@ -72,7 +72,9 @@ src/
    `ver`, `editar` y `transicionar`, cada uno con alcance `todo` o `propio` (chofer).
 3. El permiso se controla en cuatro lugares con la misma matriz: middleware (URL), layout (menú),
    `createAction` (server actions) y `<Can>` / `useCan` (botones). La base de datos aplica la quinta barrera.
-4. Para agregar un módulo: crear su carpeta en `src/app/(app)/<grupo>/<pantalla>` (reemplaza al marcador)
+4. **TI puede hacer todo** en las pantallas de negocio (decisión de la empresa, para probar el sistema completo),
+   salvo Auditoría. Igual que cualquiera, no puede aprobar lo que registró: eso lo controla la base.
+5. Para agregar un módulo: crear su carpeta en `src/app/(app)/<grupo>/<pantalla>` (reemplaza al marcador)
    y llamar `requirePermiso('<pantalla>:ver')` al principio de la página.
 
 ## Módulo Flota > Camiones
