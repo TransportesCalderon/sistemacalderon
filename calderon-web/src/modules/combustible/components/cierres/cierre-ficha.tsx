@@ -107,12 +107,12 @@ function Identificacion({ cierre, resultado }: { cierre: CierreViaje; resultado:
           {!cierre.datos.choferResponsableId && propuesto && <span className="block text-xs text-tinta-suave">Propuesto por la base: {propuesto}</span>}
         </Dato>
         <Dato etiqueta="Línea">{resultado?.lineaViaje ?? '—'}</Dato>
-        <Dato etiqueta="Salida (frontera inicial)">
+        <Dato etiqueta="Salida (corte inicial)">
           <Link href={`/combustible/cargas/${cierre.cargaSalidaId}`} className="text-marca hover:underline">
             {formatearFechaHora(cierre.salidaTs, zonaHoraria)}
           </Link>
         </Dato>
-        <Dato etiqueta="Llegada (frontera final)">
+        <Dato etiqueta="Llegada (corte final)">
           <Link href={`/combustible/cargas/${cierre.cargaLlegadaId}`} className="text-marca hover:underline">
             {formatearFechaHora(cierre.llegadaTs, zonaHoraria)}
           </Link>

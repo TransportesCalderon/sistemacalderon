@@ -38,10 +38,10 @@ export interface Mochila {
 export const ROLES_CONTROL = ['inicial', 'llegada', 'intermedio', 'base'] as const;
 export type RolControl = (typeof ROLES_CONTROL)[number];
 export const esRolControl = esDe(ROLES_CONTROL);
-/** Inicial · de frontera (control de llegada de una parada) · intermedio (referencia dentro de un viaje). */
+/** Inicial · en el corte de viaje (control de llegada de una parada) · intermedio (referencia dentro de un viaje). */
 export const ETIQUETA_ROL_CONTROL: Record<RolControl, string> = {
   inicial: 'Inicial',
-  llegada: 'De frontera',
+  llegada: 'En el corte',
   intermedio: 'Intermedio',
   base: 'De base',
 };

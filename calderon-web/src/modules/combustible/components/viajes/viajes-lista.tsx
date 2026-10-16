@@ -53,7 +53,7 @@ export function ViajesLista() {
     <div className="space-y-5">
       <Encabezado titulo="Viajes" />
       <p className="text-sm text-tinta-suave">
-        Un viaje va de una frontera a la siguiente del mismo camión. Si un cierre se anula, el viaje vuelve a figurar sin cierre.
+        Un viaje va de un corte de viaje al siguiente del mismo camión. Si un cierre se anula, el viaje vuelve a figurar sin cierre.
       </p>
 
       <section className={cn(TARJETA, 'flex flex-wrap items-center gap-2 p-3')} aria-label="Filtros">
@@ -97,15 +97,15 @@ export function ViajesLista() {
         ) : isPending ? (
           <Cargando texto="Cargando viajes…" />
         ) : data.filas.length === 0 ? (
-          <Vacio icono={<Route className="size-6" />} texto={hayFiltros ? 'Ningún viaje coincide con los filtros.' : 'Todavía no hay viajes: se arman con las cargas marcadas como frontera.'} />
+          <Vacio icono={<Route className="size-6" />} texto={hayFiltros ? 'Ningún viaje coincide con los filtros.' : 'Todavía no hay viajes: se arman con las cargas marcadas como corte de viaje.'} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm">
               <thead className="border-b border-borde bg-fondo text-left text-xs font-medium tracking-wide text-tinta-suave uppercase">
                 <tr>
                   <th className="px-3 py-2.5">Camión</th>
-                  <th className="px-3 py-2.5">Frontera inicial</th>
-                  <th className="px-3 py-2.5">Frontera final</th>
+                  <th className="px-3 py-2.5">Corte inicial</th>
+                  <th className="px-3 py-2.5">Corte final</th>
                   <th className="px-3 py-2.5">Situación</th>
                   <th className="px-3 py-2.5">Cierre</th>
                 </tr>

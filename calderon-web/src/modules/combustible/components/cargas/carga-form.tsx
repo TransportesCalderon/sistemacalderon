@@ -215,7 +215,7 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" className="mt-0.5 size-4 accent-marca" {...register('esFrontera')} />
                 <span>
-                  <span className="font-medium">Frontera de viaje</span>
+                  <span className="font-medium">Corte de viaje</span>
                   <span className="block text-xs text-tinta-suave">
                     Este llenado termina una vuelta y empieza la siguiente. No se puede cambiar después: se corrige anulando la carga.
                   </span>
@@ -248,7 +248,7 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
                 <option value="">Sin parada</option>
                 {paradas?.map((p) => (
                   <option key={p.id} value={p.id}>
-                    #{p.id} · {formatearFechaHora(p.fechaHora, zonaHoraria)} · {formatearNumero(p.litros)} L{p.esFrontera ? ' · frontera' : ''}
+                    #{p.id} · {formatearFechaHora(p.fechaHora, zonaHoraria)} · {formatearNumero(p.litros)} L{p.esFrontera ? ' · corte de viaje' : ''}
                     {p.estacion ? ` · ${p.estacion}` : ''}
                   </option>
                 ))}

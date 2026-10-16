@@ -34,7 +34,7 @@ export function CargaFicha({ id }: { id: CargaId }) {
           {carga.esFrontera && (
             <>
               <Chip tono="marca">
-                <Flag className="size-3" /> Frontera
+                <Flag className="size-3" /> Corte de viaje
               </Chip>
               <RolViajeChips rol={carga.rolViaje} />
             </>
@@ -118,11 +118,11 @@ function Parada({ carga }: { carga: Carga }) {
       {suelta && (
         <div className="space-y-2 text-sm">
           {carga.aparteConfirmada ? (
-            <p>Carga suelta confirmada como aparte de la parada frontera cercana.</p>
+            <p>Carga suelta confirmada como aparte del corte de viaje cercano.</p>
           ) : (
             <>
               <p className="text-tinta-suave">
-                Carga de mochila sin parada. Si está cerca de una frontera en la misma estación, el cierre la marca como ambigua hasta que
+                Carga de mochila sin parada. Si está cerca de un corte de viaje en la misma estación, el cierre la marca como ambigua hasta que
                 se confirme que es aparte (o se anule y se registre ligada a la parada).
               </p>
               <Can permiso="combustible.cargas:editar">

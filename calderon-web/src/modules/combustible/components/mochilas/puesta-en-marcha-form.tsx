@@ -80,11 +80,11 @@ export function PuestaEnMarchaForm({ camionId }: { camionId: number }) {
     <form onSubmit={enviar} noValidate className="space-y-4 rounded-lg border border-borde p-4">
       <h3 className="font-medium text-tinta">Puesta en marcha de mochila</h3>
       <p className="text-sm text-tinta-suave">
-        La vigencia empieza en una parada frontera del camión. El control inicial es la medición del saldo en ese momento.
+        La vigencia empieza en un corte de viaje del camión. El control inicial es la medición del saldo en ese momento.
       </p>
       <ErrorBase error={error} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Campo label="Parada frontera de inicio *" error={e.paradaDesdeId?.message}>
+        <Campo label="Corte de viaje de inicio *" error={e.paradaDesdeId?.message}>
           <select {...register('paradaDesdeId')}>
             <OpcionesParada camionId={camionId} />
           </select>

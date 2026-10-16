@@ -11,7 +11,7 @@ import { useParadas } from '../../queries/hooks';
 import { ErrorBase } from '../comun/ui';
 
 /** Opciones de paradas del camión, para usar dentro de un <select> registrado en un formulario. */
-export function OpcionesParada({ camionId, soloFronteras = true, vacio = 'Elegí la parada frontera…' }: { camionId: number; soloFronteras?: boolean; vacio?: string }) {
+export function OpcionesParada({ camionId, soloFronteras = true, vacio = 'Elegí el corte de viaje…' }: { camionId: number; soloFronteras?: boolean; vacio?: string }) {
   const { zonaHoraria } = useSesion();
   const { data, isPending } = useParadas(camionId, soloFronteras);
   return (
@@ -32,7 +32,7 @@ export function SelectorParada({
   value,
   onChange,
   soloFronteras = true,
-  vacio = 'Elegí la parada frontera…',
+  vacio = 'Elegí el corte de viaje…',
   className,
   id,
 }: {

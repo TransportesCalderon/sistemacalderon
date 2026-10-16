@@ -203,7 +203,7 @@ function ControlForm({ camionId, mochila, reemplaza, onCerrar }: { camionId: num
         <fieldset className="flex flex-wrap gap-4 text-sm">
           <legend className="sr-only">Tipo de control</legend>
           <label className="flex items-center gap-2">
-            <input type="radio" value="llegada" className="accent-marca" {...register('tipo')} /> De frontera (al llegar a una parada frontera)
+            <input type="radio" value="llegada" className="accent-marca" {...register('tipo')} /> En el corte de viaje (al llegar, antes de cargar)
           </label>
           <label className="flex items-center gap-2">
             <input type="radio" value="intermedio" className="accent-marca" {...register('tipo')} /> Intermedio (referencia dentro del viaje)
@@ -213,7 +213,7 @@ function ControlForm({ camionId, mochila, reemplaza, onCerrar }: { camionId: num
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {esInicial || tipo === 'llegada' ? (
-          <Campo label="Parada frontera *" error={e.cargaParadaId?.message}>
+          <Campo label="Corte de viaje *" error={e.cargaParadaId?.message}>
             <select {...register('cargaParadaId')}>
               <OpcionesParada camionId={camionId} />
             </select>

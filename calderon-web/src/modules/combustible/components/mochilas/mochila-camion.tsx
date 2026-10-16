@@ -126,7 +126,7 @@ function UsosMochila({ camionId }: { camionId: number }) {
               etiqueta="Cerrar uso"
               icono={<CircleStop className="size-4" />}
               titulo="Cerrar el uso de mochila"
-              explicacion="El uso termina en la parada frontera que elijas."
+              explicacion="El uso termina en el corte de viaje que elijas."
               ocupado={cerrar.isPending}
               onConfirmar={async (paradaHastaId) => {
                 const r = await cerrar.mutateAsync({ usoId: abierto.id, versionFila: abierto.versionFila, paradaHastaId });
@@ -139,7 +139,7 @@ function UsosMochila({ camionId }: { camionId: number }) {
               etiqueta="Registrar uso"
               icono={<Play className="size-4" />}
               titulo="Registrar uso de mochila"
-              explicacion="El camión usa mochila a partir de la parada frontera que elijas."
+              explicacion="El camión usa mochila a partir del corte de viaje que elijas."
               ocupado={registrar.isPending}
               onConfirmar={async (paradaDesdeId) => {
                 const r = await registrar.mutateAsync({ camionId, paradaDesdeId });
@@ -222,7 +222,7 @@ function TablaMochilas({
             etiqueta="Cerrar vigencia"
             icono={<Rocket className="size-4 rotate-180" />}
             titulo={`Cerrar la vigencia de ${vigente.codigo}`}
-            explicacion="La mochila deja de estar vigente en la parada frontera que elijas (la base fija la hora)."
+            explicacion="La mochila deja de estar vigente en el corte de viaje que elijas (la base fija la hora)."
             ocupado={cerrar.isPending}
             onConfirmar={async (paradaHastaId) => {
               const r = await cerrar.mutateAsync({ depositoId: vigente.id, versionFila: vigente.versionFila, paradaHastaId });

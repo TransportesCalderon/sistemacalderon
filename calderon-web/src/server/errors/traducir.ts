@@ -53,7 +53,7 @@ export const MENSAJES_RESTRICCION: Record<string, string> = {
   ck_cv_anulado: 'Escribí el motivo de la anulación.',
   ex_carga_duplicada: 'Ya hay una carga del mismo camión, con la misma hora y los mismos litros.',
   ex_carga_llenado_instante: 'Ya hay otro llenado del tractor de ese camión en el mismo instante: indicá la hora real.',
-  ck_carga_frontera: 'Solo un llenado a tanque lleno del tractor, sin parada, puede ser frontera.',
+  ck_carga_frontera: 'Solo un llenado a tanque lleno del tractor, sin parada, puede ser corte de viaje.',
   ck_carga_aparte: 'Solo una carga de mochila sin parada se confirma como aparte.',
   ck_carga_destino_unico: 'Una carga va al tractor, al equipo de frío o a un depósito, no a varios.',
   ck_carga_deposito_no_lleno: 'Una carga a un depósito no es a tanque lleno.',

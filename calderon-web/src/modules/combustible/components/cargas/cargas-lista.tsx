@@ -75,7 +75,7 @@ export function CargasLista() {
         </label>
         <label className="flex h-9 items-center gap-2 px-1 text-sm text-tinta-suave">
           <input type="checkbox" className="size-4 accent-marca" checked={Boolean(params.soloFronteras)} onChange={(e) => actualizar({ soloFronteras: e.target.checked })} />
-          Solo fronteras
+          Solo cortes de viaje
         </label>
         {hayFiltros && (
           <button type="button" onClick={limpiar} className="flex h-9 items-center gap-1 rounded-md px-2 text-sm text-marca hover:bg-marca-suave">
@@ -103,7 +103,7 @@ export function CargasLista() {
                   <th className="px-3 py-2.5">Estación</th>
                   <th className="px-3 py-2.5">Destino</th>
                   <th className="px-3 py-2.5 text-right">Litros</th>
-                  <th className="px-3 py-2.5">Frontera</th>
+                  <th className="px-3 py-2.5">Corte de viaje</th>
                   <th className="px-3 py-2.5">Situación</th>
                 </tr>
               </thead>
@@ -128,7 +128,7 @@ export function CargasLista() {
                     <td className="px-3 py-2.5">
                       {c.esFrontera ? (
                         <span className="inline-flex flex-wrap items-center gap-1">
-                          <Flag className="size-3.5 text-marca" aria-label="Frontera" />
+                          <Flag className="size-3.5 text-marca" aria-label="Corte de viaje" />
                           <RolViajeChips rol={c.rolViaje} />
                         </span>
                       ) : (

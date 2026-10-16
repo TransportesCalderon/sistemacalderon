@@ -12,7 +12,7 @@ export type CerrarUsoInput = z.input<typeof cerrarUsoSchema>;
 
 /** Puesta en marcha: uso de mochila (si falta) + depósito + control inicial medido. */
 export const puestaEnMarchaFormSchema = z.object({
-  paradaDesdeId: idObligatorio('Elegí la parada frontera de puesta en marcha.'),
+  paradaDesdeId: idObligatorio('Elegí el corte de viaje de puesta en marcha.'),
   codigo: textoObligatorio(40, 'Indicá el código del depósito.'),
   nombre: textoObligatorio(120, 'Indicá el nombre.'),
   capacidadL: decimalTexto(false, 'Capacidad en litros.').refine((v) => v !== null && v > 0, 'La capacidad debe ser mayor que cero.'),
