@@ -4,9 +4,10 @@ import type { FechaDia } from '@/shared/types/dominio';
 import type { Eliminar, EstacionDatos, ParametroDatos, ProveedorDatos, TipoCambioDatos } from '../domain/catalogos.schemas';
 import {
   esTipoProveedor,
-  tasaDesdeCotizacion,
+  tasaDesde,
   tipoValor,
   type Estacion,
+  type ImportacionCotizacion,
   type Opcion,
   type Parametro,
   type Proveedor,
@@ -163,7 +164,7 @@ export const catalogosRepository = (db: Db) => {
         fecha: d.fecha,
         moneda_origen: d.moneda,
         moneda_destino: monedaBase,
-        tasa: tasaDesdeCotizacion(d.unidadesPorBase),
+        tasa: tasaDesde(d.valor, d.sentido),
         tipo: 'oficial',
         fuente: d.fuente,
       });
@@ -180,6 +181,35 @@ export const catalogosRepository = (db: Db) => {
         .maybeSingle();
       if (error) throw new RepoError(error);
       if (!data) throw new ConflictoVersion('fin.tipo_cambio', d.id);
+    },
+
+    /** Pide ahora la actualización automática (BCRA y Banco Central de Chile). */
+    async actualizarCotizaciones(): Promise<{ ok: boolean; insertadas: number; avisos: string[] }> {
+      const { data, error } = await db.schema('fin').rpc('fn_actualizar_cotizaciones', { p_dias: 10, p_origen: 'manual' });
+      if (error) throw new RepoError(error);
+      const r = (data ?? {}) as { ok?: boolean; insertadas?: number; avisos?: string[] };
+      return { ok: r.ok === true, insertadas: r.insertadas ?? 0, avisos: r.avisos ?? [] };
+    },
+    async importaciones(): Promise<ImportacionCotizacion[]> {
+      const { data, error } = await db
+        .schema('fin')
+        .from('importacion_cotizacion')
+        .select('id, ejecutado_en, origen, ok, insertadas, detalle')
+        .order('ejecutado_en', { ascending: false })
+        .limit(5);
+      if (error) throw new RepoError(error);
+      return data.map((f) => ({
+        id: f.id,
+        ejecutadoEn: f.ejecutado_en,
+        origen: f.origen === 'programada' ? 'programada' : 'manual',
+        ok: f.ok,
+        insertadas: f.insertadas,
+        detalle: f.detalle,
+      }));
+    },
+    async definirMonedaBase(codigo: string): Promise<void> {
+      const { error } = await db.schema('ref').rpc('fn_definir_moneda_base', { p_codigo: codigo });
+      if (error) throw new RepoError(error);
     },
 
     // ------------------------------------------------------------ parámetros

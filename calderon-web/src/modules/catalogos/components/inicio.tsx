@@ -24,7 +24,8 @@ export function CatalogosInicio() {
   const { data: cotizaciones } = useTiposCambio();
   const { data: parametros } = useParametros();
   const deHoy = new Set((cotizaciones ?? []).filter((t) => t.fecha === hoy).map((t) => t.moneda));
-  const faltan = ['ARS', 'CLP'].filter((m) => !deHoy.has(m));
+  const { monedaBase } = useSesion();
+  const faltan = ['USD', 'ARS', 'CLP'].filter((m) => m !== monedaBase && !deHoy.has(m));
   const provisionales = (parametros ?? []).filter((p) => p.provisional && !p.obsoleto).length;
 
   return (
@@ -41,7 +42,7 @@ export function CatalogosInicio() {
           {estaciones === undefined ? '…' : estaciones.length === 0 ? <Falta>Sin estaciones: no se pueden registrar cargas</Falta> : `${estaciones.length} cargadas`}
         </Tarjeta>
         <Tarjeta href="/finanzas/tipos-cambio" permiso="finanzas.tipos_cambio:ver" icono={<Coins className="size-5" />} titulo="Tipos de cambio">
-          {cotizaciones === undefined ? '…' : faltan.length === 0 ? 'Cotizaciones de hoy cargadas (ARS y CLP)' : <Falta>Falta la de hoy: {faltan.join(' y ')}</Falta>}
+          {cotizaciones === undefined ? '…' : faltan.length === 0 ? `Cotizaciones de hoy cargadas (hacia ${monedaBase ?? '—'})` : <Falta>Sin la de hoy: {faltan.join(' y ')} (las cargas usan la última de hasta 4 días)</Falta>}
         </Tarjeta>
         <Tarjeta href="/configuracion/parametros" permiso="configuracion.catalogos:ver" icono={<SlidersHorizontal className="size-5" />} titulo="Parámetros">
           {parametros === undefined ? '…' : provisionales > 0 ? <Falta>{provisionales === 1 ? '1 provisional' : `${provisionales} provisionales`} por confirmar</Falta> : 'Todos confirmados'}

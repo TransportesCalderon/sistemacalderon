@@ -125,7 +125,7 @@ export const CAMPO_RESTRICCION: Record<string, string> = {
   ux_estacion_codigo: 'codigo',
   ck_estacion_proveedor: 'proveedorId',
   ux_tc_fecha_par_tipo: 'fecha',
-  ck_tc_tasa: 'unidadesPorBase',
+  ck_tc_tasa: 'valor',
   ux_chofer_legajo: 'legajo',
   ux_chofer_documento: 'documentoNumero',
   ux_chofer_optifleet: 'idConductorOptifleet',

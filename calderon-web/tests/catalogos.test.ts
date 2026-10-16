@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { estacionSchema, normalizarDecimal, proveedorSchema, tipoCambioSchema } from '@/modules/catalogos/domain/catalogos.schemas';
-import { cotizacionDesdeTasa, tasaDesdeCotizacion, tipoValor } from '@/modules/catalogos/domain/catalogos.types';
+import { cotizacionLegible, tasaDesde, tipoValor } from '@/modules/catalogos/domain/catalogos.types';
 import { traducirErrorDb } from '@/server/errors/traducir';
 
 describe('catálogos (migración 28)', () => {
@@ -11,12 +11,17 @@ describe('catálogos (migración 28)', () => {
     expect(normalizarDecimal(' 1 234,5 ')).toBe('1234.5');
   });
 
-  it('cotización: la pantalla pide 1 USD = X; la base guarda la inversa con 8 decimales', () => {
-    expect(tasaDesdeCotizacion(950)).toBe(0.00105263);
-    expect(Math.round(cotizacionDesdeTasa(0.00105263))).toBe(950);
-    const r = tipoCambioSchema.parse({ fecha: '2026-10-18', moneda: 'CLP', unidadesPorBase: '950,5', fuente: '' });
-    expect(r).toEqual({ fecha: '2026-10-18', moneda: 'CLP', unidadesPorBase: 950.5, fuente: null });
-    expect(tipoCambioSchema.safeParse({ fecha: '2026-10-18', moneda: 'CLP', unidadesPorBase: '0', fuente: '' }).success).toBe(false);
+  it('cotización: se escribe en el sentido que se lee; la base guarda unidades de la base por 1 de la moneda', () => {
+    expect(tasaDesde(984.09, 'directa')).toBe(984.09); // 1 USD = 984,09 CLP con base CLP
+    expect(tasaDesde(950, 'inversa')).toBe(0.00105263); // 1 USD = 950 CLP con base USD
+    expect(cotizacionLegible('USD', 'CLP', 984.09)).toEqual({ uno: 'USD', valor: 984.09, otra: 'CLP' });
+    expect(cotizacionLegible('ARS', 'CLP', 0.6418)).toEqual({ uno: 'ARS', valor: 0.6418, otra: 'CLP' });
+    const inv = cotizacionLegible('CLP', 'USD', 0.00105263);
+    expect(inv.uno).toBe('USD');
+    expect(Math.round(inv.valor)).toBe(950);
+    const r = tipoCambioSchema.parse({ fecha: '2026-10-18', moneda: 'USD', sentido: 'directa', valor: '984,09', fuente: '' });
+    expect(r).toEqual({ fecha: '2026-10-18', moneda: 'USD', sentido: 'directa', valor: 984.09, fuente: null });
+    expect(tipoCambioSchema.safeParse({ fecha: '2026-10-18', moneda: 'USD', sentido: 'directa', valor: '0', fuente: '' }).success).toBe(false);
   });
 
   it('proveedor y estación: código en mayúsculas, vacíos a null; la regla del proveedor la aplica la base', () => {

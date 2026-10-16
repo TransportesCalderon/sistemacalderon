@@ -152,11 +152,14 @@ Lo que necesita la operación antes de registrar cargas. Entrada: **Configuraci�
 | `/configuracion/catalogos` | Tarjetas con el estado de cada catálogo (faltan estaciones, falta la cotización de hoy, parámetros provisionales) | `configuracion.catalogos` |
 | `/comercial/proveedores` | Alta, edición y eliminación de proveedores | `comercial.proveedores` (Adm. de combustible, Finanzas, TI) |
 | `/comercial/estaciones` | Estaciones de servicio: proveedor obligatorio salvo surtidor propio; el país define la zona horaria de la carga | `comercial.proveedores` |
-| `/finanzas/tipos-cambio` | Cotización oficial por día y moneda («1 USD = X»); aviso si falta la de hoy en ARS o CLP | `finanzas.tipos_cambio` (Finanzas, TI) |
+| `/finanzas/tipos-cambio` | Cotizaciones hacia la moneda base: automáticas (BCRA minorista y dólar observado del BCCh, dos veces por día), «Actualizar ahora», resultado de las últimas actualizaciones y carga a mano | `finanzas.tipos_cambio` (Finanzas, TI) |
+| `/configuracion/monedas` | Monedas y moneda base («Usar como moneda base»: solo sin importes registrados) | `configuracion.catalogos` (TI) |
 | `/configuracion/parametros` | Valor y descripción de cada parámetro; marca los provisionales; oculta los obsoletos | `configuracion.catalogos` (TI) |
 
-- Una carga en otra moneda usa la cotización **del mismo día** (en la zona horaria del país de la estación). Si falta, la base
-  la rechaza diciendo qué cotización cargar. Una cotización que ya usaron cargas no se elimina.
+- Una carga en otra moneda usa la **última cotización de hasta 4 días** (`fin.cotizacion_antiguedad_max_dias`, migración 29), según
+  el día en el país de la estación. Si no hay, la base la rechaza diciendo qué período falta. Una cotización usada no se elimina.
+- Cotizaciones automáticas (migración 29): tarea `cotizaciones` de pg_cron que llama a `fin.fn_actualizar_cotizaciones`. Con base CLP:
+  USD→CLP = dólar observado; ARS→CLP = observado ÷ minorista BCRA. Las credenciales del BCCh viven en Supabase Vault.
 - Un parámetro no cambia de tipo ni queda negativo o vacío; cada cambio queda en la auditoría y los cierres aprobados conservan
   la tolerancia que usaron.
 

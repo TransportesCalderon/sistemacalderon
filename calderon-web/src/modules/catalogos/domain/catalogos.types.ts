@@ -73,9 +73,31 @@ export function tipoValor(v: unknown): TipoValorParametro {
   return t === 'number' || t === 'string' || t === 'boolean' ? t : 'object';
 }
 
+/** Tasa que guarda la base (unidades de la moneda base por 1 de la moneda), con 8 decimales. */
+export function tasaDesde(valor: number, sentido: 'directa' | 'inversa'): number {
+  return Math.round((sentido === 'directa' ? valor : 1 / valor) * 1e8) / 1e8;
+}
+
 /**
- * La pantalla pide "1 USD = 950 CLP" (como se lee la cotización); la base guarda la inversa
- * (USD por 1 CLP) con 8 decimales. Conversión de unidades, no una regla.
+ * Forma legible de una cotización: "1 USD = 984,09 CLP" o "1 ARS = 0,6418 CLP". Si la tasa es
+ * muy chica (por ejemplo CLP con base USD), se muestra al revés: "1 USD = 950 CLP".
  */
-export const tasaDesdeCotizacion = (unidadesPorBase: number) => Math.round((1 / unidadesPorBase) * 1e8) / 1e8;
-export const cotizacionDesdeTasa = (tasa: number) => 1 / tasa;
+export function cotizacionLegible(moneda: string, base: string, tasa: number): { uno: string; valor: number; otra: string } {
+  return tasa >= 0.01 ? { uno: moneda, valor: tasa, otra: base } : { uno: base, valor: 1 / tasa, otra: moneda };
+}
+
+/** Resultado de una actualización automática (fin.importacion_cotizacion). */
+export interface ImportacionCotizacion {
+  id: number;
+  ejecutadoEn: string;
+  origen: 'programada' | 'manual';
+  ok: boolean;
+  insertadas: number;
+  detalle: string | null;
+}
+
+export interface Moneda {
+  codigo: string;
+  nombre: string;
+  esBase: boolean;
+}

@@ -3,7 +3,9 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { browserDb } from '@/shared/supabase/browser';
 import {
+  actualizarCotizaciones,
   crearTipoCambio,
+  definirMonedaBase,
   eliminarEstacion,
   eliminarProveedor,
   eliminarTipoCambio,
@@ -19,6 +21,7 @@ export const useProveedores = () => useQuery(catalogosQueries.proveedores(browse
 export const useEstaciones = () => useQuery(catalogosQueries.estaciones(browserDb()));
 export const useTiposCambio = (moneda?: string) => useQuery({ ...catalogosQueries.tiposCambio(browserDb(), moneda), placeholderData: keepPreviousData });
 export const useParametros = () => useQuery(catalogosQueries.parametros(browserDb()));
+export const useImportaciones = () => useQuery(catalogosQueries.importaciones(browserDb()));
 
 /**
  * Toda escritura de catálogos vuelve a leer los catálogos y también Combustible y Flota,
@@ -46,3 +49,5 @@ export const useEliminarEstacion = () => useEscritura(eliminarEstacion);
 export const useCrearTipoCambio = () => useEscritura(crearTipoCambio);
 export const useEliminarTipoCambio = () => useEscritura(eliminarTipoCambio);
 export const useGuardarParametro = () => useEscritura(guardarParametro);
+export const useActualizarCotizaciones = () => useEscritura(actualizarCotizaciones);
+export const useDefinirMonedaBase = () => useEscritura(definirMonedaBase);

@@ -59,15 +59,20 @@ export function normalizarDecimal(v: string): string {
   return t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t;
 }
 
-/** Cotización tal como la escribe la persona: "1 USD = 950,5 CLP". */
+/**
+ * Cotización tal como la escribe la persona, en el sentido que elija:
+ *  directa: "1 ARS = 0,64 CLP" (unidades de la moneda base por 1 de la moneda)
+ *  inversa: "1 USD = 950 CLP" con base USD (unidades de la moneda por 1 de la base)
+ */
 export const tipoCambioSchema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Indicá la fecha.'),
   moneda: z.string().regex(/^[A-Z]{3}$/, 'Elegí la moneda.'),
-  unidadesPorBase: z
+  sentido: z.enum(['directa', 'inversa']),
+  valor: z
     .string()
     .trim()
     .transform(normalizarDecimal)
-    .refine((v) => /^\d{1,9}(\.\d{1,6})?$/.test(v) && Number(v) > 0, 'Escribí la cotización (por ejemplo 950 o 5,42).')
+    .refine((v) => /^\d{1,9}(\.\d{1,8})?$/.test(v) && Number(v) > 0, 'Escribí la cotización (por ejemplo 984,09 o 0,64).')
     .transform(Number),
   fuente: opcional(100),
 });

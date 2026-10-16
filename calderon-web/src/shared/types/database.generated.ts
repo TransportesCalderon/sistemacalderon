@@ -459,6 +459,7 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       fn_moneda_base: { Args: Record<string, never>; Returns: string | null };
+      fn_definir_moneda_base: { Args: { p_codigo: string }; Returns: string };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
@@ -621,9 +622,21 @@ export type Database = {
   fin: {
     Tables: {
       tipo_cambio: TablaEditable<TipoCambioIns & Control & { id: number; fuente: string | null }, TipoCambioIns>;
+      importacion_cotizacion: TablaSoloLectura<{
+        id: number;
+        ejecutado_en: string;
+        origen: string;
+        desde: string;
+        hasta: string;
+        ok: boolean;
+        insertadas: number;
+        detalle: string | null;
+      }>;
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      fn_actualizar_cotizaciones: { Args: { p_dias?: number; p_origen?: string }; Returns: Json };
+    };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };

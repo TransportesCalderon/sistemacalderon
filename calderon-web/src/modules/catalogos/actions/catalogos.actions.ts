@@ -1,5 +1,6 @@
 'use server';
 
+import { z } from 'zod';
 import { createAction } from '@/server/actions/create-action';
 import { ErrorNegocio } from '@/shared/lib/errores';
 import { eliminarSchema, estacionSchema, parametroSchema, proveedorSchema, tipoCambioSchema } from '../domain/catalogos.schemas';
@@ -64,4 +65,19 @@ export const guardarParametro = createAction({
   schema: parametroSchema,
   handler: (d, { db }) => catalogosRepository(db).guardarParametro(d),
   invalida: () => ({ paths: ['/configuracion/parametros'] }),
+});
+
+export const actualizarCotizaciones = createAction({
+  permiso: 'finanzas.tipos_cambio:editar',
+  schema: z.object({}),
+  handler: (_d, { db }) => catalogosRepository(db).actualizarCotizaciones(),
+  invalida: () => ({ paths: ['/finanzas/tipos-cambio'] }),
+});
+
+/** La base solo la deja cambiar mientras no haya importes registrados. */
+export const definirMonedaBase = createAction({
+  permiso: 'configuracion.catalogos:editar',
+  schema: z.object({ codigo: z.string().regex(/^[A-Z]{3}$/) }),
+  handler: ({ codigo }, { db }) => catalogosRepository(db).definirMonedaBase(codigo),
+  invalida: () => ({ paths: ['/configuracion/monedas', '/finanzas/tipos-cambio', '/configuracion/catalogos'] }),
 });
