@@ -635,7 +635,7 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
-      fn_actualizar_cotizaciones: { Args: { p_dias?: number; p_origen?: string }; Returns: Json };
+      fn_actualizar_cotizaciones: { Args: { p_dias?: number; p_origen?: string; p_bcra?: Json }; Returns: Json };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

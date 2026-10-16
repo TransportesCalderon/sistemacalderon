@@ -184,8 +184,10 @@ export const catalogosRepository = (db: Db) => {
     },
 
     /** Pide ahora la actualización automática (BCRA y Banco Central de Chile). */
-    async actualizarCotizaciones(): Promise<{ ok: boolean; insertadas: number; avisos: string[] }> {
-      const { data, error } = await db.schema('fin').rpc('fn_actualizar_cotizaciones', { p_dias: 10, p_origen: 'manual' });
+    async actualizarCotizaciones(bcra: unknown | null): Promise<{ ok: boolean; insertadas: number; avisos: string[] }> {
+      const { data, error } = await db
+        .schema('fin')
+        .rpc('fn_actualizar_cotizaciones', { p_dias: 10, p_origen: 'manual', ...(bcra ? { p_bcra: bcra as Json } : {}) });
       if (error) throw new RepoError(error);
       const r = (data ?? {}) as { ok?: boolean; insertadas?: number; avisos?: string[] };
       return { ok: r.ok === true, insertadas: r.insertadas ?? 0, avisos: r.avisos ?? [] };
