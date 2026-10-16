@@ -1,7 +1,10 @@
-# Proyecto completo calderon-web (16/10/2026)
+# Proyecto completo calderon-web (16/10/2026 · migración 26)
 
 Este zip trae el proyecto **entero**: Camiones, Choferes, Clientes y Combustible
-(Cargas, Mochilas y controles, Viajes, Cierres). No hace falta ningún zip anterior.
+(Cargas, Movimientos del camión, Viajes, Cierres). No hace falta ningún zip anterior.
+
+**Orden:** primero aplicar la migración 26 en Supabase (zip `migracion_26.zip`) y después subir este proyecto.
+Si se sube el proyecto antes, las pantallas de Combustible muestran errores hasta que se aplique la migración.
 No incluye claves: las variables siguen configuradas en Vercel como hasta ahora.
 
 ## Cómo subirlo a GitHub (desde la página web)
@@ -14,6 +17,11 @@ No incluye claves: las variables siguen configuradas en Vercel como hasta ahora.
    - cualquier archivo cuyo nombre empiece con `cierre-viaje.` (dentro de `src/modules/combustible/` y `tests/`)
    - `src/modules/combustible/components/cierres/cierre-asistente.tsx`, `cierre-editar.tsx`,
      `cierre-planilla.tsx` y `campos-manuales.tsx`
+   - **nuevo:** todo lo que esté dentro de `src/app/(app)/combustible/mochilas/` y de
+     `src/modules/combustible/components/mochilas/`
+   - **nuevo:** `src/modules/combustible/domain/mochila.types.ts`, `mochila.schemas.ts`,
+     `src/modules/combustible/repositories/mochila.repository.ts`, `services/mochila.service.ts`,
+     `actions/mochila.actions.ts`
    Si no existen, no pasa nada.
 3. Volvé a la página principal del repositorio → **Add file → Upload files**.
 4. Abrí la carpeta `calderon-web` del zip, **seleccioná todo lo que hay adentro**
@@ -27,4 +35,4 @@ Nota: GitHub no sube archivos que empiezan con punto si los arrastrás desde alg
 ## Qué NO hacer
 
 - No subas ningún archivo `.env.local` ni claves.
-- No hace falta ejecutar nada en Supabase: las migraciones 24 y 25 ya están aplicadas.
+- En Supabase solo hace falta la migración 26 (ver `migracion_26.zip`).

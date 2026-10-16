@@ -19,13 +19,10 @@ export const borradorFormSchema = z.object({
   kmManual: decimalTexto(true),
   consumoPlataformaManualL: decimalTexto(true),
   motivoAjuste: textoOpcional(500),
-  tractorNoImputableL: decimalTexto(true).transform((v) => v ?? 0),
-  tractorNoImputableRalentiH: decimalTexto(true).transform((v) => v ?? 0),
-  tractorNoImputableMotivo: textoOpcional(500),
-  tractorJustificacion: textoOpcional(2000),
-  mochilaNoImputableL: decimalTexto(true).transform((v) => v ?? 0),
-  mochilaNoImputableMotivo: textoOpcional(500),
-  mochilaJustificacion: textoOpcional(2000),
+  noImputableL: decimalTexto(true).transform((v) => v ?? 0),
+  noImputableRalentiH: decimalTexto(true).transform((v) => v ?? 0),
+  noImputableMotivo: textoOpcional(500),
+  justificacion: textoOpcional(2000),
   observaciones: textoOpcional(2000),
 });
 export type BorradorFormEntrada = z.input<typeof borradorFormSchema>;
@@ -41,13 +38,10 @@ export function aFormularioBorrador(d: DatosBorrador): BorradorFormEntrada {
     kmManual: t(d.kmManual),
     consumoPlataformaManualL: t(d.consumoPlataformaManualL),
     motivoAjuste: d.motivoAjuste ?? '',
-    tractorNoImputableL: d.tractorNoImputableL ? t(d.tractorNoImputableL) : '',
-    tractorNoImputableRalentiH: d.tractorNoImputableRalentiH ? t(d.tractorNoImputableRalentiH) : '',
-    tractorNoImputableMotivo: d.tractorNoImputableMotivo ?? '',
-    tractorJustificacion: d.tractorJustificacion ?? '',
-    mochilaNoImputableL: d.mochilaNoImputableL ? t(d.mochilaNoImputableL) : '',
-    mochilaNoImputableMotivo: d.mochilaNoImputableMotivo ?? '',
-    mochilaJustificacion: d.mochilaJustificacion ?? '',
+    noImputableL: d.noImputableL ? t(d.noImputableL) : '',
+    noImputableRalentiH: d.noImputableRalentiH ? t(d.noImputableRalentiH) : '',
+    noImputableMotivo: d.noImputableMotivo ?? '',
+    justificacion: d.justificacion ?? '',
     observaciones: d.observaciones ?? '',
   };
 }
@@ -60,13 +54,10 @@ const datosBorrador = z.object({
   kmManual: z.number().nullable(),
   consumoPlataformaManualL: z.number().nullable(),
   motivoAjuste: z.string().nullable(),
-  tractorNoImputableL: z.number(),
-  tractorNoImputableRalentiH: z.number(),
-  tractorNoImputableMotivo: z.string().nullable(),
-  tractorJustificacion: z.string().nullable(),
-  mochilaNoImputableL: z.number(),
-  mochilaNoImputableMotivo: z.string().nullable(),
-  mochilaJustificacion: z.string().nullable(),
+  noImputableL: z.number(),
+  noImputableRalentiH: z.number(),
+  noImputableMotivo: z.string().nullable(),
+  justificacion: z.string().nullable(),
   observaciones: z.string().nullable(),
 });
 
@@ -77,7 +68,7 @@ export type CrearBorradorInput = z.input<typeof crearBorradorSchema>;
 export const guardarBorradorSchema = datosBorrador.extend({ id: id(), versionFila: version() });
 export type GuardarBorradorInput = z.input<typeof guardarBorradorSchema>;
 
-/** Vuelve a guardar el borrador para que la base tome la frontera de llegada vigente. */
+/** Vuelve a guardar el borrador para que la base tome el corte de llegada vigente. */
 export const actualizarLimitesSchema = z.object({ id: id(), versionFila: version() });
 export type ActualizarLimitesInput = z.input<typeof actualizarLimitesSchema>;
 

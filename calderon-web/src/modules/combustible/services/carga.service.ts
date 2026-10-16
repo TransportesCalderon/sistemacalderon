@@ -5,8 +5,8 @@ import { cargaRepository } from '../repositories/carga.repository';
 
 /**
  * Casos de uso de Cargas. Sin reglas propias: cada operación es una escritura o una
- * función de la base, que valida frontera, parada, mochila vigente, período cerrado y
- * aprobación por otro usuario (C3a).
+ * función de la base, que valida el corte de viaje, el faltante, el período cerrado y
+ * la aprobación por otro usuario (C3a).
  */
 export function cargaService(db: Db) {
   const repo = cargaRepository(db);
@@ -24,6 +24,5 @@ export function cargaService(db: Db) {
       await repo.retirarSolicitud(solicitudId);
       return cargaId;
     },
-    confirmarAparte: (cargaId: number, versionFila: number) => repo.confirmarAparte({ id: cargaId, versionFila }),
   };
 }

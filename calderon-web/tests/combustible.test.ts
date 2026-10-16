@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { parsearListaCargas, serializarListaCargas } from '@/modules/combustible/domain/carga.lista';
 import { resolverSolicitudSchema } from '@/modules/combustible/domain/carga.schemas';
-import { parsearResultado, parsearVerificacion } from '@/modules/combustible/domain/cierre.resultado';
+import { parsearResultado, parsearVerificacion, resultadoCongelado } from '@/modules/combustible/domain/cierre.resultado';
 import { aFormularioBorrador, borradorFormSchema } from '@/modules/combustible/domain/cierre.schemas';
 import { parsearListaCierres, resultadoVerificacion, serializarListaCierres, type DatosBorrador } from '@/modules/combustible/domain/cierre.types';
+import { cargaFormSchema } from '@/modules/combustible/domain/carga.schemas';
+import { movimientoConMotivoSchema, movimientoFormSchema } from '@/modules/combustible/domain/movimiento.schemas';
+import { parsearListaMovimientos, serializarListaMovimientos } from '@/modules/combustible/domain/movimiento.types';
 import { parsearListaViajes, serializarListaViajes } from '@/modules/combustible/domain/viaje.types';
 import { horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
 
@@ -43,29 +46,54 @@ describe('verificación: resultado, no estado', () => {
   });
 });
 
-describe('parsearResultado (fn_resultado_cierre)', () => {
-  it('solo renombra campos; números de texto se leen tal cual', () => {
+describe('parsearResultado (fn_resultado_cierre, migración 26)', () => {
+  it('solo renombra campos del camión; números de texto se leen tal cual', () => {
     const r = parsearResultado({
-      tractor: { consumo_llenado_l: '412.50', consumo_plataforma_l: 400, diferencia_l: 12.5, tolerancia_l: 10, imputable_l: 2.5 },
-      usa_mochila: true,
-      mochila: { deposito_id: 4, codigo: 'MOC-01', teorico_l: 300, fisico_l: 295, diferencia_l: 5, tolerancia_l: 10, control_llegada: { id: 9, litros: 295, fuente: 'medicion' } },
-      imputable_total_l: 2.5,
-      pendientes: [{ codigo: 'falta_control', mensaje: 'Falta el control de llegada' }],
-      avisos: ['Viaje largo'],
+      camion: {
+        cargas_l: '1350.00', entradas_l: 20, salidas_l: 300, faltante_salida_l: 0, faltante_llegada_l: 50, libro_l: 1120,
+        consumo_plataforma_l: 1080, diferencia_l: 40, tolerancia_l: 20, no_imputable_l: 15, imputable_l: 25,
+      },
+      imputable_total_l: 25,
+      pendientes: [{ codigo: 'justificacion', mensaje: 'Escribí la justificación' }],
+      avisos: ['El corte de llegada declara 50 L de faltante'],
     });
-    expect(r.tractor.consumoLlenadoL).toBe(412.5);
-    expect(r.tractor.diferenciaL).toBe(12.5);
-    expect(r.tractor.kmRecorridos).toBeNull();
-    expect(r.mochila?.depositoCodigo).toBe('MOC-01');
-    expect(r.mochila?.controlLlegada).toEqual({ id: 9, litros: 295, fuente: 'medicion' });
-    expect(r.pendientes).toEqual([{ codigo: 'falta_control', mensaje: 'Falta el control de llegada' }]);
-    expect(r.avisos).toEqual(['Viaje largo']);
+    expect(r.versionCalculo).toBe(2);
+    expect(r.camion.cargasL).toBe(1350);
+    expect(r.camion.libroL).toBe(1120);
+    expect(r.camion.diferenciaL).toBe(40);
+    expect(r.camion.kmRecorridos).toBeNull();
+    expect(r.imputableTotalL).toBe(25);
+    expect(r.anterior).toBeNull();
+    expect(r.pendientes).toEqual([{ codigo: 'justificacion', mensaje: 'Escribí la justificación' }]);
+    expect(r.avisos).toEqual(['El corte de llegada declara 50 L de faltante']);
   });
-  it('sin mochila y con JSON vacío no rompe', () => {
+  it('con JSON vacío no rompe', () => {
     const r = parsearResultado({});
-    expect(r.mochila).toBeNull();
-    expect(r.usaMochila).toBeNull();
+    expect(r.camion.libroL).toBeNull();
     expect(r.pendientes).toEqual([]);
+  });
+});
+
+describe('resultadoCongelado (columnas al aprobar)', () => {
+  const base = {
+    cargas_l: null, entradas_l: null, salidas_l: null, faltante_salida_l: null, faltante_llegada_l: null, libro_l: null,
+    diferencia_l: null, tolerancia_l: null, consumo_plataforma_l: 830, fuente_consumo_plataforma: 'manual', km_recorridos: 2000,
+    fuente_km: 'manual', consumo_l_100km: null, horas_motor: null, horas_ralenti: null, dias_parado: 0, tractor_no_imputable_l: 0,
+    tractor_diferencia_l: null, mochila_diferencia_l: null, imputable_total_l: 30, linea_viaje: null, chofer_responsable_id: 1,
+    carga_llegada_id: 2, detalle: { avisos: ['x'] }, calculado_en: null,
+  };
+  it('v2: el cálculo del camión', () => {
+    const r = resultadoCongelado({ ...base, version_calculo: 2, libro_l: 1120, diferencia_l: 40, tolerancia_l: 20, imputable_total_l: 25 });
+    expect(r.versionCalculo).toBe(2);
+    expect(r.camion.libroL).toBe(1120);
+    expect(r.camion.imputableL).toBe(25);
+    expect(r.anterior).toBeNull();
+    expect(r.avisos).toEqual(['x']);
+  });
+  it('v1: un cierre del modelo anterior muestra sus dos diferencias', () => {
+    const r = resultadoCongelado({ ...base, version_calculo: 1, tractor_diferencia_l: 20, mochila_diferencia_l: 10 });
+    expect(r.versionCalculo).toBe(1);
+    expect(r.anterior).toEqual({ tractorDiferenciaL: 20, mochilaDiferenciaL: 10 });
   });
 });
 
@@ -88,8 +116,8 @@ describe('formularios (solo forma)', () => {
   it('borrador: ida y vuelta con coma decimal', () => {
     const datos: DatosBorrador = {
       choferResponsableId: null, motivoChofer: null, programadorVelocidadPct: 87.5, testAlcohol: 'negativo', kmManual: null,
-      consumoPlataformaManualL: null, motivoAjuste: null, tractorNoImputableL: 0, tractorNoImputableRalentiH: 0, tractorNoImputableMotivo: null,
-      tractorJustificacion: null, mochilaNoImputableL: 12.25, mochilaNoImputableMotivo: 'Derrame', mochilaJustificacion: null, observaciones: null,
+      consumoPlataformaManualL: null, motivoAjuste: null, noImputableL: 12.25, noImputableRalentiH: 0, noImputableMotivo: 'Derrame',
+      justificacion: null, observaciones: null,
     };
     const f = aFormularioBorrador(datos);
     expect(f.programadorVelocidadPct).toBe('87,5');
@@ -98,5 +126,33 @@ describe('formularios (solo forma)', () => {
   it('rechazar una anulación pide motivo; aprobar no', () => {
     expect(resolverSolicitudSchema.safeParse({ solicitudId: 1, aprobar: false, motivo: '' }).success).toBe(false);
     expect(resolverSolicitudSchema.safeParse({ solicitudId: 1, aprobar: true, motivo: '' }).success).toBe(true);
+  });
+});
+
+describe('movimientos del camión y faltante (solo forma)', () => {
+  it('lista de movimientos ⇄ URL', () => {
+    const p = parsearListaMovimientos(new URLSearchParams('camion=3&tipo=descarga_base&pagina=2'));
+    expect(p).toEqual({ pagina: 2, camionId: 3, tipo: 'descarga_base' });
+    expect(parsearListaMovimientos(new URLSearchParams(serializarListaMovimientos(p)))).toEqual(p);
+    expect(parsearListaMovimientos({ tipo: 'ajuste' }).tipo).toBeUndefined();
+  });
+  it('formulario de movimiento: litros positivos y coma decimal', () => {
+    const base = { clase: 'descarga_base', camionId: '1', fechaHoraLocal: '2026-10-16T08:00', depositoBaseId: '4', camionDestinoId: '',
+      categoria: '', choferId: '', motivo: '', evidencia: '' };
+    expect(movimientoFormSchema.parse({ ...base, litros: '200,5' }).litros).toBe(200.5);
+    expect(movimientoFormSchema.safeParse({ ...base, litros: '0' }).success).toBe(false);
+  });
+  it('movimiento con motivo: categoría del catálogo y motivo obligatorio', () => {
+    const d = { camionId: 1, litros: 30, fechaHora: '2026-10-16T11:00:00Z', evidencia: null, choferId: null };
+    expect(movimientoConMotivoSchema.safeParse({ ...d, categoria: 'derrame', motivo: 'en ruta' }).success).toBe(true);
+    expect(movimientoConMotivoSchema.safeParse({ ...d, categoria: 'derrame', motivo: '' }).success).toBe(false);
+    expect(movimientoConMotivoSchema.safeParse({ ...d, categoria: 'compra_granel', motivo: 'x' }).success).toBe(false);
+  });
+  it('carga: el faltante vacío es 0', () => {
+    const f = { camionId: '1', choferId: '', estacionId: '2', fechaHoraLocal: '2026-10-16T08:00', litros: '450', precioUnitario: '1',
+      moneda: 'ARS', importeOriginal: '450', medioPago: 'tarjeta', odometroKm: '', tanqueLleno: true, esFrontera: true,
+      faltanteObservacion: '' };
+    expect(cargaFormSchema.parse({ ...f, faltanteLlenoL: '' }).faltanteLlenoL).toBe(0);
+    expect(cargaFormSchema.parse({ ...f, faltanteLlenoL: '50' }).faltanteLlenoL).toBe(50);
   });
 });

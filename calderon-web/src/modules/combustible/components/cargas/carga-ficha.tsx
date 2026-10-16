@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Ban, Check, Flag, Undo2, X } from 'lucide-react';
-import { Can, useCan } from '@/modules/core/permissions/can';
+import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
 import { formatearFechaHora } from '@/shared/lib/fechas';
@@ -11,11 +11,11 @@ import { conUnidad, formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import type { CargaId } from '@/shared/types/dominio';
 import { ETIQUETA_ESTADO_VALIDACION, ETIQUETA_MEDIO_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
-import { useCarga, useConfirmarAparte, useResolverSolicitud, useRetirarSolicitud, useSolicitarAnulacion } from '../../queries/hooks';
+import { useCarga, useResolverSolicitud, useRetirarSolicitud, useSolicitarAnulacion } from '../../queries/hooks';
 import { AccionConMotivo, Cargando, Chip, Dato, ErrorBase, ErrorLectura, Seccion } from '../comun/ui';
 import { DestinoCarga, RolViajeChips, SituacionCargaChip } from './chips-carga';
 
-/** Ficha de carga: datos, parada, rol en el viaje y anulación con aprobación de otro usuario. */
+/** Ficha de carga: datos, corte de viaje (con su faltante) y anulación con aprobación de otro usuario. */
 export function CargaFicha({ id }: { id: CargaId }) {
   const { zonaHoraria } = useSesion();
   const { data: carga, isPending, isError, refetch } = useCarga(id);
@@ -69,6 +69,12 @@ export function CargaFicha({ id }: { id: CargaId }) {
           </Dato>
           <Dato etiqueta="Documento">{carga.tieneDocumento ? 'Sí' : 'No'}</Dato>
           <Dato etiqueta="Registrada">{formatearFechaHora(carga.creadoEn, zonaHoraria)}</Dato>
+          {carga.esFrontera && (
+            <Dato etiqueta="Le faltaron para quedar lleno">
+              {conUnidad(carga.faltanteLlenoL, 'L')}
+              {carga.faltanteObservacion && <span className="block text-xs text-tinta-suave">{carga.faltanteObservacion}</span>}
+            </Dato>
+          )}
           {carga.anulaId && (
             <Dato etiqueta="Reemplaza a">
               <Link href={`/combustible/cargas/${carga.anulaId}`} className="text-marca hover:underline">
@@ -79,74 +85,13 @@ export function CargaFicha({ id }: { id: CargaId }) {
         </dl>
       </Seccion>
 
-      <Parada carga={carga} />
-      <Anulacion carga={carga} onRecargar={() => refetch()} />
-    </div>
-  );
-}
-
-function Parada({ carga }: { carga: Carga }) {
-  const confirmar = useConfirmarAparte();
-  const [error, setError] = useState<ErrorAccion | null>(null);
-  const suelta = carga.destino === 'mochila' && carga.cargaPrincipalId === null;
-  if (!carga.cargaPrincipalId && carga.cargasDeLaParada.length === 0 && !suelta) return null;
-
-  return (
-    <Seccion titulo="Parada">
-      {carga.cargaPrincipalId && (
-        <p className="text-sm">
-          Parte de la parada del llenado{' '}
-          <Link href={`/combustible/cargas/${carga.cargaPrincipalId}`} className="text-marca hover:underline">
-            #{carga.cargaPrincipalId}
-          </Link>
-          {carga.mismoTicket ? ' (mismo ticket)' : ' (ticket propio)'}.
+      {carga.destino === 'mochila_anterior' && (
+        <p className="text-sm text-tinta-suave">
+          Carga registrada a la mochila con el modelo anterior: cuenta como carga del camión, igual que las demás.
         </p>
       )}
-      {carga.cargasDeLaParada.length > 0 && (
-        <ul className="space-y-1 text-sm">
-          {carga.cargasDeLaParada.map((h) => (
-            <li key={h.id}>
-              <Link href={`/combustible/cargas/${h.id}`} className="text-marca hover:underline">
-                Carga #{h.id}
-              </Link>{' '}
-              · {conUnidad(h.litros, 'L')} a {h.depositoCodigo ?? 'depósito'}
-              {h.estadoValidacion === 'anulada' && <span className="ml-1 text-error">(anulada)</span>}
-            </li>
-          ))}
-        </ul>
-      )}
-      {suelta && (
-        <div className="space-y-2 text-sm">
-          {carga.aparteConfirmada ? (
-            <p>Carga suelta confirmada como aparte del corte de viaje cercano.</p>
-          ) : (
-            <>
-              <p className="text-tinta-suave">
-                Carga de mochila sin parada. Si está cerca de un corte de viaje en la misma estación, el cierre la marca como ambigua hasta que
-                se confirme que es aparte (o se anule y se registre ligada a la parada).
-              </p>
-              <Can permiso="combustible.cargas:editar">
-                {carga.situacion === 'normal' && (
-                  <button
-                    type="button"
-                    className={BOTON_SECUNDARIO}
-                    disabled={confirmar.isPending}
-                    onClick={async () => {
-                      setError(null);
-                      const r = await confirmar.mutateAsync({ cargaId: carga.id, versionFila: carga.versionFila });
-                      if (!r.ok) setError(r.error);
-                    }}
-                  >
-                    <Check className="size-4" /> Confirmar que es aparte
-                  </button>
-                )}
-              </Can>
-              <ErrorBase error={error} />
-            </>
-          )}
-        </div>
-      )}
-    </Seccion>
+      <Anulacion carga={carga} onRecargar={() => refetch()} />
+    </div>
   );
 }
 

@@ -24,11 +24,17 @@ describe('matriz de permisos (especificación §16)', () => {
     expect(can(permisosDe(['operaciones'], agregado), 'combustible.cargas:transicionar')).toBe(false);
   });
 
-  it('la puesta en marcha de una mochila es solo de TI (la base exige tc_admin)', () => {
+  it('movimientos del camión: Base Mendoza registra; aprueba Adm. de combustible', () => {
+    expect(can(permisosDe(['base_mendoza'], agregado), 'combustible.movimientos:editar')).toBe(true);
+    expect(can(permisosDe(['base_mendoza'], agregado), 'combustible.movimientos:transicionar')).toBe(false);
+    expect(can(permisosDe(['adm_combustible'], agregado), 'combustible.movimientos:transicionar')).toBe(true);
+    expect(can(permisosDe(['chofer'], agregado), 'combustible.movimientos:ver')).toBe(false);
+  });
+
+  it('el alta de un tanque de base es solo de TI (la base exige tc_admin)', () => {
     for (const rol of ORDEN_COLUMNAS) {
       expect(can(permisosDe([rol], agregado), 'combustible.depositos:transicionar'), rol).toBe(rol === 'ti');
     }
-    expect(can(permisosDe(['base_mendoza'], agregado), 'combustible.depositos:editar')).toBe(true);
   });
 
   it('el chofer tiene alcance propio en sus cargas', () => {

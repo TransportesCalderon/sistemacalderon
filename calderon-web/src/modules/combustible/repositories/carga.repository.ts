@@ -1,4 +1,4 @@
-import { ConflictoVersion, RepoError, rangoPagina, type Db, type Pagina, type Versionado } from '@/shared/repository/types';
+import { RepoError, rangoPagina, type Db, type Pagina } from '@/shared/repository/types';
 import type { Database } from '@/shared/types/db';
 import type { CamionId, CargaId, ChoferId, DepositoId, FechaISO, SolicitudId } from '@/shared/types/dominio';
 import { diaSiguiente, num } from '../domain/comun';
@@ -10,7 +10,6 @@ import {
   type CargaListaParams,
   type CargaResumen,
   type DestinoCarga,
-  type ParadaOpcion,
   type RolEnViaje,
   type SituacionCarga,
   type SolicitudPendiente,
@@ -19,13 +18,13 @@ import { nombresDe } from './catalogo-combustible.repository';
 
 /**
  * Repositorio de cargas (fue.carga_combustible y fue.v_carga_combustible).
- * Escribe solo el alta y la confirmación "carga aparte"; la anulación pasa por
- * fue.fn_solicitar_anulacion_carga / fn_resolver_solicitud (C3a: la aprueba otro usuario).
+ * Escribe solo el alta; la anulación pasa por fue.fn_solicitar_anulacion_carga /
+ * fn_resolver_solicitud (C3a: la aprueba otro usuario).
  */
 type Fila = Database['fue']['Tables']['carga_combustible']['Row'];
 
 const COLS =
-  'id, camion_id, chofer_id, estacion_id, fecha_hora, tipo_combustible_id, litros, precio_unitario, moneda, importe_original, importe_moneda_base, odometro_km, tanque_lleno, tanque_reefer_id, medio_pago, tiene_documento, origen_dato, estado_validacion, motivo_observacion, anula_id, motivo_anulacion, deposito_id, carga_principal_id, es_frontera, aparte_confirmada, mismo_ticket, creado_en, version_fila';
+  'id, camion_id, chofer_id, estacion_id, fecha_hora, tipo_combustible_id, litros, precio_unitario, moneda, importe_original, importe_moneda_base, odometro_km, tanque_lleno, tanque_reefer_id, medio_pago, tiene_documento, origen_dato, estado_validacion, motivo_observacion, anula_id, motivo_anulacion, deposito_id, es_frontera, faltante_lleno_l, faltante_observacion, creado_en, version_fila';
 type FilaCarga = Pick<
   Fila,
   | 'id'
@@ -50,10 +49,9 @@ type FilaCarga = Pick<
   | 'anula_id'
   | 'motivo_anulacion'
   | 'deposito_id'
-  | 'carga_principal_id'
   | 'es_frontera'
-  | 'aparte_confirmada'
-  | 'mismo_ticket'
+  | 'faltante_lleno_l'
+  | 'faltante_observacion'
   | 'creado_en'
   | 'version_fila'
 >;
@@ -75,7 +73,7 @@ async function solicitudesPendientes(db: Db, cargaIds?: number[]): Promise<Map<n
   );
 }
 
-/** Qué viajes abre o cierra cada frontera, según fue.v_viaje. */
+/** Qué viajes abre o cierra cada corte de viaje, según fue.v_viaje. */
 async function rolesEnViaje(db: Db, fronteraIds: number[]): Promise<Map<number, RolEnViaje>> {
   const roles = new Map<number, RolEnViaje>();
   if (fronteraIds.length === 0) return roles;
@@ -96,8 +94,8 @@ async function rolesEnViaje(db: Db, fronteraIds: number[]): Promise<Map<number, 
 
 function destinoDe(f: Pick<FilaCarga, 'deposito_id' | 'tanque_reefer_id'>, tipoDeposito: string | undefined): DestinoCarga {
   if (f.tanque_reefer_id !== null) return 'frio';
-  if (f.deposito_id === null) return 'tractor';
-  return tipoDeposito === 'tanque_base' ? 'deposito' : 'mochila';
+  if (f.deposito_id === null) return 'camion';
+  return tipoDeposito === 'tanque_base' ? 'deposito' : 'mochila_anterior';
 }
 
 async function enriquecer(db: Db, filas: FilaCarga[]): Promise<{ resumen: CargaResumen[]; solicitudes: Map<number, SolicitudPendiente> }> {
@@ -131,7 +129,7 @@ async function enriquecer(db: Db, filas: FilaCarga[]): Promise<{ resumen: CargaR
       esFrontera: f.es_frontera,
       destino: destinoDe(f, deposito?.tipo),
       depositoCodigo: deposito?.codigo ?? null,
-      cargaPrincipalId: f.carga_principal_id as CargaId | null,
+      faltanteLlenoL: Number(f.faltante_lleno_l),
       estadoValidacion: estado,
       situacion,
       rolViaje: roles.get(f.id) ?? { inicia: false, termina: false },
@@ -170,14 +168,11 @@ export const cargaRepository = (db: Db) => ({
     if (error) throw new RepoError(error);
     if (!data) return null;
     const f = data as FilaCarga;
-    const [{ resumen, solicitudes }, sustituta, hijas] = await Promise.all([
+    const [{ resumen, solicitudes }, sustituta] = await Promise.all([
       enriquecer(db, [f]),
       db.schema('fue').from('carga_combustible').select('id').eq('anula_id', id).maybeSingle(),
-      db.schema('fue').from('carga_combustible').select('id, litros, deposito_id, estado_validacion').eq('carga_principal_id', id).order('id'),
     ]);
     if (sustituta.error) throw new RepoError(sustituta.error);
-    if (hijas.error) throw new RepoError(hijas.error);
-    const depositos = hijas.data.length ? await nombresDe(db, { depositos: hijas.data.map((h) => h.deposito_id ?? NaN) }) : null;
     return {
       ...resumen[0]!,
       choferId: f.chofer_id as ChoferId | null,
@@ -194,17 +189,10 @@ export const cargaRepository = (db: Db) => ({
       motivoObservacion: f.motivo_observacion,
       anulaId: f.anula_id as CargaId | null,
       motivoAnulacion: f.motivo_anulacion,
-      mismoTicket: f.mismo_ticket,
-      aparteConfirmada: f.aparte_confirmada,
+      faltanteObservacion: f.faltante_observacion,
       depositoId: f.deposito_id as DepositoId | null,
       solicitud: solicitudes.get(f.id) ?? null,
       sustituidaPor: (sustituta.data?.id as CargaId | undefined) ?? null,
-      cargasDeLaParada: hijas.data.map((h) => ({
-        id: h.id as CargaId,
-        litros: Number(h.litros),
-        depositoCodigo: h.deposito_id === null ? null : (depositos?.deposito.get(h.deposito_id)?.codigo ?? null),
-        estadoValidacion: esEstadoValidacion(h.estado_validacion) ? h.estado_validacion : 'pendiente',
-      })),
       versionFila: f.version_fila,
       creadoEn: f.creado_en as FechaISO,
     };
@@ -227,41 +215,16 @@ export const cargaRepository = (db: Db) => ({
         medio_pago: d.medioPago,
         odometro_km: d.odometroKm,
         origen_dato: 'manual',
-        tanque_lleno: d.destino === 'tractor' && d.tanqueLleno,
-        es_frontera: d.destino === 'tractor' && d.esFrontera,
-        deposito_id: d.destino === 'mochila' ? d.depositoId : null,
-        carga_principal_id: d.destino === 'mochila' ? d.cargaPrincipalId : null,
-        mismo_ticket: d.mismoTicket,
+        tanque_lleno: d.tanqueLleno,
+        es_frontera: d.esFrontera,
+        faltante_lleno_l: d.esFrontera ? d.faltanteLlenoL : 0,
+        faltante_observacion: d.esFrontera ? d.faltanteObservacion : null,
         anula_id: d.anulaId,
       })
       .select('id')
       .single();
     if (error) throw new RepoError(error);
     return data.id as CargaId;
-  },
-
-  /** Llenados del tractor recientes del camión: paradas posibles para una carga de mochila. */
-  async paradas(camionId: number, soloFronteras = false): Promise<ParadaOpcion[]> {
-    let q = db
-      .schema('fue')
-      .from('carga_combustible')
-      .select('id, fecha_hora, litros, es_frontera, estacion_id')
-      .eq('camion_id', camionId)
-      .is('deposito_id', null)
-      .is('tanque_reefer_id', null)
-      .neq('estado_validacion', 'anulada')
-      .is('eliminado_en', null);
-    if (soloFronteras) q = q.eq('es_frontera', true);
-    const { data, error } = await q.order('fecha_hora', { ascending: false }).limit(60);
-    if (error) throw new RepoError(error);
-    const nombres = await nombresDe(db, { estaciones: data.map((c) => c.estacion_id ?? NaN) });
-    return data.map((c) => ({
-      id: c.id as CargaId,
-      fechaHora: c.fecha_hora as FechaISO,
-      litros: Number(c.litros),
-      esFrontera: c.es_frontera,
-      estacion: c.estacion_id === null ? null : (nombres.estacion.get(c.estacion_id) ?? null),
-    }));
   },
 
   async solicitarAnulacion(cargaId: number, motivo: string): Promise<SolicitudId> {
@@ -284,18 +247,5 @@ export const cargaRepository = (db: Db) => ({
     const { data, error } = await db.schema('fue').from('solicitud_correccion').select('carga_id').eq('id', solicitudId).maybeSingle();
     if (error) throw new RepoError(error);
     return (data?.carga_id as CargaId | null | undefined) ?? null;
-  },
-
-  async confirmarAparte({ id, versionFila }: Versionado): Promise<void> {
-    const { data, error } = await db
-      .schema('fue')
-      .from('carga_combustible')
-      .update({ aparte_confirmada: true, version_fila: versionFila })
-      .eq('id', id)
-      .eq('version_fila', versionFila)
-      .select('id')
-      .maybeSingle();
-    if (error) throw new RepoError(error);
-    if (!data) throw new ConflictoVersion('fue.carga_combustible', id);
   },
 });

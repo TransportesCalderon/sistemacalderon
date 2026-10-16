@@ -172,6 +172,16 @@ type CierreViajeRow = {
   mochila_tolerancia_l: number | null;
   mochila_imputable_l: number | null;
   imputable_total_l: number | null;
+  /** 1 = tractor + mochila (24, historial); 2 = combustible del camión unificado (26). */
+  version_calculo: number;
+  cargas_l: number | null;
+  entradas_l: number | null;
+  salidas_l: number | null;
+  faltante_salida_l: number | null;
+  faltante_llegada_l: number | null;
+  libro_l: number | null;
+  diferencia_l: number | null;
+  tolerancia_l: number | null;
   linea_viaje: string | null;
   huella: string | null;
   detalle: Json | null;
@@ -198,9 +208,6 @@ type CierreViajeBorrador = Partial<
     | 'tractor_no_imputable_ralenti_h'
     | 'tractor_no_imputable_motivo'
     | 'tractor_justificacion'
-    | 'mochila_no_imputable_l'
-    | 'mochila_no_imputable_motivo'
-    | 'mochila_justificacion'
     | 'observaciones'
   >
 >;
@@ -238,6 +245,8 @@ type CargaRow = {
   es_frontera: boolean;
   aparte_confirmada: boolean;
   mismo_ticket: boolean;
+  faltante_lleno_l: number;
+  faltante_observacion: string | null;
 } & Control;
 
 type CargaInsert = Pick<
@@ -252,9 +261,8 @@ type CargaInsert = Pick<
       | 'odometro_km'
       | 'tanque_lleno'
       | 'es_frontera'
-      | 'deposito_id'
-      | 'carga_principal_id'
-      | 'mismo_ticket'
+      | 'faltante_lleno_l'
+      | 'faltante_observacion'
       | 'anula_id'
     >
   >;
@@ -277,47 +285,28 @@ type DepositoRow = {
   vigente_hasta: string | null;
 } & Control;
 
-/** fue.uso_mochila (24). */
-type UsoMochilaRow = {
+/** fue.movimiento_camion (26): descargas y movimientos con motivo del camión. */
+type MovimientoCamionRow = {
   id: number;
   camion_id: number;
-  parada_desde_id: number;
-  parada_hasta_id: number | null;
-  desde_ts: string;
-  hasta_ts: string | null;
-  observaciones: string | null;
-} & Control;
-
-/** fue.control_saldo_deposito (22 y 24). */
-type ControlSaldoRow = {
-  id: number;
-  deposito_id: number;
   fecha_hora: string;
+  tipo: string;
   litros: number;
-  fuente: string;
-  metodo: string | null;
+  operacion: string;
+  tipo_combustible_id: number;
+  deposito_destino_id: number | null;
+  camion_contraparte_id: number | null;
+  categoria: string | null;
+  evidencia: string | null;
+  motivo: string | null;
   chofer_id: number | null;
-  saldo_libro_l: number;
-  diferencia_l: number;
-  observaciones: string | null;
-  rol: string;
-  origen: string;
-  carga_parada_id: number | null;
-  declarante_tipo: string | null;
-  declarante_usuario_id: number | null;
-  medido_por: number | null;
-  estado: string;
-  reemplaza_id: number | null;
-  motivo_reemplazo: string | null;
+  estado_aprobacion: string | null;
+  resuelto_por: number | null;
+  resuelto_en: string | null;
+  resuelto_roles: string[] | null;
+  motivo_resolucion: string | null;
+  anula_id: number | null;
 } & Control;
-
-type ControlSaldoInsert = Pick<ControlSaldoRow, 'deposito_id' | 'fecha_hora' | 'litros' | 'fuente' | 'rol' | 'origen'> &
-  Partial<
-    Pick<
-      ControlSaldoRow,
-      'metodo' | 'chofer_id' | 'observaciones' | 'carga_parada_id' | 'declarante_tipo' | 'declarante_usuario_id' | 'medido_por' | 'reemplaza_id' | 'motivo_reemplazo'
-    >
-  >;
 
 /** fue.solicitud_correccion (24). */
 type SolicitudRow = {
@@ -325,6 +314,7 @@ type SolicitudRow = {
   tipo: string;
   carga_id: number | null;
   movimiento_id: number | null;
+  movimiento_camion_id: number | null;
   motivo: string;
   estado: string;
   resuelto_por: number | null;
@@ -333,7 +323,7 @@ type SolicitudRow = {
   motivo_resolucion: string | null;
 } & Control;
 
-/** fue.v_viaje (24): viajes entre fronteras consecutivas. */
+/** fue.v_viaje (24): viajes entre cortes de viaje consecutivos. */
 type ViajeRow = {
   camion_id: number;
   patente: string;
@@ -546,7 +536,7 @@ export type Database = {
       carga_combustible: {
         Row: CargaRow;
         Insert: CargaInsert;
-        Update: { aparte_confirmada?: boolean; version_fila?: number };
+        Update: { version_fila?: number };
         Relationships: [];
       };
       deposito_combustible: {
@@ -556,18 +546,7 @@ export type Database = {
         Update: Partial<Pick<DepositoRow, 'parada_hasta_id' | 'nombre' | 'capacidad_l' | 'estado' | 'observaciones' | 'version_fila'>>;
         Relationships: [];
       };
-      uso_mochila: {
-        Row: UsoMochilaRow;
-        Insert: Pick<UsoMochilaRow, 'camion_id' | 'parada_desde_id'> & Partial<Pick<UsoMochilaRow, 'parada_hasta_id' | 'observaciones'>>;
-        Update: Partial<Pick<UsoMochilaRow, 'parada_hasta_id' | 'observaciones' | 'version_fila'>>;
-        Relationships: [];
-      };
-      control_saldo_deposito: {
-        Row: ControlSaldoRow;
-        Insert: ControlSaldoInsert;
-        Update: never;
-        Relationships: [];
-      };
+      movimiento_camion: TablaSoloLectura<MovimientoCamionRow>;
       solicitud_correccion: TablaSoloLectura<SolicitudRow>;
     };
     Views: {
@@ -575,6 +554,7 @@ export type Database = {
       v_carga_combustible: Vista<CargaRow>;
       v_viaje: Vista<ViajeRow>;
       v_saldo_deposito: Vista<SaldoDepositoRow>;
+      v_movimiento_camion: Vista<MovimientoCamionRow & { revertido: boolean; solicitud_pendiente_id: number | null }>;
     };
     Functions: {
       fn_resultado_cierre: { Args: { p_id: number }; Returns: Json };
@@ -584,6 +564,32 @@ export type Database = {
       fn_solicitar_anulacion_carga: { Args: { p_carga: number; p_motivo: string }; Returns: number };
       fn_resolver_solicitud: { Args: { p_id: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: SolicitudRow };
       fn_retirar_solicitud: { Args: { p_id: number }; Returns: SolicitudRow };
+      fn_descargar_combustible: {
+        Args: {
+          p_camion: number;
+          p_litros: number;
+          p_fecha_hora: string;
+          p_deposito_base?: number | null;
+          p_camion_destino?: number | null;
+          p_chofer_id?: number | null;
+          p_motivo?: string | null;
+        };
+        Returns: string;
+      };
+      fn_movimiento_camion_con_motivo: {
+        Args: {
+          p_camion: number;
+          p_categoria: string;
+          p_litros: number;
+          p_fecha_hora: string;
+          p_motivo: string;
+          p_evidencia?: string | null;
+          p_chofer_id?: number | null;
+        };
+        Returns: number;
+      };
+      fn_resolver_movimiento_camion: { Args: { p_id: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: MovimientoCamionRow };
+      fn_solicitar_reverso_camion: { Args: { p_movimiento: number; p_motivo: string }; Returns: number };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

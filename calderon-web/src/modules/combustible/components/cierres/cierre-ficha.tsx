@@ -67,8 +67,7 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
       ) : resultado ? (
         <>
           {esBorrador && <Pendientes resultado={resultado} />}
-          <Tractor resultado={resultado} />
-          {resultado.usaMochila !== false && <MochilaDelCierre resultado={resultado} />}
+          {resultado.versionCalculo === 1 ? <CalculoAnterior resultado={resultado} /> : <CombustibleCamion resultado={resultado} />}
           <Resultado cierre={cierre} resultado={resultado} />
         </>
       ) : (
@@ -182,66 +181,56 @@ function Detalle({ children }: { children: ReactNode }) {
   return <dl className="grid gap-3 border-t border-borde pt-3 sm:grid-cols-3 lg:grid-cols-5">{children}</dl>;
 }
 
-function Tractor({ resultado: { tractor: t } }: { resultado: ResultadoCierre }) {
+/**
+ * Combustible del camión (migración 26): todos los tanques, mochila incluida, como un solo volumen.
+ * Libro = cargas + entradas − salidas + faltante al llegar − faltante al salir (lo calcula la base).
+ */
+function CombustibleCamion({ resultado: { camion: c } }: { resultado: ResultadoCierre }) {
   return (
-    <Seccion titulo="Tractor">
+    <Seccion titulo="Combustible del camión">
       <Cuatro
-        etiquetaLibro="Libro (llenados del viaje)"
+        etiquetaLibro="Libro (todos los tanques)"
         etiquetaFisico="Medido (plataforma)"
-        libro={t.consumoLlenadoL}
-        fisico={t.consumoPlataformaL}
-        diferencia={t.diferenciaL}
-        tolerancia={t.toleranciaL}
+        libro={c.libroL}
+        fisico={c.consumoPlataformaL}
+        diferencia={c.diferenciaL}
+        tolerancia={c.toleranciaL}
       />
       <Detalle>
-        <Dato etiqueta="Carga de salida">{conUnidad(t.litrosCargaSalida, 'L')}</Dato>
-        <Dato etiqueta="Llenados">{conUnidad(t.litrosLlenadosL, 'L')}</Dato>
-        <Dato etiqueta="Desde la mochila">{conUnidad(t.litrosDesdeMochilaL, 'L')}</Dato>
-        <Dato etiqueta="Fuente del consumo">{t.fuenteConsumo ?? '—'}</Dato>
+        <Dato etiqueta="Cargas del viaje">{conUnidad(c.cargasL, 'L')}</Dato>
+        <Dato etiqueta="Entradas (bidón, otro camión)">{conUnidad(c.entradasL, 'L')}</Dato>
+        <Dato etiqueta="Salidas (descargas, con motivo)">{conUnidad(c.salidasL, 'L')}</Dato>
+        <Dato etiqueta="Faltó llenar al salir">{conUnidad(c.faltanteSalidaL, 'L')}</Dato>
+        <Dato etiqueta="Faltó llenar al llegar">{conUnidad(c.faltanteLlegadaL, 'L')}</Dato>
+        <Dato etiqueta="Fuente del consumo">{c.fuenteConsumo ?? '—'}</Dato>
         <Dato etiqueta="Km recorridos">
-          {conUnidad(t.kmRecorridos, 'km', 1)}
-          {t.fuenteKm && <span className="ml-1 text-xs text-tinta-suave">({t.fuenteKm})</span>}
+          {conUnidad(c.kmRecorridos, 'km', 1)}
+          {c.fuenteKm && <span className="ml-1 text-xs text-tinta-suave">({c.fuenteKm})</span>}
         </Dato>
-        <Dato etiqueta="Consumo">{t.consumoL100km === null ? '—' : `${formatearNumero(t.consumoL100km)} L/100 km`}</Dato>
+        <Dato etiqueta="Consumo">{c.consumoL100km === null ? '—' : `${formatearNumero(c.consumoL100km)} L/100 km`}</Dato>
         <Dato etiqueta="Horas motor / ralentí">
-          {formatearNumero(t.horasMotor, 1)} / {formatearNumero(t.horasRalenti, 1)}
+          {formatearNumero(c.horasMotor, 1)} / {formatearNumero(c.horasRalenti, 1)}
         </Dato>
-        <Dato etiqueta="Días parado">{formatearNumero(t.diasParado, 0)}</Dato>
-        <Dato etiqueta="No imputable">{conUnidad(t.noImputableL, 'L')}</Dato>
-        <Dato etiqueta="Imputable">{conUnidad(t.imputableL, 'L')}</Dato>
+        <Dato etiqueta="Días parado">{formatearNumero(c.diasParado, 0)}</Dato>
       </Detalle>
     </Seccion>
   );
 }
 
-function MochilaDelCierre({ resultado: { mochila: m } }: { resultado: ResultadoCierre }) {
-  if (!m) return null;
+/** Cierre aprobado antes de la migración 26 (tractor + mochila): solo lo que quedó congelado. */
+function CalculoAnterior({ resultado }: { resultado: ResultadoCierre }) {
   return (
-    <Seccion titulo={m.depositoCodigo ? `Mochila ${m.depositoCodigo}` : 'Mochila'}>
-      <Cuatro
-        etiquetaLibro="Libro (teórico al llegar)"
-        etiquetaFisico="Físico (control de llegada)"
-        libro={m.teoricoL}
-        fisico={m.fisicoL}
-        diferencia={m.diferenciaL}
-        tolerancia={m.toleranciaL}
-      />
-      <Detalle>
-        <Dato etiqueta="Ancla">
-          {conUnidad(m.anclaL, 'L')}
-          {m.controlAncla?.fuente && <span className="ml-1 text-xs text-tinta-suave">({m.controlAncla.fuente})</span>}
+    <Seccion titulo="Cálculo anterior (tractor + mochila)">
+      <p className="text-sm text-tinta-suave">Este cierre se aprobó con el modelo anterior a la unificación del combustible del camión.</p>
+      <dl className="grid gap-4 sm:grid-cols-3">
+        <Dato etiqueta="Diferencia del tractor">
+          <DiferenciaL litros={resultado.anterior?.tractorDiferenciaL ?? null} />
         </Dato>
-        <Dato etiqueta="Entradas">{conUnidad(m.entradasL, 'L')}</Dato>
-        <Dato etiqueta="Transferencias (entra / sale)">
-          {formatearNumero(m.transferenciasEntradaL)} / {formatearNumero(m.transferenciasSalidaL)} L
+        <Dato etiqueta="Diferencia de la mochila">
+          <DiferenciaL litros={resultado.anterior?.mochilaDiferenciaL ?? null} />
         </Dato>
-        <Dato etiqueta="Pasado al tractor">{conUnidad(m.aTractorL, 'L')}</Dato>
-        <Dato etiqueta="Salidas con motivo">{conUnidad(m.conMotivoL, 'L')}</Dato>
-        <Dato etiqueta="Movimiento real">{conUnidad(m.realL, 'L')}</Dato>
-        <Dato etiqueta="Control de llegada">{m.controlLlegada?.fuente ?? <span className="text-tinta-suave">Falta</span>}</Dato>
-        <Dato etiqueta="No imputable">{conUnidad(m.noImputableL, 'L')}</Dato>
-        <Dato etiqueta="Imputable">{conUnidad(m.imputableL, 'L')}</Dato>
-      </Detalle>
+        <Dato etiqueta="Medido (plataforma)">{conUnidad(resultado.camion.consumoPlataformaL, 'L')}</Dato>
+      </dl>
     </Seccion>
   );
 }
@@ -251,8 +240,13 @@ function Resultado({ cierre, resultado }: { cierre: CierreViaje; resultado: Resu
   return (
     <Seccion titulo="Resultado">
       <dl className="grid gap-4 sm:grid-cols-3">
-        <Dato etiqueta="Imputable total" destacado>
+        <Dato etiqueta="Imputable" destacado>
           {conUnidad(resultado.imputableTotalL, 'L')}
+          {resultado.versionCalculo === 2 && (
+            <span className="block text-xs font-normal text-tinta-suave">
+              Dentro de la tolerancia no se imputa. No imputable declarado: {conUnidad(resultado.camion.noImputableL, 'L')}.
+            </span>
+          )}
         </Dato>
         <Dato etiqueta="Observaciones">{cierre.datos.observaciones ?? '—'}</Dato>
         <Dato etiqueta={cierre.estado === 'borrador' ? 'Calculado' : 'Congelado al aprobar'}>

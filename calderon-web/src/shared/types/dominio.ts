@@ -12,8 +12,7 @@ export type ClienteId = Id<'Cliente'>;
 export type CierreViajeId = Id<'CierreViaje'>;
 export type CargaId = Id<'Carga'>;
 export type DepositoId = Id<'Deposito'>;
-export type UsoMochilaId = Id<'UsoMochila'>;
-export type ControlSaldoId = Id<'ControlSaldo'>;
+export type MovimientoCamionId = Id<'MovimientoCamion'>;
 export type SolicitudId = Id<'Solicitud'>;
 
 /** numeric de PostgreSQL como texto exacto. Nunca se convierte a number para operar. */

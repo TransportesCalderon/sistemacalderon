@@ -106,8 +106,7 @@ export function CierresLista() {
                   <th className="px-3 py-2.5">Responsable</th>
                   <th className="px-3 py-2.5">Salida</th>
                   <th className="px-3 py-2.5">Llegada</th>
-                  <th className="px-3 py-2.5 text-right">Dif. tractor</th>
-                  <th className="px-3 py-2.5 text-right">Dif. mochila</th>
+                  <th className="px-3 py-2.5 text-right">Diferencia</th>
                   <th className="px-3 py-2.5 text-right">Imputable</th>
                   <th className="px-3 py-2.5">Estado</th>
                 </tr>
@@ -125,10 +124,7 @@ export function CierresLista() {
                     <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{formatearFechaHora(c.salidaTs, zonaHoraria)}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{formatearFechaHora(c.llegadaTs, zonaHoraria)}</td>
                     <td className="px-3 py-2.5 text-right">
-                      <DiferenciaL litros={c.tractorDiferenciaL} />
-                    </td>
-                    <td className="px-3 py-2.5 text-right">
-                      <DiferenciaL litros={c.mochilaDiferenciaL} />
+                      <DiferenciaL litros={c.diferenciaL} />
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{c.imputableTotalL === null ? '—' : `${formatearNumero(c.imputableTotalL)} L`}</td>
                     <td className="px-3 py-2.5">

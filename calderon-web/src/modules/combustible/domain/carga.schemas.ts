@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { decimalTexto, id, idObligatorio, idOpcional, instante, textoObligatorio, textoOpcional, version } from './comun';
+import { decimalTexto, id, idObligatorio, idOpcional, instante, textoObligatorio, textoOpcional } from './comun';
 import { MEDIOS_PAGO } from './carga.types';
 
 /**
  * Formularios de Combustible > Cargas. Solo validan la forma (obligatorios, números):
- * las reglas (frontera, parada, mochila vigente, período cerrado…) las aplica la base.
+ * las reglas (corte de viaje, faltante, período cerrado…) las aplica la base.
  */
 
 /** Valores del formulario de alta (todo texto, como llega de los inputs). */
@@ -19,12 +19,10 @@ export const cargaFormSchema = z.object({
   importeOriginal: decimalTexto(false, 'Importe con hasta 2 decimales.'),
   medioPago: z.enum(MEDIOS_PAGO, 'Elegí el medio de pago.'),
   odometroKm: decimalTexto(true, 'Odómetro con hasta 1 decimal.'),
-  destino: z.enum(['tractor', 'mochila'], 'Elegí el destino.'),
   tanqueLleno: z.boolean(),
   esFrontera: z.boolean(),
-  depositoId: idOpcional(),
-  cargaPrincipalId: idOpcional(),
-  mismoTicket: z.boolean(),
+  faltanteLlenoL: decimalTexto(true, 'Litros con hasta 2 decimales.').transform((v) => v ?? 0),
+  faltanteObservacion: textoOpcional(500),
 });
 export type CargaFormEntrada = z.input<typeof cargaFormSchema>;
 
@@ -41,12 +39,10 @@ export const cargaAltaSchema = z.object({
   importeOriginal: z.number().min(0),
   medioPago: z.enum(MEDIOS_PAGO),
   odometroKm: z.number().min(0).nullable(),
-  destino: z.enum(['tractor', 'mochila']),
   tanqueLleno: z.boolean(),
   esFrontera: z.boolean(),
-  depositoId: id().nullable(),
-  cargaPrincipalId: id().nullable(),
-  mismoTicket: z.boolean(),
+  faltanteLlenoL: z.number().min(0),
+  faltanteObservacion: z.string().nullable(),
   anulaId: id().nullable(),
 });
 export type CargaAlta = z.output<typeof cargaAltaSchema>;
@@ -69,5 +65,3 @@ export type ResolverSolicitudInput = z.input<typeof resolverSolicitudSchema>;
 
 export const retirarSolicitudSchema = z.object({ solicitudId: id() });
 
-export const confirmarAparteSchema = z.object({ cargaId: id(), versionFila: version() });
-export type ConfirmarAparteInput = z.input<typeof confirmarAparteSchema>;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm, type Path } from 'react-hook-form';
@@ -9,21 +9,21 @@ import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
-import { formatearFechaHora, horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
-import { formatearNumero } from '@/shared/lib/numeros';
+import { horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { cargaFormSchema, type CargaFormEntrada } from '../../domain/carga.schemas';
 import { ETIQUETA_MEDIO_PAGO, MEDIOS_PAGO } from '../../domain/carga.types';
-import { useCamionesCombustible, useChoferesCombustible, useCrearCarga, useEstaciones, useHistorialMochilas, useMonedas, useParadas } from '../../queries/hooks';
-import { ErrorBase } from '../comun/ui';
+import { useCamionesCombustible, useChoferesCombustible, useCrearCarga, useEstaciones, useMonedas } from '../../queries/hooks';
+import { CLASE_TEXTAREA, ErrorBase } from '../comun/ui';
 
 type Salida = ReturnType<typeof cargaFormSchema.parse>;
 
 /**
- * Alta de carga. El formulario solo pide los datos; si una combinación no es válida
- * (frontera que no es llenado, parada de otro camión, mochila sin vigencia, período
- * cerrado…) la base la rechaza y se muestra su mensaje.
+ * Alta de carga. Desde la migración 26 el camión es un solo volumen: no importa a qué
+ * tanque fue (la mochila es un tanque más). Si una combinación no es válida (corte que no
+ * es llenado, faltante sin observación, período cerrado…) la base la rechaza y se muestra
+ * su mensaje.
  */
 export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: number | null; reemplazaId: number | null }) {
   const router = useRouter();
@@ -48,34 +48,23 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
       importeOriginal: '',
       medioPago: 'tarjeta',
       odometroKm: '',
-      destino: 'tractor',
       tanqueLleno: false,
       esFrontera: false,
-      depositoId: '',
-      cargaPrincipalId: '',
-      mismoTicket: false,
+      faltanteLlenoL: '',
+      faltanteObservacion: '',
     },
     mode: 'onTouched',
   });
   const { register, handleSubmit, watch, setValue, formState } = form;
   const e = formState.errors;
   const camionId = Number(watch('camionId')) || null;
-  const destino = watch('destino');
   const tanqueLleno = watch('tanqueLleno');
+  const esCorte = watch('esFrontera');
   const camion = camiones?.find((c) => c.id === camionId);
-
-  const { data: paradas } = useParadas(destino === 'mochila' ? camionId : null);
-  const { data: mochilas } = useHistorialMochilas(destino === 'mochila' ? camionId : null);
-  const mochilaVigente = useMemo(() => mochilas?.find((m) => m.vigenteHasta === null && m.estado === 'activo') ?? null, [mochilas]);
 
   useEffect(() => {
     if (!tanqueLleno) setValue('esFrontera', false);
   }, [tanqueLleno, setValue]);
-
-  // La carga de mochila va al depósito vigente del camión (la base verifica la vigencia en la fecha).
-  useEffect(() => {
-    if (destino === 'mochila') setValue('depositoId', mochilaVigente ? String(mochilaVigente.id) : '');
-  }, [destino, mochilaVigente, setValue]);
 
   const enviar = handleSubmit(async (d) => {
     setError(null);
@@ -96,12 +85,10 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
       importeOriginal: d.importeOriginal ?? 0,
       medioPago: d.medioPago,
       odometroKm: d.odometroKm,
-      destino: d.destino,
       tanqueLleno: d.tanqueLleno,
       esFrontera: d.esFrontera,
-      depositoId: d.depositoId,
-      cargaPrincipalId: d.cargaPrincipalId,
-      mismoTicket: d.mismoTicket,
+      faltanteLlenoL: d.esFrontera ? d.faltanteLlenoL : 0,
+      faltanteObservacion: d.esFrontera ? d.faltanteObservacion : null,
       anulaId: reemplazaId,
     });
     if (!r.ok) {
@@ -193,69 +180,37 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
         </Campo>
       </section>
 
-      <section className={cn(TARJETA, 'space-y-4 p-5')} aria-label="Destino y parada">
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium text-tinta">Destino *</legend>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <label className="flex items-center gap-2">
-              <input type="radio" value="tractor" className="accent-marca" {...register('destino')} /> Tanque del tractor
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" value="mochila" className="accent-marca" {...register('destino')} /> Mochila del camión
-            </label>
-          </div>
-        </fieldset>
-
-        {destino === 'tractor' ? (
-          <div className="space-y-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="size-4 accent-marca" {...register('tanqueLleno')} /> Tanque lleno
-            </label>
-            {tanqueLleno && (
-              <label className="flex items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-0.5 size-4 accent-marca" {...register('esFrontera')} />
-                <span>
-                  <span className="font-medium">Corte de viaje</span>
-                  <span className="block text-xs text-tinta-suave">
-                    Este llenado termina una vuelta y empieza la siguiente. No se puede cambiar después: se corrige anulando la carga.
-                  </span>
-                </span>
-              </label>
-            )}
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 text-sm">
-              <span className="block font-medium text-tinta">Mochila</span>
-              {!camionId ? (
-                <p className="text-tinta-suave">Elegí el camión.</p>
-              ) : mochilaVigente ? (
-                <p>
-                  <span className="font-mono">{mochilaVigente.codigo}</span> · {mochilaVigente.nombre} (capacidad {formatearNumero(mochilaVigente.capacidadL, 0)} L)
-                </p>
-              ) : (
-                <p className="text-alerta">
-                  El camión no tiene una mochila vigente. Se pone en marcha en{' '}
-                  <Link href={`/combustible/mochilas/${camionId}`} className="underline">
-                    Mochilas y controles
-                  </Link>
-                  .
-                </p>
-              )}
-            </div>
-            <Campo label="Parada (llenado del tractor de la misma visita)" error={e.cargaPrincipalId?.message} ayuda="Sin parada = carga suelta">
-              <select {...register('cargaPrincipalId')}>
-                <option value="">Sin parada</option>
-                {paradas?.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    #{p.id} · {formatearFechaHora(p.fechaHora, zonaHoraria)} · {formatearNumero(p.litros)} L{p.esFrontera ? ' · corte de viaje' : ''}
-                    {p.estacion ? ` · ${p.estacion}` : ''}
-                  </option>
-                ))}
-              </select>
+      <section className={cn(TARJETA, 'space-y-4 p-5')} aria-label="Llenado y corte de viaje">
+        <p className="text-sm text-tinta-suave">
+          Registrá el total cargado al camión, sin importar a qué tanque fue (principal, secundario o mochila).
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" className="size-4 accent-marca" {...register('tanqueLleno')} /> Tanque lleno
+        </label>
+        {tanqueLleno && (
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-0.5 size-4 accent-marca" {...register('esFrontera')} />
+            <span>
+              <span className="font-medium">Corte de viaje</span>
+              <span className="block text-xs text-tinta-suave">
+                Este llenado termina un viaje y empieza el siguiente. No se puede cambiar después: se corrige anulando la carga.
+              </span>
+            </span>
+          </label>
+        )}
+        {tanqueLleno && esCorte && (
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,14rem)_1fr]">
+            <Campo
+              label="Le faltaron (L) para quedar lleno"
+              error={e.faltanteLlenoL?.message}
+              ayuda="0 si quedó todo lleno. Dato del surtidor."
+            >
+              <input inputMode="decimal" placeholder="0" {...register('faltanteLlenoL')} />
             </Campo>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="size-4 accent-marca" {...register('mismoTicket')} /> Mismo ticket que el llenado de la parada
+            <label className="block space-y-1.5">
+              <span className="block text-sm font-medium text-tinta">Observación (si le faltaron litros)</span>
+              <textarea rows={2} className={CLASE_TEXTAREA} placeholder="Qué tanque quedó sin llenar y por qué" {...register('faltanteObservacion')} />
+              {e.faltanteObservacion?.message && <span className="block text-xs text-error">{e.faltanteObservacion.message}</span>}
             </label>
           </div>
         )}

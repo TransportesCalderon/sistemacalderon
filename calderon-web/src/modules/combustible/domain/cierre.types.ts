@@ -1,8 +1,8 @@
-import type { CamionId, CargaId, ChoferId, CierreViajeId, ControlSaldoId, DepositoId, FechaISO } from '@/shared/types/dominio';
+import type { CamionId, CargaId, ChoferId, CierreViajeId, FechaISO } from '@/shared/types/dominio';
 import { esDe, FECHA_DIA, idDe, leerParam, paginaDe, type EntradaUrl } from './comun';
 
 /**
- * Cierre de viaje (migración 24). Estados del ciclo de vida: borrador, aprobado, anulado.
+ * Cierre de viaje (migraciones 24 y 26). Estados del ciclo de vida: borrador, aprobado, anulado.
  * La verificación NO es un estado: es una comprobación reproducible (fue.fn_verificar_cierre)
  * que se muestra aparte como resultado.
  */
@@ -20,7 +20,11 @@ export const ETIQUETA_TEST_ALCOHOL: Record<ResultadoTestAlcohol, string> = {
   positivo: 'Positivo',
 };
 
-/** Datos que completa el usuario en el borrador (columnas con permiso de escritura). */
+/**
+ * Datos que completa el usuario en el borrador (columnas con permiso de escritura).
+ * Desde la migración 26 el no imputable y la justificación son del camión entero; en la base
+ * siguen en las columnas tractor_* (ver migración 26, sección 7).
+ */
 export interface DatosBorrador {
   choferResponsableId: ChoferId | null;
   motivoChofer: string | null;
@@ -29,23 +33,25 @@ export interface DatosBorrador {
   kmManual: number | null;
   consumoPlataformaManualL: number | null;
   motivoAjuste: string | null;
-  tractorNoImputableL: number;
-  tractorNoImputableRalentiH: number;
-  tractorNoImputableMotivo: string | null;
-  tractorJustificacion: string | null;
-  mochilaNoImputableL: number;
-  mochilaNoImputableMotivo: string | null;
-  mochilaJustificacion: string | null;
+  noImputableL: number;
+  noImputableRalentiH: number;
+  noImputableMotivo: string | null;
+  justificacion: string | null;
   observaciones: string | null;
 }
 
-/** Componente tractor (lo calcula la base: en vivo en el borrador, congelado al aprobar). */
-export interface ComponenteTractor {
-  litrosCargaSalida: number | null;
-  litrosLlenadosL: number | null;
-  litrosDesdeMochilaL: number | null;
-  /** Lo que dicen los hechos: llenados del viaje + litros pasados desde la mochila. */
-  consumoLlenadoL: number | null;
+/**
+ * Combustible del camión (migración 26): todos sus tanques, mochila incluida, como un solo
+ * volumen. Lo calcula la base: en vivo en el borrador, congelado al aprobar.
+ *   Libro = Cargas + Entradas − Salidas + faltante de llegada − faltante de salida
+ */
+export interface ComponenteCamion {
+  cargasL: number | null;
+  entradasL: number | null;
+  salidasL: number | null;
+  faltanteSalidaL: number | null;
+  faltanteLlegadaL: number | null;
+  libroL: number | null;
   /** Lo que midió la plataforma (telemetría, resumen diario o manual). */
   consumoPlataformaL: number | null;
   fuenteConsumo: string | null;
@@ -55,35 +61,7 @@ export interface ComponenteTractor {
   horasMotor: number | null;
   horasRalenti: number | null;
   diasParado: number | null;
-  diferenciaL: number | null;
-  toleranciaL: number | null;
-  noImputableL: number | null;
-  imputableL: number | null;
-}
-
-export interface ControlDelCierre {
-  id: ControlSaldoId;
-  litros: number | null;
-  fuente: string | null;
-}
-
-/** Componente mochila: ancla + movimientos reales del viaje − físico de llegada. */
-export interface ComponenteMochila {
-  depositoId: DepositoId | null;
-  depositoCodigo: string | null;
-  controlAncla: ControlDelCierre | null;
-  controlLlegada: ControlDelCierre | null;
-  anclaL: number | null;
-  entradasL: number | null;
-  transferenciasEntradaL: number | null;
-  transferenciasSalidaL: number | null;
-  aTractorL: number | null;
-  conMotivoL: number | null;
-  realL: number | null;
-  /** Saldo teórico (libro) al llegar = ancla + movimientos reales. */
-  teoricoL: number | null;
-  /** Físico medido o declarado en el control de llegada. */
-  fisicoL: number | null;
+  /** Libro − medido. Positivo = faltan litros. */
   diferenciaL: number | null;
   toleranciaL: number | null;
   noImputableL: number | null;
@@ -95,11 +73,18 @@ export interface Pendiente {
   mensaje: string;
 }
 
+/** Diferencias de un cierre aprobado con el modelo anterior a la 26 (tractor + mochila), solo para mostrar. */
+export interface CalculoAnterior {
+  tractorDiferenciaL: number | null;
+  mochilaDiferenciaL: number | null;
+}
+
 /** Lo que muestra la ficha: misma forma para el borrador (en vivo) y para el aprobado (congelado). */
 export interface ResultadoCierre {
-  tractor: ComponenteTractor;
-  usaMochila: boolean | null;
-  mochila: ComponenteMochila | null;
+  /** 2 = combustible del camión unificado; 1 = cierre aprobado antes de la migración 26. */
+  versionCalculo: 1 | 2;
+  camion: ComponenteCamion;
+  anterior: CalculoAnterior | null;
   imputableTotalL: number | null;
   lineaViaje: string | null;
   choferResponsableId: ChoferId | null;
@@ -164,8 +149,8 @@ export interface CierreResumen {
   llegadaTs: FechaISO;
   estado: EstadoCierre;
   lineaViaje: string | null;
-  tractorDiferenciaL: number | null;
-  mochilaDiferenciaL: number | null;
+  /** Diferencia del camión (v2) o, en un cierre del modelo anterior, la del tractor más la de la mochila. */
+  diferenciaL: number | null;
   imputableTotalL: number | null;
 }
 

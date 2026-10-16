@@ -3,7 +3,6 @@
 import { createAction } from '@/server/actions/create-action';
 import {
   cargaAltaSchema,
-  confirmarAparteSchema,
   resolverSolicitudSchema,
   retirarSolicitudSchema,
   solicitarAnulacionSchema,
@@ -12,7 +11,7 @@ import { cargaService } from '../services/carga.service';
 
 /**
  * Server actions de Combustible > Cargas (matriz §16, fila combustible.cargas):
- *  - editar: alta, pedir o retirar una anulación, confirmar una carga de mochila aparte;
+ *  - editar: alta, pedir o retirar una anulación;
  *  - transicionar: aprobar o rechazar la anulación pedida por otro usuario.
  * El error de la base se muestra tal cual (createAction → traducirErrorDb).
  */
@@ -46,11 +45,4 @@ export const retirarSolicitudCarga = createAction({
   schema: retirarSolicitudSchema,
   handler: ({ solicitudId }, { db }) => cargaService(db).retirar(solicitudId),
   invalida: (_d, cargaId) => rutas(cargaId),
-});
-
-export const confirmarCargaAparte = createAction({
-  permiso: 'combustible.cargas:editar',
-  schema: confirmarAparteSchema,
-  handler: ({ cargaId, versionFila }, { db }) => cargaService(db).confirmarAparte(cargaId, versionFila),
-  invalida: ({ cargaId }) => rutas(cargaId),
 });

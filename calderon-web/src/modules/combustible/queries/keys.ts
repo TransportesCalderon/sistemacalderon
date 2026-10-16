@@ -4,17 +4,18 @@ import type { Db } from '@/shared/repository/types';
 import type { CargaId, CierreViajeId } from '@/shared/types/dominio';
 import type { CargaListaParams } from '../domain/carga.types';
 import type { CierreListaParams } from '../domain/cierre.types';
+import type { MovimientoListaParams } from '../domain/movimiento.types';
 import type { ViajeListaParams } from '../domain/viaje.types';
 import { cargaRepository } from '../repositories/carga.repository';
 import { catalogoCombustibleRepository } from '../repositories/catalogo-combustible.repository';
 import { cierreRepository } from '../repositories/cierre.repository';
-import { mochilaRepository } from '../repositories/mochila.repository';
+import { movimientoRepository } from '../repositories/movimiento.repository';
 import { viajeRepository } from '../repositories/viaje.repository';
 
 /**
  * Claves y opciones de React Query del módulo Combustible (arquitectura §12).
  * Convención: [módulo, recurso, tipo, parámetros]. Una escritura en cualquier hecho
- * (carga, control, movimiento) invalida todo ['combustible']: viajes, saldos y
+ * (carga, movimiento del camión) invalida todo ['combustible']: viajes, saldos y
  * resultados de cierre dependen de esos hechos y los recalcula la base.
  */
 export const combustibleQueries = {
@@ -60,38 +61,20 @@ export const combustibleQueries = {
         queryFn: () => cargaRepository(db).obtener(id),
         staleTime: FRESCURA.transaccional,
       }),
-    paradas: (db: Db, camionId: number, soloFronteras: boolean) =>
-      queryOptions({
-        queryKey: ['combustible', 'cargas', 'paradas', camionId, soloFronteras] as const,
-        queryFn: () => cargaRepository(db).paradas(camionId, soloFronteras),
-        staleTime: FRESCURA.transaccional,
-      }),
   },
 
-  mochilas: {
-    camiones: (db: Db) =>
+  movimientos: {
+    lista: (db: Db, p: MovimientoListaParams) =>
       queryOptions({
-        queryKey: ['combustible', 'mochilas', 'camiones'] as const,
-        queryFn: () => mochilaRepository(db).camiones(),
+        queryKey: ['combustible', 'movimientos', 'lista', p] as const,
+        queryFn: () => movimientoRepository(db).listar(p),
         staleTime: FRESCURA.transaccional,
       }),
-    usos: (db: Db, camionId: number) =>
+    tanquesBase: (db: Db) =>
       queryOptions({
-        queryKey: ['combustible', 'mochilas', 'usos', camionId] as const,
-        queryFn: () => mochilaRepository(db).usos(camionId),
-        staleTime: FRESCURA.transaccional,
-      }),
-    historial: (db: Db, camionId: number) =>
-      queryOptions({
-        queryKey: ['combustible', 'mochilas', 'historial', camionId] as const,
-        queryFn: () => mochilaRepository(db).mochilas(camionId),
-        staleTime: FRESCURA.transaccional,
-      }),
-    controles: (db: Db, depositoId: number) =>
-      queryOptions({
-        queryKey: ['combustible', 'mochilas', 'controles', depositoId] as const,
-        queryFn: () => mochilaRepository(db).controles(depositoId),
-        staleTime: FRESCURA.transaccional,
+        queryKey: ['combustible', 'movimientos', 'tanques-base'] as const,
+        queryFn: () => movimientoRepository(db).tanquesBase(),
+        staleTime: FRESCURA.maestro,
       }),
   },
 

@@ -43,10 +43,13 @@ export const PANTALLAS = {
   // Agregada con el módulo Cierre de viaje (reemplaza la planilla de Excel); no figura en la especificación original.
   // Incluye la lista de viajes (fue.v_viaje): editar = crear y completar borradores; transicionar = aprobar y anular.
   'combustible.cierre_viaje': { etiqueta: 'Viajes y cierres de viaje', fila: ['L', 'L', 'E', '—', 'E A', 'L', '—', 'L', 'L', 'L'] },
-  // Agregada con la migración 24 (mochilas y controles). editar = uso de mochila y controles (tc_app);
-  // transicionar = puesta en marcha y cierre de vigencia de una mochila, que escriben fue.deposito_combustible
-  // y la base solo lo permite a tc_admin (migración 22): por eso solo TI.
-  'combustible.depositos':   { etiqueta: 'Mochilas y controles', fila: ['L', 'L', 'E', '—', 'E', 'L', '—', 'L', 'E A', 'L'] },
+  // Agregada con la migración 26 (combustible del camión unificado): descargas a base o a otro camión y
+  // movimientos con motivo. editar = registrar y pedir un reverso; transicionar = aprobar o rechazar lo que
+  // registró otro usuario (la base además exige un rol aprobador: fue.correccion_roles_aprobadores).
+  'combustible.movimientos': { etiqueta: 'Movimientos del camión', fila: ['L', 'L', 'E', '—', 'E A', 'L', '—', 'L', 'L', 'L'] },
+  // Agregada con la migración 24. Desde la 26 la mochila es un tanque del camión: la fila queda para el tanque de
+  // Base Mendoza (etapa 5). transicionar = alta y baja de un depósito, que la base solo permite a tc_admin: solo TI.
+  'combustible.depositos':   { etiqueta: 'Tanque de base', fila: ['L', 'L', 'E', '—', 'E', 'L', '—', 'L', 'E A', 'L'] },
   'operacion.servicios':     { etiqueta: 'Servicios comerciales', fila: ['L', 'E A', '—', '—', '—', 'L', 'L', 'L A', 'L', 'L'] },
   'operacion.tramos':        { etiqueta: 'Tramos operativos y composición', fila: ['L', 'E A', 'L', '—', '—', 'L', 'L', 'L', 'L', 'L'] },
   'operacion.planificacion': { etiqueta: 'Planificación de flota', fila: ['L', 'E', 'L', '—', '—', 'L', '—', '—', 'L', 'L'] },

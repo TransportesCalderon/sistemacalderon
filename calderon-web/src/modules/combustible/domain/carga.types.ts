@@ -1,7 +1,10 @@
 import type { CamionId, CargaId, ChoferId, DepositoId, FechaISO, SolicitudId } from '@/shared/types/dominio';
 import { esDe } from './comun';
 
-/** Combustible > Cargas (fue.carga_combustible, migraciones 05, 22 y 24). */
+/**
+ * Combustible > Cargas (fue.carga_combustible). Desde la migración 26 el camión es un solo
+ * volumen de combustible: no importa a qué tanque fue la carga (la mochila es un tanque más).
+ */
 
 export const ESTADOS_VALIDACION = ['pendiente', 'validada', 'observada', 'anulada'] as const;
 export type EstadoValidacion = (typeof ESTADOS_VALIDACION)[number];
@@ -35,17 +38,21 @@ export const ETIQUETA_SITUACION_CARGA: Record<SituacionCarga, string> = {
   anulada: 'Anulada',
 };
 
-/** A dónde fue el combustible (columna destino de la base: tanque, frío o depósito). */
-export const DESTINOS_CARGA = ['tractor', 'mochila', 'deposito', 'frio'] as const;
+/**
+ * A dónde fue el combustible: al camión (cualquier tanque), al equipo de frío o al tanque
+ * de base. «Mochila (anterior)»: carga registrada con el modelo anterior a la 26; cuenta
+ * como carga del camión.
+ */
+export const DESTINOS_CARGA = ['camion', 'mochila_anterior', 'deposito', 'frio'] as const;
 export type DestinoCarga = (typeof DESTINOS_CARGA)[number];
 export const ETIQUETA_DESTINO: Record<DestinoCarga, string> = {
-  tractor: 'Tractor',
-  mochila: 'Mochila',
+  camion: 'Camión',
+  mochila_anterior: 'Mochila (registro anterior)',
   deposito: 'Tanque de base',
   frio: 'Equipo de frío',
 };
 
-/** Qué viajes abre o cierra una frontera, según fue.v_viaje (no se calcula en el navegador). */
+/** Qué viajes abre o cierra un corte de viaje, según fue.v_viaje (no se calcula en el navegador). */
 export interface RolEnViaje {
   inicia: boolean;
   termina: boolean;
@@ -63,7 +70,8 @@ export interface CargaResumen {
   esFrontera: boolean;
   destino: DestinoCarga;
   depositoCodigo: string | null;
-  cargaPrincipalId: CargaId | null;
+  /** Litros que le faltaron al camión para quedar lleno en este corte (0 si quedó lleno). */
+  faltanteLlenoL: number;
   estadoValidacion: EstadoValidacion;
   situacion: SituacionCarga;
   rolViaje: RolEnViaje;
@@ -74,14 +82,6 @@ export interface SolicitudPendiente {
   motivo: string;
   creadoPor: number | null;
   creadoEn: FechaISO;
-}
-
-/** Carga de la misma parada (cargas de mochila ligadas a este llenado). */
-export interface CargaDeParada {
-  id: CargaId;
-  litros: number;
-  depositoCodigo: string | null;
-  estadoValidacion: EstadoValidacion;
 }
 
 export interface Carga extends CargaResumen {
@@ -99,12 +99,10 @@ export interface Carga extends CargaResumen {
   motivoObservacion: string | null;
   anulaId: CargaId | null;
   motivoAnulacion: string | null;
-  mismoTicket: boolean;
-  aparteConfirmada: boolean;
+  faltanteObservacion: string | null;
   depositoId: DepositoId | null;
   solicitud: SolicitudPendiente | null;
   sustituidaPor: CargaId | null;
-  cargasDeLaParada: CargaDeParada[];
   versionFila: number;
   creadoEn: FechaISO;
 }
@@ -119,12 +117,3 @@ export interface CargaListaParams {
 }
 
 export const TAMANO_PAGINA_CARGAS = 50;
-
-/** Llenado del tractor que se puede elegir como parada de una carga de mochila. */
-export interface ParadaOpcion {
-  id: CargaId;
-  fechaHora: FechaISO;
-  litros: number;
-  esFrontera: boolean;
-  estacion: string | null;
-}

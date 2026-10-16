@@ -102,31 +102,19 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
           </Campo>
         </Bloque>
 
-        <Bloque titulo="Tractor: no imputable">
-          <Campo label="Litros no imputables" error={e.tractorNoImputableL?.message}>
-            <input inputMode="decimal" placeholder="0" {...register('tractorNoImputableL')} />
+        <Bloque titulo="Combustible del camión: no imputable">
+          <Campo label="Litros no imputables" error={e.noImputableL?.message} ayuda="Solo cuenta si la diferencia supera la tolerancia.">
+            <input inputMode="decimal" placeholder="0" {...register('noImputableL')} />
           </Campo>
-          <Campo label="Horas de ralentí no imputables" error={e.tractorNoImputableRalentiH?.message}>
-            <input inputMode="decimal" placeholder="0" {...register('tractorNoImputableRalentiH')} />
+          <Campo label="Horas de ralentí no imputables" error={e.noImputableRalentiH?.message}>
+            <input inputMode="decimal" placeholder="0" {...register('noImputableRalentiH')} />
           </Campo>
-          <Campo label="Motivo" error={e.tractorNoImputableMotivo?.message}>
-            <input {...register('tractorNoImputableMotivo')} />
-          </Campo>
-        </Bloque>
-        <TextoLargo etiqueta="Justificación de la diferencia del tractor" error={e.tractorJustificacion?.message}>
-          <textarea rows={2} className={CLASE_TEXTAREA} {...register('tractorJustificacion')} />
-        </TextoLargo>
-
-        <Bloque titulo="Mochila: no imputable">
-          <Campo label="Litros no imputables" error={e.mochilaNoImputableL?.message}>
-            <input inputMode="decimal" placeholder="0" {...register('mochilaNoImputableL')} />
-          </Campo>
-          <Campo label="Motivo" error={e.mochilaNoImputableMotivo?.message}>
-            <input {...register('mochilaNoImputableMotivo')} />
+          <Campo label="Motivo" error={e.noImputableMotivo?.message}>
+            <input {...register('noImputableMotivo')} />
           </Campo>
         </Bloque>
-        <TextoLargo etiqueta="Justificación de la diferencia de la mochila" error={e.mochilaJustificacion?.message}>
-          <textarea rows={2} className={CLASE_TEXTAREA} {...register('mochilaJustificacion')} />
+        <TextoLargo etiqueta="Justificación de la diferencia del camión" error={e.justificacion?.message}>
+          <textarea rows={2} className={CLASE_TEXTAREA} {...register('justificacion')} />
         </TextoLargo>
 
         <TextoLargo etiqueta="Observaciones" error={e.observaciones?.message}>

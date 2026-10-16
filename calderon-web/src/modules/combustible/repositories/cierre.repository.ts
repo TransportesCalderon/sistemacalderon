@@ -17,7 +17,7 @@ import {
 import { nombresDe } from './catalogo-combustible.repository';
 
 /**
- * Repositorio del cierre de viaje (migración 24). Toda la aritmética y la política viven
+ * Repositorio del cierre de viaje (migraciones 24 y 26). Toda la aritmética y la política viven
  * en la base:
  *  - fue.fn_resultado_cierre(id): resultado en vivo del borrador (pendientes y avisos incluidos);
  *  - fue.fn_aprobar_cierre / fn_anular_cierre: transiciones (SECURITY DEFINER);
@@ -25,13 +25,45 @@ import { nombresDe } from './catalogo-combustible.repository';
  * La aplicación solo escribe las columnas del borrador que la base le permite.
  */
 type Fila = Database['fue']['Tables']['cierre_viaje']['Row'];
-type FilaCierre = Omit<Fila, 'eliminado_por' | 'creado_por' | 'actualizado_en' | 'actualizado_por'>;
+type FilaCierre = Pick<
+  Fila,
+  | 'id'
+  | 'numero'
+  | 'camion_id'
+  | 'carga_salida_id'
+  | 'carga_llegada_id'
+  | 'salida_ts'
+  | 'llegada_ts'
+  | 'estado'
+  | 'chofer_responsable_id'
+  | 'motivo_chofer'
+  | 'programador_velocidad_pct'
+  | 'test_alcohol'
+  | 'km_manual'
+  | 'consumo_plataforma_manual_l'
+  | 'motivo_ajuste'
+  | 'tractor_no_imputable_l'
+  | 'tractor_no_imputable_ralenti_h'
+  | 'tractor_no_imputable_motivo'
+  | 'tractor_justificacion'
+  | 'observaciones'
+  | 'huella'
+  | 'aprobado_por'
+  | 'aprobado_en'
+  | 'motivo_anulacion'
+  | 'anulado_por'
+  | 'anulado_en'
+  | 'creado_en'
+  | 'eliminado_en'
+  | 'version_fila'
+> &
+  ColumnasCongeladas;
 
 const COLS =
-  'id, numero, camion_id, carga_salida_id, carga_llegada_id, salida_ts, llegada_ts, estado, chofer_responsable_id, motivo_chofer, programador_velocidad_pct, test_alcohol, km_manual, consumo_plataforma_manual_l, motivo_ajuste, tractor_no_imputable_l, tractor_no_imputable_ralenti_h, tractor_no_imputable_motivo, tractor_justificacion, mochila_no_imputable_l, mochila_no_imputable_motivo, mochila_justificacion, observaciones, km_recorridos, fuente_km, litros_carga_salida, litros_llenados_l, litros_desde_mochila_l, consumo_llenado_l, consumo_plataforma_l, fuente_consumo_plataforma, horas_motor, horas_ralenti, ralenti_mes_h, dias_parado, capacidad_util_l, consumo_l_100km, tractor_diferencia_l, tractor_tolerancia_l, tractor_imputable_l, usa_mochila, deposito_id, control_ancla_id, control_llegada_id, mochila_ancla_l, mochila_entradas_l, mochila_transferencias_entrada_l, mochila_transferencias_salida_l, mochila_a_tractor_l, mochila_con_motivo_l, mochila_real_l, mochila_teorico_l, mochila_fisico_l, mochila_diferencia_l, mochila_tolerancia_l, mochila_imputable_l, imputable_total_l, linea_viaje, huella, detalle, calculado_en, aprobado_por, aprobado_en, motivo_anulacion, anulado_por, anulado_en, creado_en, eliminado_en, version_fila';
+  'id, numero, camion_id, carga_salida_id, carga_llegada_id, salida_ts, llegada_ts, estado, chofer_responsable_id, motivo_chofer, programador_velocidad_pct, test_alcohol, km_manual, consumo_plataforma_manual_l, motivo_ajuste, tractor_no_imputable_l, tractor_no_imputable_ralenti_h, tractor_no_imputable_motivo, tractor_justificacion, observaciones, version_calculo, cargas_l, entradas_l, salidas_l, faltante_salida_l, faltante_llegada_l, libro_l, diferencia_l, tolerancia_l, km_recorridos, fuente_km, consumo_plataforma_l, fuente_consumo_plataforma, horas_motor, horas_ralenti, dias_parado, consumo_l_100km, tractor_diferencia_l, mochila_diferencia_l, imputable_total_l, linea_viaje, huella, detalle, calculado_en, aprobado_por, aprobado_en, motivo_anulacion, anulado_por, anulado_en, creado_en, eliminado_en, version_fila';
 
 const COLS_RESUMEN =
-  'id, numero, camion_id, chofer_responsable_id, salida_ts, llegada_ts, estado, linea_viaje, tractor_diferencia_l, mochila_diferencia_l, imputable_total_l';
+  'id, numero, camion_id, chofer_responsable_id, salida_ts, llegada_ts, estado, linea_viaje, version_calculo, diferencia_l, tractor_diferencia_l, mochila_diferencia_l, imputable_total_l';
 
 export function aCierre(f: FilaCierre): CierreViaje {
   const estado = esEstadoCierre(f.estado) ? f.estado : 'borrador';
@@ -43,13 +75,10 @@ export function aCierre(f: FilaCierre): CierreViaje {
     kmManual: num(f.km_manual),
     consumoPlataformaManualL: num(f.consumo_plataforma_manual_l),
     motivoAjuste: f.motivo_ajuste,
-    tractorNoImputableL: num0(f.tractor_no_imputable_l),
-    tractorNoImputableRalentiH: num0(f.tractor_no_imputable_ralenti_h),
-    tractorNoImputableMotivo: f.tractor_no_imputable_motivo,
-    tractorJustificacion: f.tractor_justificacion,
-    mochilaNoImputableL: num0(f.mochila_no_imputable_l),
-    mochilaNoImputableMotivo: f.mochila_no_imputable_motivo,
-    mochilaJustificacion: f.mochila_justificacion,
+    noImputableL: num0(f.tractor_no_imputable_l),
+    noImputableRalentiH: num0(f.tractor_no_imputable_ralenti_h),
+    noImputableMotivo: f.tractor_no_imputable_motivo,
+    justificacion: f.tractor_justificacion,
     observaciones: f.observaciones,
   };
   return {
@@ -63,7 +92,7 @@ export function aCierre(f: FilaCierre): CierreViaje {
     estado,
     datos,
     // Un cierre anulado después de aprobado conserva lo que se congeló.
-    congelado: f.aprobado_en ? resultadoCongelado(f as ColumnasCongeladas) : null,
+    congelado: f.aprobado_en ? resultadoCongelado(f) : null,
     huella: f.huella,
     aprobadoPor: f.aprobado_por,
     aprobadoEn: f.aprobado_en as FechaISO | null,
@@ -86,13 +115,11 @@ function aFila(d: DatosBorrador) {
     km_manual: d.kmManual,
     consumo_plataforma_manual_l: d.consumoPlataformaManualL,
     motivo_ajuste: d.motivoAjuste,
-    tractor_no_imputable_l: d.tractorNoImputableL,
-    tractor_no_imputable_ralenti_h: d.tractorNoImputableRalentiH,
-    tractor_no_imputable_motivo: d.tractorNoImputableMotivo,
-    tractor_justificacion: d.tractorJustificacion,
-    mochila_no_imputable_l: d.mochilaNoImputableL,
-    mochila_no_imputable_motivo: d.mochilaNoImputableMotivo,
-    mochila_justificacion: d.mochilaJustificacion,
+    // Desde la migración 26 son el no imputable y la justificación del camión entero
+    tractor_no_imputable_l: d.noImputableL,
+    tractor_no_imputable_ralenti_h: d.noImputableRalentiH,
+    tractor_no_imputable_motivo: d.noImputableMotivo,
+    tractor_justificacion: d.justificacion,
     observaciones: d.observaciones,
   } satisfies Database['fue']['Tables']['cierre_viaje']['Update'];
 }
@@ -110,7 +137,19 @@ export const cierreRepository = (db: Db) => ({
     if (error) throw new RepoError(error);
     const filas = data as Pick<
       Fila,
-      'id' | 'numero' | 'camion_id' | 'chofer_responsable_id' | 'salida_ts' | 'llegada_ts' | 'estado' | 'linea_viaje' | 'tractor_diferencia_l' | 'mochila_diferencia_l' | 'imputable_total_l'
+      | 'id'
+      | 'numero'
+      | 'camion_id'
+      | 'chofer_responsable_id'
+      | 'salida_ts'
+      | 'llegada_ts'
+      | 'estado'
+      | 'linea_viaje'
+      | 'version_calculo'
+      | 'diferencia_l'
+      | 'tractor_diferencia_l'
+      | 'mochila_diferencia_l'
+      | 'imputable_total_l'
     >[];
     const nombres = await nombresDe(db, { camiones: filas.map((f) => f.camion_id), choferes: filas.map((f) => f.chofer_responsable_id ?? NaN) });
     return {
@@ -124,8 +163,11 @@ export const cierreRepository = (db: Db) => ({
         llegadaTs: f.llegada_ts as FechaISO,
         estado: esEstadoCierre(f.estado) ? f.estado : 'borrador',
         lineaViaje: f.linea_viaje,
-        tractorDiferenciaL: num(f.tractor_diferencia_l),
-        mochilaDiferenciaL: num(f.mochila_diferencia_l),
+        // Modelo anterior a la 26: la suma de las dos diferencias, solo para mostrar
+        diferenciaL:
+          f.version_calculo === 1 && f.tractor_diferencia_l !== null
+            ? Number(f.tractor_diferencia_l) + (num(f.mochila_diferencia_l) ?? 0)
+            : num(f.diferencia_l),
         imputableTotalL: num(f.imputable_total_l),
       })),
       total: count,
