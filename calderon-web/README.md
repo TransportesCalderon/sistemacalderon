@@ -143,6 +143,23 @@ src/modules/comercial/
 └─ components/      clientes/ lista, ficha, formulario, chip de estado
 ```
 
+## Catálogos (migración 28)
+
+Lo que necesita la operación antes de registrar cargas. Entrada: **Configuración > Catálogos**.
+
+| Ruta | Pantalla | Permiso |
+| --- | --- | --- |
+| `/configuracion/catalogos` | Tarjetas con el estado de cada catálogo (faltan estaciones, falta la cotización de hoy, parámetros provisionales) | `configuracion.catalogos` |
+| `/comercial/proveedores` | Alta, edición y eliminación de proveedores | `comercial.proveedores` (Adm. de combustible, Finanzas, TI) |
+| `/comercial/estaciones` | Estaciones de servicio: proveedor obligatorio salvo surtidor propio; el país define la zona horaria de la carga | `comercial.proveedores` |
+| `/finanzas/tipos-cambio` | Cotización oficial por día y moneda («1 USD = X»); aviso si falta la de hoy en ARS o CLP | `finanzas.tipos_cambio` (Finanzas, TI) |
+| `/configuracion/parametros` | Valor y descripción de cada parámetro; marca los provisionales; oculta los obsoletos | `configuracion.catalogos` (TI) |
+
+- Una carga en otra moneda usa la cotización **del mismo día** (en la zona horaria del país de la estación). Si falta, la base
+  la rechaza diciendo qué cotización cargar. Una cotización que ya usaron cargas no se elimina.
+- Un parámetro no cambia de tipo ni queda negativo o vacío; cada cambio queda en la auditoría y los cierres aprobados conservan
+  la tolerancia que usaron.
+
 ## Módulo Combustible: flujo operativo
 
 Cargas → Cortes de viaje → Movimientos del camión → Viajes → Cierres. Permite llegar a un cierre aprobado sin escribir SQL.

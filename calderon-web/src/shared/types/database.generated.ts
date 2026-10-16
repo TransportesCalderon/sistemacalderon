@@ -37,6 +37,42 @@ type TanqueCombustibleRow = {
   version_fila: number;
 };
 
+/** Tabla editable sencilla: Insert y Update parciales sobre la fila (columnas de control las pone la base). */
+type TablaEditable<Row, Ins> = {
+  Row: Row;
+  Insert: Ins;
+  Update: Partial<Ins> & { version_fila?: number; eliminado_en?: string | null };
+  Relationships: [];
+};
+
+/** mae.proveedor (migraciones 03 y 28). */
+type ProveedorIns = {
+  codigo: string;
+  razon_social: string;
+  identificador_fiscal?: string | null;
+  pais: string;
+  tipo: string;
+  moneda_defecto?: string | null;
+};
+/** mae.estacion_servicio. */
+type EstacionIns = {
+  codigo: string;
+  nombre: string;
+  proveedor_id?: number | null;
+  ubicacion_id?: number | null;
+  es_tanque_propio?: boolean;
+  pais: string;
+};
+/** fin.tipo_cambio: tasa = unidades de moneda_destino por 1 de moneda_origen. */
+type TipoCambioIns = {
+  fecha: string;
+  moneda_origen: string;
+  moneda_destino: string;
+  tasa: number;
+  tipo: string;
+  fuente?: string | null;
+};
+
 type CamionRow = {
   id: number;
   codigo_interno: string;
@@ -396,12 +432,13 @@ export type Database = {
         es_base: boolean;
         eliminado_en: string | null;
       }>;
-      parametro: TablaSoloLectura<{
-        codigo: string;
-        valor: Json;
-        descripcion: string;
-        eliminado_en: string | null;
-      }>;
+      parametro: {
+        Row: { codigo: string; valor: Json; descripcion: string; eliminado_en: string | null; actualizado_en: string; actualizado_por: number | null; version_fila: number };
+        Insert: never;
+        /** Solo valor y descripción (la base controla el tipo del valor; el código no cambia). */
+        Update: { valor?: Json; descripcion?: string; version_fila?: number };
+        Relationships: [];
+      };
       tipo_combustible: TablaSoloLectura<{
         id: number;
         codigo: string;
@@ -490,14 +527,8 @@ export type Database = {
         Update: Partial<Omit<ClienteRow, 'id'>>;
         Relationships: [];
       };
-      estacion_servicio: TablaSoloLectura<{
-        id: number;
-        codigo: string;
-        nombre: string;
-        pais: string;
-        es_tanque_propio: boolean;
-        eliminado_en: string | null;
-      }>;
+      estacion_servicio: TablaEditable<EstacionIns & Control & { id: number; proveedor_id: number | null; ubicacion_id: number | null; es_tanque_propio: boolean }, EstacionIns>;
+      proveedor: TablaEditable<ProveedorIns & Control & { id: number; identificador_fiscal: string | null; moneda_defecto: string | null }, ProveedorIns>;
       ubicacion: TablaSoloLectura<{
         id: number;
         codigo: string;
@@ -584,6 +615,15 @@ export type Database = {
         Returns: number;
       };
     };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
+  fin: {
+    Tables: {
+      tipo_cambio: TablaEditable<TipoCambioIns & Control & { id: number; fuente: string | null }, TipoCambioIns>;
+    };
+    Views: { [_ in never]: never };
+    Functions: { [_ in never]: never };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };

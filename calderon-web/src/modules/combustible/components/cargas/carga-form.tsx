@@ -134,7 +134,11 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
             ))}
           </select>
         </Campo>
-        <Campo label="Estación *" error={e.estacionId?.message}>
+        <Campo
+          label="Estación *"
+          error={e.estacionId?.message}
+          {...(estaciones && estaciones.length === 0 ? { ayuda: 'No hay estaciones cargadas: dalas de alta en Comercial > Estaciones de servicio.' } : {})}
+        >
           <select {...register('estacionId')}>
             <option value="">Elegí…</option>
             {estaciones?.map((s) => (
@@ -156,7 +160,7 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
         <Campo label="Precio unitario *" error={e.precioUnitario?.message}>
           <input inputMode="decimal" {...register('precioUnitario')} />
         </Campo>
-        <Campo label="Moneda *" error={e.moneda?.message}>
+        <Campo label="Moneda *" error={e.moneda?.message} ayuda="En otra moneda, la cotización de ese día tiene que estar cargada (Finanzas > Tipos de cambio).">
           <select {...register('moneda')}>
             <option value="">Elegí…</option>
             {monedas?.map((m) => (
