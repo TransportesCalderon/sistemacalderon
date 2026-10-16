@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bajaTanqueSchema, cambioCapacidadSchema, tanqueAltaSchema } from '@/modules/flota/domain/tanque.schemas';
+import { bajaTanqueSchema, cambioCapacidadSchema, filaTanqueVacia, tanqueAltaSchema, tanquesAltaSchema } from '@/modules/flota/domain/tanque.schemas';
 import { aTanque } from '@/modules/flota/repositories/tanque.repository';
 import { traducirErrorDb } from '@/server/errors/traducir';
 
@@ -67,5 +67,20 @@ describe('tanques del camión (migración 27)', () => {
       message: 'El camión no tiene tanques cargados al 18/10/2026 (Flota > Camiones > Tanques): sin la capacidad no se puede declarar un faltante',
     });
     expect(faltante.mensaje).toMatch(/no tiene tanques cargados/);
+  });
+
+  it('alta del camión: varios tanques juntos; una fila vacía no cuenta', () => {
+    expect(filaTanqueVacia({ tipo: 'mochila', descripcion: '', capacidadNominalL: ' ', capacidadUtilL: '' })).toBe(true);
+    expect(filaTanqueVacia({ tipo: 'mochila', descripcion: '', capacidadNominalL: '700', capacidadUtilL: '' })).toBe(false);
+    const r = tanquesAltaSchema.parse({
+      camionId: 9,
+      vigenteDesde: '2026-10-18',
+      tanques: [
+        { tipo: 'principal', descripcion: '', capacidadNominalL: '500', capacidadUtilL: '500' },
+        { tipo: 'mochila', descripcion: 'cabina', capacidadNominalL: '720', capacidadUtilL: '700' },
+      ],
+    });
+    expect(r.tanques.map((t) => t.capacidadUtilL)).toEqual([500, 700]);
+    expect(tanquesAltaSchema.safeParse({ camionId: 9, vigenteDesde: '2026-10-18', tanques: [] }).success).toBe(false);
   });
 });

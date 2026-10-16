@@ -1,6 +1,6 @@
 import { ConflictoVersion, RepoError, type Db } from '@/shared/repository/types';
 import type { CamionId, FechaDia, TanqueId } from '@/shared/types/dominio';
-import type { BajaTanque, CambioCapacidad, DescripcionTanque, EliminarTanque, TanqueAlta } from '../domain/tanque.schemas';
+import type { BajaTanque, CambioCapacidad, DescripcionTanque, EliminarTanque, TanqueAlta, TanquesAlta } from '../domain/tanque.schemas';
 import { esTipoTanque, type Tanque, type TanquesDelCamion } from '../domain/tanque.types';
 
 /**
@@ -90,6 +90,14 @@ export const tanqueRepository = (db: Db) => {
       };
     },
 
+    /** Capacidad útil de hoy de varios camiones (lista de camiones). Sin tanques: null. */
+    async capacidades(ids: number[]): Promise<Record<number, number | null>> {
+      if (ids.length === 0) return {};
+      const { data, error } = await db.schema('mae').from('v_capacidad_camion').select('camion_id, capacidad_util_l').in('camion_id', ids);
+      if (error) throw new RepoError(error);
+      return Object.fromEntries(data.map((f) => [Number(f.camion_id), n(f.capacidad_util_l)]));
+    },
+
     async crear(d: TanqueAlta): Promise<void> {
       const { error } = await tabla().insert({
         camion_id: d.camionId,
@@ -99,6 +107,21 @@ export const tanqueRepository = (db: Db) => {
         capacidad_util_l: d.capacidadUtilL,
         vigente_desde: d.vigenteDesde,
       });
+      if (error) throw new RepoError(error);
+    },
+
+    /** Varios tanques en un solo INSERT: si la base rechaza uno, no se guarda ninguno. */
+    async crearVarios(d: TanquesAlta): Promise<void> {
+      const { error } = await tabla().insert(
+        d.tanques.map((t) => ({
+          camion_id: d.camionId,
+          tipo: t.tipo,
+          descripcion: t.descripcion,
+          capacidad_nominal_l: t.capacidadNominalL,
+          capacidad_util_l: t.capacidadUtilL,
+          vigente_desde: d.vigenteDesde,
+        })),
+      );
       if (error) throw new RepoError(error);
     },
 

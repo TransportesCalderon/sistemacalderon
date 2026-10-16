@@ -83,9 +83,9 @@ alta y edición con `flota.camiones:editar` (Operaciones y TI).
 | Ruta | Pantalla |
 | --- | --- |
 | `/flota/camiones` | Lista con búsqueda, filtros (estado, propietario, país, combustible, eliminados), orden y paginación en la URL |
-| `/flota/camiones/nuevo` | Alta (F-MAE-01) |
+| `/flota/camiones/nuevo` | Alta (F-MAE-01) con sus tanques (opcional): se guardan juntos después del camión; si la base los rechaza, el camión queda creado y su ficha muestra el mensaje |
 | `/flota/camiones/[id]` | Ficha: Datos y **Tanques** (migración 27: alta, cambio de capacidad con vigencia, baja con fecha, eliminación por error; capacidad total que calcula la base). Las demás pestañas llegan con sus módulos |
-| `/flota/camiones/[id]/editar` | Edición con control de versión; incluye la baja operativa (estado Inactivo + fecha de baja) |
+| `/flota/camiones/[id]/editar` | Edición con control de versión; incluye la baja operativa (estado Inactivo + fecha de baja). Debajo, los tanques (se guardan al momento) |
 
 ```text
 src/modules/flota/

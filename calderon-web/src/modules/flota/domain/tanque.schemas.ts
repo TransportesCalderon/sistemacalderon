@@ -68,3 +68,23 @@ export const descripcionTanqueSchema = z.object({
   descripcion,
 });
 export type DescripcionTanque = z.output<typeof descripcionTanqueSchema>;
+
+/** Varios tanques juntos (alta del camión): se guardan en una sola operación, todos o ninguno. */
+export const tanqueFilaSchema = z.object({
+  tipo: z.enum(TIPOS_TANQUE, 'Elegí el tipo de tanque.'),
+  descripcion,
+  capacidadNominalL: litros('Capacidad nominal en litros (hasta 2 decimales).'),
+  capacidadUtilL: litros('Capacidad útil en litros (hasta 2 decimales).'),
+});
+export type TanqueFilaEntrada = z.input<typeof tanqueFilaSchema>;
+
+export const tanquesAltaSchema = z.object({
+  camionId: id(),
+  vigenteDesde: dia('Indicá desde qué fecha el camión tiene estos tanques.'),
+  tanques: z.array(tanqueFilaSchema).min(1, 'Agregá al menos un tanque.').max(10, 'Máximo 10 tanques.'),
+});
+export type TanquesAlta = z.output<typeof tanquesAltaSchema>;
+
+/** Fila del formulario de alta del camión: vacía del todo = no se carga. */
+export const filaTanqueVacia = (f: TanqueFilaEntrada) =>
+  f.capacidadNominalL.trim() === '' && f.capacidadUtilL.trim() === '' && (f.descripcion ?? '').trim() === '';

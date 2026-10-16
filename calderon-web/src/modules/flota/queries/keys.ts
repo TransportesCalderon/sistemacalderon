@@ -29,6 +29,13 @@ export const camionesQueries = {
       queryFn: () => camionRepository(db).obtener(id),
       staleTime: FRESCURA.maestro,
     }),
+  /** Capacidad de hoy de los camiones de una página de la lista (migración 27). */
+  capacidades: (db: Db, ids: number[]) =>
+    queryOptions({
+      queryKey: [...camionesQueries.todas(), 'capacidades', ids] as const,
+      queryFn: () => tanqueRepository(db).capacidades(ids),
+      staleTime: FRESCURA.maestro,
+    }),
   /** Tanques del camión y su capacidad total (migración 27). */
   tanques: (db: Db, id: CamionId) =>
     queryOptions({

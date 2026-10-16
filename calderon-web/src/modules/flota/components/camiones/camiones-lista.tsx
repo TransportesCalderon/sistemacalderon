@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, LoaderCircle, Plus, Search, Truck, X } from 'lucide-react';
 import { Can } from '@/modules/core/permissions/can';
 import { cn } from '@/shared/lib/cn';
+import { formatearNumero } from '@/shared/lib/numeros';
 import { formatearFechaDia } from '@/shared/lib/fechas';
 import { BOTON_ICONO, BOTON_PRIMARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
 import { parsearListaCamiones, serializarListaCamiones } from '../../domain/camion.lista';
@@ -18,7 +19,7 @@ import {
   type CamionListaParams,
   type CampoOrdenCamion,
 } from '../../domain/camion.types';
-import { useCamiones, useCatalogosFlota } from '../../queries/hooks';
+import { useCamiones, useCapacidades, useCatalogosFlota } from '../../queries/hooks';
 import { EstadoCamionChip } from './estado-camion';
 
 /**
@@ -33,6 +34,7 @@ export function CamionesLista() {
   const [navegando, iniciar] = useTransition();
 
   const { data, isPending, isError, isFetching, refetch } = useCamiones(params);
+  const { data: capacidades } = useCapacidades(data?.filas.map((c) => c.id) ?? []);
   const { data: catalogos } = useCatalogosFlota();
 
   const nombreCombustible = useMemo(
@@ -186,6 +188,7 @@ export function CamionesLista() {
                   </Encabezado>
                   <th className="px-3 py-2.5">Combustible</th>
                   <th className="px-3 py-2.5">Propietario</th>
+                  <th className="px-3 py-2.5 text-right">Capacidad</th>
                   <Encabezado campo="fecha_alta" params={params} onOrdenar={ordenarPor}>
                     Alta
                   </Encabezado>
@@ -209,6 +212,17 @@ export function CamionesLista() {
                     <td className="px-3 py-2.5 text-right tabular-nums">{c.anio ?? '—'}</td>
                     <td className="px-3 py-2.5">{nombreCombustible.get(c.tipoCombustibleId) ?? '—'}</td>
                     <td className="px-3 py-2.5">{ETIQUETA_PROPIETARIO[c.propietarioTipo]}</td>
+                    <td className="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">
+                      {capacidades === undefined ? (
+                        '—'
+                      ) : capacidades[c.id] == null ? (
+                        <span className="text-alerta" title="Sin tanques cargados">
+                          Sin tanques
+                        </span>
+                      ) : (
+                        `${formatearNumero(capacidades[c.id] ?? null, 0)} L`
+                      )}
+                    </td>
                     <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{formatearFechaDia(c.fechaAlta)}</td>
                     <td className="px-3 py-2.5">
                       <EstadoCamionChip estado={c.estado} eliminado={c.eliminadoEn !== null} />

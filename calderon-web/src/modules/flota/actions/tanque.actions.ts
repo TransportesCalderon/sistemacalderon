@@ -7,6 +7,7 @@ import {
   descripcionTanqueSchema,
   eliminarTanqueSchema,
   tanqueAltaSchema,
+  tanquesAltaSchema,
 } from '../domain/tanque.schemas';
 import { tanqueRepository } from '../repositories/tanque.repository';
 
@@ -50,5 +51,13 @@ export const editarDescripcionTanque = createAction({
   permiso: 'flota.camiones:editar',
   schema: descripcionTanqueSchema,
   handler: (d, { db }) => tanqueRepository(db).editarDescripcion(d),
+  invalida: ficha,
+});
+
+/** Alta del camión: sus tanques juntos (todos o ninguno). */
+export const crearTanques = createAction({
+  permiso: 'flota.camiones:editar',
+  schema: tanquesAltaSchema,
+  handler: (d, { db }) => tanqueRepository(db).crearVarios(d),
   invalida: ficha,
 });

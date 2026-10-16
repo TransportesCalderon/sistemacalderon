@@ -1,7 +1,8 @@
 # Proyecto completo calderon-web (18/10/2026 · migraciones 26 y 27)
 
 Este zip trae el proyecto **entero**: Camiones, Choferes, Clientes y Combustible
-(Cargas, Movimientos del camión, Viajes, Cierres con acta para firmar) y los Tanques del camión en Flota.
+(Cargas, Movimientos del camión, Viajes, Cierres con acta para firmar) y los Tanques del camión en Flota
+(en el alta del camión, en Editar camión, en la ficha y la columna Capacidad de la lista).
 No hace falta ningún zip anterior.
 
 **Orden:** primero aplicar la migración 27 en Supabase (zip `migracion_27.zip`; la 26 ya la tenés) y después subir

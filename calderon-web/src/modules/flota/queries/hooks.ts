@@ -4,7 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { browserDb } from '@/shared/supabase/browser';
 import type { CamionId, ChoferId } from '@/shared/types/dominio';
 import { crearCamion, editarCamion } from '../actions/camion.actions';
-import { cambiarCapacidadTanque, crearTanque, darDeBajaTanque, editarDescripcionTanque, eliminarTanque } from '../actions/tanque.actions';
+import { cambiarCapacidadTanque, crearTanque, crearTanques, darDeBajaTanque, editarDescripcionTanque, eliminarTanque } from '../actions/tanque.actions';
 import { crearChofer, editarChofer, revelarDocumentoChofer } from '../actions/chofer.actions';
 import type { CamionEdicionInput, CamionFormInput } from '../domain/camion.schemas';
 import type { Camion, CamionListaParams } from '../domain/camion.types';
@@ -57,6 +57,10 @@ export function useEditarCamion() {
 // Tanques del camión (migración 27)
 // ---------------------------------------------------------------------------
 
+export function useCapacidades(ids: number[]) {
+  return useQuery({ ...camionesQueries.capacidades(browserDb(), ids), enabled: ids.length > 0, placeholderData: keepPreviousData });
+}
+
 export function useTanques(camionId: CamionId) {
   return useQuery(camionesQueries.tanques(browserDb(), camionId));
 }
@@ -72,6 +76,7 @@ function useMutacionTanque<I extends { camionId: number }, R extends { ok: boole
 }
 
 export const useCrearTanque = () => useMutacionTanque(crearTanque);
+export const useCrearTanques = () => useMutacionTanque(crearTanques);
 export const useCambiarCapacidadTanque = () => useMutacionTanque(cambiarCapacidadTanque);
 export const useDarDeBajaTanque = () => useMutacionTanque(darDeBajaTanque);
 export const useEliminarTanque = () => useMutacionTanque(eliminarTanque);

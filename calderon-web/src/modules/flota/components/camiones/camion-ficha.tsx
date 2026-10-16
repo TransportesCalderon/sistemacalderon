@@ -2,15 +2,17 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, CircleAlert, LoaderCircle, Pencil } from 'lucide-react';
 import { Can } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, formatearFechaHora } from '@/shared/lib/fechas';
+import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import type { CamionId } from '@/shared/types/dominio';
 import { ETIQUETA_PROPIETARIO } from '../../domain/camion.types';
-import { useCamion, useCatalogosFlota } from '../../queries/hooks';
+import { useCamion, useCatalogosFlota, useTanques } from '../../queries/hooks';
 import { EstadoCamionChip } from './estado-camion';
 import { TanquesCamion } from './tanques-camion';
 
@@ -34,6 +36,9 @@ export function CamionFicha({ id }: { id: CamionId }) {
   const { zonaHoraria } = useSesion();
   const { data: camion, isPending, isError, refetch } = useCamion(id);
   const { data: catalogos } = useCatalogosFlota();
+  const { data: tanques } = useTanques(id);
+  // Alta con tanques que la base rechazó: el camión se creó y el mensaje llega por la URL.
+  const avisoTanques = useSearchParams().get('tanques');
 
   if (isPending) {
     return (
@@ -100,6 +105,15 @@ export function CamionFicha({ id }: { id: CamionId }) {
         </p>
       )}
 
+      {avisoTanques && (
+        <p role="alert" className="flex items-start gap-2 rounded-lg border border-error/30 bg-error-suave p-3 text-sm text-error">
+          <CircleAlert className="mt-0.5 size-4 shrink-0" />
+          <span>
+            El camión se dio de alta, pero los tanques no se guardaron: {avisoTanques} Cargalos abajo, en Tanques.
+          </span>
+        </p>
+      )}
+
       <nav className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0" aria-label="Secciones de la ficha">
         <ul className="flex min-w-max gap-1 border-b border-borde">
           {PESTANAS.map((p, i) => (
@@ -142,6 +156,18 @@ export function CamionFicha({ id }: { id: CamionId }) {
           <Dato etiqueta="Modelo">{camion.modelo}</Dato>
           <Dato etiqueta="Año">{camion.anio}</Dato>
           <Dato etiqueta="Tipo de combustible">{combustible}</Dato>
+          <Dato etiqueta="Capacidad de combustible">
+            {tanques === undefined ? null : tanques.capacidad.capacidadUtilL === null ? (
+              <a href="#tanques" className="text-alerta hover:underline">
+                Sin tanques cargados
+              </a>
+            ) : (
+              <a href="#tanques" className="hover:underline">
+                {formatearNumero(tanques.capacidad.capacidadUtilL, 0)} L útiles · {tanques.capacidad.tanques}{' '}
+                {tanques.capacidad.tanques === 1 ? 'tanque' : 'tanques'}
+              </a>
+            )}
+          </Dato>
           <Dato etiqueta="Consumo de referencia">
             {camion.consumoReferencia ? `${camion.consumoReferencia.replace('.', ',')} l/100 km` : null}
           </Dato>
