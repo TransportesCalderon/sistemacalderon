@@ -40,6 +40,13 @@ export const PANTALLAS = {
   'combustible.bandejas':    { etiqueta: 'Bandejas de cargas', fila: ['—', '—', '—', '—', 'A', 'L', '—', '—', 'L', 'L'] },
   'combustible.mediciones':  { etiqueta: 'Mediciones manuales', fila: ['—', 'L', 'E', '—', 'E', 'L', '—', '—', 'L', 'L'] },
   'combustible.consumo':     { etiqueta: 'Consumo, conciliación, costo medio', fila: ['L', 'L', '—', '—', 'L', 'L', '—', 'L', 'L', 'L'] },
+  // Agregada con el módulo Cierre de viaje (reemplaza la planilla de Excel); no figura en la especificación original.
+  // Incluye la lista de viajes (fue.v_viaje): editar = crear y completar borradores; transicionar = aprobar y anular.
+  'combustible.cierre_viaje': { etiqueta: 'Viajes y cierres de viaje', fila: ['L', 'L', 'E', '—', 'E A', 'L', '—', 'L', 'L', 'L'] },
+  // Agregada con la migración 24 (mochilas y controles). editar = uso de mochila y controles (tc_app);
+  // transicionar = puesta en marcha y cierre de vigencia de una mochila, que escriben fue.deposito_combustible
+  // y la base solo lo permite a tc_admin (migración 22): por eso solo TI.
+  'combustible.depositos':   { etiqueta: 'Mochilas y controles', fila: ['L', 'L', 'E', '—', 'E', 'L', '—', 'L', 'E A', 'L'] },
   'operacion.servicios':     { etiqueta: 'Servicios comerciales', fila: ['L', 'E A', '—', '—', '—', 'L', 'L', 'L A', 'L', 'L'] },
   'operacion.tramos':        { etiqueta: 'Tramos operativos y composición', fila: ['L', 'E A', 'L', '—', '—', 'L', 'L', 'L', 'L', 'L'] },
   'operacion.planificacion': { etiqueta: 'Planificación de flota', fila: ['L', 'E', 'L', '—', '—', 'L', '—', '—', 'L', 'L'] },

@@ -44,3 +44,34 @@ export function esFechaDiaValida(valor: string): valor is FechaDia {
   const f = new Date(Date.UTC(a, mes - 1, d));
   return f.getUTCFullYear() === a && f.getUTCMonth() === mes - 1 && f.getUTCDate() === d;
 }
+
+/**
+ * Hora de pared en una zona ('AAAA-MM-DDTHH:mm', valor de <input type="datetime-local">) → ISO UTC.
+ * Resuelve el desfase de la zona en ese instante (horario de verano incluido). null si no es válida.
+ */
+export function horaLocalAIso(valor: string, zona: string): FechaISO | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(valor);
+  if (!m) return null;
+  const [a, mes, d, h, min] = m.slice(1).map(Number) as [number, number, number, number, number];
+  const comoUtc = Date.UTC(a, mes - 1, d, h, min);
+  const desfase = (instante: number) => {
+    const p = new Intl.DateTimeFormat('en-US', {
+      timeZone: zona, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+    }).formatToParts(new Date(instante));
+    const v = (t: string) => Number(p.find((x) => x.type === t)?.value);
+    return Date.UTC(v('year'), v('month') - 1, v('day'), v('hour'), v('minute')) - instante;
+  };
+  let instante = comoUtc - desfase(comoUtc);
+  instante = comoUtc - desfase(instante);
+  const fecha = new Date(instante);
+  return Number.isNaN(fecha.getTime()) ? null : (fecha.toISOString() as FechaISO);
+}
+
+/** ISO UTC → 'AAAA-MM-DDTHH:mm' en la zona (valor inicial de un <input type="datetime-local">). */
+export function isoAHoraLocal(iso: FechaISO | string, zona: string): string {
+  const p = new Intl.DateTimeFormat('en-CA', {
+    timeZone: zona, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  }).formatToParts(new Date(iso));
+  const v = (t: string) => p.find((x) => x.type === t)?.value ?? '00';
+  return `${v('year')}-${v('month')}-${v('day')}T${v('hour')}:${v('minute')}`;
+}

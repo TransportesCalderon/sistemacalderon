@@ -3,7 +3,8 @@
  *
  * ESTE ARCHIVO SE REGENERA con `npm run gen:types` (Supabase CLI) a partir del proyecto
  * desplegado. Esta versión inicial es un subconjunto escrito a mano con lo que usan el
- * núcleo (sesión y topbar) y los módulos Flota (Camiones, Choferes) y Comercial (Clientes), con la misma forma que produce
+ * núcleo (sesión y topbar) y los módulos Flota (Camiones, Choferes), Comercial (Clientes) y Combustible (cargas,
+ * mochilas, controles, viajes y cierres de la migración 24), con la misma forma que produce
  * la CLI. Al regenerar se reemplaza completo; no editar a mano.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -100,6 +101,278 @@ type ClienteInsert = {
   pais: string;
   moneda_facturacion: string;
 } & Partial<Omit<ClienteRow, 'id' | 'codigo' | 'razon_social' | 'identificador_fiscal' | 'pais' | 'moneda_facturacion'>>;
+
+/** Columnas de control comunes (aud.fn_columnas_control). */
+type Control = {
+  creado_en: string;
+  creado_por: number | null;
+  actualizado_en: string;
+  actualizado_por: number | null;
+  eliminado_en: string | null;
+  eliminado_por: number | null;
+  version_fila: number;
+};
+
+/** fue.cierre_viaje (migración 24: cierre con componentes tractor y mochila). */
+type CierreViajeRow = {
+  id: number;
+  numero: string;
+  camion_id: number;
+  carga_salida_id: number;
+  carga_llegada_id: number;
+  salida_ts: string;
+  llegada_ts: string;
+  estado: string;
+  chofer_responsable_id: number | null;
+  motivo_chofer: string | null;
+  programador_velocidad_pct: number | null;
+  test_alcohol: string | null;
+  km_manual: number | null;
+  consumo_plataforma_manual_l: number | null;
+  motivo_ajuste: string | null;
+  tractor_no_imputable_l: number;
+  tractor_no_imputable_ralenti_h: number;
+  tractor_no_imputable_motivo: string | null;
+  tractor_justificacion: string | null;
+  mochila_no_imputable_l: number;
+  mochila_no_imputable_motivo: string | null;
+  mochila_justificacion: string | null;
+  observaciones: string | null;
+  km_recorridos: number | null;
+  fuente_km: string | null;
+  litros_carga_salida: number | null;
+  litros_llenados_l: number | null;
+  litros_desde_mochila_l: number | null;
+  consumo_llenado_l: number | null;
+  consumo_plataforma_l: number | null;
+  fuente_consumo_plataforma: string | null;
+  horas_motor: number | null;
+  horas_ralenti: number | null;
+  ralenti_mes_h: number | null;
+  dias_parado: number | null;
+  capacidad_util_l: number | null;
+  consumo_l_100km: number | null;
+  tractor_diferencia_l: number | null;
+  tractor_tolerancia_l: number | null;
+  tractor_imputable_l: number | null;
+  usa_mochila: boolean | null;
+  deposito_id: number | null;
+  control_ancla_id: number | null;
+  control_llegada_id: number | null;
+  mochila_ancla_l: number | null;
+  mochila_entradas_l: number | null;
+  mochila_transferencias_entrada_l: number | null;
+  mochila_transferencias_salida_l: number | null;
+  mochila_a_tractor_l: number | null;
+  mochila_con_motivo_l: number | null;
+  mochila_real_l: number | null;
+  mochila_teorico_l: number | null;
+  mochila_fisico_l: number | null;
+  mochila_diferencia_l: number | null;
+  mochila_tolerancia_l: number | null;
+  mochila_imputable_l: number | null;
+  imputable_total_l: number | null;
+  linea_viaje: string | null;
+  huella: string | null;
+  detalle: Json | null;
+  calculado_en: string | null;
+  aprobado_por: number | null;
+  aprobado_en: string | null;
+  motivo_anulacion: string | null;
+  anulado_por: number | null;
+  anulado_en: string | null;
+} & Control;
+
+/** Columnas que la aplicación escribe en un borrador (permisos por columna de la migración 24). */
+type CierreViajeBorrador = Partial<
+  Pick<
+    CierreViajeRow,
+    | 'chofer_responsable_id'
+    | 'motivo_chofer'
+    | 'programador_velocidad_pct'
+    | 'test_alcohol'
+    | 'km_manual'
+    | 'consumo_plataforma_manual_l'
+    | 'motivo_ajuste'
+    | 'tractor_no_imputable_l'
+    | 'tractor_no_imputable_ralenti_h'
+    | 'tractor_no_imputable_motivo'
+    | 'tractor_justificacion'
+    | 'mochila_no_imputable_l'
+    | 'mochila_no_imputable_motivo'
+    | 'mochila_justificacion'
+    | 'observaciones'
+  >
+>;
+
+/** fue.carga_combustible (05, 22 y 24). */
+type CargaRow = {
+  id: number;
+  camion_id: number;
+  tanque_id: number | null;
+  tanque_reefer_id: number | null;
+  chofer_id: number | null;
+  estacion_id: number | null;
+  fecha_hora: string;
+  tipo_combustible_id: number;
+  litros: number;
+  precio_unitario: number;
+  moneda: string;
+  importe_original: number;
+  tipo_cambio_id: number | null;
+  importe_moneda_base: number;
+  odometro_km: number | null;
+  nivel_antes_pct: number | null;
+  nivel_despues_pct: number | null;
+  tanque_lleno: boolean;
+  medio_pago: string;
+  tiene_documento: boolean;
+  origen_dato: string;
+  estado_validacion: string;
+  motivo_observacion: string | null;
+  lote_importacion_id: number | null;
+  anula_id: number | null;
+  motivo_anulacion: string | null;
+  deposito_id: number | null;
+  carga_principal_id: number | null;
+  es_frontera: boolean;
+  aparte_confirmada: boolean;
+  mismo_ticket: boolean;
+} & Control;
+
+type CargaInsert = Pick<
+  CargaRow,
+  'camion_id' | 'fecha_hora' | 'tipo_combustible_id' | 'litros' | 'precio_unitario' | 'moneda' | 'importe_original' | 'medio_pago' | 'origen_dato'
+> &
+  Partial<
+    Pick<
+      CargaRow,
+      | 'chofer_id'
+      | 'estacion_id'
+      | 'odometro_km'
+      | 'tanque_lleno'
+      | 'es_frontera'
+      | 'deposito_id'
+      | 'carga_principal_id'
+      | 'mismo_ticket'
+      | 'anula_id'
+    >
+  >;
+
+/** fue.deposito_combustible (22 y 24). */
+type DepositoRow = {
+  id: number;
+  codigo: string;
+  nombre: string;
+  tipo: string;
+  camion_id: number | null;
+  estacion_id: number | null;
+  tipo_combustible_id: number;
+  capacidad_l: number;
+  estado: string;
+  observaciones: string | null;
+  parada_desde_id: number | null;
+  parada_hasta_id: number | null;
+  vigente_desde: string | null;
+  vigente_hasta: string | null;
+} & Control;
+
+/** fue.uso_mochila (24). */
+type UsoMochilaRow = {
+  id: number;
+  camion_id: number;
+  parada_desde_id: number;
+  parada_hasta_id: number | null;
+  desde_ts: string;
+  hasta_ts: string | null;
+  observaciones: string | null;
+} & Control;
+
+/** fue.control_saldo_deposito (22 y 24). */
+type ControlSaldoRow = {
+  id: number;
+  deposito_id: number;
+  fecha_hora: string;
+  litros: number;
+  fuente: string;
+  metodo: string | null;
+  chofer_id: number | null;
+  saldo_libro_l: number;
+  diferencia_l: number;
+  observaciones: string | null;
+  rol: string;
+  origen: string;
+  carga_parada_id: number | null;
+  declarante_tipo: string | null;
+  declarante_usuario_id: number | null;
+  medido_por: number | null;
+  estado: string;
+  reemplaza_id: number | null;
+  motivo_reemplazo: string | null;
+} & Control;
+
+type ControlSaldoInsert = Pick<ControlSaldoRow, 'deposito_id' | 'fecha_hora' | 'litros' | 'fuente' | 'rol' | 'origen'> &
+  Partial<
+    Pick<
+      ControlSaldoRow,
+      'metodo' | 'chofer_id' | 'observaciones' | 'carga_parada_id' | 'declarante_tipo' | 'declarante_usuario_id' | 'medido_por' | 'reemplaza_id' | 'motivo_reemplazo'
+    >
+  >;
+
+/** fue.solicitud_correccion (24). */
+type SolicitudRow = {
+  id: number;
+  tipo: string;
+  carga_id: number | null;
+  movimiento_id: number | null;
+  motivo: string;
+  estado: string;
+  resuelto_por: number | null;
+  resuelto_en: string | null;
+  resuelto_roles: string[] | null;
+  motivo_resolucion: string | null;
+} & Control;
+
+/** fue.v_viaje (24): viajes entre fronteras consecutivas. */
+type ViajeRow = {
+  camion_id: number;
+  patente: string;
+  carga_salida_id: number;
+  salida_ts: string;
+  carga_llegada_id: number | null;
+  llegada_ts: string | null;
+  cierre_id: number | null;
+  cierre_numero: string | null;
+  cierre_estado: string | null;
+  situacion: string;
+};
+
+/** fue.v_saldo_deposito (24 y 25). */
+type SaldoDepositoRow = {
+  deposito_id: number;
+  codigo: string;
+  nombre: string;
+  tipo: string;
+  camion_id: number | null;
+  estacion_id: number | null;
+  tipo_combustible_id: number;
+  capacidad_l: number;
+  estado: string;
+  vigente_desde: string | null;
+  vigente_hasta: string | null;
+  saldo_l: number;
+  ultimo_movimiento: string | null;
+  ultimo_control_id: number | null;
+  ultimo_control_en: string | null;
+  ultimo_control_l: number | null;
+  ultimo_control_fuente: string | null;
+  ultimo_control_rol: string | null;
+  control_vencido: boolean;
+  movimientos_pendientes: number;
+  responsable_usuario_id: number | null;
+};
+
+type Vista<Row> = { Row: { [K in keyof Row]: Row[K] | null }; Relationships: [] };
 
 export type Database = {
   ref: {
@@ -206,6 +479,14 @@ export type Database = {
         Update: Partial<Omit<ClienteRow, 'id'>>;
         Relationships: [];
       };
+      estacion_servicio: TablaSoloLectura<{
+        id: number;
+        codigo: string;
+        nombre: string;
+        pais: string;
+        es_tanque_propio: boolean;
+        eliminado_en: string | null;
+      }>;
       ubicacion: TablaSoloLectura<{
         id: number;
         codigo: string;
@@ -250,6 +531,59 @@ export type Database = {
         };
         Returns: number;
       };
+    };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
+  fue: {
+    Tables: {
+      cierre_viaje: {
+        Row: CierreViajeRow;
+        Insert: { camion_id: number; carga_salida_id: number } & CierreViajeBorrador;
+        Update: CierreViajeBorrador & { version_fila?: number; eliminado_en?: string | null };
+        Relationships: [];
+      };
+      carga_combustible: {
+        Row: CargaRow;
+        Insert: CargaInsert;
+        Update: { aparte_confirmada?: boolean; version_fila?: number };
+        Relationships: [];
+      };
+      deposito_combustible: {
+        Row: DepositoRow;
+        Insert: Pick<DepositoRow, 'codigo' | 'nombre' | 'tipo' | 'tipo_combustible_id' | 'capacidad_l'> &
+          Partial<Pick<DepositoRow, 'camion_id' | 'estacion_id' | 'parada_desde_id' | 'observaciones'>>;
+        Update: Partial<Pick<DepositoRow, 'parada_hasta_id' | 'nombre' | 'capacidad_l' | 'estado' | 'observaciones' | 'version_fila'>>;
+        Relationships: [];
+      };
+      uso_mochila: {
+        Row: UsoMochilaRow;
+        Insert: Pick<UsoMochilaRow, 'camion_id' | 'parada_desde_id'> & Partial<Pick<UsoMochilaRow, 'parada_hasta_id' | 'observaciones'>>;
+        Update: Partial<Pick<UsoMochilaRow, 'parada_hasta_id' | 'observaciones' | 'version_fila'>>;
+        Relationships: [];
+      };
+      control_saldo_deposito: {
+        Row: ControlSaldoRow;
+        Insert: ControlSaldoInsert;
+        Update: never;
+        Relationships: [];
+      };
+      solicitud_correccion: TablaSoloLectura<SolicitudRow>;
+    };
+    Views: {
+      v_cierre_viaje: Vista<CierreViajeRow>;
+      v_carga_combustible: Vista<CargaRow>;
+      v_viaje: Vista<ViajeRow>;
+      v_saldo_deposito: Vista<SaldoDepositoRow>;
+    };
+    Functions: {
+      fn_resultado_cierre: { Args: { p_id: number }; Returns: Json };
+      fn_verificar_cierre: { Args: { p_id: number }; Returns: Json };
+      fn_aprobar_cierre: { Args: { p_id: number; p_version: number }; Returns: CierreViajeRow };
+      fn_anular_cierre: { Args: { p_id: number; p_version: number; p_motivo: string }; Returns: CierreViajeRow };
+      fn_solicitar_anulacion_carga: { Args: { p_carga: number; p_motivo: string }; Returns: number };
+      fn_resolver_solicitud: { Args: { p_id: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: SolicitudRow };
+      fn_retirar_solicitud: { Args: { p_id: number }; Returns: SolicitudRow };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

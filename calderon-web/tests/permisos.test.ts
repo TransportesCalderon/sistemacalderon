@@ -24,6 +24,13 @@ describe('matriz de permisos (especificación §16)', () => {
     expect(can(permisosDe(['operaciones'], agregado), 'combustible.cargas:transicionar')).toBe(false);
   });
 
+  it('la puesta en marcha de una mochila es solo de TI (la base exige tc_admin)', () => {
+    for (const rol of ORDEN_COLUMNAS) {
+      expect(can(permisosDe([rol], agregado), 'combustible.depositos:transicionar'), rol).toBe(rol === 'ti');
+    }
+    expect(can(permisosDe(['base_mendoza'], agregado), 'combustible.depositos:editar')).toBe(true);
+  });
+
   it('el chofer tiene alcance propio en sus cargas', () => {
     expect(alcanceDe(permisosDe(['chofer'], agregado), 'combustible.cargas:editar')).toBe('propio');
   });
@@ -45,9 +52,9 @@ describe('matriz de permisos (especificación §16)', () => {
 });
 
 describe('navegación (especificación §3)', () => {
-  it('tiene 11 grupos y 58 entradas', () => {
+  it('tiene 11 grupos y 61 entradas', () => {
     expect(NAVEGACION.length).toBe(11);
-    expect(NAVEGACION.flatMap((g) => g.entradas).length).toBe(58);
+    expect(NAVEGACION.flatMap((g) => g.entradas).length).toBe(61);
   });
 
   it('todas las entradas apuntan a pantallas de la matriz', () => {

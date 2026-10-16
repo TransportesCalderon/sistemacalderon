@@ -1,7 +1,7 @@
 # Transportes Calderón — frontend (Next.js 15)
 
 Proyecto base: autenticación con Supabase, sesión, permisos por rol, menú lateral dinámico y barra superior.
-Módulos de negocio implementados: **Flota > Camiones**, **Flota > Choferes** y **Comercial > Clientes**. El resto de las entradas del menú muestran
+Módulos de negocio implementados: **Flota > Camiones**, **Flota > Choferes**, **Comercial > Clientes** y el flujo operativo de **Combustible** (Cargas → Mochilas y controles → Viajes → Cierres de viaje). El resto de las entradas del menú muestran
 "Módulo en construcción" (con la verificación de permisos ya aplicada).
 
 ## Requisitos
@@ -50,7 +50,7 @@ src/
 ├─ modules/core/
 │  ├─ auth/                            # claims del JWT, sesión (React.cache), guards, server actions, Zod
 │  ├─ permissions/                     # roles, matriz §16, resolver, <Can>, useCan
-│  ├─ navigation/                      # menú §3 (11 grupos, 58 entradas), filtro por permisos
+│  ├─ navigation/                      # menú §3 (11 grupos, 59 entradas), filtro por permisos
 │  ├─ session/                         # SessionProvider (datos serializables, sin tokens)
 │  └─ layout/                          # AppShell, Sidebar, Topbar, aviso de moneda base
 ├─ server/
@@ -140,6 +140,64 @@ src/modules/comercial/
 ├─ queries/         keys.ts, hooks.ts, precarga.ts
 └─ components/      clientes/ lista, ficha, formulario, chip de estado
 ```
+
+## Módulo Combustible: flujo operativo
+
+Cargas → Fronteras → Controles de mochila → Viajes → Cierres. Permite llegar a un cierre aprobado sin escribir SQL.
+Fuente de verdad: migraciones 22 a 25 (en particular `24_cierre_viaje_depositos.sql` y `25_ajuste_saldo_deposito.sql`).
+
+**Reglas del frontend**
+
+- Toda validación vive en la base. El navegador solo valida la forma (campo vacío, número mal escrito).
+- Los errores de la base (`P0001`, `55000`, `42501`, `23514`, `55P03`, `P0002`…) se muestran tal cual (`<ErrorBase>`), sin reinterpretar.
+- El navegador no calcula litros, diferencias, tolerancias ni límites de viaje: los lee de `fue.v_viaje`,
+  `fue.v_saldo_deposito`, `fue.fn_resultado_cierre` (borrador, en vivo) y las columnas congeladas (aprobado).
+- Después de cualquier escritura se vuelve a leer todo `['combustible']` (viajes, saldos y resultados dependen de los hechos).
+
+| Ruta | Pantalla | Permiso |
+| --- | --- | --- |
+| `/combustible/cargas` | Lista: fecha, camión, destino, frontera (inicia / termina viaje según `v_viaje`), situación normal / anulación pendiente / anulada | `combustible.cargas` |
+| `/combustible/cargas/nueva` | Alta: tractor (tanque lleno, frontera) o mochila (parada, mismo ticket). `?camion=` y `?reemplaza=` | `cargas:editar` |
+| `/combustible/cargas/[id]` | Ficha: parada, carga suelta (confirmar aparte), solicitar / aprobar / rechazar / retirar anulación | ver / editar / transicionar |
+| `/combustible/mochilas` | Camiones con uso de mochila, mochila vigente, saldo de libro y último control | `combustible.depositos` |
+| `/combustible/mochilas/[camionId]` | Uso de mochila, historial de vigencias, puesta en marcha y cierre de vigencia (TI), controles (inicial / de frontera / intermedio) con alta y reemplazo | ver / editar / transicionar |
+| `/combustible/viajes` | `fue.v_viaje` directo: camión, frontera inicial y final, situación; "Crear borrador" o abrir el cierre | `combustible.cierre_viaje` |
+| `/combustible/cierres` | Lista de cierres (número, camión, responsable, fechas, diferencias, imputable, estado) | `combustible.cierre_viaje` |
+| `/combustible/cierres/[id]` | Identificación, Tractor, Mochila, Resultado, Verificación; Guardar borrador, Actualizar límites, Aprobar, Anular | ver / editar / transicionar |
+
+**Arquitectura** (`src/modules/combustible/`)
+
+```
+domain/        comun.ts, carga.*, mochila.*, viaje.types.ts, cierre.types.ts, cierre.resultado.ts (solo lectura de JSON), cierre.schemas.ts
+repositories/  carga, mochila, viaje, cierre, catalogo-combustible  (PostgREST: tablas, vistas y fue.fn_*)
+services/      carga, mochila (puesta en marcha reanudable), cierre
+actions/       server actions con createAction (permiso + esquema + revalidación)
+queries/       keys.ts (combustibleQueries), hooks.ts (lecturas y useEscritura), precarga.ts (servidor)
+components/    comun/ (Chip, ErrorBase, AccionConMotivo, Paginador…), cargas/, mochilas/, viajes/, cierres/
+```
+
+**Notas**
+
+- La puesta en marcha y el cierre de vigencia de una mochila requieren `tc_admin` en la base (solo TI). Son tres
+  escrituras (uso, mochila, control inicial) que PostgREST no agrupa: si una falla, repetir continúa donde quedó.
+- `fue.v_viaje` no considera los cierres anulados: el viaje de un cierre anulado vuelve a figurar "Sin cierre"
+  y se puede crear un borrador nuevo (desde Viajes o desde la ficha del cierre anulado).
+- La verificación (`fue.fn_verificar_cierre`) no es un estado: se muestra como Verificado / Con diferencias / Con avisos
+  y se repite con el botón "Verificar".
+- El test de alcohol es dato sensible: solo lo ven quienes editan o aprueban cierres.
+- Parámetros de `fue.parametro` (traspaso, frecuencia 24 h, relevo 'avisar', tolerancias 10/10/20 L): **provisionales**,
+  pendientes de confirmación de Operaciones.
+
+**Plan por etapas**
+
+1. Cargas: alta, frontera, parada, anulación con aprobación. ✔
+2. Mochilas y controles: uso, puesta en marcha, vigencias, controles y reemplazos. ✔
+3. Viajes desde `fue.v_viaje`. ✔
+4. Cierres: borrador, resultado en vivo, aprobación, anulación, verificación. ✔
+5. Base Mendoza (solo plan): pantalla del tanque de la base (`deposito_combustible` tipo base) con sus controles de rol
+   `base`, entradas (descargas de mochila, compras) y salidas a tractores; tolerancia de base (20 L provisional).
+   Reutiliza `ControlesMochila` generalizado a depósito, `v_saldo_deposito` y la fila de permisos `combustible.depositos`
+   (Base Mendoza ya tiene "editar"). Sin cambios de esquema: requiere confirmar con Operaciones la frecuencia de medición del tanque.
 
 ## Pendiente para próximas etapas
 
