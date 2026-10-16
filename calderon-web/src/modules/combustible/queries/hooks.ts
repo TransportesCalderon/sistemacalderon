@@ -4,6 +4,16 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { ActionResult } from '@/server/actions/result';
 import { browserDb } from '@/shared/supabase/browser';
 import type { CargaId, CierreViajeId } from '@/shared/types/dominio';
+import {
+  anularSegmentoBase,
+  aprobarSegmentoBase,
+  asignarResponsableBase,
+  guardarTanqueBase,
+  registrarControlBase,
+  registrarMovimientoBase,
+  resolverMovimientoBase,
+  traspasarResponsableBase,
+} from '../actions/base.actions';
 import { crearCarga, resolverSolicitudCarga, retirarSolicitudCarga, solicitarAnulacionCarga } from '../actions/carga.actions';
 import { actualizarLimitesCierre, anularCierre, aprobarCierre, crearBorradorCierre, guardarBorradorCierre } from '../actions/cierre.actions';
 import {
@@ -32,6 +42,17 @@ export const useCargas = (p: CargaListaParams) => useQuery({ ...q.cargas.lista(b
 export const useCarga = (id: CargaId) => useQuery(q.cargas.detalle(browserDb(), id));
 export const useMovimientos = (p: MovimientoListaParams) => useQuery({ ...q.movimientos.lista(browserDb(), p), placeholderData: keepPreviousData });
 export const useTanquesBase = () => useQuery(q.movimientos.tanquesBase(browserDb()));
+
+export const useTanquesDeBase = () => useQuery(q.base.tanques(browserDb()));
+export const useControlesBase = (depositoId: number) => useQuery(q.base.controles(browserDb(), depositoId));
+export const useLibroBase = (depositoId: number, pagina: number) =>
+  useQuery({ ...q.base.libro(browserDb(), depositoId, pagina), placeholderData: keepPreviousData });
+export const useResponsablesBase = (depositoId: number) => useQuery(q.base.responsables(browserDb(), depositoId));
+export const useUsuarios = () => useQuery(q.base.usuarios(browserDb()));
+export const useTiposCombustible = () => useQuery(q.base.tiposCombustible(browserDb()));
+export const useSegmentoBase = (controlId: number) => useQuery({ ...q.base.segmento(browserDb(), controlId), retry: false });
+export const useVerificacionBase = (aprobacionId: number, enabled: boolean) =>
+  useQuery({ ...q.base.verificacion(browserDb(), aprobacionId), enabled, retry: false });
 
 export const useViajes = (p: ViajeListaParams) => useQuery({ ...q.viajes.lista(browserDb(), p), placeholderData: keepPreviousData });
 
@@ -63,6 +84,15 @@ export const useResolverMovimiento = () => useEscritura(resolverMovimiento);
 export const useSolicitarReversoMovimiento = () => useEscritura(solicitarReversoMovimiento);
 export const useResolverReversoMovimiento = () => useEscritura(resolverReversoMovimiento);
 export const useRetirarReversoMovimiento = () => useEscritura(retirarReversoMovimiento);
+
+export const useGuardarTanqueBase = () => useEscritura(guardarTanqueBase);
+export const useRegistrarControlBase = () => useEscritura(registrarControlBase);
+export const useRegistrarMovimientoBase = () => useEscritura(registrarMovimientoBase);
+export const useResolverMovimientoBase = () => useEscritura(resolverMovimientoBase);
+export const useAsignarResponsableBase = () => useEscritura(asignarResponsableBase);
+export const useTraspasarResponsableBase = () => useEscritura(traspasarResponsableBase);
+export const useAprobarSegmentoBase = () => useEscritura(aprobarSegmentoBase);
+export const useAnularSegmentoBase = () => useEscritura(anularSegmentoBase);
 
 export const useCrearBorrador = () => useEscritura(crearBorradorCierre);
 export const useGuardarBorrador = () => useEscritura(guardarBorradorCierre);

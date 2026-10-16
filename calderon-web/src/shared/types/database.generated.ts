@@ -419,6 +419,94 @@ type SaldoDepositoRow = {
   responsable_usuario_id: number | null;
 };
 
+/** fue.control_saldo_deposito (24). Se escribe con fue.fn_registrar_control_base (30). */
+type ControlDepositoRow = {
+  id: number;
+  deposito_id: number;
+  fecha_hora: string;
+  litros: number;
+  fuente: string;
+  metodo: string | null;
+  rol: string;
+  origen: string;
+  saldo_libro_l: number;
+  diferencia_l: number | null;
+  observaciones: string | null;
+  medido_por: number | null;
+  estado: string;
+  reemplaza_id: number | null;
+  motivo_reemplazo: string | null;
+} & Control;
+
+/** fue.v_control_base (30): controles vigentes de un tanque de base con su segmento. */
+type ControlBaseRow = {
+  id: number;
+  deposito_id: number;
+  fecha_hora: string;
+  litros: number;
+  rol: string;
+  origen: string;
+  metodo: string | null;
+  observaciones: string | null;
+  saldo_libro_l: number;
+  diferencia_l: number;
+  medido_por: number | null;
+  medido_por_nombre: string | null;
+  reemplaza_id: number | null;
+  motivo_reemplazo: string | null;
+  control_anterior_id: number | null;
+  control_anterior_en: string | null;
+  responsable_usuario_id: number | null;
+  responsable_nombre: string | null;
+  aprobacion_id: number | null;
+  aprobado_diferencia_l: number | null;
+  aprobado_imputable_l: number | null;
+  aprobado_por: number | null;
+  aprobado_por_nombre: string | null;
+  aprobado_en: string | null;
+  creado_en: string;
+};
+
+/** fue.movimiento_combustible (22, 24): libro de un depósito. Solo lo escriben las funciones de la base. */
+type MovimientoDepositoRow = {
+  id: number;
+  deposito_id: number;
+  fecha_hora: string;
+  tipo: string;
+  litros: number;
+  operacion: string;
+  carga_id: number | null;
+  deposito_contraparte_id: number | null;
+  camion_id: number | null;
+  control_id: number | null;
+  chofer_id: number | null;
+  motivo: string | null;
+  anula_id: number | null;
+  categoria: string | null;
+  evidencia: string | null;
+  estado_aprobacion: string | null;
+  resuelto_por: number | null;
+  resuelto_en: string | null;
+  motivo_resolucion: string | null;
+} & Control;
+
+/** fue.responsable_deposito (24): responsable del tanque de base, vigencia (desde, hasta]. */
+type ResponsableIns = { deposito_id: number; usuario_id: number; desde_ts: string; observaciones?: string | null };
+type ResponsableRow = ResponsableIns & { id: number; hasta_ts: string | null } & Control;
+
+/** fue.aprobacion_control_base (24). */
+type AprobacionBaseRow = {
+  id: number;
+  deposito_id: number;
+  control_id: number;
+  control_anterior_id: number;
+  estado: string;
+  diferencia_l: number;
+  imputable_l: number;
+  aprobado_por: number | null;
+  aprobado_en: string;
+} & Control;
+
 type Vista<Row> = { Row: { [K in keyof Row]: Row[K] | null }; Relationships: [] };
 
 export type Database = {
@@ -592,7 +680,7 @@ export type Database = {
   };
   seg: {
     Tables: {
-      usuario: TablaSoloLectura<{ id: number; nombre: string }>;
+      usuario: TablaSoloLectura<{ id: number; nombre: string; activo: boolean }>;
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
@@ -662,6 +750,10 @@ export type Database = {
         Relationships: [];
       };
       movimiento_camion: TablaSoloLectura<MovimientoCamionRow>;
+      movimiento_combustible: TablaSoloLectura<MovimientoDepositoRow>;
+      control_saldo_deposito: TablaSoloLectura<ControlDepositoRow>;
+      responsable_deposito: TablaEditable<ResponsableRow, ResponsableIns>;
+      aprobacion_control_base: TablaSoloLectura<AprobacionBaseRow>;
       solicitud_correccion: TablaSoloLectura<SolicitudRow>;
     };
     Views: {
@@ -669,6 +761,7 @@ export type Database = {
       v_carga_combustible: Vista<CargaRow>;
       v_viaje: Vista<ViajeRow>;
       v_saldo_deposito: Vista<SaldoDepositoRow>;
+      v_control_base: Vista<ControlBaseRow>;
       v_movimiento_camion: Vista<MovimientoCamionRow & { revertido: boolean; solicitud_pendiente_id: number | null }>;
     };
     Functions: {
@@ -705,6 +798,53 @@ export type Database = {
       };
       fn_resolver_movimiento_camion: { Args: { p_id: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: MovimientoCamionRow };
       fn_solicitar_reverso_camion: { Args: { p_movimiento: number; p_motivo: string }; Returns: number };
+      // Base Mendoza (24 y 30)
+      fn_registrar_control_base: {
+        Args: {
+          p_deposito: number;
+          p_fecha_hora: string;
+          p_litros: number;
+          p_metodo: string;
+          p_observaciones?: string | null;
+          p_reemplaza?: number | null;
+          p_motivo_reemplazo?: string | null;
+        };
+        Returns: number;
+      };
+      fn_traspasar_responsable: {
+        Args: {
+          p_deposito: number;
+          p_usuario_entrante: number;
+          p_fecha_hora: string;
+          p_litros: number;
+          p_metodo: string;
+          p_observaciones?: string | null;
+        };
+        Returns: number;
+      };
+      fn_movimiento_con_motivo: {
+        Args: {
+          p_deposito: number;
+          p_categoria: string;
+          p_litros: number;
+          p_fecha_hora: string;
+          p_motivo: string;
+          p_evidencia?: string | null;
+          p_chofer_id?: number | null;
+        };
+        Returns: number;
+      };
+      fn_resolver_movimiento: { Args: { p_movimiento: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: MovimientoDepositoRow };
+      fn_resultado_control_base: {
+        Args: { p_control: number; p_justificacion?: string | null; p_no_imputable_l?: number; p_no_imputable_motivo?: string | null };
+        Returns: Json;
+      };
+      fn_aprobar_control_base: {
+        Args: { p_control: number; p_justificacion?: string | null; p_no_imputable_l?: number; p_no_imputable_motivo?: string | null };
+        Returns: AprobacionBaseRow;
+      };
+      fn_anular_aprobacion_base: { Args: { p_id: number; p_motivo: string }; Returns: AprobacionBaseRow };
+      fn_verificar_control_base: { Args: { p_id: number }; Returns: Json };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

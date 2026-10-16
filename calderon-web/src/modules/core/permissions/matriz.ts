@@ -51,9 +51,11 @@ export const PANTALLAS = {
   // movimientos con motivo. editar = registrar y pedir un reverso; transicionar = aprobar o rechazar lo que
   // registró otro usuario (la base además exige un rol aprobador: fue.correccion_roles_aprobadores).
   'combustible.movimientos': { etiqueta: 'Movimientos del camión', fila: ['L', 'L', 'E', '—', 'E A', 'L', '—', 'L', 'E A', 'L'] },
-  // Agregada con la migración 24. Desde la 26 la mochila es un tanque del camión: la fila queda para el tanque de
-  // Base Mendoza (etapa 5). transicionar = alta y baja de un depósito, que la base solo permite a tc_admin: solo TI.
-  'combustible.depositos':   { etiqueta: 'Tanque de base', fila: ['L', 'L', 'E', '—', 'E', 'L', '—', 'L', 'E A', 'L'] },
+  // Agregada con la migración 24; pantalla Combustible > Base Mendoza (migración 30). editar = controles, compras y
+  // otros movimientos con motivo, responsable y traspaso; transicionar = aprobar o rechazar movimientos con motivo y
+  // aprobar o anular segmentos (la base además exige rol aprobador y que no sea el responsable del segmento).
+  // El alta y la edición del tanque son configuración (configuracion.catalogos: solo TI; la base solo deja a tc_admin).
+  'combustible.depositos':   { etiqueta: 'Tanque de base', fila: ['L', 'L', 'E', '—', 'E A', 'L', '—', 'L', 'E A', 'L'] },
   'operacion.servicios':     { etiqueta: 'Servicios comerciales', fila: ['L', 'E A', '—', '—', '—', 'L', 'L', 'L A', 'E A', 'L'] },
   'operacion.tramos':        { etiqueta: 'Tramos operativos y composición', fila: ['L', 'E A', 'L', '—', '—', 'L', 'L', 'L', 'E A', 'L'] },
   'operacion.planificacion': { etiqueta: 'Planificación de flota', fila: ['L', 'E', 'L', '—', '—', 'L', '—', '—', 'E A', 'L'] },

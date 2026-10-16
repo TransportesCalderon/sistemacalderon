@@ -40,10 +40,12 @@ describe('matriz de permisos (especificación §16)', () => {
     expect(can(permisosDe(['chofer'], agregado), 'combustible.movimientos:ver')).toBe(false);
   });
 
-  it('el alta de un tanque de base es solo de TI (la base exige tc_admin)', () => {
+  it('Base Mendoza: el alta del tanque es solo de TI; aprueban Adm. de combustible y TI', () => {
     for (const rol of ORDEN_COLUMNAS) {
-      expect(can(permisosDe([rol], agregado), 'combustible.depositos:transicionar'), rol).toBe(rol === 'ti');
+      expect(can(permisosDe([rol], agregado), 'configuracion.catalogos:editar'), rol).toBe(rol === 'ti');
+      expect(can(permisosDe([rol], agregado), 'combustible.depositos:transicionar'), rol).toBe(rol === 'ti' || rol === 'adm_combustible');
     }
+    expect(can(permisosDe(['base_mendoza'], agregado), 'combustible.depositos:editar')).toBe(true);
   });
 
   it('el chofer tiene alcance propio en sus cargas', () => {
@@ -67,9 +69,9 @@ describe('matriz de permisos (especificación §16)', () => {
 });
 
 describe('navegación (especificación §3)', () => {
-  it('tiene 11 grupos y 61 entradas', () => {
+  it('tiene 11 grupos y 62 entradas', () => {
     expect(NAVEGACION.length).toBe(11);
-    expect(NAVEGACION.flatMap((g) => g.entradas).length).toBe(61);
+    expect(NAVEGACION.flatMap((g) => g.entradas).length).toBe(62);
   });
 
   it('todas las entradas apuntan a pantallas de la matriz', () => {

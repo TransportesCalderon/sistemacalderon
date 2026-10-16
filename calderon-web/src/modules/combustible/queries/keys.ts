@@ -6,6 +6,7 @@ import type { CargaListaParams } from '../domain/carga.types';
 import type { CierreListaParams } from '../domain/cierre.types';
 import type { MovimientoListaParams } from '../domain/movimiento.types';
 import type { ViajeListaParams } from '../domain/viaje.types';
+import { baseRepository } from '../repositories/base.repository';
 import { cargaRepository } from '../repositories/carga.repository';
 import { catalogoCombustibleRepository } from '../repositories/catalogo-combustible.repository';
 import { cierreRepository } from '../repositories/cierre.repository';
@@ -75,6 +76,59 @@ export const combustibleQueries = {
         queryKey: ['combustible', 'movimientos', 'tanques-base'] as const,
         queryFn: () => movimientoRepository(db).tanquesBase(),
         staleTime: FRESCURA.maestro,
+      }),
+  },
+
+  /** Base Mendoza (migraciones 24 y 30). */
+  base: {
+    tanques: (db: Db) =>
+      queryOptions({
+        queryKey: ['combustible', 'base', 'tanques'] as const,
+        queryFn: () => baseRepository(db).tanques(),
+        staleTime: FRESCURA.transaccional,
+      }),
+    controles: (db: Db, depositoId: number) =>
+      queryOptions({
+        queryKey: ['combustible', 'base', 'controles', depositoId] as const,
+        queryFn: () => baseRepository(db).controles(depositoId),
+        staleTime: FRESCURA.transaccional,
+      }),
+    libro: (db: Db, depositoId: number, pagina: number) =>
+      queryOptions({
+        queryKey: ['combustible', 'base', 'libro', depositoId, pagina] as const,
+        queryFn: () => baseRepository(db).libro(depositoId, pagina),
+        staleTime: FRESCURA.transaccional,
+      }),
+    responsables: (db: Db, depositoId: number) =>
+      queryOptions({
+        queryKey: ['combustible', 'base', 'responsables', depositoId] as const,
+        queryFn: () => baseRepository(db).responsables(depositoId),
+        staleTime: FRESCURA.transaccional,
+      }),
+    usuarios: (db: Db) =>
+      queryOptions({
+        queryKey: ['combustible', 'base', 'usuarios'] as const,
+        queryFn: () => baseRepository(db).usuarios(),
+        staleTime: FRESCURA.maestro,
+      }),
+    tiposCombustible: (db: Db) =>
+      queryOptions({
+        queryKey: ['combustible', 'base', 'tipos-combustible'] as const,
+        queryFn: () => baseRepository(db).tiposCombustible(),
+        staleTime: FRESCURA.catalogo,
+      }),
+    /** Vista previa del segmento (fue.fn_resultado_control_base). Siempre fresca. */
+    segmento: (db: Db, controlId: number) =>
+      queryOptions({
+        queryKey: ['combustible', 'base', 'segmento', controlId] as const,
+        queryFn: () => baseRepository(db).segmento(controlId),
+        staleTime: 0,
+      }),
+    verificacion: (db: Db, aprobacionId: number) =>
+      queryOptions({
+        queryKey: ['combustible', 'base', 'verificacion', aprobacionId] as const,
+        queryFn: () => baseRepository(db).verificar(aprobacionId),
+        staleTime: 0,
       }),
   },
 

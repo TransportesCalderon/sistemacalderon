@@ -47,6 +47,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/combustible/observadas', etiqueta: 'Cargas observadas', pantalla: 'combustible.bandejas' },
       { href: '/combustible/sin-documento', etiqueta: 'Cargas sin documento', pantalla: 'combustible.bandejas' },
       { href: '/combustible/movimientos', etiqueta: 'Movimientos del camión', pantalla: 'combustible.movimientos' },
+      { href: '/combustible/base', etiqueta: 'Base Mendoza', pantalla: 'combustible.depositos' },
       { href: '/combustible/viajes', etiqueta: 'Viajes', pantalla: 'combustible.cierre_viaje' },
       { href: '/combustible/cierres', etiqueta: 'Cierres de viaje', pantalla: 'combustible.cierre_viaje' },
       { href: '/combustible/mediciones', etiqueta: 'Mediciones manuales', pantalla: 'combustible.mediciones' },
