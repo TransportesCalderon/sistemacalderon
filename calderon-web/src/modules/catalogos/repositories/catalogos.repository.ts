@@ -1,7 +1,7 @@
 import { ConflictoVersion, RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/db';
 import type { FechaDia } from '@/shared/types/dominio';
-import type { Eliminar, EstacionDatos, ParametroDatos, ProveedorDatos, TipoCambioDatos } from '../domain/catalogos.schemas';
+import type { Eliminar, EstacionDatos, ParametroDatos, ProveedorDatos, TipoCambioDatos, UbicacionDatos } from '../domain/catalogos.schemas';
 import {
   esTipoProveedor,
   tasaDesde,
@@ -12,6 +12,8 @@ import {
   type Parametro,
   type Proveedor,
   type TipoCambio,
+  type TipoUbicacion,
+  type Ubicacion,
 } from '../domain/catalogos.types';
 
 /**
@@ -134,6 +136,55 @@ export const catalogosRepository = (db: Db) => {
         .maybeSingle();
       if (error) throw new RepoError(error);
       if (!data) throw new ConflictoVersion('mae.estacion_servicio', d.id);
+    },
+
+    // ----------------------------------------------------------- ubicaciones
+    async ubicaciones(): Promise<Ubicacion[]> {
+      const { data, error } = await mae()
+        .from('ubicacion')
+        .select('id, codigo, nombre, tipo, pais, latitud, longitud, radio_geocerca_m, version_fila')
+        .is('eliminado_en', null)
+        .order('nombre');
+      if (error) throw new RepoError(error);
+      return data.map((u) => ({
+        id: u.id,
+        codigo: u.codigo,
+        nombre: u.nombre,
+        tipo: u.tipo as TipoUbicacion,
+        pais: u.pais.trim(),
+        latitud: u.latitud === null ? null : Number(u.latitud),
+        longitud: u.longitud === null ? null : Number(u.longitud),
+        radioM: u.radio_geocerca_m,
+        versionFila: u.version_fila,
+      }));
+    },
+    async guardarUbicacion(d: UbicacionDatos): Promise<void> {
+      const fila = { codigo: d.codigo, nombre: d.nombre, tipo: d.tipo, pais: d.pais, latitud: d.latitud, longitud: d.longitud, radio_geocerca_m: d.radioM };
+      if (d.id === null) {
+        const { error } = await mae().from('ubicacion').insert(fila);
+        if (error) throw new RepoError(error);
+        return;
+      }
+      const { data, error } = await mae()
+        .from('ubicacion')
+        .update({ ...fila, version_fila: d.versionFila ?? 0 })
+        .eq('id', d.id)
+        .eq('version_fila', d.versionFila ?? 0)
+        .select('id')
+        .maybeSingle();
+      if (error) throw new RepoError(error);
+      if (!data) throw new ConflictoVersion('mae.ubicacion', d.id);
+    },
+    async eliminarUbicacion(d: Eliminar): Promise<void> {
+      const { data, error } = await mae()
+        .from('ubicacion')
+        .update({ eliminado_en: new Date().toISOString(), version_fila: d.versionFila })
+        .eq('id', d.id)
+        .eq('version_fila', d.versionFila)
+        .select('id')
+        .maybeSingle();
+      if (error) throw new RepoError(error);
+      if (!data) throw new ConflictoVersion('mae.ubicacion', d.id);
     },
 
     // ------------------------------------------------------- tipos de cambio

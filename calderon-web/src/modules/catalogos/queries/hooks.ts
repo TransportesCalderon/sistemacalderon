@@ -9,9 +9,11 @@ import {
   eliminarEstacion,
   eliminarProveedor,
   eliminarTipoCambio,
+  eliminarUbicacion,
   guardarEstacion,
   guardarParametro,
   guardarProveedor,
+  guardarUbicacion,
 } from '../actions/catalogos.actions';
 import { catalogosQueries } from './keys';
 
@@ -21,6 +23,7 @@ export const useProveedores = () => useQuery(catalogosQueries.proveedores(browse
 export const useEstaciones = () => useQuery(catalogosQueries.estaciones(browserDb()));
 export const useTiposCambio = (moneda?: string) => useQuery({ ...catalogosQueries.tiposCambio(browserDb(), moneda), placeholderData: keepPreviousData });
 export const useParametros = () => useQuery(catalogosQueries.parametros(browserDb()));
+export const useUbicaciones = () => useQuery(catalogosQueries.ubicaciones(browserDb()));
 export const useImportaciones = () => useQuery(catalogosQueries.importaciones(browserDb()));
 
 /**
@@ -37,6 +40,7 @@ function useEscritura<I, R extends { ok: boolean }>(accion: (input: I) => Promis
         qc.invalidateQueries({ queryKey: catalogosQueries.todo() }),
         qc.invalidateQueries({ queryKey: ['combustible'] }),
         qc.invalidateQueries({ queryKey: ['flota'] }),
+        qc.invalidateQueries({ queryKey: ['pizarra'] }),
       ]);
     },
   });
@@ -51,3 +55,5 @@ export const useEliminarTipoCambio = () => useEscritura(eliminarTipoCambio);
 export const useGuardarParametro = () => useEscritura(guardarParametro);
 export const useActualizarCotizaciones = () => useEscritura(actualizarCotizaciones);
 export const useDefinirMonedaBase = () => useEscritura(definirMonedaBase);
+export const useGuardarUbicacion = () => useEscritura(guardarUbicacion);
+export const useEliminarUbicacion = () => useEscritura(eliminarUbicacion);

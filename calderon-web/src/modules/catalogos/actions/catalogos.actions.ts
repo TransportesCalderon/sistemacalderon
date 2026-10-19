@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createAction } from '@/server/actions/create-action';
 import { ErrorNegocio } from '@/shared/lib/errores';
 import { pedirBcra, periodoBcra } from '@/server/externos/bcra';
-import { eliminarSchema, estacionSchema, parametroSchema, proveedorSchema, tipoCambioSchema } from '../domain/catalogos.schemas';
+import { eliminarSchema, estacionSchema, parametroSchema, proveedorSchema, tipoCambioSchema, ubicacionSchema } from '../domain/catalogos.schemas';
 import { catalogosRepository } from '../repositories/catalogos.repository';
 
 /**
@@ -42,6 +42,23 @@ export const eliminarEstacion = createAction({
   schema: eliminarSchema,
   handler: (d, { db }) => catalogosRepository(db).eliminarEstacion(d),
   invalida: comercial,
+});
+
+/** Ubicaciones (puertos, base, clientes): comercial.ubicaciones. La Pizarra Azul las usa como «Dónde». */
+const ubicaciones = () => ({ paths: ['/comercial/ubicaciones', '/flota/pizarra'] });
+
+export const guardarUbicacion = createAction({
+  permiso: 'comercial.ubicaciones:editar',
+  schema: ubicacionSchema,
+  handler: (d, { db }) => catalogosRepository(db).guardarUbicacion(d),
+  invalida: ubicaciones,
+});
+
+export const eliminarUbicacion = createAction({
+  permiso: 'comercial.ubicaciones:editar',
+  schema: eliminarSchema,
+  handler: (d, { db }) => catalogosRepository(db).eliminarUbicacion(d),
+  invalida: ubicaciones,
 });
 
 export const crearTipoCambio = createAction({

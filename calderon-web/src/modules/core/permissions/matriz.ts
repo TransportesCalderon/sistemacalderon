@@ -68,6 +68,9 @@ export const PANTALLAS = {
   'telemetria.mapa':         { etiqueta: 'Mapa, recorrido, eventos, paradas', fila: ['L', 'L', 'L', '—', 'L', 'L', '—', '—', 'E A', 'L'] },
   'telemetria.sesiones':     { etiqueta: 'Sesiones de conductor, resumen diario', fila: ['L', 'L', '—', '—', '—', 'L', '—', '—', 'E A', 'L'] },
   'telemetria.calidad':      { etiqueta: 'Calidad de datos', fila: ['—', 'L', '—', '—', 'L', 'L', '—', '—', 'E A', 'L'] },
+  // Agregada con la migración 39 (reemplaza la planilla PIZARRA SEMI GENSET). editar = lugar en playa, observación y
+  // accesorios del semi, tipos de accesorio y gensets. El viaje (tractor, chofer, carga) se asigna en Operación.
+  'flota.pizarra':           { etiqueta: 'Pizarra Azul, gensets y accesorios', fila: ['L', 'E', 'E', '—', 'L', 'L', '—', 'L', 'E A', 'L'] },
   'flota.camiones':          { etiqueta: 'Camiones y semirremolques', fila: ['L', 'E', 'L', '—', 'L', 'L', '—', 'L', 'E A', 'L'] },
   'flota.choferes':          { etiqueta: 'Choferes (sin documento)', fila: ['L', 'E', 'L', 'P', 'L', 'L', 'E', 'L', 'E A', 'L'] },
   'flota.documento_chofer':  { etiqueta: 'Documento del chofer', fila: ['—', '—', '—', 'P', '—', 'L', 'E', '—', 'E A', 'L'] },

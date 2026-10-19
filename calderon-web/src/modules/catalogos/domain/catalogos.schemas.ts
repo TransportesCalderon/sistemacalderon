@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TIPOS_PROVEEDOR } from './catalogos.types';
+import { TIPOS_PROVEEDOR, TIPOS_UBICACION } from './catalogos.types';
 
 /** Formularios de catálogos: solo forma. Las reglas las aplica la base. */
 const id = () => z.number().int().positive();
@@ -90,3 +90,30 @@ export const parametroSchema = z.object({
   descripcion: texto(1000, 'La descripción no puede quedar vacía.'),
 });
 export type ParametroDatos = z.output<typeof parametroSchema>;
+
+const coordenada = (min: number, max: number) =>
+  z
+    .string()
+    .trim()
+    .transform((v) => (v === '' ? null : Number(v.replace(',', '.'))))
+    .refine((v) => v === null || (Number.isFinite(v) && v >= min && v <= max), `Número entre ${min} y ${max}.`);
+
+export const ubicacionSchema = z
+  .object({
+    id: id().nullable(),
+    versionFila: version().nullable(),
+    codigo,
+    nombre: texto(200, 'Ingresá el nombre.'),
+    tipo: z.enum(TIPOS_UBICACION, 'Elegí el tipo.'),
+    pais,
+    latitud: coordenada(-90, 90),
+    longitud: coordenada(-180, 180),
+    radioM: z
+      .string()
+      .trim()
+      .transform((v) => (v === '' ? null : Number(v)))
+      .refine((v) => v === null || (Number.isInteger(v) && v > 0), 'Metros, entero mayor que cero.'),
+  })
+  .refine((d) => (d.latitud === null) === (d.longitud === null), { path: ['longitud'], message: 'Cargá latitud y longitud, o ninguna.' });
+export type UbicacionEntrada = z.input<typeof ubicacionSchema>;
+export type UbicacionDatos = z.output<typeof ubicacionSchema>;

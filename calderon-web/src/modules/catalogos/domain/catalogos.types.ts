@@ -101,3 +101,26 @@ export interface Moneda {
   nombre: string;
   esBase: boolean;
 }
+
+/** mae.ubicacion: puertos, base, clientes… (la Pizarra Azul los usa como «Dónde»). */
+export const TIPOS_UBICACION = ['base', 'puerto', 'cliente', 'frontera', 'estacion', 'otro'] as const;
+export type TipoUbicacion = (typeof TIPOS_UBICACION)[number];
+export const TIPO_UBICACION_ETIQUETA: Record<TipoUbicacion, string> = {
+  base: 'Base',
+  puerto: 'Puerto',
+  cliente: 'Cliente',
+  frontera: 'Frontera',
+  estacion: 'Estación',
+  otro: 'Otro',
+};
+export interface Ubicacion {
+  id: number;
+  codigo: string;
+  nombre: string;
+  tipo: TipoUbicacion;
+  pais: string;
+  latitud: number | null;
+  longitud: number | null;
+  radioM: number | null;
+  versionFila: number;
+}

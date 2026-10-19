@@ -522,6 +522,83 @@ type AprobacionBaseRow = {
   aprobado_en: string;
 } & Control;
 
+/** mae.semirremolque (migraciones 03 y 39). */
+type SemiIns = {
+  codigo_interno: string;
+  patente: string;
+  pais_patente: string;
+  tipo: string;
+  capacidad_kg: number;
+  tiene_equipo_frio?: boolean;
+  estado?: string;
+  tara_fecha?: string | null;
+  ubicacion_playa_id?: number | null;
+  observacion_operativa?: string | null;
+};
+type SemiRow = Required<SemiIns> &
+  Control & { id: number; ubicacion_playa_desde: string | null; observacion_por: number | null; observacion_en: string | null };
+/** mae.ubicacion (migración 03). */
+type UbicacionIns = {
+  codigo: string;
+  nombre: string;
+  tipo: string;
+  pais: string;
+  region?: string | null;
+  latitud?: number | null;
+  longitud?: number | null;
+  radio_geocerca_m?: number | null;
+};
+/** ref.tipo_accesorio y mae.genset (migración 39). */
+type TipoAccesorioIns = { nombre: string; sigla: string; orden?: number; activo?: boolean };
+type GensetIns = { codigo: string; marca?: string | null; modelo?: string | null; numero_serie?: string | null; estado?: string; observaciones?: string | null };
+/** ops.fn_pizarra (migración 39). */
+type PizarraRow = {
+  semi_id: number;
+  patente: string;
+  codigo_interno: string;
+  tipo: string;
+  semi_estado: string;
+  estado: string;
+  tara_fecha: string | null;
+  tara_dias: number | null;
+  accesorios: Json;
+  genset_id: number | null;
+  genset_codigo: string | null;
+  genset_desde: string | null;
+  tramo_id: number | null;
+  camion_id: number | null;
+  tractor_patente: string | null;
+  chofer_id: number | null;
+  chofer_nombre: string | null;
+  servicio_id: number | null;
+  numero_servicio: string | null;
+  cliente_id: number | null;
+  cliente: string | null;
+  producto: string | null;
+  contenedor: string | null;
+  tara_max_dias: number | null;
+  salida_ts: string | null;
+  salida_lugar: string | null;
+  destino: string | null;
+  descarga_programada: string | null;
+  proximo_servicio_id: number | null;
+  proxima_cliente: string | null;
+  proxima_producto: string | null;
+  proxima_fecha: string | null;
+  proxima_lugar: string | null;
+  proxima_tara_max_dias: number | null;
+  ubicacion: string | null;
+  ubicacion_fuente: string | null;
+  ubicacion_ts: string | null;
+  latitud: number | null;
+  longitud: number | null;
+  observacion: string | null;
+  observacion_por: string | null;
+  observacion_en: string | null;
+  alertas: Json;
+  version_fila: number;
+};
+
 type Vista<Row> = { Row: { [K in keyof Row]: Row[K] | null }; Relationships: [] };
 
 export type Database = {
@@ -551,6 +628,7 @@ export type Database = {
         participa_alertas: boolean;
         eliminado_en: string | null;
       }>;
+      tipo_accesorio: TablaEditable<Required<TipoAccesorioIns> & Control & { id: number }, TipoAccesorioIns>;
       pais: TablaSoloLectura<{
         iso2: string;
         nombre: string;
@@ -633,15 +711,11 @@ export type Database = {
       };
       estacion_servicio: TablaEditable<EstacionIns & Control & { id: number; proveedor_id: number | null; ubicacion_id: number | null; es_tanque_propio: boolean }, EstacionIns>;
       proveedor: TablaEditable<ProveedorIns & Control & { id: number; identificador_fiscal: string | null; moneda_defecto: string | null }, ProveedorIns>;
-      ubicacion: TablaSoloLectura<{
-        id: number;
-        codigo: string;
-        nombre: string;
-        tipo: string;
-        pais: string;
-        region: string | null;
-        eliminado_en: string | null;
-      }>;
+      ubicacion: TablaEditable<Required<UbicacionIns> & Control & { id: number }, UbicacionIns>;
+      semirremolque: TablaEditable<SemiRow, SemiIns>;
+      semi_accesorio: TablaSoloLectura<Control & { id: number; semirremolque_id: number; tipo_accesorio_id: number; cantidad: number }>;
+      genset: TablaEditable<Required<GensetIns> & Control & { id: number }, GensetIns>;
+      genset_instalacion: TablaSoloLectura<Control & { id: number; genset_id: number; semirremolque_id: number; desde: string; hasta: string | null }>;
       tanque_combustible: {
         Row: TanqueCombustibleRow;
         /** numero_tanque lo asigna la base si no se informa (migración 27). */
@@ -685,8 +759,27 @@ export type Database = {
       };
     };
     Functions: {
+      fn_instalar_genset: { Args: { p_genset: number; p_semi: number; p_desde?: string | null }; Returns: number };
+      fn_retirar_genset: { Args: { p_semi: number; p_hasta?: string | null }; Returns: number };
       fn_cambiar_capacidad_tanque: {
         Args: { p_tanque: number; p_desde: string; p_capacidad_nominal_l: number; p_capacidad_util_l: number };
+        Returns: number;
+      };
+    };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
+  ops: {
+    Tables: { [_ in never]: never };
+    Views: { [_ in never]: never };
+    Functions: {
+      fn_pizarra: { Args: Record<string, never>; Returns: PizarraRow[] };
+      fn_pizarra_totales: {
+        Args: Record<string, never>;
+        Returns: { tipo_accesorio_id: number; nombre: string; sigla: string; orden: number; total: number; semis_con_dato: number }[];
+      };
+      fn_guardar_semi_pizarra: {
+        Args: { p_semi: number; p_version: number; p_ubicacion_playa: number | null; p_observacion: string | null; p_accesorios: Json };
         Returns: number;
       };
     };

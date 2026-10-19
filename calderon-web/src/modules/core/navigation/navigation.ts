@@ -96,9 +96,12 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     id: 'flota',
     etiqueta: 'Flota y personas',
     entradas: [
+      { href: '/flota/pizarra', etiqueta: 'Pizarra Azul', pantalla: 'flota.pizarra' },
       { href: '/flota/camiones', etiqueta: 'Camiones', pantalla: 'flota.camiones' },
       { href: '/flota/semirremolques', etiqueta: 'Semirremolques', pantalla: 'flota.camiones' },
       { href: '/flota/choferes', etiqueta: 'Choferes', pantalla: 'flota.choferes' },
+      { href: '/flota/gensets', etiqueta: 'Gensets', pantalla: 'flota.pizarra' },
+      { href: '/flota/accesorios', etiqueta: 'Tipos de accesorio', pantalla: 'flota.pizarra' },
       { href: '/flota/asignaciones', etiqueta: 'Asignaciones camión-chofer', pantalla: 'flota.asignaciones' },
       { href: '/flota/dispositivos', etiqueta: 'Dispositivos de telemetría', pantalla: 'flota.dispositivos' },
     ],

@@ -18,6 +18,8 @@ export const catalogosQueries = {
       queryFn: () => catalogosRepository(db).tiposCambio(moneda ? { moneda } : {}),
       staleTime: FRESCURA.maestro,
     }),
+  ubicaciones: (db: Db) =>
+    queryOptions({ queryKey: ['catalogos', 'ubicaciones'] as const, queryFn: () => catalogosRepository(db).ubicaciones(), staleTime: FRESCURA.maestro }),
   importaciones: (db: Db) =>
     queryOptions({ queryKey: ['catalogos', 'importaciones'] as const, queryFn: () => catalogosRepository(db).importaciones(), staleTime: FRESCURA.maestro }),
   parametros: (db: Db) =>
