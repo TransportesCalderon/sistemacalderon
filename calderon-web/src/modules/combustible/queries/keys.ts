@@ -7,6 +7,8 @@ import type { CierreListaParams } from '../domain/cierre.types';
 import type { MovimientoListaParams } from '../domain/movimiento.types';
 import type { ViajeListaParams } from '../domain/viaje.types';
 import { baseRepository } from '../repositories/base.repository';
+import { documentoRepository } from '../repositories/documento.repository';
+import type { Bandeja } from '../domain/documento.types';
 import { cargaRepository } from '../repositories/carga.repository';
 import { catalogoCombustibleRepository } from '../repositories/catalogo-combustible.repository';
 import { cierreRepository } from '../repositories/cierre.repository';
@@ -61,6 +63,34 @@ export const combustibleQueries = {
         queryKey: ['combustible', 'cargas', 'detalle', id] as const,
         queryFn: () => cargaRepository(db).obtener(id),
         staleTime: FRESCURA.transaccional,
+      }),
+  },
+
+  /** Ticket de la carga, validación y bandejas (migración 34). */
+  documentos: {
+    deCarga: (db: Db, cargaId: number) =>
+      queryOptions({
+        queryKey: ['combustible', 'documentos', cargaId] as const,
+        queryFn: () => documentoRepository(db).deCarga(cargaId),
+        staleTime: FRESCURA.transaccional,
+      }),
+    validacion: (db: Db, cargaId: number) =>
+      queryOptions({
+        queryKey: ['combustible', 'validacion', cargaId] as const,
+        queryFn: () => documentoRepository(db).validacion(cargaId),
+        staleTime: FRESCURA.transaccional,
+      }),
+    emisor: (db: Db, estacionId: number | null) =>
+      queryOptions({
+        queryKey: ['combustible', 'emisor', estacionId] as const,
+        queryFn: () => documentoRepository(db).emisorDe(estacionId),
+        staleTime: FRESCURA.maestro,
+      }),
+    bandeja: (db: Db, tipo: Bandeja, pagina: number) =>
+      queryOptions({
+        queryKey: ['combustible', 'bandeja', tipo, pagina] as const,
+        queryFn: () => documentoRepository(db).bandeja(tipo, pagina),
+        staleTime: FRESCURA.bandeja,
       }),
   },
 

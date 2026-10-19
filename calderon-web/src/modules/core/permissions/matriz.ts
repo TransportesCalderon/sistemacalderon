@@ -86,6 +86,8 @@ export const PANTALLAS = {
   'finanzas.rentabilidad':   { etiqueta: 'Asignación de costos y rentabilidad', fila: ['L', 'L', '—', '—', '—', '—', '—', 'L', 'E A', 'L'] },
   'finanzas.cierre':         { etiqueta: 'Cierre de período', fila: ['L', '—', '—', '—', '—', '—', '—', 'A', 'E A', 'L'] },
   'configuracion.catalogos': { etiqueta: 'Monedas, países, catálogos, parámetros', fila: ['L', 'L', '—', '—', 'L', 'L', 'L', 'L', 'E A', 'L'] },
+  // Agregada con la migración 34: alta, roles y desactivación de usuarios. Solo TI (la base lo vuelve a exigir).
+  'configuracion.usuarios':  { etiqueta: 'Usuarios y roles', fila: ['—', '—', '—', '—', '—', '—', '—', '—', 'E A', '—'] },
   'configuracion.politica_tc': { etiqueta: 'Política de tipo de cambio', fila: ['—', '—', '—', '—', '—', '—', '—', 'E', 'E A', 'L'] },
   'auditoria.bitacora':      { etiqueta: 'Bitácora de cambios', fila: ['—', '—', '—', '—', '—', '—', '—', '—', 'L', 'L'] },
   'auditoria.accesos':       { etiqueta: 'Accesos sensibles', fila: ['—', '—', '—', '—', '—', '—', '—', '—', '—', 'L'] },

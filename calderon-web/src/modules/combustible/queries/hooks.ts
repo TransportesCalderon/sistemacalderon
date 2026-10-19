@@ -14,6 +14,7 @@ import {
   resolverMovimientoBase,
   traspasarResponsableBase,
 } from '../actions/base.actions';
+import { adjuntarDocumento, quitarDocumento, validarCarga } from '../actions/documento.actions';
 import { crearCarga, resolverSolicitudCarga, retirarSolicitudCarga, solicitarAnulacionCarga } from '../actions/carga.actions';
 import { actualizarLimitesCierre, anularCierre, aprobarCierre, crearBorradorCierre, guardarBorradorCierre } from '../actions/cierre.actions';
 import {
@@ -28,6 +29,7 @@ import type { CargaListaParams } from '../domain/carga.types';
 import type { CierreListaParams } from '../domain/cierre.types';
 import type { MovimientoListaParams } from '../domain/movimiento.types';
 import type { ViajeListaParams } from '../domain/viaje.types';
+import type { Bandeja } from '../domain/documento.types';
 import { combustibleQueries as q } from './keys';
 
 /* ----------------------------------------------------------------------------
@@ -53,6 +55,12 @@ export const useTiposCombustible = () => useQuery(q.base.tiposCombustible(browse
 export const useSegmentoBase = (controlId: number) => useQuery({ ...q.base.segmento(browserDb(), controlId), retry: false });
 export const useVerificacionBase = (aprobacionId: number, enabled: boolean) =>
   useQuery({ ...q.base.verificacion(browserDb(), aprobacionId), enabled, retry: false });
+
+export const useDocumentosCarga = (cargaId: number) => useQuery(q.documentos.deCarga(browserDb(), cargaId));
+export const useValidacionCarga = (cargaId: number) => useQuery(q.documentos.validacion(browserDb(), cargaId));
+export const useEmisorTicket = (estacionId: number | null) => useQuery(q.documentos.emisor(browserDb(), estacionId));
+export const useBandeja = (tipo: Bandeja, pagina: number) =>
+  useQuery({ ...q.documentos.bandeja(browserDb(), tipo, pagina), placeholderData: keepPreviousData });
 
 export const useViajes = (p: ViajeListaParams) => useQuery({ ...q.viajes.lista(browserDb(), p), placeholderData: keepPreviousData });
 
@@ -93,6 +101,10 @@ export const useAsignarResponsableBase = () => useEscritura(asignarResponsableBa
 export const useTraspasarResponsableBase = () => useEscritura(traspasarResponsableBase);
 export const useAprobarSegmentoBase = () => useEscritura(aprobarSegmentoBase);
 export const useAnularSegmentoBase = () => useEscritura(anularSegmentoBase);
+
+export const useAdjuntarDocumento = () => useEscritura(adjuntarDocumento);
+export const useQuitarDocumento = () => useEscritura(quitarDocumento);
+export const useValidarCarga = () => useEscritura(validarCarga);
 
 export const useCrearBorrador = () => useEscritura(crearBorradorCierre);
 export const useGuardarBorrador = () => useEscritura(guardarBorradorCierre);

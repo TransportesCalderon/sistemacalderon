@@ -44,8 +44,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     etiqueta: 'Combustible',
     entradas: [
       { href: '/combustible/cargas', etiqueta: 'Cargas', pantalla: 'combustible.cargas' },
-      { href: '/combustible/observadas', etiqueta: 'Cargas observadas', pantalla: 'combustible.bandejas' },
-      { href: '/combustible/sin-documento', etiqueta: 'Cargas sin documento', pantalla: 'combustible.bandejas' },
+      { href: '/combustible/observadas', etiqueta: 'Cargas por validar', pantalla: 'combustible.bandejas' },
+      { href: '/combustible/sin-documento', etiqueta: 'Cargas sin ticket', pantalla: 'combustible.bandejas' },
       { href: '/combustible/movimientos', etiqueta: 'Movimientos del camión', pantalla: 'combustible.movimientos' },
       { href: '/combustible/base', etiqueta: 'Base Mendoza', pantalla: 'combustible.depositos' },
       { href: '/combustible/viajes', etiqueta: 'Viajes', pantalla: 'combustible.cierre_viaje' },
@@ -146,6 +146,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/configuracion/politica-tipo-cambio', etiqueta: 'Política de tipo de cambio', pantalla: 'configuracion.politica_tc' },
       { href: '/configuracion/catalogos', etiqueta: 'Catálogos', pantalla: 'configuracion.catalogos' },
       { href: '/configuracion/parametros', etiqueta: 'Parámetros', pantalla: 'configuracion.catalogos' },
+      { href: '/configuracion/usuarios', etiqueta: 'Usuarios y roles', pantalla: 'configuracion.usuarios' },
     ],
   },
   {

@@ -14,6 +14,7 @@ import { ETIQUETA_ESTADO_VALIDACION, ETIQUETA_MEDIO_PAGO, type Carga, type Medio
 import { useCarga, useResolverSolicitud, useRetirarSolicitud, useSolicitarAnulacion } from '../../queries/hooks';
 import { AccionConMotivo, Cargando, Chip, Dato, ErrorBase, ErrorLectura, Seccion } from '../comun/ui';
 import { DestinoCarga, RolViajeChips, SituacionCargaChip } from './chips-carga';
+import { TicketCarga, ValidacionCarga } from './ticket-carga';
 
 /** Ficha de carga: datos, corte de viaje (con su faltante) y anulación con aprobación de otro usuario. */
 export function CargaFicha({ id }: { id: CargaId }) {
@@ -67,7 +68,7 @@ export function CargaFicha({ id }: { id: CargaId }) {
             {ETIQUETA_ESTADO_VALIDACION[carga.estadoValidacion]}
             {carga.motivoObservacion && <span className="block text-xs text-alerta">{carga.motivoObservacion}</span>}
           </Dato>
-          <Dato etiqueta="Documento">{carga.tieneDocumento ? 'Sí' : 'No'}</Dato>
+          <Dato etiqueta="Ticket">{carga.tieneDocumento ? 'Adjunto' : <span className="text-alerta">Falta</span>}</Dato>
           <Dato etiqueta="Registrada">{formatearFechaHora(carga.creadoEn, zonaHoraria)}</Dato>
           {carga.esFrontera && (
             <Dato etiqueta="Le faltaron para quedar lleno">
@@ -90,6 +91,8 @@ export function CargaFicha({ id }: { id: CargaId }) {
           Carga registrada a la mochila con el modelo anterior: cuenta como carga del camión, igual que las demás.
         </p>
       )}
+      <TicketCarga carga={carga} />
+      <ValidacionCarga carga={carga} />
       <Anulacion carga={carga} onRecargar={() => refetch()} />
     </div>
   );

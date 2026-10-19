@@ -304,6 +304,21 @@ type CargaRow = {
   mismo_ticket: boolean;
   faltante_lleno_l: number;
   faltante_observacion: string | null;
+  validada_por: number | null;
+  validada_en: string | null;
+  motivo_validacion: string | null;
+} & Control;
+
+/** fue.documento_carga (05 y 34): ticket, factura, remito o voucher de la carga. Se escribe con funciones. */
+type DocumentoCargaRow = {
+  id: number;
+  carga_id: number;
+  tipo: string;
+  numero_documento: string;
+  emisor_id: number | null;
+  fecha_documento: string;
+  archivo_uri: string | null;
+  hash_archivo: string | null;
 } & Control;
 
 type CargaInsert = Pick<
@@ -683,7 +698,24 @@ export type Database = {
       usuario: TablaSoloLectura<{ id: number; nombre: string; activo: boolean }>;
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      // Usuarios y roles (34), solo TI
+      fn_usuarios: {
+        Args: Record<string, never>;
+        Returns: {
+          id: number;
+          nombre: string;
+          email: string | null;
+          activo: boolean;
+          roles: string[];
+          chofer_id: number | null;
+          ultimo_ingreso: string | null;
+          creado_en: string;
+        }[];
+      };
+      fn_cuentas_sin_vincular: { Args: Record<string, never>; Returns: { email: string; creada_en: string }[] };
+      fn_guardar_usuario: { Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean }; Returns: number };
+    };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };
@@ -806,6 +838,7 @@ export type Database = {
         Relationships: [];
       };
       movimiento_camion: TablaSoloLectura<MovimientoCamionRow>;
+      documento_carga: TablaSoloLectura<DocumentoCargaRow>;
       movimiento_combustible: TablaSoloLectura<MovimientoDepositoRow>;
       control_saldo_deposito: TablaSoloLectura<ControlDepositoRow>;
       responsable_deposito: TablaEditable<ResponsableRow, ResponsableIns>;
@@ -901,6 +934,27 @@ export type Database = {
       };
       fn_anular_aprobacion_base: { Args: { p_id: number; p_motivo: string }; Returns: AprobacionBaseRow };
       fn_verificar_control_base: { Args: { p_id: number }; Returns: Json };
+      // Operación diaria (34)
+      fn_validar_carga: { Args: { p_carga: number; p_motivo?: string | null }; Returns: CargaRow };
+      fn_agregar_documento_carga: {
+        Args: { p_carga: number; p_tipo: string; p_numero: string; p_fecha: string; p_archivo: string; p_hash: string; p_emisor?: number | null };
+        Returns: number;
+      };
+      fn_quitar_documento_carga: { Args: { p_documento: number }; Returns: undefined };
+      fn_mis_pendientes: {
+        Args: Record<string, never>;
+        Returns: {
+          grupo: string;
+          tipo: string;
+          ref_id: number | null;
+          fecha: string | null;
+          titulo: string;
+          detalle: string | null;
+          ruta: string;
+          pantalla: string;
+          cantidad: number;
+        }[];
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

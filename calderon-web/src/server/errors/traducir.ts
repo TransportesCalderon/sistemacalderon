@@ -96,6 +96,9 @@ export const MENSAJES_RESTRICCION: Record<string, string> = {
   ck_csd_medicion: 'Una medición necesita el método.',
   ck_csd_litros: 'Los litros no pueden ser negativos.',
   ck_csd_reemplazo: 'Indicá el motivo del reemplazo.',
+  // --- Ticket de la carga (migración 34) ---
+  ux_doc_emisor_tipo_numero: 'Ese número de ticket de esa estación ya está adjunto a otra carga.',
+  ck_doc_tipo: 'Tipo de documento no válido.',
   // --- Base Mendoza (migración 30) ---
   ux_dep_base_estacion: 'Ese surtidor propio ya tiene su tanque de base.',
   ck_dep_capacidad: 'La capacidad debe ser mayor que cero.',
@@ -130,6 +133,7 @@ export const CAMPO_RESTRICCION: Record<string, string> = {
   ux_proveedor_fiscal: 'identificadorFiscal',
   ux_estacion_codigo: 'codigo',
   ux_dep_base_estacion: 'estacionId',
+  ux_doc_emisor_tipo_numero: 'numero',
   ck_dep_capacidad: 'capacidadL',
   ck_csd_litros: 'litros',
   ex_csd_deposito_fecha: 'fechaHora',
