@@ -728,6 +728,61 @@ export type Database = {
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };
+  tel: {
+    Tables: {
+      registro_api: TablaSoloLectura<{
+        id: number;
+        ejecutado_en: string;
+        marca: string;
+        operacion: string;
+        url: string;
+        formato: string | null;
+        http_estado: number | null;
+        ok: boolean;
+        duracion_ms: number | null;
+        detalle: string | null;
+      }>;
+    };
+    Views: {
+      v_flota_actual: Vista<{
+        camion_id: number;
+        codigo_interno: string;
+        patente: string;
+        vin: string;
+        nombre_api: string;
+        marca: string;
+        ts: string;
+        latitud: number;
+        longitud: number;
+        velocidad_kmh: number;
+        rumbo_grados: number;
+        odometro_km: number;
+        nivel_combustible_pct: number;
+        nivel_combustible_l: number;
+        consumo_acumulado_l: number;
+        horas_motor: number;
+        motor_encendido: boolean;
+        chofer_externo_id: string;
+        chofer_id: number;
+        calidad: number;
+      }>;
+      v_vehiculo_api: Vista<{
+        marca: string;
+        vin: string;
+        nombre: string;
+        modelo: string;
+        camion_id: number;
+        patente: string;
+        codigo_interno: string;
+        visto_en: string;
+      }>;
+    };
+    Functions: {
+      fn_importar_api_camiones: { Args: { p_marca?: string; p_origen?: string }; Returns: Json };
+    };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
   fue: {
     Tables: {
       cierre_viaje: {
