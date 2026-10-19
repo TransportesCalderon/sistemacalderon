@@ -2,7 +2,9 @@
 
 import { createAction } from '@/server/actions/create-action';
 import {
+  altaSchema,
   anularHitoSchema,
+  avanzarSchema,
   cancelarOperacionSchema,
   eliminarSchema,
   equipoSchema,
@@ -29,6 +31,21 @@ export const guardarOperacion = createAction({
   permiso: PERMISO,
   schema: operacionSchema,
   handler: (d, { db }) => operacionesRepository(db).guardar(d),
+  invalida: rutas,
+});
+
+/** Migración 42: alta en un paso (varias iguales o una con equipo) y pasos de un clic. */
+export const altaOperaciones = createAction({
+  permiso: PERMISO,
+  schema: altaSchema,
+  handler: (d, { db }) => operacionesRepository(db).alta(d),
+  invalida: rutas,
+});
+
+export const avanzarOperacion = createAction({
+  permiso: PERMISO,
+  schema: avanzarSchema,
+  handler: (d, { db }) => operacionesRepository(db).avanzar(d),
   invalida: rutas,
 });
 

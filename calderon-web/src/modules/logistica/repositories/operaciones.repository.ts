@@ -1,6 +1,8 @@
 import { ConflictoVersion, RepoError, type Db } from '@/shared/repository/types';
 import type { FechaDia, FechaISO } from '@/shared/types/dominio';
 import type {
+  AltaDatos,
+  AvanzarDatos,
   EliminarDatos,
   EquipoDatos,
   HitoDatos,
@@ -9,9 +11,36 @@ import type {
   TerceroDatos,
   TransportistaDatos,
 } from '../domain/operacion.schemas';
-import { esEstadoLogistica, type Hito, type Linea, type Operacion, type Transportista } from '../domain/operacion.types';
+import { esEstadoLogistica, esPasoOperacion, type Hito, type SugerenciaCliente, type Linea, type Operacion, type Transportista } from '../domain/operacion.types';
 
-/** Operaciones de Logística (migración 41). Cada acción es una función de la base; su mensaje se muestra tal cual. */
+/** Datos de la operación como los recibe la base (ops.fn_guardar_operacion / fn_alta_operaciones). */
+const datosOperacion = (d: OperacionDatos) => ({
+  sin_confirmar: d.sinConfirmar,
+  tipo_operacion: d.tipoOperacion,
+  fecha_operacion: d.fechaOperacion,
+  cliente_id: d.clienteId,
+  linea_id: d.lineaId,
+  lugar_retiro_id: d.lugarRetiroId,
+  origen_id: d.origenId,
+  lugar_aduana_id: d.lugarAduanaId,
+  destino_id: d.destinoId,
+  fecha_presentacion: d.fechaPresentacion,
+  fecha_entrega: d.fechaEntrega,
+  producto: d.producto,
+  peso_kg: d.pesoKg,
+  tipo_contenedor: d.tipoContenedor,
+  contenedor: d.contenedor,
+  precinto: d.precinto,
+  tara_max_dias: d.taraMaxDias,
+  booking: d.booking,
+  referencia_cliente: d.referenciaCliente,
+  buque: d.buque,
+  crt: d.crt,
+  mic: d.mic,
+  observacion: d.observacion,
+});
+
+/** Operaciones de Logística (migraciones 41 y 42). Cada acción es una función de la base; su mensaje se muestra tal cual. */
 export const operacionesRepository = (db: Db) => {
   const ops = () => db.schema('ops');
   const mae = () => db.schema('mae');
@@ -77,38 +106,62 @@ export const operacionesRepository = (db: Db) => {
         chofer: o.chofer,
         hitos: (Array.isArray(o.hitos) ? o.hitos : []) as unknown as Hito[],
         versionFila: o.version_fila,
+        siguiente: o.siguiente && esPasoOperacion(o.siguiente) ? o.siguiente : null,
+        posibles: (o.posibles ?? []).filter(esPasoOperacion),
       }));
+    },
+
+    /** Alta en un paso: varias iguales o una con su equipo. Devuelve los ids. */
+    async alta(d: AltaDatos): Promise<number[]> {
+      const { data, error } = await ops().rpc('fn_alta_operaciones', {
+        p_cantidad: d.cantidad,
+        p_datos: {
+          ...datosOperacion(d),
+          semi_id: d.semiId,
+          camion_id: d.camionId,
+          chofer_id: d.choferId,
+        },
+      });
+      if (error) throw new RepoError(error);
+      return data ?? [];
+    },
+
+    avanzar: (d: AvanzarDatos) =>
+      llamar(
+        ops().rpc('fn_avanzar', {
+          p_servicio: d.servicioId,
+          p_paso: d.paso,
+          p_ts: d.momento,
+          p_odometro_km: d.odometroKm,
+          p_detalle: d.detalle,
+        }),
+      ),
+
+    async sugerencia(cliente: number): Promise<SugerenciaCliente | null> {
+      const { data, error } = await ops().rpc('fn_sugerencia_cliente', { p_cliente: cliente });
+      if (error) throw new RepoError(error);
+      if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+      const j = data as Record<string, unknown>;
+      const n = (k: string) => (typeof j[k] === 'number' ? (j[k] as number) : undefined);
+      const t = (k: string) => (typeof j[k] === 'string' ? (j[k] as string) : undefined);
+      return {
+        tipoOperacion: t('tipo_operacion'),
+        lineaId: n('linea_id'),
+        lugarRetiroId: n('lugar_retiro_id'),
+        origenId: n('origen_id'),
+        lugarAduanaId: n('lugar_aduana_id'),
+        destinoId: n('destino_id'),
+        producto: t('producto'),
+        tipoContenedor: t('tipo_contenedor'),
+        taraMaxDias: n('tara_max_dias'),
+      };
     },
 
     async guardar(d: OperacionDatos): Promise<number> {
       const { data, error } = await ops().rpc('fn_guardar_operacion', {
         p_servicio: d.servicioId,
         p_version: d.versionFila,
-        p_datos: {
-          sin_confirmar: d.sinConfirmar,
-          tipo_operacion: d.tipoOperacion,
-          fecha_operacion: d.fechaOperacion,
-          cliente_id: d.clienteId,
-          linea_id: d.lineaId,
-          lugar_retiro_id: d.lugarRetiroId,
-          origen_id: d.origenId,
-          lugar_aduana_id: d.lugarAduanaId,
-          destino_id: d.destinoId,
-          fecha_presentacion: d.fechaPresentacion,
-          fecha_entrega: d.fechaEntrega,
-          producto: d.producto,
-          peso_kg: d.pesoKg,
-          tipo_contenedor: d.tipoContenedor,
-          contenedor: d.contenedor,
-          precinto: d.precinto,
-          tara_max_dias: d.taraMaxDias,
-          booking: d.booking,
-          referencia_cliente: d.referenciaCliente,
-          buque: d.buque,
-          crt: d.crt,
-          mic: d.mic,
-          observacion: d.observacion,
-        },
+        p_datos: datosOperacion(d),
       });
       if (error) throw new RepoError(error);
       return data;

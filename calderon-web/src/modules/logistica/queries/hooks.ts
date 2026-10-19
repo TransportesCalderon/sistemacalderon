@@ -13,7 +13,9 @@ import {
   reprogramarDescarga,
 } from '../actions/viajes.actions';
 import {
+  altaOperaciones,
   anularHito,
+  avanzarOperacion,
   asignarEquipo,
   asignarTercero,
   cancelarOperacion,
@@ -34,6 +36,8 @@ export const useViajesAbiertos = () => useQuery({ ...q.abiertos(browserDb()), re
 export const useOpcionesViaje = () => useQuery(q.opciones(browserDb()));
 export const useOperaciones = (desde: FechaDia | null, hasta: FechaDia | null) =>
   useQuery({ ...q.operaciones(browserDb(), desde, hasta), refetchInterval: 60_000 });
+export const useSugerenciaCliente = (cliente: number | null) =>
+  useQuery({ ...q.sugerencia(browserDb(), cliente ?? 0), enabled: !!cliente });
 export const useLineas = () => useQuery(q.lineas(browserDb()));
 export const useTransportistas = () => useQuery(q.transportistas(browserDb()));
 
@@ -72,3 +76,5 @@ export const useGuardarLinea = () => useEscritura(guardarLinea);
 export const useEliminarLinea = () => useEscritura(eliminarLinea);
 export const useGuardarTransportista = () => useEscritura(guardarTransportista);
 export const useEliminarTransportista = () => useEscritura(eliminarTransportista);
+export const useAltaOperaciones = () => useEscritura(altaOperaciones);
+export const useAvanzarOperacion = () => useEscritura(avanzarOperacion);

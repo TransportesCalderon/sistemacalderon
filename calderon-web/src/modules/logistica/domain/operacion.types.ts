@@ -87,6 +87,42 @@ export const HITO_ETIQUETA: Record<TipoHito, string> = {
   entrega: 'Entrega',
 };
 
+/** Pasos de un clic (migración 42). Qué sigue y qué se puede lo decide la base (ops.fn_pasos). */
+export const PASOS_OPERACION = [
+  'confirmar',
+  'equipo',
+  'retiro',
+  'cargando',
+  'cargo',
+  'entrada_aduana',
+  'liberacion_aduana',
+  'ingreso_frontera',
+  'liberacion_frontera',
+  'descargando',
+  'entrego',
+  'demora',
+  'fin_demora',
+] as const;
+export type PasoOperacion = (typeof PASOS_OPERACION)[number];
+export const esPasoOperacion = (v: string): v is PasoOperacion => (PASOS_OPERACION as readonly string[]).includes(v);
+export const PASO_OPERACION_ETIQUETA: Record<PasoOperacion, string> = {
+  confirmar: 'Confirmar',
+  equipo: 'Asignar equipo',
+  retiro: 'Retiró contenedor',
+  cargando: 'Está cargando',
+  cargo: 'Cargó',
+  entrada_aduana: 'Entró a aduana',
+  liberacion_aduana: 'Liberó aduana',
+  ingreso_frontera: 'Llegó a frontera',
+  liberacion_frontera: 'Cruzó frontera',
+  descargando: 'Está descargando',
+  entrego: 'Entregó',
+  demora: 'Demorado',
+  fin_demora: 'Siguió viaje',
+};
+/** Pasos que pueden pedir el odómetro (solo con equipo propio y sin telemetría). */
+export const PASOS_CON_ODOMETRO: readonly PasoOperacion[] = ['cargando', 'cargo', 'entrego'];
+
 export interface Hito {
   id: number;
   tipo: TipoHito;
@@ -147,6 +183,21 @@ export interface Operacion {
   chofer: string | null;
   hitos: Hito[];
   versionFila: number;
+  siguiente: PasoOperacion | null;
+  posibles: PasoOperacion[];
+}
+
+/** Lo que se propone al elegir el cliente (su última operación). */
+export interface SugerenciaCliente {
+  tipoOperacion?: string;
+  lineaId?: number;
+  lugarRetiroId?: number;
+  origenId?: number;
+  lugarAduanaId?: number;
+  destinoId?: number;
+  producto?: string;
+  tipoContenedor?: string;
+  taraMaxDias?: number;
 }
 
 /** ¿Se pueden cambiar todos los datos? (si no, solo la documentación). Lo decide la base; esto solo arma el formulario. */

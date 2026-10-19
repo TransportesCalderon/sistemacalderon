@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TIPOS_HITO, TIPOS_OPERACION } from './operacion.types';
+import { PASOS_OPERACION, TIPOS_HITO, TIPOS_OPERACION } from './operacion.types';
 
 /** Formularios de Operaciones: solo forma. Las reglas (estado, lugares, fechas, equipo…) las aplica la base. */
 const id = (mensaje: string) =>
@@ -70,6 +70,45 @@ export const operacionSchema = z.object({
 });
 export type OperacionEntrada = z.input<typeof operacionSchema>;
 export type OperacionDatos = z.output<typeof operacionSchema>;
+
+/** Alta en un paso (migración 42): cantidad de operaciones iguales y, con una sola, el equipo. */
+const idVacio = z
+  .union([z.string(), z.number(), z.null()])
+  .transform((v) => (v === '' || v === null ? null : Number(v)))
+  .refine((v) => v === null || (Number.isInteger(v) && v > 0), 'Elegí una opción.');
+export const altaSchema = operacionSchema.extend({
+  cantidad: z
+    .string()
+    .trim()
+    .transform((v) => (v === '' ? 1 : Number(v)))
+    .refine((v) => Number.isInteger(v) && v >= 1 && v <= 50, 'De 1 a 50.'),
+  semiId: idVacio,
+  camionId: idVacio,
+  choferId: idVacio,
+});
+export type AltaEntrada = z.input<typeof altaSchema>;
+export type AltaDatos = z.output<typeof altaSchema>;
+
+export const avanzarSchema = z.object({
+  servicioId: z.number().int().positive(),
+  paso: z.enum(PASOS_OPERACION),
+  momento: z
+    .string()
+    .nullable()
+    .transform((v) => (v === '' ? null : v))
+    .refine((v) => v === null || !Number.isNaN(Date.parse(v)), 'Fecha y hora no válidas.'),
+  odometroKm: z
+    .string()
+    .trim()
+    .transform((v) => (v === '' ? null : Number(v.replace(/\./g, '').replace(',', '.'))))
+    .refine((v) => v === null || (Number.isFinite(v) && v >= 0), 'Kilómetros, número de 0 en adelante.'),
+  detalle: z
+    .string()
+    .trim()
+    .max(500, 'Máximo 500 caracteres.')
+    .transform((v) => (v === '' ? null : v)),
+});
+export type AvanzarDatos = z.output<typeof avanzarSchema>;
 
 export const servicioSchema = z.object({ servicioId: servicio });
 

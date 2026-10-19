@@ -80,3 +80,29 @@ describe('Operaciones (migración 41)', () => {
     expect(transportistaSchema.safeParse({ id: null, versionFila: null, razonSocial: '', cuit: '', telefono: '', observaciones: '', activo: true }).success).toBe(false);
   });
 });
+
+describe('Operaciones más simples (migración 42)', () => {
+  it('alta: cantidad por defecto 1 y equipo opcional', async () => {
+    const { altaSchema } = await import('@/modules/logistica/domain/operacion.schemas');
+    const r = altaSchema.parse({ ...base, cantidad: '', semiId: '', camionId: '', choferId: '' });
+    expect(r.cantidad).toBe(1);
+    expect(r.semiId).toBeNull();
+    expect(altaSchema.safeParse({ ...base, cantidad: '0', semiId: '', camionId: '', choferId: '' }).success).toBe(false);
+    expect(altaSchema.parse({ ...base, cantidad: '8', semiId: '', camionId: '', choferId: '' }).cantidad).toBe(8);
+  });
+
+  it('un paso: vacío = ahora; odómetro con puntos de miles', async () => {
+    const { avanzarSchema } = await import('@/modules/logistica/domain/operacion.schemas');
+    const r = avanzarSchema.parse({ servicioId: 5, paso: 'cargo', momento: '', odometroKm: '101.500', detalle: '' });
+    expect(r).toMatchObject({ momento: null, odometroKm: 101500, detalle: null });
+    expect(avanzarSchema.safeParse({ servicioId: 5, paso: 'volar', momento: '', odometroKm: '', detalle: '' }).success).toBe(false);
+  });
+
+  it('cada paso tiene su etiqueta', async () => {
+    const { PASOS_OPERACION, PASO_OPERACION_ETIQUETA, esPasoOperacion } = await import('@/modules/logistica/domain/operacion.types');
+    for (const p of PASOS_OPERACION) expect(PASO_OPERACION_ETIQUETA[p]).toBeTruthy();
+    expect(PASO_OPERACION_ETIQUETA.cargo).toBe('Cargó');
+    expect(esPasoOperacion('entrego')).toBe(true);
+    expect(esPasoOperacion('x')).toBe(false);
+  });
+});

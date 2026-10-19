@@ -617,6 +617,9 @@ type OperacionRow = {
   chofer: string | null;
   hitos: Json;
   version_fila: number;
+  /** Migración 42: paso sugerido y pasos posibles (ops.fn_pasos). */
+  siguiente: string | null;
+  posibles: string[];
 };
 /** ops.fn_pizarra (migración 39). */
 type PizarraRow = {
@@ -844,6 +847,12 @@ export type Database = {
     Functions: {
       fn_pizarra: { Args: Record<string, never>; Returns: PizarraRow[] };
       fn_operaciones: { Args: { p_desde?: string | null; p_hasta?: string | null }; Returns: OperacionRow[] };
+      fn_alta_operaciones: { Args: { p_datos: Json; p_cantidad: number }; Returns: number[] };
+      fn_avanzar: {
+        Args: { p_servicio: number; p_paso: string; p_ts?: string | null; p_odometro_km?: number | null; p_detalle?: string | null };
+        Returns: undefined;
+      };
+      fn_sugerencia_cliente: { Args: { p_cliente: number }; Returns: Json };
       fn_guardar_operacion: { Args: { p_servicio: number | null; p_version: number | null; p_datos: Json }; Returns: number };
       fn_confirmar_operacion: { Args: { p_servicio: number }; Returns: undefined };
       fn_asignar_equipo: {
