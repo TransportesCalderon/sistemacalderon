@@ -51,10 +51,9 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/combustible/viajes', etiqueta: 'Viajes', pantalla: 'combustible.cierre_viaje' },
       { href: '/combustible/cierres', etiqueta: 'Cierres de viaje', pantalla: 'combustible.cierre_viaje' },
       { href: '/combustible/mediciones', etiqueta: 'Mediciones manuales', pantalla: 'combustible.mediciones' },
-      { href: '/combustible/consumo-intervalo', etiqueta: 'Consumo por intervalo', pantalla: 'combustible.consumo' },
       { href: '/combustible/consumo-servicio', etiqueta: 'Consumo por servicio', pantalla: 'combustible.consumo' },
-      { href: '/combustible/conciliacion', etiqueta: 'Conciliación con telemetría', pantalla: 'combustible.consumo' },
-      { href: '/combustible/costo-medio', etiqueta: 'Costo medio por camión', pantalla: 'combustible.consumo' },
+      { href: '/combustible/conciliacion', etiqueta: 'Cargado vs. motor', pantalla: 'combustible.consumo' },
+      { href: '/combustible/costo-medio', etiqueta: 'Consumo y costo por camión', pantalla: 'combustible.consumo' },
     ],
   },
   {

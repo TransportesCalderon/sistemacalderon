@@ -941,6 +941,50 @@ export type Database = {
         Returns: number;
       };
       fn_quitar_documento_carga: { Args: { p_documento: number }; Returns: undefined };
+      // Control del consumo (36)
+      fn_conciliacion_viajes: {
+        Args: { p_desde: string; p_hasta: string; p_camion?: number | null };
+        Returns: {
+          camion_id: number;
+          patente: string;
+          carga_salida_id: number;
+          salida_ts: string;
+          llegada_ts: string;
+          situacion: string;
+          cierre_id: number | null;
+          cierre_numero: string | null;
+          cargado_l: number | null;
+          consumo_motor_l: number | null;
+          fuente_consumo: string | null;
+          diferencia_l: number | null;
+          tolerancia_l: number | null;
+          km: number | null;
+          fuente_km: string | null;
+          l_100km_cargado: number | null;
+          l_100km_motor: number | null;
+          pendientes: number;
+        }[];
+      };
+      fn_consumo_camiones: {
+        Args: { p_desde: string; p_hasta: string };
+        Returns: {
+          camion_id: number;
+          patente: string;
+          codigo_interno: string;
+          cargas: number;
+          litros_cargados: number;
+          importe_base: number | null;
+          moneda_base: string | null;
+          costo_litro: number | null;
+          km: number | null;
+          fuente_km: string | null;
+          consumo_motor_l: number | null;
+          l_100km_motor: number | null;
+          l_100km_cargado: number | null;
+          costo_km: number | null;
+          ultima_lectura: string | null;
+        }[];
+      };
       fn_mis_pendientes: {
         Args: Record<string, never>;
         Returns: {

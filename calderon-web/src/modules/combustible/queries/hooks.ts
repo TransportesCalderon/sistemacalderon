@@ -30,6 +30,7 @@ import type { CierreListaParams } from '../domain/cierre.types';
 import type { MovimientoListaParams } from '../domain/movimiento.types';
 import type { ViajeListaParams } from '../domain/viaje.types';
 import type { Bandeja } from '../domain/documento.types';
+import type { PeriodoParams } from '../domain/consumo.types';
 import { combustibleQueries as q } from './keys';
 
 /* ----------------------------------------------------------------------------
@@ -61,6 +62,9 @@ export const useValidacionCarga = (cargaId: number) => useQuery(q.documentos.val
 export const useEmisorTicket = (estacionId: number | null) => useQuery(q.documentos.emisor(browserDb(), estacionId));
 export const useBandeja = (tipo: Bandeja, pagina: number) =>
   useQuery({ ...q.documentos.bandeja(browserDb(), tipo, pagina), placeholderData: keepPreviousData });
+
+export const useConciliacionViajes = (p: PeriodoParams) => useQuery({ ...q.consumo.viajes(browserDb(), p), placeholderData: keepPreviousData });
+export const useConsumoCamiones = (p: PeriodoParams) => useQuery({ ...q.consumo.camiones(browserDb(), p), placeholderData: keepPreviousData });
 
 export const useViajes = (p: ViajeListaParams) => useQuery({ ...q.viajes.lista(browserDb(), p), placeholderData: keepPreviousData });
 

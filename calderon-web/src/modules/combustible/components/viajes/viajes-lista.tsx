@@ -148,7 +148,8 @@ export function ViajesLista() {
   );
 }
 
-function AccionViaje({ viaje }: { viaje: Viaje }) {
+/** Acción de un viaje: abrir su cierre o crear el borrador (la reusa la conciliación). */
+export function AccionViaje({ viaje }: { viaje: Pick<Viaje, 'camionId' | 'cargaSalidaId' | 'cierreId' | 'cierreNumero' | 'situacion'> }) {
   const router = useRouter();
   const puedeEditar = useCan('combustible.cierre_viaje:editar');
   const crear = useCrearBorrador();

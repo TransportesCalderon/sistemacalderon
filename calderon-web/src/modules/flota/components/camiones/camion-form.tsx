@@ -26,7 +26,10 @@ import { ETIQUETA_TIPO_TANQUE, TIPOS_TANQUE } from '../../domain/tanque.types';
 import { useCamion, useCatalogosFlota, useCrearCamion, useCrearTanques, useEditarCamion } from '../../queries/hooks';
 import { TanquesCamion } from './tanques-camion';
 
-type Props = { modo: 'alta' } | { modo: 'edicion'; camion: Camion };
+/** Alta: datos sugeridos (por ejemplo, desde la telemetría: patente, VIN, marca y modelo). */
+export type CamionSugerido = Partial<Pick<CamionFormInput, 'patente' | 'paisPatente' | 'vin' | 'marca' | 'modelo'>>;
+
+type Props = { modo: 'alta'; sugerido?: CamionSugerido } | { modo: 'edicion'; camion: Camion };
 
 /** F-MAE-01 · Alta y edición de camión. */
 export function CamionForm(props: Props) {
@@ -56,7 +59,9 @@ export function CamionForm(props: Props) {
 
   const form = useForm<CamionFormInput, unknown, CamionDatos>({
     resolver: zodResolver(camionAltaSchema),
-    defaultValues: original ? valoresEdicionCamion(original) : valoresAltaCamion(hoyEnZona(zonaHoraria)),
+    defaultValues: original
+      ? valoresEdicionCamion(original)
+      : { ...valoresAltaCamion(hoyEnZona(zonaHoraria)), ...(props.modo === 'alta' ? props.sugerido : {}) },
     mode: 'onTouched',
   });
   const { register, formState, handleSubmit, setValue, reset } = form;

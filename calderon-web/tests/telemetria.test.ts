@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { haceTexto, minutosDesde, senalDe } from '@/modules/telemetria/domain/flota.types';
+import { enlaceAlta, haceTexto, minutosDesde, paisDePatente, patenteDeNombre, senalDe } from '@/modules/telemetria/domain/flota.types';
 
 describe('telemetría: señal de cada camión', () => {
   const ahora = Date.parse('2026-10-16T21:00:00Z');
@@ -21,5 +21,25 @@ describe('telemetría: señal de cada camión', () => {
     expect(haceTexto(150)).toBe('hace 2 h');
     expect(haceTexto(3 * 24 * 60)).toBe('hace 3 días');
     expect(haceTexto(null)).toBe('sin datos');
+  });
+});
+
+
+describe('telemetría: alta de camión desde la API', () => {
+  it('patente al principio del nombre (Renault y Volvo)', () => {
+    expect(patenteDeNombre('SRYR 55 // MARCELO RETA')).toBe('SRYR55');
+    expect(patenteDeNombre('SHXB49 | MATIAS MARTINEZ')).toBe('SHXB49');
+    expect(patenteDeNombre('RLWB45 // MARCO GOMEZ')).toBe('RLWB45');
+    expect(patenteDeNombre('CAMION SIN PATENTE CLARA')).toBeNull();
+    expect(patenteDeNombre(null)).toBeNull();
+  });
+  it('país probable', () => {
+    expect(paisDePatente('SRYR55')).toBe('CL');
+    expect(paisDePatente('AB123CD')).toBe('AR');
+    expect(paisDePatente('XYZ')).toBeNull();
+  });
+  it('enlace al alta con los datos de la API', () => {
+    const u = enlaceAlta({ marca: 'volvo', vin: '9BVRG40C5PE923007', nombre: 'SHXB49 | M', modelo: 'FH', camionId: null, patente: null });
+    expect(u).toBe('/flota/camiones/nuevo?vin=9BVRG40C5PE923007&patente=SHXB49&pais=CL&marca=Volvo&modelo=FH');
   });
 });

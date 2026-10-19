@@ -8,6 +8,8 @@ import type { MovimientoListaParams } from '../domain/movimiento.types';
 import type { ViajeListaParams } from '../domain/viaje.types';
 import { baseRepository } from '../repositories/base.repository';
 import { documentoRepository } from '../repositories/documento.repository';
+import { consumoRepository } from '../repositories/consumo.repository';
+import type { PeriodoParams } from '../domain/consumo.types';
 import type { Bandeja } from '../domain/documento.types';
 import { cargaRepository } from '../repositories/carga.repository';
 import { catalogoCombustibleRepository } from '../repositories/catalogo-combustible.repository';
@@ -92,6 +94,14 @@ export const combustibleQueries = {
         queryFn: () => documentoRepository(db).bandeja(tipo, pagina),
         staleTime: FRESCURA.bandeja,
       }),
+  },
+
+  /** Control del consumo (migración 36). */
+  consumo: {
+    viajes: (db: Db, p: PeriodoParams) =>
+      queryOptions({ queryKey: ['combustible', 'consumo', 'viajes', p] as const, queryFn: () => consumoRepository(db).viajes(p), staleTime: FRESCURA.derivado }),
+    camiones: (db: Db, p: PeriodoParams) =>
+      queryOptions({ queryKey: ['combustible', 'consumo', 'camiones', p] as const, queryFn: () => consumoRepository(db).camiones(p), staleTime: FRESCURA.derivado }),
   },
 
   movimientos: {

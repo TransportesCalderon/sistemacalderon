@@ -12,7 +12,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
-import { haceTexto, minutosDesde, senalDe, type Senal } from '../domain/flota.types';
+import { enlaceAlta, haceTexto, minutosDesde, senalDe, type Senal } from '../domain/flota.types';
 import { useCorridasApi, useFlotaEnVivo, useImportarAhora, useVehiculosApi } from '../queries/hooks';
 import { MapaFlota } from './mapa-flota';
 
@@ -26,6 +26,7 @@ const SENAL: Record<Senal, { texto: string; tono: 'exito' | 'alerta' | 'neutro' 
 export function FlotaPantalla() {
   const { zonaHoraria } = useSesion();
   const esTi = useCan('configuracion.catalogos:editar');
+  const puedeAltaCamion = useCan('flota.camiones:editar');
   const { data, isPending, isError, refetch } = useFlotaEnVivo();
   const { data: vehiculos } = useVehiculosApi();
   const [elegido, setElegido] = useState<number | null>(null);
@@ -48,13 +49,19 @@ export function FlotaPantalla() {
             <Link href="/flota/camiones" className="font-medium underline">
               Flota &gt; Camiones
             </Link>{' '}
-            (o que la patente coincida con el principio del nombre en Optifleet o Volvo Connect):
+            (o que la patente coincida con el principio del nombre en Optifleet o Volvo Connect). Si el camión todavía no está en el
+            sistema, «Dar de alta» abre el formulario con la patente, el VIN, la marca y el modelo:
           </p>
           <ul className="mt-1 list-inside list-disc">
             {sinEnlace.map((v) => (
               <li key={v.vin}>
                 <span className="font-mono">{v.vin}</span> · {v.nombre ?? 'sin nombre'}{' '}
                 <span className="text-xs capitalize">({v.marca})</span>
+                {puedeAltaCamion && (
+                  <Link href={enlaceAlta(v)} className="ml-2 font-medium underline">
+                    Dar de alta
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
