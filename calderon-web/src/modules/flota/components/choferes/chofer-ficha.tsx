@@ -6,13 +6,13 @@ import { ArrowLeft, CircleAlert, LoaderCircle, Pencil } from 'lucide-react';
 import { useAlcance } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
-import { formatearFechaDia, formatearFechaHora } from '@/shared/lib/fechas';
+import { formatearFechaDia, formatearFechaHora, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import type { ChoferId } from '@/shared/types/dominio';
-import { nombreCompleto } from '../../domain/chofer.types';
+import { ETIQUETA_VISA, nombreCompleto } from '../../domain/chofer.types';
 import { useBases, useCatalogosFlota, useChofer } from '../../queries/hooks';
 import { DocumentoChofer } from './documento-chofer';
-import { EstadoChoferChip } from './estado-chofer';
+import { EstadoChoferChip, LicenciaChip } from './estado-chofer';
 
 /** Pestañas de la ficha según la especificación (P-MAE-03). Solo Datos está disponible en esta etapa. */
 const PESTANAS = [
@@ -124,8 +124,24 @@ export function ChoferFicha({ id }: { id: ChoferId }) {
           <Dato etiqueta="Legajo">{chofer.legajo}</Dato>
           <Dato etiqueta="Apellido">{chofer.apellido}</Dato>
           <Dato etiqueta="Nombre">{chofer.nombre}</Dato>
-          <Dato etiqueta="Documento">{eliminado ? null : <DocumentoChofer choferId={chofer.id} />}</Dato>
+          <Dato etiqueta="Documento, RUT, nacimiento y contacto de emergencia">
+            {eliminado ? null : <DocumentoChofer choferId={chofer.id} />}
+          </Dato>
           <Dato etiqueta="País de residencia">{pais}</Dato>
+        </Seccion>
+
+        <Seccion titulo="Contacto, licencia y visa">
+          <Dato etiqueta="Teléfono">
+            {chofer.telefono && (
+              <a href={`tel:${chofer.telefono}`} className="font-mono text-marca hover:underline">
+                {chofer.telefono}
+              </a>
+            )}
+          </Dato>
+          <Dato etiqueta="Licencia de conducir">
+            {chofer.licenciaVencimiento && <LicenciaChip vence={chofer.licenciaVencimiento} hoy={hoyEnZona(sesion.zonaHoraria)} />}
+          </Dato>
+          <Dato etiqueta="Visa para Chile">{chofer.visaEstado ? ETIQUETA_VISA[chofer.visaEstado] : null}</Dato>
         </Seccion>
 
         <Seccion titulo="Datos laborales">

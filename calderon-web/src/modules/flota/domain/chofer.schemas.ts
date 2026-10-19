@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { esFechaDiaValida } from '@/shared/lib/fechas';
 import type { FechaDia } from '@/shared/types/dominio';
-import { ESTADOS_CHOFER, esTipoDocumento, type Chofer, type DocumentoChofer } from './chofer.types';
+import { ESTADOS_CHOFER, ESTADOS_VISA, esTipoDocumento, type Chofer, type DocumentoChofer, type ReservadosChofer } from './chofer.types';
 import { errorDocumento, normalizarDocumento } from './documento';
 
 /**
@@ -12,6 +12,8 @@ import { errorDocumento, normalizarDocumento } from './documento';
  *  - En el alta es obligatorio (NOT NULL en el DDL).
  *  - En la edición solo viaja si se marca "Cambiar documento" (requiere el permiso
  *    flota.documento_chofer:editar). Si no, el documento guardado no se lee ni se toca.
+ * Datos reservados (migración 43: RUT chileno, nacimiento, contacto de emergencia): igual,
+ *  viajan solo si se marca «Cambiar datos reservados» (mismo permiso). Vacío = se borra.
  */
 
 const textoOpcional = (max: number) =>
@@ -27,6 +29,11 @@ const nombrePropio = (campo: string) =>
     .string()
     .transform((v) => v.replace(/\s+/g, ' ').trim())
     .pipe(z.string().min(1, `Ingresá ${campo}.`).max(80, 'Máximo 80 caracteres.'));
+
+const fechaOpcional = z
+  .string()
+  .refine((v) => v === '' || esFechaDiaValida(v), 'Fecha no válida.')
+  .transform((v) => (v === '' ? null : (v as FechaDia)));
 
 const camposChofer = z.object({
   legajo: z.string().trim().min(1, 'Ingresá el legajo.').max(20, 'Máximo 20 caracteres.'),
@@ -48,6 +55,14 @@ const camposChofer = z.object({
     .transform((v) => (v === '' ? null : (v as FechaDia))),
   estado: z.enum(ESTADOS_CHOFER, 'Elegí el estado.'),
   idConductorOptifleet: textoOpcional(60),
+  telefono: textoOpcional(30),
+  licenciaVencimiento: fechaOpcional,
+  visaEstado: z.union([z.enum(ESTADOS_VISA), z.literal('')]).transform((v) => (v === '' ? null : v)),
+  // Datos reservados (ver comentario del archivo)
+  cambiarReservados: z.boolean(),
+  rutChile: textoOpcional(20),
+  fechaNacimiento: fechaOpcional,
+  contactoEmergencia: textoOpcional(300),
   // Documento (ver comentario del archivo)
   cambiarDocumento: z.boolean(),
   documentoTipo: z.string(),
@@ -77,6 +92,10 @@ function documentoDe(d: Campos): DocumentoChofer {
   return { tipo, numero: normalizarDocumento(tipo, d.documentoNumero) };
 }
 
+function reservadosDe(d: Campos): ReservadosChofer {
+  return { rutChile: d.rutChile, fechaNacimiento: d.fechaNacimiento, contactoEmergencia: d.contactoEmergencia };
+}
+
 /** Datos del chofer sin los campos de control del documento. */
 function datosDe(d: Campos) {
   return {
@@ -90,6 +109,9 @@ function datosDe(d: Campos) {
     fechaEgreso: d.fechaEgreso,
     estado: d.estado,
     idConductorOptifleet: d.idConductorOptifleet,
+    telefono: d.telefono,
+    licenciaVencimiento: d.licenciaVencimiento,
+    visaEstado: d.visaEstado,
   };
 }
 
@@ -101,7 +123,7 @@ export const choferFormSchema = camposChofer.superRefine((d, ctx) => reglas(d, c
 
 export const choferAltaSchema = camposChofer
   .superRefine((d, ctx) => reglas(d, ctx, true))
-  .transform((d) => ({ ...datosDe(d), documento: documentoDe(d) }));
+  .transform((d) => ({ ...datosDe(d), documento: documentoDe(d), reservados: reservadosDe(d) }));
 
 export const choferEdicionSchema = camposChofer
   .extend({
@@ -114,6 +136,7 @@ export const choferEdicionSchema = camposChofer
     versionFila: d.versionFila,
     ...datosDe(d),
     documento: d.cambiarDocumento ? documentoDe(d) : null,
+    reservados: d.cambiarReservados ? reservadosDe(d) : null,
   }));
 
 /** Valores crudos del formulario (React Hook Form y entrada de las actions). */
@@ -139,6 +162,13 @@ export function valoresAltaChofer(hoy: FechaDia, paisPorDefecto = 'AR'): ChoferF
     fechaEgreso: '',
     estado: 'activo',
     idConductorOptifleet: '',
+    telefono: '',
+    licenciaVencimiento: '',
+    visaEstado: '',
+    cambiarReservados: true,
+    rutChile: '',
+    fechaNacimiento: '',
+    contactoEmergencia: '',
     cambiarDocumento: true,
     documentoTipo: paisPorDefecto === 'CL' ? 'RUT' : 'DNI',
     documentoNumero: '',
@@ -158,6 +188,13 @@ export function valoresEdicionChofer(c: Chofer): ChoferFormInput {
     fechaEgreso: c.fechaEgreso ?? '',
     estado: c.estado,
     idConductorOptifleet: c.idConductorOptifleet ?? '',
+    telefono: c.telefono ?? '',
+    licenciaVencimiento: c.licenciaVencimiento ?? '',
+    visaEstado: c.visaEstado ?? '',
+    cambiarReservados: false,
+    rutChile: '',
+    fechaNacimiento: '',
+    contactoEmergencia: '',
     cambiarDocumento: false,
     documentoTipo: c.paisResidencia === 'CL' ? 'RUT' : 'DNI',
     documentoNumero: '',

@@ -20,8 +20,7 @@ import {
   ETIQUETA_TIPO_DOCUMENTO,
   TIPOS_DOCUMENTO,
   nombreCompleto,
-  type Chofer,
-} from '../../domain/chofer.types';
+  type Chofer, ESTADOS_VISA, ETIQUETA_VISA } from '../../domain/chofer.types';
 import { useBases, useCatalogosFlota, useChofer, useCrearChofer, useEditarChofer } from '../../queries/hooks';
 
 type Props = { modo: 'alta' } | { modo: 'edicion'; chofer: Chofer };
@@ -64,6 +63,7 @@ export function ChoferForm(props: Props) {
   const enviando = crear.isPending || editar.isPending || formState.isSubmitting;
   const cambiarDocumento = watch('cambiarDocumento');
   const tipoDocumento = watch('documentoTipo');
+  const cambiarReservados = watch('cambiarReservados');
 
   const mostrarError = (err: ErrorAccion) => {
     setError(err);
@@ -78,7 +78,7 @@ export function ChoferForm(props: Props) {
     const valores = form.getValues();
     const r = original
       ? await editar.mutateAsync({ ...valores, id: original.id, versionFila: version })
-      : await crear.mutateAsync({ ...valores, cambiarDocumento: true });
+      : await crear.mutateAsync({ ...valores, cambiarDocumento: true, cambiarReservados: true });
     if (!r.ok) return mostrarError(r.error);
     router.push(`/flota/choferes/${r.data.id}`);
   });
@@ -96,6 +96,7 @@ export function ChoferForm(props: Props) {
 
   const volver = original ? `/flota/choferes/${original.id}` : '/flota/choferes';
   const mostrarCamposDocumento = !original || cambiarDocumento;
+  const mostrarReservados = !original || cambiarReservados;
 
   return (
     <form noValidate onSubmit={enviar} className="max-w-4xl space-y-5">
@@ -203,6 +204,86 @@ export function ChoferForm(props: Props) {
           </div>
         )}
       </fieldset>
+
+      <fieldset className={cn(TARJETA, 'p-5')}>
+        <legend className="sr-only">Datos reservados</legend>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-tinta" aria-hidden>
+            RUT chileno, nacimiento y contacto de emergencia
+          </h2>
+          <span className="inline-flex items-center gap-1 text-xs text-tinta-suave">
+            <Lock className="size-3.5" /> Datos reservados
+          </span>
+        </div>
+        {original && !cambiarReservados && (
+          <div className="flex flex-wrap items-center gap-3 text-sm text-tinta-suave">
+            <span>Los datos guardados no se muestran ni se modifican desde aquí.</span>
+            {puedeCambiarDocumento ? (
+              <button
+                type="button"
+                className="font-medium text-marca hover:underline"
+                onClick={() => setValue('cambiarReservados', true, { shouldDirty: true })}
+              >
+                Cambiar estos datos
+              </button>
+            ) : (
+              <span>Solo Administración y RR. HH. puede cambiarlos.</span>
+            )}
+          </div>
+        )}
+        {mostrarReservados && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Campo label="RUT / RUN chileno" error={e.rutChile?.message} ayuda="Para cruzar a Chile. Con o sin puntos: 44.459.984-7.">
+              <input autoComplete="off" maxLength={20} className="font-mono uppercase" {...register('rutChile')} />
+            </Campo>
+            <Campo label="Fecha de nacimiento" error={e.fechaNacimiento?.message}>
+              <input type="date" {...register('fechaNacimiento')} />
+            </Campo>
+            <div className="sm:col-span-2">
+              <Campo label="Contacto de emergencia" error={e.contactoEmergencia?.message} ayuda="Nombre, parentesco y teléfono.">
+                <input autoComplete="off" maxLength={300} {...register('contactoEmergencia')} />
+              </Campo>
+            </div>
+            {original && (
+              <p className="text-xs text-tinta-suave sm:col-span-2">
+                Al guardar se reemplazan los tres (vacío = se borra).{' '}
+                <button
+                  type="button"
+                  className="font-medium text-marca hover:underline"
+                  onClick={() => {
+                    setValue('cambiarReservados', false);
+                    setValue('rutChile', '');
+                    setValue('fechaNacimiento', '');
+                    setValue('contactoEmergencia', '');
+                    form.clearErrors(['rutChile', 'fechaNacimiento', 'contactoEmergencia']);
+                  }}
+                >
+                  No cambiarlos
+                </button>
+              </p>
+            )}
+          </div>
+        )}
+      </fieldset>
+
+      <Bloque titulo="Contacto, licencia y visa">
+        <Campo label="Teléfono" error={e.telefono?.message} ayuda="Celular del chofer. Ej.: +54 9 2634 21-5639">
+          <input type="tel" autoComplete="off" maxLength={30} {...register('telefono')} />
+        </Campo>
+        <Campo label="Vencimiento de la licencia" error={e.licenciaVencimiento?.message} ayuda="Con la licencia vencida no se le asignan viajes.">
+          <input type="date" {...register('licenciaVencimiento')} />
+        </Campo>
+        <Campo label="Visa para Chile" error={e.visaEstado?.message}>
+          <select {...register('visaEstado')}>
+            <option value="">Sin dato</option>
+            {ESTADOS_VISA.map((v) => (
+              <option key={v} value={v}>
+                {ETIQUETA_VISA[v]}
+              </option>
+            ))}
+          </select>
+        </Campo>
+      </Bloque>
 
       <Bloque titulo="Datos laborales">
         <Campo label="Base" error={e.baseUbicacionId?.message} ayuda={bases?.length === 0 ? 'No hay bases cargadas (Comercial > Ubicaciones).' : undefined}>

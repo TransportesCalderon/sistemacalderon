@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { Eye, EyeOff, LoaderCircle, Lock } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import type { ChoferId } from '@/shared/types/dominio';
-import { ETIQUETA_TIPO_DOCUMENTO, type DocumentoChofer as Documento } from '../../domain/chofer.types';
+import { formatearFechaDia } from '@/shared/lib/fechas';
+import { ETIQUETA_TIPO_DOCUMENTO, type DatosReservadosChofer as Documento } from '../../domain/chofer.types';
 import { useRevelarDocumento } from '../../queries/hooks';
 
 /** Tiempo que el documento queda visible antes de volver a ocultarse. */
@@ -38,8 +39,15 @@ export function DocumentoChofer({ choferId }: { choferId: ChoferId }) {
   if (documento) {
     return (
       <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="font-mono">
-          {ETIQUETA_TIPO_DOCUMENTO[documento.tipo]} {documento.numero}
+        <span className="grid gap-0.5">
+          <span className="font-mono">
+            {ETIQUETA_TIPO_DOCUMENTO[documento.tipo]} {documento.numero}
+          </span>
+          <span>
+            RUT/RUN Chile: <span className="font-mono">{documento.rutChile ?? '—'}</span>
+          </span>
+          <span>Nacimiento: {documento.fechaNacimiento ? formatearFechaDia(documento.fechaNacimiento) : '—'}</span>
+          <span>Emergencia: {documento.contactoEmergencia ?? '—'}</span>
         </span>
         <button type="button" onClick={() => setDocumento(null)} className="inline-flex items-center gap-1 text-sm text-marca hover:underline">
           <EyeOff className="size-3.5" /> Ocultar
@@ -64,7 +72,7 @@ export function DocumentoChofer({ choferId }: { choferId: ChoferId }) {
         className="inline-flex items-center gap-1 text-sm text-marca hover:underline disabled:opacity-60"
       >
         {revelar.isPending ? <LoaderCircle className="size-3.5 animate-spin" /> : <Eye className="size-3.5" />}
-        Mostrar documento
+        Mostrar datos reservados
       </button>
       {error ? (
         <span className="w-full text-xs text-error">{error}</span>

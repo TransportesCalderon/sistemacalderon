@@ -112,6 +112,14 @@ type ChoferRow = {
   fecha_egreso: string | null;
   estado: string;
   id_conductor_optifleet: string | null;
+  /** Migración 43: datos de trabajo. */
+  telefono: string | null;
+  licencia_vencimiento: string | null;
+  visa_estado: string | null;
+  /** Migración 43: datos reservados (se leen solo registrando el acceso). */
+  rut_chile: string | null;
+  fecha_nacimiento: string | null;
+  contacto_emergencia: string | null;
   creado_en: string;
   creado_por: number | null;
   actualizado_en: string;

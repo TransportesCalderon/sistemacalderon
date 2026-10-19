@@ -9,8 +9,11 @@ import {
   type Chofer,
   type ChoferFiltros,
   type ChoferListaParams,
+  esEstadoVisa,
   type ChoferResumen,
+  type DatosReservadosChofer,
   type DocumentoChofer,
+  type ReservadosChofer,
 } from '../domain/chofer.types';
 
 /**
@@ -18,19 +21,20 @@ import {
  *
  * Datos personales: ninguna constante de columnas incluye documento_tipo ni
  * documento_numero (el rol tc_lectura ni siquiera tiene permiso sobre ellas). El
- * documento solo se lee en revelarDocumento(), que antes registra el acceso.
+ * documento solo se lee en revelarDocumento(), que antes registra el acceso. Lo mismo los
+ * datos reservados de la migración 43 (rut_chile, fecha_nacimiento, contacto_emergencia).
  *
  * La lista lee la tabla base con eliminado_en IS NULL en lugar de la vista v_chofer:
  * el DDL concede a tc_lectura (Gerencia) solo columnas de mae.chofer, no la vista.
  */
 const COLS_CHOFER =
-  'id, legajo, nombre, apellido, pais_residencia, base_ubicacion_id, categoria_liquidacion, fecha_ingreso, fecha_egreso, estado, id_conductor_optifleet, creado_en, creado_por, actualizado_en, actualizado_por, eliminado_en, version_fila';
+  'id, legajo, nombre, apellido, pais_residencia, base_ubicacion_id, categoria_liquidacion, fecha_ingreso, fecha_egreso, estado, id_conductor_optifleet, telefono, licencia_vencimiento, visa_estado, creado_en, creado_por, actualizado_en, actualizado_por, eliminado_en, version_fila';
 
 const COLS_RESUMEN =
-  'id, legajo, nombre, apellido, pais_residencia, base_ubicacion_id, categoria_liquidacion, fecha_ingreso, fecha_egreso, estado, eliminado_en, version_fila';
+  'id, legajo, nombre, apellido, pais_residencia, base_ubicacion_id, categoria_liquidacion, fecha_ingreso, fecha_egreso, estado, licencia_vencimiento, visa_estado, eliminado_en, version_fila';
 
 type FilaChofer = Database['mae']['Tables']['chofer']['Row'];
-type FilaSeleccion = Omit<FilaChofer, 'documento_tipo' | 'documento_numero' | 'eliminado_por'>;
+type FilaSeleccion = Omit<FilaChofer, 'documento_tipo' | 'documento_numero' | 'eliminado_por' | 'rut_chile' | 'fecha_nacimiento' | 'contacto_emergencia'>;
 type FilaResumen = Pick<
   FilaChofer,
   | 'id'
@@ -43,6 +47,8 @@ type FilaResumen = Pick<
   | 'fecha_ingreso'
   | 'fecha_egreso'
   | 'estado'
+  | 'licencia_vencimiento'
+  | 'visa_estado'
   | 'eliminado_en'
   | 'version_fila'
 >;
@@ -59,6 +65,8 @@ export function aChoferResumen(f: FilaResumen): ChoferResumen {
     fechaIngreso: f.fecha_ingreso as FechaDia,
     fechaEgreso: f.fecha_egreso as FechaDia | null,
     estado: esEstadoChofer(f.estado) ? f.estado : 'baja',
+    licenciaVencimiento: f.licencia_vencimiento as FechaDia | null,
+    visaEstado: esEstadoVisa(f.visa_estado) ? f.visa_estado : null,
     versionFila: f.version_fila,
     eliminadoEn: f.eliminado_en as FechaISO | null,
   };
@@ -68,6 +76,7 @@ export function aChofer(f: FilaSeleccion): Chofer {
   return {
     ...aChoferResumen(f),
     idConductorOptifleet: f.id_conductor_optifleet,
+    telefono: f.telefono,
     creadoEn: f.creado_en as FechaISO,
     creadoPor: f.creado_por,
     actualizadoEn: f.actualizado_en as FechaISO,
@@ -88,8 +97,18 @@ export function aFilaChofer(d: ChoferDatos) {
     fecha_egreso: d.fechaEgreso,
     estado: d.estado,
     id_conductor_optifleet: d.idConductorOptifleet,
+    telefono: d.telefono,
+    licencia_vencimiento: d.licenciaVencimiento,
+    visa_estado: d.visaEstado,
   } satisfies Database['mae']['Tables']['chofer']['Update'];
 }
+
+/** Datos reservados → columnas (solo cuando se cargan o cambian). */
+const aFilaReservados = (r: ReservadosChofer) => ({
+  rut_chile: r.rutChile,
+  fecha_nacimiento: r.fechaNacimiento,
+  contacto_emergencia: r.contactoEmergencia,
+});
 
 /**
  * Filtros de la lista traducidos a PostgREST (función pura).
@@ -113,10 +132,10 @@ export function filtrosChoferPostgrest(f: ChoferFiltros): { eq: [string, string 
 export interface ChoferRepository {
   listar(p: ChoferListaParams): Promise<Pagina<ChoferResumen>>;
   obtener(id: ChoferId): Promise<Chofer | null>;
-  crear(datos: ChoferDatos, documento: DocumentoChofer): Promise<Chofer>;
-  actualizar(ref: Versionado, datos: ChoferDatos, documento: DocumentoChofer | null): Promise<Chofer>;
-  /** Registra el acceso en aud.acceso_sensible y recién entonces lee el documento. */
-  revelarDocumento(id: ChoferId, contexto: { motivo: string; ip: string | null }): Promise<DocumentoChofer | null>;
+  crear(datos: ChoferDatos, documento: DocumentoChofer, reservados?: ReservadosChofer | null): Promise<Chofer>;
+  actualizar(ref: Versionado, datos: ChoferDatos, documento: DocumentoChofer | null, reservados?: ReservadosChofer | null): Promise<Chofer>;
+  /** Registra el acceso en aud.acceso_sensible y recién entonces lee el documento y los datos reservados. */
+  revelarDocumento(id: ChoferId, contexto: { motivo: string; ip: string | null }): Promise<DatosReservadosChofer | null>;
 }
 
 export const choferRepository = (db: Db): ChoferRepository => ({
@@ -142,20 +161,26 @@ export const choferRepository = (db: Db): ChoferRepository => ({
     return data ? aChofer(data as FilaSeleccion) : null;
   },
 
-  async crear(datos, documento) {
+  async crear(datos, documento, reservados) {
     const { data, error } = await db
       .schema('mae')
       .from('chofer')
-      .insert({ ...aFilaChofer(datos), documento_tipo: documento.tipo, documento_numero: documento.numero })
+      .insert({
+        ...aFilaChofer(datos),
+        ...(reservados ? aFilaReservados(reservados) : {}),
+        documento_tipo: documento.tipo,
+        documento_numero: documento.numero,
+      })
       .select(COLS_CHOFER)
       .single();
     if (error) throw new RepoError(error);
     return aChofer(data as FilaSeleccion);
   },
 
-  async actualizar({ id, versionFila }, datos, documento) {
+  async actualizar({ id, versionFila }, datos, documento, reservados) {
     const cambios = {
       ...aFilaChofer(datos),
+      ...(reservados ? aFilaReservados(reservados) : {}),
       ...(documento ? { documento_tipo: documento.tipo, documento_numero: documento.numero } : {}),
       version_fila: versionFila,
     };
@@ -189,11 +214,17 @@ export const choferRepository = (db: Db): ChoferRepository => ({
     const { data, error } = await db
       .schema('mae')
       .from('chofer')
-      .select('documento_tipo, documento_numero')
+      .select('documento_tipo, documento_numero, rut_chile, fecha_nacimiento, contacto_emergencia')
       .eq('id', id)
       .maybeSingle();
     if (error) throw new RepoError(error);
     if (!data) return null;
-    return { tipo: esTipoDocumento(data.documento_tipo) ? data.documento_tipo : 'OTRO', numero: data.documento_numero };
+    return {
+      tipo: esTipoDocumento(data.documento_tipo) ? data.documento_tipo : 'OTRO',
+      numero: data.documento_numero,
+      rutChile: data.rut_chile,
+      fechaNacimiento: data.fecha_nacimiento as FechaDia | null,
+      contactoEmergencia: data.contacto_emergencia,
+    };
   },
 });

@@ -6,18 +6,20 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, LoaderCircle, Plus, Search, UsersRound, X } from 'lucide-react';
 import { useAlcance } from '@/modules/core/permissions/can';
 import { cn } from '@/shared/lib/cn';
-import { formatearFechaDia } from '@/shared/lib/fechas';
+import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
+import { useSesion } from '@/modules/core/session/session-provider';
 import { BOTON_ICONO, BOTON_PRIMARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
 import { parsearListaChoferes, serializarListaChoferes } from '../../domain/chofer.lista';
 import {
   ESTADOS_CHOFER,
   ETIQUETA_ESTADO_CHOFER,
+  ETIQUETA_VISA,
   TAMANO_PAGINA_CHOFERES,
   type CampoOrdenChofer,
   type ChoferListaParams,
 } from '../../domain/chofer.types';
 import { useBases, useCatalogosFlota, useChoferes } from '../../queries/hooks';
-import { EstadoChoferChip } from './estado-chofer';
+import { EstadoChoferChip, LicenciaChip } from './estado-chofer';
 
 /**
  * P-MAE-03 · Choferes (lista). Sin documento visible (especificación §9).
@@ -35,6 +37,7 @@ export function ChoferesLista() {
   const { data, isPending, isError, isFetching, refetch } = useChoferes(params);
   const { data: catalogos } = useCatalogosFlota();
   const { data: bases } = useBases();
+  const hoy = hoyEnZona(useSesion().zonaHoraria);
 
   const nombreBase = useMemo(() => new Map(bases?.map((b) => [b.id, b.nombre]) ?? []), [bases]);
 
@@ -154,7 +157,7 @@ export function ChoferesLista() {
           <EstadoVacio conFiltros={hayFiltros} puedeCrear={puedeCrear} />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="border-b border-borde bg-fondo text-left text-xs font-medium tracking-wide text-tinta-suave uppercase">
                 <tr>
                   <Encabezado campo="legajo" params={params} onOrdenar={ordenarPor}>
@@ -165,7 +168,8 @@ export function ChoferesLista() {
                   </Encabezado>
                   <th className="px-3 py-2.5">País</th>
                   <th className="px-3 py-2.5">Base</th>
-                  <th className="px-3 py-2.5">Categoría</th>
+                  <th className="px-3 py-2.5">Licencia</th>
+                  <th className="px-3 py-2.5">Visa</th>
                   <Encabezado campo="fecha_ingreso" params={params} onOrdenar={ordenarPor}>
                     Ingreso
                   </Encabezado>
@@ -187,7 +191,10 @@ export function ChoferesLista() {
                     </td>
                     <td className="px-3 py-2.5">{c.paisResidencia}</td>
                     <td className="px-3 py-2.5">{c.baseUbicacionId === null ? '—' : (nombreBase.get(c.baseUbicacionId) ?? '—')}</td>
-                    <td className="px-3 py-2.5">{c.categoriaLiquidacion ?? '—'}</td>
+                    <td className="px-3 py-2.5">
+                      <LicenciaChip vence={c.licenciaVencimiento} hoy={hoy} />
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{c.visaEstado ? ETIQUETA_VISA[c.visaEstado] : '—'}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">{formatearFechaDia(c.fechaIngreso)}</td>
                     <td className="px-3 py-2.5">
                       <EstadoChoferChip estado={c.estado} eliminado={c.eliminadoEn !== null} />

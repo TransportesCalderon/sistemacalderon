@@ -29,6 +29,16 @@ export const ETIQUETA_TIPO_DOCUMENTO: Record<TipoDocumento, string> = {
   OTRO: 'Otro',
 };
 
+/** Trámite de visa para Chile (migración 43, ck_chofer_visa). */
+export const ESTADOS_VISA = ['no_solicitada', 'en_tramite', 'obtenida'] as const;
+export type EstadoVisa = (typeof ESTADOS_VISA)[number];
+export const ETIQUETA_VISA: Record<EstadoVisa, string> = {
+  no_solicitada: 'No solicitada',
+  en_tramite: 'En trámite',
+  obtenida: 'Obtenida',
+};
+export const esEstadoVisa = (v: unknown): v is EstadoVisa => typeof v === 'string' && (ESTADOS_VISA as readonly string[]).includes(v);
+
 /** Ficha del chofer, sin documento. */
 export interface Chofer extends Auditable {
   id: ChoferId;
@@ -42,6 +52,10 @@ export interface Chofer extends Auditable {
   fechaEgreso: FechaDia | null;
   estado: EstadoChofer;
   idConductorOptifleet: string | null;
+  /** Migración 43. */
+  telefono: string | null;
+  licenciaVencimiento: FechaDia | null;
+  visaEstado: EstadoVisa | null;
 }
 
 /** Fila de la lista (P-MAE-03): sin documento visible. */
@@ -57,6 +71,8 @@ export type ChoferResumen = Pick<
   | 'fechaIngreso'
   | 'fechaEgreso'
   | 'estado'
+  | 'licenciaVencimiento'
+  | 'visaEstado'
   | 'versionFila'
   | 'eliminadoEn'
 >;
@@ -65,6 +81,25 @@ export type ChoferResumen = Pick<
 export interface DocumentoChofer {
   tipo: TipoDocumento;
   numero: string;
+}
+
+/** Datos reservados (migración 43): como el documento, solo se ven registrando el acceso. */
+export interface ReservadosChofer {
+  rutChile: string | null;
+  fechaNacimiento: FechaDia | null;
+  contactoEmergencia: string | null;
+}
+
+/** Lo que muestra «Mostrar datos reservados»: documento y datos reservados. */
+export type DatosReservadosChofer = DocumentoChofer & ReservadosChofer;
+
+/** Licencia de conducir: vencida, por vencer (menos de 60 días) o vigente. Solo para mostrar: la base decide. */
+export function situacionLicencia(vence: FechaDia | null, hoy: FechaDia): 'vencida' | 'por_vencer' | 'vigente' | null {
+  if (!vence) return null;
+  if (vence < hoy) return 'vencida';
+  const limite = new Date(`${hoy}T00:00:00Z`);
+  limite.setUTCDate(limite.getUTCDate() + 60);
+  return vence < limite.toISOString().slice(0, 10) ? 'por_vencer' : 'vigente';
 }
 
 export interface ChoferFiltros {

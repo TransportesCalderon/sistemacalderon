@@ -122,3 +122,35 @@ describe('lista de choferes', () => {
     });
   });
 });
+
+describe('Datos del chofer (migración 43)', () => {
+  it('licencia: vencida, por vencer (menos de 60 días) o vigente', async () => {
+    const { situacionLicencia } = await import('@/modules/flota/domain/chofer.types');
+    const hoy = '2026-10-19' as never;
+    expect(situacionLicencia('2026-02-14' as never, hoy)).toBe('vencida');
+    expect(situacionLicencia('2026-12-06' as never, hoy)).toBe('por_vencer');
+    expect(situacionLicencia('2030-06-11' as never, hoy)).toBe('vigente');
+    expect(situacionLicencia(null, hoy)).toBeNull();
+  });
+
+  it('el alta lleva los datos nuevos; la edición solo toca los reservados si se marca', async () => {
+    const { choferAltaSchema, choferEdicionSchema, valoresAltaChofer } = await import('@/modules/flota/domain/chofer.schemas');
+    const base = {
+      ...valoresAltaChofer('2026-10-19' as never),
+      legajo: 'CH-001',
+      nombre: 'Ezequiel',
+      apellido: 'Aguero',
+      documentoNumero: '41.795.954',
+      telefono: '+54 9 2634 21-5639',
+      licenciaVencimiento: '2030-06-11',
+      visaEstado: 'en_tramite',
+      rutChile: '44.459.984-7',
+    };
+    const alta = choferAltaSchema.parse(base);
+    expect(alta).toMatchObject({ telefono: '+54 9 2634 21-5639', licenciaVencimiento: '2030-06-11', visaEstado: 'en_tramite' });
+    expect(alta.reservados).toMatchObject({ rutChile: '44.459.984-7', fechaNacimiento: null });
+    const ed = choferEdicionSchema.parse({ ...base, id: 1, versionFila: 1, cambiarDocumento: false, cambiarReservados: false });
+    expect(ed.reservados).toBeNull();
+    expect(ed.documento).toBeNull();
+  });
+});
