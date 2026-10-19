@@ -63,8 +63,9 @@ export const flotaRepository = (db: Db) => ({
     }));
   },
 
-  async importarAhora(marca: string): Promise<unknown> {
-    const { data, error } = await db.schema('tel').rpc('fn_importar_api_camiones', { p_marca: marca, p_origen: 'manual' });
+  /** Importa ahora todas las marcas con credenciales (Renault, Volvo). */
+  async importarAhora(): Promise<unknown> {
+    const { data, error } = await db.schema('tel').rpc('fn_importar_todas', { p_origen: 'manual' });
     if (error) throw new RepoError(error);
     return data;
   },

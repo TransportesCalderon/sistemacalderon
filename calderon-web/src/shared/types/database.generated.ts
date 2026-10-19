@@ -779,6 +779,7 @@ export type Database = {
     };
     Functions: {
       fn_importar_api_camiones: { Args: { p_marca?: string; p_origen?: string }; Returns: Json };
+      fn_importar_todas: { Args: { p_origen?: string }; Returns: Json };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

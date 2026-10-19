@@ -48,12 +48,13 @@ export function FlotaPantalla() {
             <Link href="/flota/camiones" className="font-medium underline">
               Flota &gt; Camiones
             </Link>{' '}
-            (o que la patente coincida con el principio del nombre en Optifleet):
+            (o que la patente coincida con el principio del nombre en Optifleet o Volvo Connect):
           </p>
           <ul className="mt-1 list-inside list-disc">
             {sinEnlace.map((v) => (
               <li key={v.vin}>
-                <span className="font-mono">{v.vin}</span> · {v.nombre ?? 'sin nombre'}
+                <span className="font-mono">{v.vin}</span> · {v.nombre ?? 'sin nombre'}{' '}
+                <span className="text-xs capitalize">({v.marca})</span>
               </li>
             ))}
           </ul>
@@ -148,7 +149,7 @@ function ImportarAhora() {
         disabled={importar.isPending}
         onClick={async () => {
           setError(null);
-          const r = await importar.mutateAsync({ marca: 'renault' });
+          const r = await importar.mutateAsync({});
           if (!r.ok) setError(r.error);
         }}
       >
@@ -169,6 +170,7 @@ function Corridas({ zonaHoraria }: { zonaHoraria: string }) {
           <li key={c.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
             <span className="tabular-nums text-tinta-suave">{formatearFechaHora(c.ejecutadoEn, zonaHoraria)}</span>
             <Chip tono={c.ok ? 'exito' : 'error'}>{c.ok ? 'OK' : 'Error'}</Chip>
+            <span className="text-xs text-tinta-suave capitalize">{c.marca}</span>
             <span className="text-xs text-tinta-suave">{c.operacion.replace('importacion_', '').replace('prueba_', 'prueba: ')}</span>
             <span className="min-w-0 flex-1 text-tinta">{c.detalle ?? '—'}</span>
           </li>
