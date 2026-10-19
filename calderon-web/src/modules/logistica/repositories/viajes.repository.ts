@@ -27,6 +27,7 @@ export const viajesRepository = (db: Db) => {
         choferId: v.chofer_id,
         chofer: v.chofer_nombre,
         numeroServicio: v.numero_servicio,
+        numeroOperacion: v.numero_operacion ?? null,
         clienteId: v.cliente_id,
         cliente: v.cliente,
         producto: v.producto,

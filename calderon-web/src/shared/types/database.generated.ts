@@ -551,6 +551,73 @@ type UbicacionIns = {
 /** ref.tipo_accesorio y mae.genset (migración 39). */
 type TipoAccesorioIns = { nombre: string; sigla: string; orden?: number; activo?: boolean };
 type GensetIns = { codigo: string; marca?: string | null; modelo?: string | null; numero_serie?: string | null; estado?: string; observaciones?: string | null };
+/** mae.linea y mae.transportista (migración 41). */
+type LineaIns = {
+  codigo: string;
+  lugar_retiro_id: number;
+  lugar_entrega_id: number;
+  lugar_aduana_id?: number | null;
+  distancia_km?: number | null;
+  cruza_frontera?: boolean;
+  transit_horas?: number | null;
+  activa?: boolean;
+};
+type TransportistaIns = { razon_social: string; cuit?: string | null; telefono?: string | null; observaciones?: string | null; activo?: boolean };
+/** ops.fn_operaciones (migración 41). */
+type OperacionRow = {
+  servicio_id: number;
+  numero_operacion: number;
+  fecha_operacion: string;
+  tipo_operacion: string | null;
+  estado: string;
+  estado_logistica: string;
+  cliente_id: number;
+  cliente: string;
+  linea_id: number | null;
+  linea: string | null;
+  lugar_retiro_id: number | null;
+  lugar_retiro: string | null;
+  origen_id: number;
+  origen: string | null;
+  lugar_aduana_id: number | null;
+  lugar_aduana: string | null;
+  destino_id: number;
+  destino: string | null;
+  destino_es_puerto: boolean | null;
+  fecha_presentacion: string | null;
+  fecha_entrega: string | null;
+  inicio_real: string | null;
+  fin_real: string | null;
+  producto: string | null;
+  peso_kg: number | null;
+  tipo_contenedor: string | null;
+  contenedor: string | null;
+  precinto: string | null;
+  tara_max_dias: number | null;
+  booking: string | null;
+  referencia_cliente: string | null;
+  buque: string | null;
+  crt: string | null;
+  mic: string | null;
+  observacion: string | null;
+  motivo_cancelacion: string | null;
+  transportista_id: number | null;
+  transportista: string | null;
+  tercero_chofer: string | null;
+  tercero_tractor: string | null;
+  tercero_semi: string | null;
+  tramo_id: number | null;
+  tramo_estado: string | null;
+  paso: string | null;
+  semi_id: number | null;
+  semi: string | null;
+  camion_id: number | null;
+  tractor: string | null;
+  chofer_id: number | null;
+  chofer: string | null;
+  hitos: Json;
+  version_fila: number;
+};
 /** ops.fn_pizarra (migración 39). */
 type PizarraRow = {
   semi_id: number;
@@ -715,6 +782,8 @@ export type Database = {
       semirremolque: TablaEditable<SemiRow, SemiIns>;
       semi_accesorio: TablaSoloLectura<Control & { id: number; semirremolque_id: number; tipo_accesorio_id: number; cantidad: number }>;
       genset: TablaEditable<Required<GensetIns> & Control & { id: number }, GensetIns>;
+      linea: TablaEditable<Required<LineaIns> & Control & { id: number }, LineaIns>;
+      transportista: TablaEditable<Required<TransportistaIns> & Control & { id: number }, TransportistaIns>;
       genset_instalacion: TablaSoloLectura<Control & { id: number; genset_id: number; semirremolque_id: number; desde: string; hasta: string | null }>;
       tanque_combustible: {
         Row: TanqueCombustibleRow;
@@ -774,6 +843,22 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       fn_pizarra: { Args: Record<string, never>; Returns: PizarraRow[] };
+      fn_operaciones: { Args: { p_desde?: string | null; p_hasta?: string | null }; Returns: OperacionRow[] };
+      fn_guardar_operacion: { Args: { p_servicio: number | null; p_version: number | null; p_datos: Json }; Returns: number };
+      fn_confirmar_operacion: { Args: { p_servicio: number }; Returns: undefined };
+      fn_asignar_equipo: {
+        Args: { p_servicio: number; p_semi: number; p_camion: number; p_chofer: number; p_observacion?: string | null };
+        Returns: number;
+      };
+      fn_quitar_equipo: { Args: { p_servicio: number; p_motivo?: string | null }; Returns: undefined };
+      fn_asignar_tercero: {
+        Args: { p_servicio: number; p_transportista: number | null; p_chofer?: string | null; p_tractor?: string | null; p_semi?: string | null };
+        Returns: undefined;
+      };
+      fn_registrar_hito: { Args: { p_servicio: number; p_tipo: string; p_ts?: string | null; p_detalle?: string | null }; Returns: number };
+      fn_terminar_demora: { Args: { p_servicio: number; p_hasta?: string | null }; Returns: undefined };
+      fn_anular_hito: { Args: { p_hito: number }; Returns: undefined };
+      fn_cancelar_operacion: { Args: { p_servicio: number; p_motivo: string }; Returns: undefined };
       fn_pizarra_totales: {
         Args: Record<string, never>;
         Returns: { tipo_accesorio_id: number; nombre: string; sigla: string; orden: number; total: number; semis_con_dato: number }[];
@@ -808,6 +893,8 @@ export type Database = {
           odometro_inicio_km: number | null;
           observacion: string | null;
           version_fila: number;
+          numero_operacion: number | null;
+          tipo_operacion: string | null;
         }[];
       };
       fn_asignar_viaje: {

@@ -60,8 +60,10 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     id: 'operacion',
     etiqueta: 'Operación',
     entradas: [
+      { href: '/operacion/operaciones', etiqueta: 'Operaciones (Logística)', pantalla: 'operacion.servicios' },
       { href: '/operacion/viajes', etiqueta: 'Viajes (Logística)', pantalla: 'operacion.tramos' },
-      { href: '/operacion/servicios', etiqueta: 'Servicios comerciales', pantalla: 'operacion.servicios' },
+      { href: '/operacion/lineas', etiqueta: 'Líneas', pantalla: 'operacion.servicios' },
+      { href: '/operacion/transportistas', etiqueta: 'Transportistas externos', pantalla: 'operacion.servicios' },
       { href: '/operacion/tramos', etiqueta: 'Tramos operativos', pantalla: 'operacion.tramos' },
       { href: '/operacion/planificacion', etiqueta: 'Planificación de flota', pantalla: 'operacion.planificacion' },
       { href: '/operacion/control-mendoza', etiqueta: 'Control Mendoza', pantalla: 'operacion.control_mendoza' },

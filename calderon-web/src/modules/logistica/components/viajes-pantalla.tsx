@@ -85,7 +85,7 @@ export function ViajesPantalla({ semiInicial, tramoInicial }: { semiInicial?: st
     const t = normalizar(texto);
     return (data ?? []).filter(
       (v) =>
-        !t || [v.semi, v.tractor, v.chofer, v.cliente, v.contenedor, v.numeroServicio, v.destino].some((c) => normalizar(c).includes(t)),
+        !t || [v.semi, v.tractor, v.chofer, v.cliente, v.contenedor, v.numeroServicio, String(v.numeroOperacion ?? ''), v.destino].some((c) => normalizar(c).includes(t)),
     );
   }, [data, texto]);
   const enCurso = filas.filter((v) => v.enCurso);
@@ -123,7 +123,7 @@ export function ViajesPantalla({ semiInicial, tramoInicial }: { semiInicial?: st
           type="search"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder="Semi, tractor, chofer, cliente o contenedor"
+          placeholder="Semi, tractor, chofer, cliente, contenedor o Nro. de operación"
           className="h-9 w-full rounded-md border border-borde bg-panel pr-3 pl-8 text-sm outline-none focus:border-marca"
         />
       </label>
@@ -272,6 +272,14 @@ function FilaViaje({
             <>
               <span className="font-semibold">{v.cliente}</span>
               {v.producto && ` · ${v.producto}`}
+              {v.numeroOperacion && (
+                <Link
+                  href={`/operacion/operaciones?op=${v.numeroOperacion}`}
+                  className="block text-xs text-marca hover:underline"
+                >
+                  Op. {v.numeroOperacion}
+                </Link>
+              )}
               {v.taraMaxDias && <span className="block text-xs text-tinta-suave">Pide tara de {v.taraMaxDias} d</span>}
             </>
           ) : (
@@ -326,7 +334,7 @@ function FilaViaje({
 }
 
 /** <select> de una lista de opciones; lo no disponible se muestra pero no se puede elegir. */
-function Lista({
+export function Lista({
   valor,
   opciones,
   onCambiar,

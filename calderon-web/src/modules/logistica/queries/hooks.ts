@@ -12,10 +12,30 @@ import {
   pasoViaje,
   reprogramarDescarga,
 } from '../actions/viajes.actions';
+import {
+  anularHito,
+  asignarEquipo,
+  asignarTercero,
+  cancelarOperacion,
+  confirmarOperacion,
+  eliminarLinea,
+  eliminarTransportista,
+  guardarLinea,
+  guardarOperacion,
+  guardarTransportista,
+  quitarEquipo,
+  registrarHito,
+  terminarDemora,
+} from '../actions/operaciones.actions';
+import type { FechaDia } from '@/shared/types/dominio';
 import { logisticaQueries as q } from './keys';
 
 export const useViajesAbiertos = () => useQuery({ ...q.abiertos(browserDb()), refetchInterval: 60_000 });
 export const useOpcionesViaje = () => useQuery(q.opciones(browserDb()));
+export const useOperaciones = (desde: FechaDia | null, hasta: FechaDia | null) =>
+  useQuery({ ...q.operaciones(browserDb(), desde, hasta), refetchInterval: 60_000 });
+export const useLineas = () => useQuery(q.lineas(browserDb()));
+export const useTransportistas = () => useQuery(q.transportistas(browserDb()));
 
 /** El mismo aviso de tiempo real de la Pizarra («cambió la pizarra») refresca también la lista de Logística. */
 export const useViajesEnVivo = () => usePizarraEnVivo(['logistica']);
@@ -38,3 +58,17 @@ export const useReprogramarDescarga = () => useEscritura(reprogramarDescarga);
 export const useCambiarChofer = () => useEscritura(cambiarChofer);
 export const useCancelarViaje = () => useEscritura(cancelarViaje);
 export const usePasoViaje = () => useEscritura(pasoViaje);
+
+export const useGuardarOperacion = () => useEscritura(guardarOperacion);
+export const useConfirmarOperacion = () => useEscritura(confirmarOperacion);
+export const useAsignarEquipo = () => useEscritura(asignarEquipo);
+export const useQuitarEquipo = () => useEscritura(quitarEquipo);
+export const useAsignarTercero = () => useEscritura(asignarTercero);
+export const useRegistrarHito = () => useEscritura(registrarHito);
+export const useTerminarDemora = () => useEscritura(terminarDemora);
+export const useAnularHito = () => useEscritura(anularHito);
+export const useCancelarOperacion = () => useEscritura(cancelarOperacion);
+export const useGuardarLinea = () => useEscritura(guardarLinea);
+export const useEliminarLinea = () => useEscritura(eliminarLinea);
+export const useGuardarTransportista = () => useEscritura(guardarTransportista);
+export const useEliminarTransportista = () => useEscritura(eliminarTransportista);

@@ -1,0 +1,262 @@
+import { ConflictoVersion, RepoError, type Db } from '@/shared/repository/types';
+import type { FechaDia, FechaISO } from '@/shared/types/dominio';
+import type {
+  EliminarDatos,
+  EquipoDatos,
+  HitoDatos,
+  LineaDatos,
+  OperacionDatos,
+  TerceroDatos,
+  TransportistaDatos,
+} from '../domain/operacion.schemas';
+import { esEstadoLogistica, type Hito, type Linea, type Operacion, type Transportista } from '../domain/operacion.types';
+
+/** Operaciones de Logística (migración 41). Cada acción es una función de la base; su mensaje se muestra tal cual. */
+export const operacionesRepository = (db: Db) => {
+  const ops = () => db.schema('ops');
+  const mae = () => db.schema('mae');
+  const llamar = async (p: PromiseLike<{ error: unknown }>) => {
+    const { error } = await p;
+    if (error) throw new RepoError(error as never);
+  };
+
+  return {
+    /** Las abiertas siempre; las terminadas o canceladas, con fecha de operación entre desde y hasta. */
+    async listar(desde: FechaDia | null, hasta: FechaDia | null): Promise<Operacion[]> {
+      const { data, error } = await ops().rpc('fn_operaciones', { p_desde: desde, p_hasta: hasta });
+      if (error) throw new RepoError(error);
+      return (data ?? []).map((o) => ({
+        servicioId: o.servicio_id,
+        numero: o.numero_operacion,
+        fecha: o.fecha_operacion as FechaDia,
+        tipo: o.tipo_operacion,
+        estado: o.estado,
+        estadoLogistica: esEstadoLogistica(o.estado_logistica) ? o.estado_logistica : 'programado',
+        clienteId: o.cliente_id,
+        cliente: o.cliente,
+        lineaId: o.linea_id,
+        linea: o.linea,
+        lugarRetiroId: o.lugar_retiro_id,
+        lugarRetiro: o.lugar_retiro,
+        origenId: o.origen_id,
+        origen: o.origen,
+        lugarAduanaId: o.lugar_aduana_id,
+        lugarAduana: o.lugar_aduana,
+        destinoId: o.destino_id,
+        destino: o.destino,
+        fechaPresentacion: o.fecha_presentacion as FechaISO | null,
+        fechaEntrega: o.fecha_entrega as FechaISO | null,
+        inicioReal: o.inicio_real as FechaISO | null,
+        finReal: o.fin_real as FechaISO | null,
+        producto: o.producto,
+        pesoKg: o.peso_kg === null ? null : Number(o.peso_kg),
+        tipoContenedor: o.tipo_contenedor,
+        contenedor: o.contenedor,
+        precinto: o.precinto,
+        taraMaxDias: o.tara_max_dias,
+        booking: o.booking,
+        referenciaCliente: o.referencia_cliente,
+        buque: o.buque,
+        crt: o.crt,
+        mic: o.mic,
+        observacion: o.observacion,
+        motivoCancelacion: o.motivo_cancelacion,
+        transportistaId: o.transportista_id,
+        transportista: o.transportista,
+        terceroChofer: o.tercero_chofer,
+        terceroTractor: o.tercero_tractor,
+        terceroSemi: o.tercero_semi,
+        tramoId: o.tramo_id,
+        tramoEstado: o.tramo_estado,
+        paso: o.paso,
+        semiId: o.semi_id,
+        semi: o.semi,
+        camionId: o.camion_id,
+        tractor: o.tractor,
+        choferId: o.chofer_id,
+        chofer: o.chofer,
+        hitos: (Array.isArray(o.hitos) ? o.hitos : []) as unknown as Hito[],
+        versionFila: o.version_fila,
+      }));
+    },
+
+    async guardar(d: OperacionDatos): Promise<number> {
+      const { data, error } = await ops().rpc('fn_guardar_operacion', {
+        p_servicio: d.servicioId,
+        p_version: d.versionFila,
+        p_datos: {
+          sin_confirmar: d.sinConfirmar,
+          tipo_operacion: d.tipoOperacion,
+          fecha_operacion: d.fechaOperacion,
+          cliente_id: d.clienteId,
+          linea_id: d.lineaId,
+          lugar_retiro_id: d.lugarRetiroId,
+          origen_id: d.origenId,
+          lugar_aduana_id: d.lugarAduanaId,
+          destino_id: d.destinoId,
+          fecha_presentacion: d.fechaPresentacion,
+          fecha_entrega: d.fechaEntrega,
+          producto: d.producto,
+          peso_kg: d.pesoKg,
+          tipo_contenedor: d.tipoContenedor,
+          contenedor: d.contenedor,
+          precinto: d.precinto,
+          tara_max_dias: d.taraMaxDias,
+          booking: d.booking,
+          referencia_cliente: d.referenciaCliente,
+          buque: d.buque,
+          crt: d.crt,
+          mic: d.mic,
+          observacion: d.observacion,
+        },
+      });
+      if (error) throw new RepoError(error);
+      return data;
+    },
+
+    confirmar: (servicio: number) => llamar(ops().rpc('fn_confirmar_operacion', { p_servicio: servicio })),
+    async asignarEquipo(d: EquipoDatos): Promise<number> {
+      const { data, error } = await ops().rpc('fn_asignar_equipo', {
+        p_servicio: d.servicioId,
+        p_semi: d.semiId,
+        p_camion: d.camionId,
+        p_chofer: d.choferId,
+        p_observacion: d.observacion,
+      });
+      if (error) throw new RepoError(error);
+      return data;
+    },
+    quitarEquipo: (servicio: number, motivo: string | null) =>
+      llamar(ops().rpc('fn_quitar_equipo', { p_servicio: servicio, p_motivo: motivo })),
+    asignarTercero: (d: TerceroDatos) =>
+      llamar(
+        ops().rpc('fn_asignar_tercero', {
+          p_servicio: d.servicioId,
+          p_transportista: d.transportistaId,
+          p_chofer: d.chofer,
+          p_tractor: d.tractor,
+          p_semi: d.semi,
+        }),
+      ),
+    async registrarHito(d: HitoDatos): Promise<number> {
+      const { data, error } = await ops().rpc('fn_registrar_hito', {
+        p_servicio: d.servicioId,
+        p_tipo: d.tipo,
+        p_ts: d.momento,
+        p_detalle: d.detalle,
+      });
+      if (error) throw new RepoError(error);
+      return data;
+    },
+    terminarDemora: (servicio: number, hasta: string | null) =>
+      llamar(ops().rpc('fn_terminar_demora', { p_servicio: servicio, p_hasta: hasta })),
+    anularHito: (hito: number) => llamar(ops().rpc('fn_anular_hito', { p_hito: hito })),
+    cancelar: (servicio: number, motivo: string) => llamar(ops().rpc('fn_cancelar_operacion', { p_servicio: servicio, p_motivo: motivo })),
+
+    // ---------------------------------------------------------------- líneas
+    async lineas(): Promise<Linea[]> {
+      const { data, error } = await mae()
+        .from('linea')
+        .select('id, codigo, lugar_retiro_id, lugar_entrega_id, lugar_aduana_id, distancia_km, cruza_frontera, transit_horas, activa, version_fila')
+        .is('eliminado_en', null)
+        .order('codigo');
+      if (error) throw new RepoError(error);
+      return data.map((l) => ({
+        id: l.id,
+        codigo: l.codigo,
+        lugarRetiroId: l.lugar_retiro_id,
+        lugarEntregaId: l.lugar_entrega_id,
+        lugarAduanaId: l.lugar_aduana_id,
+        distanciaKm: l.distancia_km === null ? null : Number(l.distancia_km),
+        cruzaFrontera: l.cruza_frontera,
+        transitHoras: l.transit_horas,
+        activa: l.activa,
+        versionFila: l.version_fila,
+      }));
+    },
+    async guardarLinea(d: LineaDatos): Promise<void> {
+      const fila = {
+        codigo: d.codigo,
+        lugar_retiro_id: d.lugarRetiroId,
+        lugar_entrega_id: d.lugarEntregaId,
+        lugar_aduana_id: d.lugarAduanaId,
+        distancia_km: d.distanciaKm,
+        cruza_frontera: d.cruzaFrontera,
+        transit_horas: d.transitHoras,
+        activa: d.activa,
+      };
+      if (d.id === null) {
+        const { error } = await mae().from('linea').insert(fila);
+        if (error) throw new RepoError(error);
+        return;
+      }
+      const { data, error } = await mae()
+        .from('linea')
+        .update({ ...fila, version_fila: d.versionFila ?? 0 })
+        .eq('id', d.id)
+        .eq('version_fila', d.versionFila ?? 0)
+        .select('id')
+        .maybeSingle();
+      if (error) throw new RepoError(error);
+      if (!data) throw new ConflictoVersion('mae.linea', d.id);
+    },
+    async eliminarLinea(d: EliminarDatos): Promise<void> {
+      const { data, error } = await mae()
+        .from('linea')
+        .update({ eliminado_en: new Date().toISOString(), version_fila: d.versionFila })
+        .eq('id', d.id)
+        .eq('version_fila', d.versionFila)
+        .select('id')
+        .maybeSingle();
+      if (error) throw new RepoError(error);
+      if (!data) throw new ConflictoVersion('mae.linea', d.id);
+    },
+
+    // --------------------------------------------------------- transportistas
+    async transportistas(): Promise<Transportista[]> {
+      const { data, error } = await mae()
+        .from('transportista')
+        .select('id, razon_social, cuit, telefono, observaciones, activo, version_fila')
+        .is('eliminado_en', null)
+        .order('razon_social');
+      if (error) throw new RepoError(error);
+      return data.map((t) => ({
+        id: t.id,
+        razonSocial: t.razon_social,
+        cuit: t.cuit,
+        telefono: t.telefono,
+        observaciones: t.observaciones,
+        activo: t.activo,
+        versionFila: t.version_fila,
+      }));
+    },
+    async guardarTransportista(d: TransportistaDatos): Promise<void> {
+      const fila = { razon_social: d.razonSocial, cuit: d.cuit, telefono: d.telefono, observaciones: d.observaciones, activo: d.activo };
+      if (d.id === null) {
+        const { error } = await mae().from('transportista').insert(fila);
+        if (error) throw new RepoError(error);
+        return;
+      }
+      const { data, error } = await mae()
+        .from('transportista')
+        .update({ ...fila, version_fila: d.versionFila ?? 0 })
+        .eq('id', d.id)
+        .eq('version_fila', d.versionFila ?? 0)
+        .select('id')
+        .maybeSingle();
+      if (error) throw new RepoError(error);
+      if (!data) throw new ConflictoVersion('mae.transportista', d.id);
+    },
+    async eliminarTransportista(d: EliminarDatos): Promise<void> {
+      const { data, error } = await mae()
+        .from('transportista')
+        .update({ eliminado_en: new Date().toISOString(), version_fila: d.versionFila })
+        .eq('id', d.id)
+        .eq('version_fila', d.versionFila)
+        .select('id')
+        .maybeSingle();
+      if (error) throw new RepoError(error);
+      if (!data) throw new ConflictoVersion('mae.transportista', d.id);
+    },
+  };
+};

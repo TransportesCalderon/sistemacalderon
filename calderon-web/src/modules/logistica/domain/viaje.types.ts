@@ -29,6 +29,8 @@ export interface ViajeAbierto {
   choferId: number;
   chofer: string;
   numeroServicio: string | null;
+  /** Nro. de operación (migración 41), como en REDLINE. */
+  numeroOperacion: number | null;
   clienteId: number | null;
   cliente: string | null;
   producto: string | null;
