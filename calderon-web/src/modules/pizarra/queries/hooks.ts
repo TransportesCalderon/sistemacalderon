@@ -34,23 +34,28 @@ export type EstadoVivo = 'conectando' | 'en_vivo' | 'reconectando';
  * Tiempo real (Supabase Realtime, canal «pizarra»): la base avisa «cambió la pizarra» sin datos
  * y acá se vuelve a leer todo por la vía normal, con los permisos del usuario.
  */
-export function usePizarraEnVivo(): EstadoVivo {
+export function usePizarraEnVivo(extra: string[] = []): EstadoVivo {
   const qc = useQueryClient();
   const [estado, setEstado] = useState<EstadoVivo>('conectando');
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const otras = extra.join('|'); // otras listas que dependen de lo mismo (por ejemplo, los viajes de Logística)
 
   useEffect(() => {
     const db = browserDb();
+    const refrescar = () => {
+      void qc.invalidateQueries({ queryKey: q.todo() });
+      for (const k of otras ? otras.split('|') : []) void qc.invalidateQueries({ queryKey: [k] });
+    };
     const canal = db
       .channel('pizarra')
       .on('broadcast', { event: 'cambio' }, () => {
         if (espera.current) clearTimeout(espera.current);
-        espera.current = setTimeout(() => void qc.invalidateQueries({ queryKey: q.todo() }), JUNTAR_MS);
+        espera.current = setTimeout(refrescar, JUNTAR_MS);
       })
       .subscribe((s) => {
         if (s === 'SUBSCRIBED') {
           setEstado('en_vivo');
-          void qc.invalidateQueries({ queryKey: q.todo() }); // lo que cambió mientras no había conexión
+          refrescar(); // lo que cambió mientras no había conexión
         } else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') {
           setEstado('reconectando');
         }
@@ -59,7 +64,7 @@ export function usePizarraEnVivo(): EstadoVivo {
       if (espera.current) clearTimeout(espera.current);
       void db.removeChannel(canal);
     };
-  }, [qc]);
+  }, [qc, otras]);
 
   return estado;
 }

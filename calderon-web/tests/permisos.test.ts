@@ -69,9 +69,9 @@ describe('matriz de permisos (especificación §16)', () => {
 });
 
 describe('navegación (especificación §3)', () => {
-  it('tiene 11 grupos y 65 entradas', () => {
+  it('tiene 11 grupos y 66 entradas', () => {
     expect(NAVEGACION.length).toBe(11);
-    expect(NAVEGACION.flatMap((g) => g.entradas).length).toBe(65);
+    expect(NAVEGACION.flatMap((g) => g.entradas).length).toBe(66);
   });
 
   it('todas las entradas apuntan a pantallas de la matriz', () => {

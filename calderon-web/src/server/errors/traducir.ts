@@ -34,6 +34,16 @@ export const MENSAJES_RESTRICCION: Record<string, string> = {
   ex_tanque_principal: 'El camión ya tiene un tanque principal vigente en esas fechas. Cargá este como secundario, o da de baja el principal anterior.',
   ex_tanque_solape: 'Ese tanque ya tiene una vigencia que se superpone con esas fechas.',
   uq_tanque_camion_numero_desde: 'Ese tanque ya tiene una vigencia que empieza ese mismo día.',
+  // --- Viajes de Logística (migración 40) ---
+  ex_tramo_camion_solape: 'El tractor ya tiene otro viaje en esas fechas.',
+  ex_ts_semi_solape: 'El semi ya estaba enganchado en otro viaje en esas fechas.',
+  ex_tc_chofer_solape: 'El chofer ya manejaba otro viaje en esas fechas.',
+  ex_tc_un_conductor: 'El viaje ya tiene un chofer en esas fechas.',
+  ck_tramo_odometro: 'El odómetro de llegada no puede ser menor que el de salida.',
+  ck_tramo_real: 'La llegada tiene que ser posterior a la salida.',
+  ck_servicio_od: 'El origen y el destino no pueden ser el mismo lugar.',
+  ck_servicio_pactadas: 'La descarga no puede ser antes de la carga.',
+  ck_servicio_tara_max: 'La tara pedida va en días, de 1 a 3650.',
   // --- Pizarra Azul (migración 39) ---
   ux_semi_codigo_interno: 'Ya existe un semirremolque con ese código interno.',
   ux_semi_patente: 'Ya existe un semirremolque con esa patente.',

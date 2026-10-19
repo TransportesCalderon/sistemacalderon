@@ -1,8 +1,10 @@
 'use client';
 
 import { Fragment, memo, useState } from 'react';
+import Link from 'next/link';
 import { StickyNote } from 'lucide-react';
 import { Panel, useEnvio } from '@/modules/catalogos/components/comun';
+import { useCan } from '@/modules/core/permissions/can';
 import { cn } from '@/shared/lib/cn';
 import { Campo } from '@/shared/ui/campo';
 import { nivelFila } from '../domain/pizarra.filtros';
@@ -265,6 +267,7 @@ function DetalleUnidad({
         <Dato e="Destino">{f.destino ?? '—'}</Dato>
         <Dato e="Descarga">{diaHora(f.descarga, zona)}</Dato>
         <Dato e="Tara pedida">{f.taraMaxDias ? `${f.taraMaxDias} d` : 'No pide'}</Dato>
+        <EnlacesLogistica f={f} />
       </Bloque>
       <Bloque titulo="Semi y equipo">
         <Dato e="Tipo">{f.tipo}</Dato>
@@ -412,6 +415,28 @@ function Dato({ e, children }: { e: string; children: React.ReactNode }) {
     <p className="grid grid-cols-[92px_1fr] gap-2">
       <span className="text-tinta-suave">{e}</span>
       <span className="font-medium text-tinta">{children}</span>
+    </p>
+  );
+}
+
+/** Atajos a Logística: asignar un viaje a este semi o ver su viaje actual. */
+function EnlacesLogistica({ f }: { f: FilaPizarra }) {
+  const ver = useCan('operacion.tramos:ver');
+  const asignar = useCan('operacion.tramos:editar');
+  if (!ver) return null;
+  const clase = 'text-xs font-medium text-marca hover:underline';
+  return (
+    <p className="flex flex-wrap gap-3 pt-1" onClick={(e) => e.stopPropagation()}>
+      {f.tramoId && (
+        <Link href={`/operacion/viajes?tramo=${f.tramoId}`} className={clase}>
+          Ver el viaje en Logística
+        </Link>
+      )}
+      {asignar && f.estado !== 'taller' && f.estado !== 'fuera_servicio' && (
+        <Link href={`/operacion/viajes?semi=${f.semiId}`} className={clase}>
+          {f.tramoId ? 'Asignar el próximo viaje' : 'Asignar viaje'}
+        </Link>
+      )}
     </p>
   );
 }

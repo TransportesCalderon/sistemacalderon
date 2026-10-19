@@ -778,6 +778,86 @@ export type Database = {
         Args: Record<string, never>;
         Returns: { tipo_accesorio_id: number; nombre: string; sigla: string; orden: number; total: number; semis_con_dato: number }[];
       };
+      fn_viajes_abiertos: {
+        Args: Record<string, never>;
+        Returns: {
+          tramo_id: number;
+          estado: string;
+          paso: string;
+          con_carga: boolean;
+          semi_id: number | null;
+          semi_patente: string | null;
+          camion_id: number;
+          tractor_patente: string;
+          chofer_id: number;
+          chofer_nombre: string;
+          servicio_id: number | null;
+          numero_servicio: string | null;
+          cliente_id: number | null;
+          cliente: string | null;
+          producto: string | null;
+          contenedor: string | null;
+          tara_max_dias: number | null;
+          origen_id: number;
+          origen: string | null;
+          destino_id: number;
+          destino: string | null;
+          fecha_carga: string | null;
+          fecha_descarga: string | null;
+          inicio_real: string | null;
+          odometro_inicio_km: number | null;
+          observacion: string | null;
+          version_fila: number;
+        }[];
+      };
+      fn_asignar_viaje: {
+        Args: {
+          p_semi: number;
+          p_camion: number;
+          p_chofer: number;
+          p_cliente: number;
+          p_producto: string | null;
+          p_origen: number;
+          p_destino: number;
+          p_fecha_carga: string;
+          p_fecha_descarga?: string | null;
+          p_contenedor?: string | null;
+          p_tara_max_dias?: number | null;
+          p_observacion?: string | null;
+        };
+        Returns: number;
+      };
+      fn_asignar_vuelta_vacia: {
+        Args: { p_semi: number; p_camion: number; p_chofer: number; p_origen: number; p_destino: number; p_fecha: string; p_observacion?: string | null };
+        Returns: number;
+      };
+      fn_modificar_viaje: {
+        Args: {
+          p_tramo: number;
+          p_semi: number;
+          p_camion: number;
+          p_chofer: number;
+          p_cliente: number | null;
+          p_producto: string | null;
+          p_origen: number;
+          p_destino: number;
+          p_fecha_carga: string;
+          p_fecha_descarga?: string | null;
+          p_contenedor?: string | null;
+          p_tara_max_dias?: number | null;
+          p_observacion?: string | null;
+        };
+        Returns: undefined;
+      };
+      fn_reprogramar_descarga: { Args: { p_tramo: number; p_fecha_descarga: string | null }; Returns: undefined };
+      fn_cambiar_chofer: { Args: { p_tramo: number; p_chofer: number; p_desde?: string | null }; Returns: undefined };
+      fn_cancelar_viaje: { Args: { p_tramo: number; p_motivo: string }; Returns: undefined };
+      fn_iniciar_viaje: { Args: { p_tramo: number; p_inicio?: string | null; p_odometro_km?: number | null }; Returns: undefined };
+      fn_iniciar_carga: { Args: { p_tramo: number; p_ubicacion?: number | null; p_inicio?: string | null; p_odometro_km?: number | null }; Returns: undefined };
+      fn_terminar_carga: { Args: { p_tramo: number; p_fin?: string | null }; Returns: undefined };
+      fn_iniciar_descarga: { Args: { p_tramo: number; p_ubicacion?: number | null; p_inicio?: string | null }; Returns: undefined };
+      fn_terminar_descarga: { Args: { p_tramo: number; p_fin?: string | null; p_odometro_km?: number | null }; Returns: undefined };
+      fn_terminar_viaje: { Args: { p_tramo: number; p_fin?: string | null; p_odometro_km?: number | null }; Returns: undefined };
       fn_guardar_semi_pizarra: {
         Args: { p_semi: number; p_version: number; p_ubicacion_playa: number | null; p_observacion: string | null; p_accesorios: Json };
         Returns: number;

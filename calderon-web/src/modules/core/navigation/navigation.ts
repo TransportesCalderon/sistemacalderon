@@ -60,6 +60,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     id: 'operacion',
     etiqueta: 'Operación',
     entradas: [
+      { href: '/operacion/viajes', etiqueta: 'Viajes (Logística)', pantalla: 'operacion.tramos' },
       { href: '/operacion/servicios', etiqueta: 'Servicios comerciales', pantalla: 'operacion.servicios' },
       { href: '/operacion/tramos', etiqueta: 'Tramos operativos', pantalla: 'operacion.tramos' },
       { href: '/operacion/planificacion', etiqueta: 'Planificación de flota', pantalla: 'operacion.planificacion' },
