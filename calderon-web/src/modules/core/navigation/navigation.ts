@@ -162,7 +162,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
 ];
 
 /** Rutas que no requieren sesión. */
-export const RUTAS_PUBLICAS = ['/login', '/recuperar', '/auth/callback', '/api/health'] as const;
+export const RUTAS_PUBLICAS = ['/login', '/recuperar', '/auth/callback', '/api/health', '/api/publico'] as const;
 
 /** Rutas que requieren sesión pero no un permiso de pantalla. */
 export const RUTAS_SIN_PANTALLA = ['/sin-acceso', '/perfil'] as const;

@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { createAction } from '@/server/actions/create-action';
 import { ErrorNegocio } from '@/shared/lib/errores';
+import { pedirBcra, periodoBcra } from '@/server/externos/bcra';
 import { eliminarSchema, estacionSchema, parametroSchema, proveedorSchema, tipoCambioSchema } from '../domain/catalogos.schemas';
 import { catalogosRepository } from '../repositories/catalogos.repository';
 
@@ -84,20 +85,15 @@ export const definirMonedaBase = createAction({
 
 /**
  * Pide al BCRA el tipo de cambio minorista de los últimos días desde el servidor de la aplicación
- * (la conexión desde Supabase a veces se corta). Si falla, devuelve null y lo intenta la base.
+ * (la conexión desde Supabase se corta). Si falla, devuelve null y lo intenta la base.
  * Solo trae datos públicos: no usa ninguna clave.
  */
 async function respuestaBcra(): Promise<unknown | null> {
-  const hasta = new Date();
-  const desde = new Date(hasta.getTime() - 10 * 86_400_000);
-  const dia = (d: Date) => d.toISOString().slice(0, 10);
+  const p = periodoBcra();
+  if (!p) return null;
   try {
-    const r = await fetch(`https://api.bcra.gob.ar/estadisticas/v4.0/monetarias/4?desde=${dia(desde)}&hasta=${dia(hasta)}`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; TransportesCalderon/1.0)' },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(15_000),
-    });
-    return r.ok ? await r.json() : null;
+    const r = await pedirBcra(p.desde, p.hasta);
+    return r.status === 200 ? r.cuerpo : null;
   } catch {
     return null;
   }
