@@ -1,6 +1,6 @@
 import type { Db } from '@/shared/repository/types';
 import type { CargaId, SolicitudId } from '@/shared/types/dominio';
-import type { CargaAlta } from '../domain/carga.schemas';
+import type { CargaAlta, CargaEdicion } from '../domain/carga.schemas';
 import { cargaRepository } from '../repositories/carga.repository';
 
 /**
@@ -12,6 +12,8 @@ export function cargaService(db: Db) {
   const repo = cargaRepository(db);
   return {
     crear: (d: CargaAlta): Promise<CargaId> => repo.crear(d),
+    /** Migración 47: corrige la carga en el lugar (las reglas las aplica la base). */
+    editar: (d: CargaEdicion): Promise<void> => repo.editar(d),
     solicitarAnulacion: (cargaId: number, motivo: string): Promise<SolicitudId> => repo.solicitarAnulacion(cargaId, motivo),
     /** Migración 44: elimina del todo una carga cargada por error (las reglas las aplica la base). */
     eliminar: (cargaId: number, motivo: string): Promise<void> => repo.eliminar(cargaId, motivo),

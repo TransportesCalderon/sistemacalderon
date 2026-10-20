@@ -8,8 +8,9 @@ export const documentoSchema = z.object({
   tipo: z.enum(TIPOS_DOCUMENTO, 'Elegí el tipo de documento.'),
   numero: textoObligatorio(60, 'Escribí el número del ticket.'),
   fecha: z.string().regex(FECHA_DIA, 'Indicá la fecha del ticket.'),
-  archivo: z.string().min(1),
-  hash: z.string().regex(/^[0-9a-f]{64}$/, 'No se pudo leer el archivo.'),
+  /** Migración 47: la foto o el PDF son opcionales. */
+  archivo: z.string().min(1).nullable(),
+  hash: z.string().regex(/^[0-9a-f]{64}$/, 'No se pudo leer el archivo.').nullable(),
   emisorId: id().nullable(),
 });
 export type DocumentoEntrada = z.input<typeof documentoSchema>;

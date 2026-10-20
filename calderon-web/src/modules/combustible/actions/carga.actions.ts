@@ -3,6 +3,7 @@
 import { createAction } from '@/server/actions/create-action';
 import {
   cargaAltaSchema,
+  cargaEdicionSchema,
   resolverSolicitudSchema,
   retirarSolicitudSchema,
   solicitarAnulacionSchema,
@@ -25,6 +26,13 @@ export const crearCarga = createAction({
   schema: cargaAltaSchema,
   handler: (d, { db }) => cargaService(db).crear(d),
   invalida: (_d, id) => rutas(id),
+});
+
+export const editarCarga = createAction({
+  permiso: 'combustible.cargas:editar',
+  schema: cargaEdicionSchema,
+  handler: (d, { db }) => cargaService(db).editar(d),
+  invalida: ({ cargaId }) => rutas(cargaId),
 });
 
 export const solicitarAnulacionCarga = createAction({

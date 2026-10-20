@@ -72,10 +72,11 @@ describe('navegación (especificación §3)', () => {
   it('menú corto: 7 grupos y solo pantallas que existen (las ocultas se abren desde otra pantalla)', () => {
     expect(NAVEGACION.length).toBe(7);
     const entradas = NAVEGACION.flatMap((g) => g.entradas);
-    expect(entradas.filter((e) => !e.oculta).length).toBe(28);
+    expect(entradas.filter((e) => !e.oculta).length).toBe(27);
     expect(entradas.filter((e) => e.oculta).map((e) => e.href)).toEqual([
       '/operacion/viajes-chofer',
       '/operacion/viajes',
+      '/combustible/observadas',
       '/combustible/sin-documento',
       '/combustible/cierres',
       '/combustible/conciliacion',

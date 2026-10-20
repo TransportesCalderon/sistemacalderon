@@ -15,7 +15,7 @@ import {
   traspasarResponsableBase,
 } from '../actions/base.actions';
 import { adjuntarDocumento, quitarDocumento, validarCarga } from '../actions/documento.actions';
-import { crearCarga, eliminarCarga, resolverSolicitudCarga, retirarSolicitudCarga, solicitarAnulacionCarga } from '../actions/carga.actions';
+import { crearCarga, editarCarga, eliminarCarga, resolverSolicitudCarga, retirarSolicitudCarga, solicitarAnulacionCarga } from '../actions/carga.actions';
 import { actualizarLimitesCierre, anularCierre, aprobarCierre, crearBorradorCierre, guardarBorradorCierre } from '../actions/cierre.actions';
 import {
   registrarDescarga,
@@ -32,6 +32,7 @@ import type { ViajeListaParams } from '../domain/viaje.types';
 import type { Bandeja } from '../domain/documento.types';
 import type { PeriodoParams } from '../domain/consumo.types';
 import { combustibleQueries as q } from './keys';
+import { cargaRepository } from '../repositories/carga.repository';
 
 /* ----------------------------------------------------------------------------
  * Lecturas
@@ -86,6 +87,15 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
 }
 
 export const useCrearCarga = () => useEscritura(crearCarga);
+export const useEditarCarga = () => useEscritura(editarCarga);
+/** Migración 47: odómetro de la telemetría para la hora de la carga (se propone en el formulario). */
+export const useOdometroTelemetria = (camionId: number | null, fechaHora: string | null) =>
+  useQuery({
+    queryKey: ['combustible', 'odometro', camionId, fechaHora] as const,
+    queryFn: () => cargaRepository(browserDb()).odometroTelemetria(camionId!, fechaHora!),
+    enabled: !!camionId && !!fechaHora,
+    staleTime: 60_000,
+  });
 export const useSolicitarAnulacion = () => useEscritura(solicitarAnulacionCarga);
 export const useEliminarCarga = () => useEscritura(eliminarCarga);
 export const useResolverSolicitud = () => useEscritura(resolverSolicitudCarga);

@@ -52,7 +52,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     etiqueta: 'Combustible',
     entradas: [
       { href: '/combustible/cargas', etiqueta: 'Cargas', pantalla: 'combustible.cargas' },
-      { href: '/combustible/observadas', etiqueta: 'Por revisar', pantalla: 'combustible.bandejas' },
+      { href: '/combustible/observadas', etiqueta: 'Por revisar', pantalla: 'combustible.bandejas', oculta: true },
       { href: '/combustible/sin-documento', etiqueta: 'Sin ticket', pantalla: 'combustible.bandejas', oculta: true },
       { href: '/combustible/viajes', etiqueta: 'Viajes y cierres', pantalla: 'combustible.cierre_viaje' },
       { href: '/combustible/cierres', etiqueta: 'Cierres de viaje', pantalla: 'combustible.cierre_viaje', oculta: true },

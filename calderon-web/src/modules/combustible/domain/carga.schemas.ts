@@ -48,6 +48,13 @@ export const cargaAltaSchema = z.object({
 export type CargaAlta = z.output<typeof cargaAltaSchema>;
 export type CargaAltaInput = z.input<typeof cargaAltaSchema>;
 
+/** Migración 47: corregir una carga en el lugar. El camión no cambia; las reglas las aplica la base. */
+export const cargaEdicionSchema = cargaAltaSchema
+  .omit({ camionId: true, tipoCombustibleId: true, importeOriginal: true, anulaId: true })
+  .extend({ cargaId: id(), versionFila: z.number().int(), motivo: z.string().nullable() });
+export type CargaEdicion = z.output<typeof cargaEdicionSchema>;
+export type CargaEdicionInput = z.input<typeof cargaEdicionSchema>;
+
 export const solicitarAnulacionSchema = z.object({
   cargaId: id(),
   motivo: textoObligatorio(500, 'Escribí el motivo de la anulación.'),

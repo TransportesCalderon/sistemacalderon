@@ -2,7 +2,7 @@ import { RepoError, rangoPagina, type Db, type Pagina } from '@/shared/repositor
 import type { Database } from '@/shared/types/db';
 import type { CamionId, CargaId, ChoferId, DepositoId, FechaISO, SolicitudId } from '@/shared/types/dominio';
 import { diaSiguiente, num } from '../domain/comun';
-import type { CargaAlta } from '../domain/carga.schemas';
+import type { CargaAlta, CargaEdicion } from '../domain/carga.schemas';
 import { BUCKET_DOCUMENTOS } from '../domain/documento.types';
 import {
   TAMANO_PAGINA_CARGAS,
@@ -226,6 +226,38 @@ export const cargaRepository = (db: Db) => ({
       .single();
     if (error) throw new RepoError(error);
     return data.id as CargaId;
+  },
+
+  /** Migración 47: fue.fn_editar_carga (corrige en el lugar; queda en la auditoría). */
+  async editar(d: CargaEdicion): Promise<void> {
+    const { error } = await db.schema('fue').rpc('fn_editar_carga', {
+      p_carga: d.cargaId,
+      p_version: d.versionFila,
+      p_datos: {
+        chofer_id: d.choferId,
+        estacion_id: d.estacionId,
+        fecha_hora: d.fechaHora,
+        litros: d.litros,
+        precio_unitario: d.precioUnitario,
+        moneda: d.moneda,
+        medio_pago: d.medioPago,
+        odometro_km: d.odometroKm,
+        tanque_lleno: d.tanqueLleno,
+        es_frontera: d.esFrontera,
+        faltante_lleno_l: d.esFrontera ? d.faltanteLlenoL : 0,
+        faltante_observacion: d.esFrontera ? d.faltanteObservacion : null,
+      },
+      p_motivo: d.motivo,
+    });
+    if (error) throw new RepoError(error);
+  },
+
+  /** Migración 47: odómetro de la telemetría más cercano a la hora de la carga (±6 h). */
+  async odometroTelemetria(camionId: number, fechaHora: string): Promise<{ km: number; ts: FechaISO } | null> {
+    const { data, error } = await db.schema('fue').rpc('fn_odometro_telemetria', { p_camion: camionId, p_ts: fechaHora });
+    if (error) throw new RepoError(error);
+    const o = data as { odometro_km?: number | string; ts?: string } | null;
+    return o && o.odometro_km !== undefined && o.ts ? { km: Number(o.odometro_km), ts: o.ts as FechaISO } : null;
   },
 
   async solicitarAnulacion(cargaId: number, motivo: string): Promise<SolicitudId> {

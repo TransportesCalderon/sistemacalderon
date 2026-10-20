@@ -164,3 +164,21 @@ describe('Eliminar carga (migración 44)', () => {
     expect(eliminarCargaSchema.safeParse({ cargaId: 5, motivo: '  ' }).success).toBe(false);
   });
 });
+
+describe('Cargas más simples (migración 47)', () => {
+  it('editar: mismos datos que el alta, sin camión; con versión', async () => {
+    const { cargaEdicionSchema } = await import('@/modules/combustible/domain/carga.schemas');
+    const d = cargaEdicionSchema.parse({
+      cargaId: 31, versionFila: 2, choferId: null, estacionId: 2, fechaHora: '2026-10-19T12:00:00.000Z', litros: 450, precioUnitario: 1.2,
+      moneda: 'CLP', medioPago: 'tarjeta', odometroKm: 123456, tanqueLleno: true, esFrontera: true, faltanteLlenoL: 0, faltanteObservacion: null, motivo: null,
+    });
+    expect(d).toMatchObject({ cargaId: 31, esFrontera: true });
+    expect('camionId' in d).toBe(false);
+  });
+
+  it('ticket: la foto es opcional', async () => {
+    const { documentoSchema } = await import('@/modules/combustible/domain/documento.schemas');
+    expect(documentoSchema.safeParse({ cargaId: 1, tipo: 'ticket', numero: '0045-1', fecha: '2026-10-19', archivo: null, hash: null, emisorId: null }).success).toBe(true);
+    expect(documentoSchema.safeParse({ cargaId: 1, tipo: 'ticket', numero: '', fecha: '2026-10-19', archivo: null, hash: null, emisorId: null }).success).toBe(false);
+  });
+});

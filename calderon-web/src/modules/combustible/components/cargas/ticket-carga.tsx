@@ -50,10 +50,10 @@ export function TicketCarga({ carga }: { carga: CargaParaTicket }) {
   const quitar = useQuitarDocumento();
   const [error, setError] = useState<ErrorAccion | null>(null);
   const [otro, setOtro] = useState(false);
-  const editable = puedeEditar && carga.estadoValidacion !== 'validada' && carga.estadoValidacion !== 'anulada';
+  const editable = puedeEditar && carga.estadoValidacion !== 'anulada';
 
   return (
-    <Seccion titulo="Ticket">
+    <Seccion titulo="Ticket (opcional)">
       {documentos && documentos.length > 0 ? (
         <ul className="divide-y divide-borde text-sm">
           {documentos.map((d) => (
@@ -91,7 +91,7 @@ export function TicketCarga({ carga }: { carga: CargaParaTicket }) {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-alerta">Sin ticket adjunto: la carga no se puede validar hasta tenerlo.</p>
+        <p className="text-sm text-tinta-suave">Sin ticket. Es opcional: si lo tenés, cargá el número y, si querés, la foto.</p>
       )}
       <ErrorBase error={error} />
       {editable &&
@@ -123,22 +123,19 @@ export function AdjuntarTicket({ carga, onListo }: { carga: CargaParaTicket; onL
 
   const enviar = async () => {
     setError(null);
-    if (!archivo) {
-      setError({
-        codigo: 'validacion',
-        mensaje: 'Elegí la foto o el PDF del ticket.',
-        campos: { archivo: 'Elegí la foto o el PDF del ticket.' },
-      });
-      return;
-    }
     setSubiendo(true);
     try {
-      const { blob, extension, tipo } = await prepararArchivo(archivo);
-      if (blob.size > TAMANO_MAXIMO_BYTES) throw new Error('El archivo supera los 10 MB.');
-      const hash = await sha256Hex(blob);
-      const ruta = rutaArchivo(carga.id, extension, idAleatorio());
-      const subida = await browserDb().storage.from(BUCKET_DOCUMENTOS).upload(ruta, blob, { contentType: tipo, upsert: false });
-      if (subida.error) throw new Error(`No se pudo subir el archivo: ${subida.error.message}`);
+      // La foto o el PDF son opcionales (migración 47): sin archivo se registra solo el número.
+      let ruta: string | null = null;
+      let hash: string | null = null;
+      if (archivo) {
+        const { blob, extension, tipo } = await prepararArchivo(archivo);
+        if (blob.size > TAMANO_MAXIMO_BYTES) throw new Error('El archivo supera los 10 MB.');
+        hash = await sha256Hex(blob);
+        ruta = rutaArchivo(carga.id, extension, idAleatorio());
+        const subida = await browserDb().storage.from(BUCKET_DOCUMENTOS).upload(ruta, blob, { contentType: tipo, upsert: false });
+        if (subida.error) throw new Error(`No se pudo subir el archivo: ${subida.error.message}`);
+      }
       setSubiendo(false);
       const r = await adjuntar.mutateAsync({
         cargaId: carga.id,
@@ -173,7 +170,7 @@ export function AdjuntarTicket({ carga, onListo }: { carga: CargaParaTicket; onL
       }}
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Campo label="Foto o PDF *" error={error?.campos?.archivo} ayuda="Las fotos se achican antes de subir.">
+        <Campo label="Foto o PDF (opcional)" error={error?.campos?.archivo} ayuda="Las fotos se achican antes de subir.">
           <input
             type="file"
             accept="image/*,application/pdf"

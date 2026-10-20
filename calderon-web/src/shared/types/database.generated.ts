@@ -1201,6 +1201,10 @@ export type Database = {
       fn_solicitar_anulacion_carga: { Args: { p_carga: number; p_motivo: string }; Returns: number };
       /** Migración 44: elimina del todo una carga cargada por error; devuelve los archivos del ticket. */
       fn_eliminar_carga: { Args: { p_carga: number; p_motivo: string }; Returns: string[] };
+      /** Migración 47: corrige una carga en el lugar (p_datos con los nombres de columna). */
+      fn_editar_carga: { Args: { p_carga: number; p_version: number; p_datos: Json; p_motivo?: string | null }; Returns: undefined };
+      /** Migración 47: odómetro de la telemetría más cercano (±6 h): { odometro_km, ts } o null. */
+      fn_odometro_telemetria: { Args: { p_camion: number; p_ts: string }; Returns: Json };
       fn_resolver_solicitud: { Args: { p_id: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: SolicitudRow };
       fn_retirar_solicitud: { Args: { p_id: number }; Returns: SolicitudRow };
       fn_descargar_combustible: {
@@ -1279,7 +1283,7 @@ export type Database = {
       // Operación diaria (34)
       fn_validar_carga: { Args: { p_carga: number; p_motivo?: string | null }; Returns: CargaRow };
       fn_agregar_documento_carga: {
-        Args: { p_carga: number; p_tipo: string; p_numero: string; p_fecha: string; p_archivo: string; p_hash: string; p_emisor?: number | null };
+        Args: { p_carga: number; p_tipo: string; p_numero: string; p_fecha: string; p_archivo: string | null; p_hash: string | null; p_emisor?: number | null };
         Returns: number;
       };
       fn_quitar_documento_carga: { Args: { p_documento: number }; Returns: undefined };

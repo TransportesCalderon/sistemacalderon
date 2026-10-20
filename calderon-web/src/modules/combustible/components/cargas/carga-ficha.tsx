@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Ban, Check, Flag, Trash2, Undo2, X } from 'lucide-react';
+import { ArrowLeft, Ban, Check, Flag, Pencil, Trash2, Undo2, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
@@ -11,15 +11,16 @@ import { formatearFechaHora } from '@/shared/lib/fechas';
 import { conUnidad, formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import type { CargaId } from '@/shared/types/dominio';
-import { ETIQUETA_ESTADO_VALIDACION, ETIQUETA_MEDIO_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
+import { ETIQUETA_MEDIO_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
 import { useCarga, useEliminarCarga, useResolverSolicitud, useRetirarSolicitud, useSolicitarAnulacion } from '../../queries/hooks';
 import { AccionConMotivo, Cargando, Chip, Dato, ErrorBase, ErrorLectura, Seccion } from '../comun/ui';
 import { DestinoCarga, RolViajeChips, SituacionCargaChip } from './chips-carga';
-import { TicketCarga, ValidacionCarga } from './ticket-carga';
+import { TicketCarga } from './ticket-carga';
 
 /** Ficha de carga: datos, corte de viaje (con su faltante) y anulación con aprobación de otro usuario. */
 export function CargaFicha({ id }: { id: CargaId }) {
   const { zonaHoraria } = useSesion();
+  const puedeEditar = useCan('combustible.cargas:editar');
   const { data: carga, isPending, isError, refetch } = useCarga(id);
   if (isPending) return <Cargando texto="Cargando la carga…" />;
   if (isError || !carga) return <ErrorLectura texto={isError ? 'No se pudo cargar la carga.' : 'La carga no existe.'} onReintentar={() => refetch()} />;
@@ -45,6 +46,11 @@ export function CargaFicha({ id }: { id: CargaId }) {
         <p className="text-sm text-tinta-suave">
           {formatearFechaHora(carga.fechaHora, zonaHoraria)} · {carga.camionPatente ?? '—'} · {carga.estacion ?? 'sin estación'}
         </p>
+        {puedeEditar && carga.situacion === 'normal' && carga.destino !== 'deposito' && carga.destino !== 'mochila_anterior' && (
+          <Link href={`/combustible/cargas/${carga.id}/editar`} className={`${BOTON_SECUNDARIO} mt-2`}>
+            <Pencil className="size-4" /> Editar
+          </Link>
+        )}
       </header>
 
       <Seccion titulo="Datos">
@@ -65,11 +71,12 @@ export function CargaFicha({ id }: { id: CargaId }) {
             {formatearNumero(carga.importeOriginal)} {carga.moneda}
           </Dato>
           <Dato etiqueta="Medio de pago">{ETIQUETA_MEDIO_PAGO[carga.medioPago as MedioPago] ?? carga.medioPago}</Dato>
-          <Dato etiqueta="Validación">
-            {ETIQUETA_ESTADO_VALIDACION[carga.estadoValidacion]}
-            {carga.motivoObservacion && <span className="block text-xs text-alerta">{carga.motivoObservacion}</span>}
-          </Dato>
-          <Dato etiqueta="Ticket">{carga.tieneDocumento ? 'Adjunto' : <span className="text-alerta">Falta</span>}</Dato>
+          {carga.motivoObservacion && (
+            <Dato etiqueta="Observación">
+              <span className="text-alerta">{carga.motivoObservacion}</span>
+            </Dato>
+          )}
+          <Dato etiqueta="Ticket">{carga.tieneDocumento ? 'Cargado' : <span className="text-tinta-suave">Sin ticket</span>}</Dato>
           <Dato etiqueta="Registrada">{formatearFechaHora(carga.creadoEn, zonaHoraria)}</Dato>
           {carga.esFrontera && (
             <Dato etiqueta="Le faltaron para quedar lleno">
@@ -93,7 +100,6 @@ export function CargaFicha({ id }: { id: CargaId }) {
         </p>
       )}
       <TicketCarga carga={carga} />
-      <ValidacionCarga carga={carga} />
       <Anulacion carga={carga} onRecargar={() => refetch()} />
     </div>
   );
@@ -199,12 +205,12 @@ function Anulacion({ carga, onRecargar }: { carga: Carga; onRecargar: () => void
   if (!puedeEditar) return null;
   return (
     <Seccion titulo="Corregir">
-      {carga.estadoValidacion !== 'validada' && (
+      {(
         <AccionConMotivo
           etiqueta="Eliminar carga"
           icono={<Trash2 className="size-4" />}
           titulo="Eliminar la carga"
-          explicacion="Para una carga cargada por error: desaparece del sistema junto con su ticket y sus movimientos (queda registrado en la auditoría). La elimina quien la cargó, o Administración de combustible o TI. No se puede si ya está validada o si un cierre o el cálculo de consumo ya la usaron."
+          explicacion="Para una carga cargada por error: desaparece del sistema junto con su ticket y sus movimientos (queda registrado en la auditoría). La elimina quien la cargó, o Administración de combustible o TI. No se puede si un cierre o el cálculo de consumo ya la usaron. Si solo hay que corregir un dato, usá «Editar»."
           ocupado={eliminar.isPending}
           error={errorEliminar}
           onRecargar={onRecargar}
