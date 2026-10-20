@@ -210,7 +210,7 @@ export const operacionesRepository = (db: Db) => {
     async lineas(): Promise<Linea[]> {
       const { data, error } = await mae()
         .from('linea')
-        .select('id, codigo, lugar_retiro_id, lugar_entrega_id, lugar_aduana_id, distancia_km, cruza_frontera, transit_horas, activa, version_fila')
+        .select('id, codigo, lugar_retiro_id, lugar_entrega_id, lugar_aduana_id, distancia_km, cruza_frontera, transit_horas, activa, canon_chofer, canon_moneda, version_fila')
         .is('eliminado_en', null)
         .order('codigo');
       if (error) throw new RepoError(error);
@@ -224,6 +224,8 @@ export const operacionesRepository = (db: Db) => {
         cruzaFrontera: l.cruza_frontera,
         transitHoras: l.transit_horas,
         activa: l.activa,
+        canonChofer: l.canon_chofer === null ? null : Number(l.canon_chofer),
+        canonMoneda: l.canon_moneda?.trim() ?? null,
         versionFila: l.version_fila,
       }));
     },
@@ -237,6 +239,8 @@ export const operacionesRepository = (db: Db) => {
         cruza_frontera: d.cruzaFrontera,
         transit_horas: d.transitHoras,
         activa: d.activa,
+        canon_chofer: d.canonChofer,
+        canon_moneda: d.canonChofer === null ? null : d.canonMoneda,
       };
       if (d.id === null) {
         const { error } = await mae().from('linea').insert(fila);

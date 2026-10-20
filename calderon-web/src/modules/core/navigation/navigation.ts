@@ -40,6 +40,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     etiqueta: 'Logística',
     entradas: [
       { href: '/operacion/operaciones', etiqueta: 'Operaciones', pantalla: 'operacion.servicios' },
+      { href: '/operacion/tractores', etiqueta: 'Tractores y viajes', pantalla: 'operacion.tramos' },
+      { href: '/operacion/viajes-chofer', etiqueta: 'Viajes de chofer', pantalla: 'operacion.tramos', oculta: true },
       { href: '/flota/pizarra', etiqueta: 'Pizarra Azul', pantalla: 'flota.pizarra' },
       { href: '/telemetria/mapa', etiqueta: 'Mapa de flota', pantalla: 'telemetria.mapa' },
       { href: '/operacion/viajes', etiqueta: 'Viajes', pantalla: 'operacion.tramos', oculta: true },

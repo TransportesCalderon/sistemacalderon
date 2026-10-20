@@ -29,6 +29,18 @@ import {
   registrarHito,
   terminarDemora,
 } from '../actions/operaciones.actions';
+import {
+  agregarItemViaje,
+  ajustarItemViaje,
+  anularViajeChofer,
+  asignarTractor,
+  cambiarChoferViaje,
+  cerrarViajeChofer,
+  iniciarViajeChofer,
+  prepararCierreCombustible,
+  quitarItemViaje,
+  reabrirViajeChofer,
+} from '../actions/viajes-chofer.actions';
 import type { FechaDia } from '@/shared/types/dominio';
 import { logisticaQueries as q } from './keys';
 
@@ -50,7 +62,11 @@ function useEscritura<I, R extends { ok: boolean }>(accion: (input: I) => Promis
     mutationFn: accion,
     onSuccess: async (r) => {
       if (!r.ok) return;
-      await Promise.all([qc.invalidateQueries({ queryKey: q.todo() }), qc.invalidateQueries({ queryKey: ['pizarra'] })]);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: q.todo() }),
+        qc.invalidateQueries({ queryKey: ['pizarra'] }),
+        qc.invalidateQueries({ queryKey: ['combustible'] }),
+      ]);
     },
   });
 }
@@ -78,3 +94,18 @@ export const useGuardarTransportista = () => useEscritura(guardarTransportista);
 export const useEliminarTransportista = () => useEscritura(eliminarTransportista);
 export const useAltaOperaciones = () => useEscritura(altaOperaciones);
 export const useAvanzarOperacion = () => useEscritura(avanzarOperacion);
+
+// Migración 46: tractores y viajes de chofer
+export const useTractores = () => useQuery({ ...q.tractores(browserDb()), refetchInterval: 60_000 });
+export const useViajesChofer = (desde: FechaDia | null, hasta: FechaDia | null) => useQuery(q.viajesChofer(browserDb(), desde, hasta));
+export const useViajeChofer = (id: number) => useQuery(q.viajeChofer(browserDb(), id));
+export const useAsignarTractor = () => useEscritura(asignarTractor);
+export const useIniciarViajeChofer = () => useEscritura(iniciarViajeChofer);
+export const useAgregarItemViaje = () => useEscritura(agregarItemViaje);
+export const useAjustarItemViaje = () => useEscritura(ajustarItemViaje);
+export const useQuitarItemViaje = () => useEscritura(quitarItemViaje);
+export const useCambiarChoferViaje = () => useEscritura(cambiarChoferViaje);
+export const usePrepararCierreCombustible = () => useEscritura(prepararCierreCombustible);
+export const useCerrarViajeChofer = () => useEscritura(cerrarViajeChofer);
+export const useReabrirViajeChofer = () => useEscritura(reabrirViajeChofer);
+export const useAnularViajeChofer = () => useEscritura(anularViajeChofer);

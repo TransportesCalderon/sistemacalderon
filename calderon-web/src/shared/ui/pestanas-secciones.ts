@@ -13,3 +13,8 @@ export const PESTANAS_CONSUMO = [
   { href: '/combustible/costo-medio', etiqueta: 'Por camión' },
   { href: '/combustible/conciliacion', etiqueta: 'Cargado vs. motor' },
 ] as const;
+
+export const PESTANAS_TRACTORES = [
+  { href: '/operacion/tractores', etiqueta: 'Tractores' },
+  { href: '/operacion/viajes-chofer', etiqueta: 'Viajes de chofer' },
+] as const;

@@ -4,6 +4,7 @@ import type { Db } from '@/shared/repository/types';
 import type { FechaDia } from '@/shared/types/dominio';
 import { operacionesRepository } from '../repositories/operaciones.repository';
 import { viajesRepository } from '../repositories/viajes.repository';
+import { viajesChoferRepository } from '../repositories/viajes-chofer.repository';
 
 /** Claves de React Query de Logística. */
 export const logisticaQueries = {
@@ -37,6 +38,24 @@ export const logisticaQueries = {
       queryKey: ['logistica', 'lineas'] as const,
       queryFn: () => operacionesRepository(db).lineas(),
       staleTime: FRESCURA.maestro,
+    }),
+  tractores: (db: Db) =>
+    queryOptions({
+      queryKey: ['logistica', 'tractores'] as const,
+      queryFn: () => viajesChoferRepository(db).tractores(),
+      staleTime: FRESCURA.transaccional,
+    }),
+  viajesChofer: (db: Db, desde: FechaDia | null, hasta: FechaDia | null) =>
+    queryOptions({
+      queryKey: ['logistica', 'viajes-chofer', desde, hasta] as const,
+      queryFn: () => viajesChoferRepository(db).viajes(desde, hasta),
+      staleTime: FRESCURA.transaccional,
+    }),
+  viajeChofer: (db: Db, id: number) =>
+    queryOptions({
+      queryKey: ['logistica', 'viaje-chofer', id] as const,
+      queryFn: () => viajesChoferRepository(db).viaje(id),
+      staleTime: FRESCURA.transaccional,
     }),
   transportistas: (db: Db) =>
     queryOptions({

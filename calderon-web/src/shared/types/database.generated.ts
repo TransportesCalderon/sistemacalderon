@@ -569,6 +569,46 @@ type LineaIns = {
   cruza_frontera?: boolean;
   transit_horas?: number | null;
   activa?: boolean;
+  /** Migración 46: canon del chofer por la línea (con su moneda, o ninguno de los dos). */
+  canon_chofer?: number | null;
+  canon_moneda?: string | null;
+};
+/** ops.fn_tractores (migración 46). */
+type TractorRow = {
+  camion_id: number;
+  codigo_interno: string;
+  patente: string;
+  estado_camion: string;
+  chofer_id: number | null;
+  chofer_nombre: string | null;
+  chofer_estado: string | null;
+  licencia_vencimiento: string | null;
+  asignado_desde: string | null;
+  viaje_id: number | null;
+  viaje_numero: string | null;
+  viaje_salida_ts: string | null;
+  viaje_chofer_nombre: string | null;
+  situacion: string;
+  corte_disponible_id: number | null;
+  corte_disponible_ts: string | null;
+};
+/** ops.fn_viajes_chofer (migración 46). */
+type ViajeChoferRow = {
+  id: number;
+  numero: string;
+  camion_id: number;
+  patente: string;
+  chofer_id: number;
+  chofer_nombre: string;
+  salida_ts: string;
+  llegada_ts: string | null;
+  situacion: string;
+  operaciones: string | null;
+  km: number | null;
+  canon: string | null;
+  relevo: boolean | null;
+  cierre_id: number | null;
+  cierre_estado: string | null;
 };
 type TransportistaIns = { razon_social: string; cuit?: string | null; telefono?: string | null; observaciones?: string | null; activo?: boolean };
 /** ops.fn_operaciones (migración 41). */
@@ -841,6 +881,8 @@ export type Database = {
     Functions: {
       /** Migración 45: elimina un chofer (borrado si nunca se usó, ocultado si ya se usó). */
       fn_eliminar_chofer: { Args: { p_chofer: number; p_motivo: string }; Returns: string };
+      /** Migración 46: chofer fijo del tractor desde una fecha (null = sin chofer). */
+      fn_asignar_tractor: { Args: { p_camion: number; p_chofer: number | null; p_desde?: string | null }; Returns: undefined };
       fn_instalar_genset: { Args: { p_genset: number; p_semi: number; p_desde?: string | null }; Returns: number };
       fn_retirar_genset: { Args: { p_semi: number; p_hasta?: string | null }; Returns: number };
       fn_cambiar_capacidad_tanque: {
@@ -856,6 +898,25 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       fn_pizarra: { Args: Record<string, never>; Returns: PizarraRow[] };
+      // Migración 46: viajes de chofer
+      fn_tractores: { Args: Record<string, never>; Returns: TractorRow[] };
+      fn_viajes_chofer: { Args: { p_desde?: string | null; p_hasta?: string | null }; Returns: ViajeChoferRow[] };
+      fn_viaje_chofer: { Args: { p_viaje: number }; Returns: Json };
+      fn_iniciar_viaje_chofer: {
+        Args: { p_camion: number; p_chofer?: number | null; p_carga?: number | null; p_items?: Json; p_observacion?: string | null };
+        Returns: number;
+      };
+      fn_cambiar_chofer_viaje: { Args: { p_viaje: number; p_chofer: number }; Returns: undefined };
+      fn_agregar_item_viaje: { Args: { p_viaje: number; p_servicio?: number | null; p_linea?: number | null }; Returns: number };
+      fn_ajustar_item_viaje: {
+        Args: { p_item: number; p_canon: number | null; p_moneda: string | null; p_km: number | null; p_motivo?: string | null };
+        Returns: undefined;
+      };
+      fn_quitar_item_viaje: { Args: { p_item: number }; Returns: undefined };
+      fn_preparar_cierre_combustible: { Args: { p_viaje: number }; Returns: number };
+      fn_cerrar_viaje_chofer: { Args: { p_viaje: number; p_version: number }; Returns: undefined };
+      fn_reabrir_viaje_chofer: { Args: { p_viaje: number; p_motivo: string }; Returns: undefined };
+      fn_anular_viaje_chofer: { Args: { p_viaje: number; p_motivo: string }; Returns: undefined };
       fn_operaciones: { Args: { p_desde?: string | null; p_hasta?: string | null }; Returns: OperacionRow[] };
       fn_alta_operaciones: { Args: { p_datos: Json; p_cantidad: number }; Returns: number[] };
       fn_avanzar: {

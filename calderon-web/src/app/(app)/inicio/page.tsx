@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ClipboardCheck, ClipboardList, Fuel, LayoutGrid, MapPin, Plus, SearchCheck, UsersRound, type LucideIcon } from 'lucide-react';
+import { ClipboardCheck, ClipboardList, Fuel, LayoutGrid, MapPin, Plus, SearchCheck, Truck, UsersRound, type LucideIcon } from 'lucide-react';
 import { requirePermiso } from '@/modules/core/auth/guards';
 import { can } from '@/modules/core/permissions/resolver';
 import type { Permiso } from '@/modules/core/permissions/types';
@@ -21,6 +21,7 @@ interface Tarea {
 const TAREAS: readonly Tarea[] = [
   { href: '/operacion/operaciones?nueva=1', titulo: 'Nueva operación', detalle: 'Cargar un pedido de un cliente', icono: Plus, permiso: 'operacion.servicios:editar', principal: true },
   { href: '/operacion/operaciones', titulo: 'Operaciones', detalle: 'Ver y avanzar los viajes de Logística', icono: ClipboardList, permiso: 'operacion.servicios:ver' },
+  { href: '/operacion/tractores', titulo: 'Tractores y viajes', detalle: 'Iniciar y cerrar los viajes de los choferes', icono: Truck, permiso: 'operacion.tramos:ver' },
   { href: '/flota/pizarra', titulo: 'Pizarra Azul', detalle: 'Dónde está cada semi y qué hace', icono: LayoutGrid, permiso: 'flota.pizarra:ver' },
   { href: '/combustible/cargas/nueva', titulo: 'Registrar carga', detalle: 'Una carga de combustible con su ticket', icono: Fuel, permiso: 'combustible.cargas:editar', principal: true },
   { href: '/combustible/observadas', titulo: 'Cargas por revisar', detalle: 'Validar contra el ticket', icono: SearchCheck, permiso: 'combustible.bandejas:ver' },

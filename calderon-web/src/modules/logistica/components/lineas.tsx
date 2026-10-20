@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pencil, Plus, Route, Trash2 } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Encabezado, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
+import { useMonedas } from '@/modules/combustible/queries/hooks';
 import { useCan } from '@/modules/core/permissions/can';
 import { normalizar } from '@/modules/pizarra/domain/pizarra.filtros';
 import { cn } from '@/shared/lib/cn';
@@ -66,6 +67,7 @@ export function LineasPantalla() {
                 <th className={TH}>Activa</th>
                 <th className={TH}>Frontera</th>
                 <th className={cn(TH, 'text-right')}>Tr. tiempo (h)</th>
+                <th className={cn(TH, 'text-right')}>Canon chofer</th>
                 {puede && <th className={TH} />}
               </tr>
             </thead>
@@ -108,6 +110,9 @@ function FilaLinea({
         <td className={TD}>{l.activa ? 'Sí' : 'No'}</td>
         <td className={TD}>{l.cruzaFrontera ? 'Sí' : 'No'}</td>
         <td className={cn(TD, 'text-right tabular-nums')}>{l.transitHoras ?? '—'}</td>
+        <td className={cn(TD, 'text-right whitespace-nowrap tabular-nums')}>
+          {l.canonChofer === null ? '—' : `${l.canonMoneda} ${l.canonChofer.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`}
+        </td>
         {puede && (
           <td className={cn(TD, 'text-right whitespace-nowrap')}>
             <button type="button" className="mr-3 inline-flex items-center gap-1 text-xs text-marca hover:underline" onClick={() => onAbrir({ modo: 'editar', l })}>
@@ -121,7 +126,7 @@ function FilaLinea({
       </tr>
       {modo && (
         <tr>
-          <td colSpan={9} className="px-3 pb-3">
+          <td colSpan={10} className="px-3 pb-3">
             {modo === 'editar' ? <FormLinea l={l} onCerrar={() => onAbrir(null)} /> : <EliminarLinea l={l} onCerrar={() => onAbrir(null)} />}
           </td>
         </tr>
@@ -133,6 +138,7 @@ function FilaLinea({
 function FormLinea({ l, onCerrar }: { l?: Linea; onCerrar: () => void }) {
   const guardar = useGuardarLinea();
   const { data: op } = useOpcionesViaje();
+  const { data: monedas } = useMonedas();
   const { error, enviar, campo } = useEnvio();
   const s = (x: number | null | undefined) => (x === null || x === undefined ? '' : String(x));
   const [v, setV] = useState({
@@ -144,6 +150,8 @@ function FormLinea({ l, onCerrar }: { l?: Linea; onCerrar: () => void }) {
     transitHoras: s(l?.transitHoras),
     cruzaFrontera: l?.cruzaFrontera ?? false,
     activa: l?.activa ?? true,
+    canonChofer: s(l?.canonChofer),
+    canonMoneda: l?.canonMoneda ?? 'ARS',
   });
   const set = (k: keyof typeof v) => (x: string) => setV((p) => ({ ...p, [k]: x }));
   return (
@@ -172,6 +180,18 @@ function FormLinea({ l, onCerrar }: { l?: Linea; onCerrar: () => void }) {
       </Campo>
       <Campo label="Tiempo de tránsito (h)" error={campo('transitHoras')}>
         <input inputMode="numeric" value={v.transitHoras} onChange={(e) => set('transitHoras')(e.target.value)} />
+      </Campo>
+      <Campo label="Canon del chofer" error={campo('canonChofer') ?? campo('canonMoneda')} ayuda="Lo que cobra el chofer por hacer la línea. Se propone en el viaje de chofer.">
+        <div className="flex gap-2">
+          <select className="w-24" value={v.canonMoneda} onChange={(e) => set('canonMoneda')(e.target.value)} aria-label="Moneda del canon">
+            {(monedas ?? [{ codigo: 'ARS', nombre: 'ARS' }]).map((m) => (
+              <option key={m.codigo} value={m.codigo}>
+                {m.codigo}
+              </option>
+            ))}
+          </select>
+          <input inputMode="decimal" placeholder="Sin canon" value={v.canonChofer} onChange={(e) => set('canonChofer')(e.target.value)} />
+        </div>
       </Campo>
       <label className="flex items-center gap-2 text-sm text-tinta">
         <input type="checkbox" checked={v.cruzaFrontera} onChange={(e) => setV((p) => ({ ...p, cruzaFrontera: e.target.checked }))} />

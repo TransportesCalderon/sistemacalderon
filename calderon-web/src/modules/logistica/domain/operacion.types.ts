@@ -213,6 +213,9 @@ export interface Linea {
   cruzaFrontera: boolean;
   transitHoras: number | null;
   activa: boolean;
+  /** Migración 46: canon que cobra el chofer por la línea. */
+  canonChofer: number | null;
+  canonMoneda: string | null;
   versionFila: number;
 }
 

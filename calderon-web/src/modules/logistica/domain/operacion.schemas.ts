@@ -154,6 +154,11 @@ export const lineaSchema = z.object({
   cruzaFrontera: z.boolean(),
   transitHoras: entero('Horas, entero mayor que cero.'),
   activa: z.boolean(),
+  canonChofer: numero('Importe, número de 0 en adelante.'),
+  canonMoneda: z
+    .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v)),
 });
 export type LineaDatos = z.output<typeof lineaSchema>;
 
