@@ -839,6 +839,8 @@ export type Database = {
       };
     };
     Functions: {
+      /** Migración 45: elimina un chofer (borrado si nunca se usó, ocultado si ya se usó). */
+      fn_eliminar_chofer: { Args: { p_chofer: number; p_motivo: string }; Returns: string };
       fn_instalar_genset: { Args: { p_genset: number; p_semi: number; p_desde?: string | null }; Returns: number };
       fn_retirar_genset: { Args: { p_semi: number; p_hasta?: string | null }; Returns: number };
       fn_cambiar_capacidad_tanque: {

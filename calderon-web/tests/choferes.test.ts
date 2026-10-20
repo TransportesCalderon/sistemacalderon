@@ -154,3 +154,11 @@ describe('Datos del chofer (migración 43)', () => {
     expect(ed.documento).toBeNull();
   });
 });
+
+describe('Eliminar chofer (migración 45)', () => {
+  it('pide motivo', async () => {
+    const { eliminarChoferSchema } = await import('@/modules/flota/domain/chofer.schemas');
+    expect(eliminarChoferSchema.safeParse({ id: 3, motivo: 'Cargado dos veces' }).success).toBe(true);
+    expect(eliminarChoferSchema.safeParse({ id: 3, motivo: ' ' }).success).toBe(false);
+  });
+});

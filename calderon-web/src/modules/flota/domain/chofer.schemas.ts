@@ -150,6 +150,12 @@ export type ChoferEdicion = z.output<typeof choferEdicionSchema>;
 
 export const revelarDocumentoSchema = z.object({ id: z.number().int().positive() });
 
+/** Migración 45: eliminar un chofer (con motivo). Si nunca se usó se borra; si se usó, se oculta. */
+export const eliminarChoferSchema = z.object({
+  id: z.number().int().positive(),
+  motivo: z.string().trim().min(1, 'Escribí por qué se elimina.').max(500, 'Máximo 500 caracteres.'),
+});
+
 export function valoresAltaChofer(hoy: FechaDia, paisPorDefecto = 'AR'): ChoferFormInput {
   return {
     legajo: '',

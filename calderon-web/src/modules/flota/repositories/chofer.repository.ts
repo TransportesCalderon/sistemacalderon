@@ -136,6 +136,8 @@ export interface ChoferRepository {
   actualizar(ref: Versionado, datos: ChoferDatos, documento: DocumentoChofer | null, reservados?: ReservadosChofer | null): Promise<Chofer>;
   /** Registra el acceso en aud.acceso_sensible y recién entonces lee el documento y los datos reservados. */
   revelarDocumento(id: ChoferId, contexto: { motivo: string; ip: string | null }): Promise<DatosReservadosChofer | null>;
+  /** Migración 45: 'borrado' (nunca usado) u 'ocultado' (ya usado: se conserva para la historia). */
+  eliminar(id: ChoferId, motivo: string): Promise<'borrado' | 'ocultado'>;
 }
 
 export const choferRepository = (db: Db): ChoferRepository => ({
@@ -195,6 +197,12 @@ export const choferRepository = (db: Db): ChoferRepository => ({
     if (error) throw new RepoError(error);
     if (!data) throw new ConflictoVersion('mae.chofer', id);
     return aChofer(data as FilaSeleccion);
+  },
+
+  async eliminar(id, motivo) {
+    const { data, error } = await db.schema('mae').rpc('fn_eliminar_chofer', { p_chofer: id, p_motivo: motivo });
+    if (error) throw new RepoError(error);
+    return data === 'borrado' ? 'borrado' : 'ocultado';
   },
 
   async revelarDocumento(id, { motivo, ip }) {

@@ -5,7 +5,7 @@ import { browserDb } from '@/shared/supabase/browser';
 import type { CamionId, ChoferId } from '@/shared/types/dominio';
 import { crearCamion, editarCamion } from '../actions/camion.actions';
 import { cambiarCapacidadTanque, crearTanque, crearTanques, darDeBajaTanque, editarDescripcionTanque, eliminarTanque } from '../actions/tanque.actions';
-import { crearChofer, editarChofer, revelarDocumentoChofer } from '../actions/chofer.actions';
+import { crearChofer, editarChofer, eliminarChofer, revelarDocumentoChofer } from '../actions/chofer.actions';
 import type { CamionEdicionInput, CamionFormInput } from '../domain/camion.schemas';
 import type { Camion, CamionListaParams } from '../domain/camion.types';
 import type { ChoferEdicionInput, ChoferFormInput } from '../domain/chofer.schemas';
@@ -128,4 +128,13 @@ export function useEditarChofer() {
  */
 export function useRevelarDocumento() {
   return useMutation({ mutationFn: (id: ChoferId) => revelarDocumentoChofer({ id }), gcTime: 0 });
+}
+
+/** Migración 45: eliminar chofer; refresca las listas. */
+export function useEliminarChofer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: number; motivo: string }) => eliminarChofer(input),
+    onSuccess: (r) => (r.ok ? qc.invalidateQueries({ queryKey: choferesQueries.listas() }) : undefined),
+  });
 }

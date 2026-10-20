@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { isIP } from 'node:net';
 import { alcanceDe } from '@/modules/core/permissions/resolver';
 import { createAction } from '@/server/actions/create-action';
-import { choferAltaSchema, choferEdicionSchema, revelarDocumentoSchema } from '../domain/chofer.schemas';
+import { choferAltaSchema, choferEdicionSchema, eliminarChoferSchema, revelarDocumentoSchema } from '../domain/chofer.schemas';
 import { choferService } from '../services/chofer.service';
 
 /**
@@ -41,3 +41,11 @@ export const revelarDocumentoChofer = createAction({
   },
 });
 
+
+/** Migración 45: eliminar chofer (flota.choferes:editar con alcance total). */
+export const eliminarChofer = createAction({
+  permiso: 'flota.choferes:editar',
+  schema: eliminarChoferSchema,
+  handler: ({ id, motivo }, { db, alcance }) => choferService(db).eliminar(id, motivo, { alcance }),
+  invalida: ({ id }) => ({ paths: ['/flota/choferes', `/flota/choferes/${id}`] }),
+});

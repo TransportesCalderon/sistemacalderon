@@ -50,6 +50,12 @@ export function choferService(db: Db) {
       return repo.actualizar({ id, versionFila }, datos, documento, reservados);
     },
 
+    /** Migración 45: eliminar (solo quien edita todos los choferes; la base vuelve a controlar). */
+    async eliminar(id: number, motivo: string, p: Pick<PermisosChofer, 'alcance'>): Promise<'borrado' | 'ocultado'> {
+      if (p.alcance !== 'todo') throw new ErrorNegocio('sin_permiso', 'No tenés permiso para eliminar choferes.');
+      return repo.eliminar(id as ChoferId, motivo);
+    },
+
     /** "Mostrar documento" (P-MAE-03): registra el acceso y devuelve el documento. */
     async revelarDocumento(
       id: number,

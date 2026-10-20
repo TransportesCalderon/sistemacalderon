@@ -1,8 +1,10 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import type { ErrorAccion } from '@/server/actions/result';
 import Link from 'next/link';
-import { ArrowLeft, CircleAlert, LoaderCircle, Pencil } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, CircleAlert, LoaderCircle, Pencil, Trash2 } from 'lucide-react';
 import { useAlcance } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
@@ -10,7 +12,8 @@ import { formatearFechaDia, formatearFechaHora, hoyEnZona } from '@/shared/lib/f
 import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import type { ChoferId } from '@/shared/types/dominio';
 import { ETIQUETA_VISA, nombreCompleto } from '../../domain/chofer.types';
-import { useBases, useCatalogosFlota, useChofer } from '../../queries/hooks';
+import { useBases, useCatalogosFlota, useChofer, useEliminarChofer } from '../../queries/hooks';
+import { AccionConMotivo } from '@/modules/combustible/components/comun/ui';
 import { DocumentoChofer } from './documento-chofer';
 import { EstadoChoferChip, LicenciaChip } from './estado-chofer';
 
@@ -84,10 +87,13 @@ export function ChoferFicha({ id }: { id: ChoferId }) {
           </p>
         </div>
         {!eliminado && puedeEditar && (
-          <Link href={`/flota/choferes/${chofer.id}/editar`} className={BOTON_SECUNDARIO}>
-            <Pencil className="size-4" />
-            Editar
-          </Link>
+          <div className="flex flex-wrap items-start gap-2">
+            <Link href={`/flota/choferes/${chofer.id}/editar`} className={BOTON_SECUNDARIO}>
+              <Pencil className="size-4" />
+              Editar
+            </Link>
+            {alcanceEditar === 'todo' && <EliminarChofer id={chofer.id} nombre={nombreCompleto(chofer)} />}
+          </div>
         )}
       </header>
 
@@ -184,5 +190,35 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode })
       <dt className="text-tinta-suave">{etiqueta}</dt>
       <dd className="min-w-0 break-words text-tinta">{vacio ? <span className="text-tinta-suave">—</span> : children}</dd>
     </div>
+  );
+}
+
+/**
+ * Migración 45: eliminar chofer. Nunca usado: se borra del todo (y sus datos personales).
+ * Ya usado: deja de verse y se conserva para la historia. Las reglas las aplica la base.
+ */
+function EliminarChofer({ id, nombre }: { id: ChoferId; nombre: string }) {
+  const eliminar = useEliminarChofer();
+  const router = useRouter();
+  const [error, setError] = useState<ErrorAccion | null>(null);
+  return (
+    <AccionConMotivo
+      etiqueta="Eliminar"
+      icono={<Trash2 className="size-4" />}
+      titulo={`Eliminar a ${nombre}`}
+      explicacion="Si nunca tuvo viajes, cargas ni liquidaciones, se borra del todo. Si ya se usó, deja de verse en listas y selectores, pero se conserva para que la historia diga quién fue. Si dejó de trabajar, mejor editalo con estado Baja y fecha de egreso."
+      ocupado={eliminar.isPending}
+      error={error}
+      onConfirmar={async (motivo) => {
+        setError(null);
+        const r = await eliminar.mutateAsync({ id, motivo });
+        if (!r.ok) {
+          setError(r.error);
+          return false;
+        }
+        router.push('/flota/choferes');
+        return true;
+      }}
+    />
   );
 }
