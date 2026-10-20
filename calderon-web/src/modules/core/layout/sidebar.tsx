@@ -56,10 +56,12 @@ export function Sidebar({ menu, plegado, onAlternarPlegado, abiertoMovil, onCerr
     onCerrarMovil();
   }, [pathname, onCerrarMovil]);
 
+  // Un grupo abierto a la vez: abrir uno cierra los demás (menos cosas a la vista).
   const alternarGrupo = (id: string, activo: boolean) => {
     setAbiertos((prev) => {
       const actual = prev[id] ?? activo;
-      const nuevo = { ...prev, [id]: !actual };
+      const nuevo = Object.fromEntries(menu.map((g) => [g.id, false])) as Record<string, boolean>;
+      nuevo[id] = !actual;
       guardarLocal(CLAVE_GRUPOS, nuevo);
       return nuevo;
     });

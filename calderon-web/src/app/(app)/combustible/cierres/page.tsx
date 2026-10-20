@@ -6,6 +6,8 @@ import { parsearListaCierres } from '@/modules/combustible/domain/cierre.types';
 import { combustibleQueries as q } from '@/modules/combustible/queries/keys';
 import { createSupabaseServerClient } from '@/server/supabase/server';
 import { getQueryClient } from '@/shared/query/client';
+import { Pestanas } from '@/shared/ui/pestanas';
+import { PESTANAS_VIAJES } from '@/shared/ui/pestanas-secciones';
 
 export const metadata: Metadata = { title: 'Cierres de viaje' };
 
@@ -20,6 +22,7 @@ export default async function CierresPage({ searchParams }: Props) {
   await Promise.all([qc.prefetchQuery(q.cierres.lista(db, params)), qc.prefetchQuery(q.catalogos.camiones(db))]);
   return (
     <HydrationBoundary state={dehydrate(qc)}>
+      <Pestanas items={PESTANAS_VIAJES} />
       <CierresLista />
     </HydrationBoundary>
   );

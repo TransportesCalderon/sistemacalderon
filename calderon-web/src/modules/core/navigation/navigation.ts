@@ -1,27 +1,21 @@
 import type { PantallaId } from '@/modules/core/permissions/matriz';
 
 /**
- * Menú lateral — especificación funcional §3 (11 grupos, 58 entradas).
- * Cada entrada declara la pantalla de la matriz de permisos que la habilita:
- * la misma lista alimenta el Sidebar y la guardia de rutas del middleware.
+ * Menú lateral (rediseño del 20/10/2026: «lo sencillo antes que lo completo»).
+ * Pocos grupos, por tarea del día a día, y solo pantallas que ya funcionan: las de la
+ * especificación que todavía no existen no se muestran. Cada entrada declara la pantalla
+ * de la matriz de permisos que la habilita: la misma lista alimenta el Sidebar y la
+ * guardia de rutas del middleware. Las entradas «ocultas» son rutas que siguen
+ * protegidas pero se abren desde otra pantalla (pestañas o enlaces), no desde el menú.
  */
-export type IconoGrupo =
-  | 'inicio'
-  | 'combustible'
-  | 'operacion'
-  | 'anomalias'
-  | 'telemetria'
-  | 'flota'
-  | 'comercial'
-  | 'liquidacion'
-  | 'finanzas'
-  | 'configuracion'
-  | 'auditoria';
+export type IconoGrupo = 'inicio' | 'pendientes' | 'logistica' | 'combustible' | 'flota' | 'datos' | 'configuracion';
 
 export interface EntradaMenu {
   href: string;
   etiqueta: string;
   pantalla: PantallaId;
+  /** Ruta protegida que no aparece en el menú (se llega desde otra pantalla). */
+  oculta?: boolean;
 }
 
 export interface GrupoMenu {
@@ -34,9 +28,21 @@ export const NAVEGACION: readonly GrupoMenu[] = [
   {
     id: 'inicio',
     etiqueta: 'Inicio',
+    entradas: [{ href: '/inicio', etiqueta: 'Inicio', pantalla: 'inicio.dashboard' }],
+  },
+  {
+    id: 'pendientes',
+    etiqueta: 'Mis pendientes',
+    entradas: [{ href: '/pendientes', etiqueta: 'Mis pendientes', pantalla: 'inicio.pendientes' }],
+  },
+  {
+    id: 'logistica',
+    etiqueta: 'Logística',
     entradas: [
-      { href: '/inicio', etiqueta: 'Dashboard', pantalla: 'inicio.dashboard' },
-      { href: '/pendientes', etiqueta: 'Mis pendientes', pantalla: 'inicio.pendientes' },
+      { href: '/operacion/operaciones', etiqueta: 'Operaciones', pantalla: 'operacion.servicios' },
+      { href: '/flota/pizarra', etiqueta: 'Pizarra Azul', pantalla: 'flota.pizarra' },
+      { href: '/telemetria/mapa', etiqueta: 'Mapa de flota', pantalla: 'telemetria.mapa' },
+      { href: '/operacion/viajes', etiqueta: 'Viajes', pantalla: 'operacion.tramos', oculta: true },
     ],
   },
   {
@@ -44,125 +50,48 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     etiqueta: 'Combustible',
     entradas: [
       { href: '/combustible/cargas', etiqueta: 'Cargas', pantalla: 'combustible.cargas' },
-      { href: '/combustible/observadas', etiqueta: 'Cargas por validar', pantalla: 'combustible.bandejas' },
-      { href: '/combustible/sin-documento', etiqueta: 'Cargas sin ticket', pantalla: 'combustible.bandejas' },
-      { href: '/combustible/movimientos', etiqueta: 'Movimientos del camión', pantalla: 'combustible.movimientos' },
+      { href: '/combustible/observadas', etiqueta: 'Por revisar', pantalla: 'combustible.bandejas' },
+      { href: '/combustible/sin-documento', etiqueta: 'Sin ticket', pantalla: 'combustible.bandejas', oculta: true },
+      { href: '/combustible/viajes', etiqueta: 'Viajes y cierres', pantalla: 'combustible.cierre_viaje' },
+      { href: '/combustible/cierres', etiqueta: 'Cierres de viaje', pantalla: 'combustible.cierre_viaje', oculta: true },
+      { href: '/combustible/movimientos', etiqueta: 'Movimientos', pantalla: 'combustible.movimientos' },
       { href: '/combustible/base', etiqueta: 'Base Mendoza', pantalla: 'combustible.depositos' },
-      { href: '/combustible/viajes', etiqueta: 'Viajes', pantalla: 'combustible.cierre_viaje' },
-      { href: '/combustible/cierres', etiqueta: 'Cierres de viaje', pantalla: 'combustible.cierre_viaje' },
-      { href: '/combustible/mediciones', etiqueta: 'Mediciones manuales', pantalla: 'combustible.mediciones' },
-      { href: '/combustible/consumo-servicio', etiqueta: 'Consumo por servicio', pantalla: 'combustible.consumo' },
-      { href: '/combustible/conciliacion', etiqueta: 'Cargado vs. motor', pantalla: 'combustible.consumo' },
-      { href: '/combustible/costo-medio', etiqueta: 'Consumo y costo por camión', pantalla: 'combustible.consumo' },
-    ],
-  },
-  {
-    id: 'operacion',
-    etiqueta: 'Operación',
-    entradas: [
-      { href: '/operacion/operaciones', etiqueta: 'Operaciones (Logística)', pantalla: 'operacion.servicios' },
-      { href: '/operacion/viajes', etiqueta: 'Viajes (Logística)', pantalla: 'operacion.tramos' },
-      { href: '/operacion/lineas', etiqueta: 'Líneas', pantalla: 'operacion.servicios' },
-      { href: '/operacion/transportistas', etiqueta: 'Transportistas externos', pantalla: 'operacion.servicios' },
-      { href: '/operacion/tramos', etiqueta: 'Tramos operativos', pantalla: 'operacion.tramos' },
-      { href: '/operacion/planificacion', etiqueta: 'Planificación de flota', pantalla: 'operacion.planificacion' },
-      { href: '/operacion/control-mendoza', etiqueta: 'Control Mendoza', pantalla: 'operacion.control_mendoza' },
-      { href: '/operacion/eventos', etiqueta: 'Eventos operativos', pantalla: 'operacion.eventos' },
-    ],
-  },
-  {
-    id: 'anomalias',
-    etiqueta: 'Anomalías',
-    entradas: [
-      { href: '/anomalias/alertas', etiqueta: 'Bandeja de alertas', pantalla: 'anomalias.alertas' },
-      { href: '/anomalias/casos', etiqueta: 'Casos de revisión', pantalla: 'anomalias.casos' },
-      { href: '/anomalias/reglas', etiqueta: 'Reglas de anomalía', pantalla: 'anomalias.reglas' },
-      { href: '/anomalias/umbrales', etiqueta: 'Umbrales por camión o modelo', pantalla: 'anomalias.reglas' },
-      { href: '/anomalias/lineas-base', etiqueta: 'Líneas base de consumo', pantalla: 'anomalias.lineas_base' },
-      { href: '/anomalias/ejecuciones', etiqueta: 'Ejecuciones del motor', pantalla: 'anomalias.lineas_base' },
-    ],
-  },
-  {
-    id: 'telemetria',
-    etiqueta: 'Telemetría',
-    entradas: [
-      { href: '/telemetria/mapa', etiqueta: 'Mapa de flota', pantalla: 'telemetria.mapa' },
-      { href: '/telemetria/recorrido', etiqueta: 'Recorrido de camión', pantalla: 'telemetria.mapa' },
-      { href: '/telemetria/eventos', etiqueta: 'Eventos', pantalla: 'telemetria.mapa' },
-      { href: '/telemetria/paradas', etiqueta: 'Paradas', pantalla: 'telemetria.mapa' },
-      { href: '/telemetria/sesiones', etiqueta: 'Sesiones de conductor', pantalla: 'telemetria.sesiones' },
-      { href: '/telemetria/resumen-diario', etiqueta: 'Resumen diario', pantalla: 'telemetria.sesiones' },
-      { href: '/telemetria/calidad', etiqueta: 'Calidad de datos', pantalla: 'telemetria.calidad' },
+      { href: '/combustible/costo-medio', etiqueta: 'Consumo', pantalla: 'combustible.consumo' },
+      { href: '/combustible/conciliacion', etiqueta: 'Cargado vs. motor', pantalla: 'combustible.consumo', oculta: true },
     ],
   },
   {
     id: 'flota',
-    etiqueta: 'Flota y personas',
+    etiqueta: 'Flota',
     entradas: [
-      { href: '/flota/pizarra', etiqueta: 'Pizarra Azul', pantalla: 'flota.pizarra' },
       { href: '/flota/camiones', etiqueta: 'Camiones', pantalla: 'flota.camiones' },
       { href: '/flota/semirremolques', etiqueta: 'Semirremolques', pantalla: 'flota.camiones' },
       { href: '/flota/choferes', etiqueta: 'Choferes', pantalla: 'flota.choferes' },
       { href: '/flota/gensets', etiqueta: 'Gensets', pantalla: 'flota.pizarra' },
-      { href: '/flota/accesorios', etiqueta: 'Tipos de accesorio', pantalla: 'flota.pizarra' },
-      { href: '/flota/asignaciones', etiqueta: 'Asignaciones camión-chofer', pantalla: 'flota.asignaciones' },
-      { href: '/flota/dispositivos', etiqueta: 'Dispositivos de telemetría', pantalla: 'flota.dispositivos' },
+      { href: '/flota/accesorios', etiqueta: 'Accesorios', pantalla: 'flota.pizarra' },
     ],
   },
   {
-    id: 'comercial',
-    etiqueta: 'Comercial',
+    id: 'datos',
+    etiqueta: 'Datos',
     entradas: [
       { href: '/comercial/clientes', etiqueta: 'Clientes', pantalla: 'comercial.clientes' },
-      { href: '/comercial/ubicaciones', etiqueta: 'Ubicaciones y geocercas', pantalla: 'comercial.ubicaciones' },
-      { href: '/comercial/proveedores', etiqueta: 'Proveedores', pantalla: 'comercial.proveedores' },
+      { href: '/comercial/ubicaciones', etiqueta: 'Lugares', pantalla: 'comercial.ubicaciones' },
+      { href: '/operacion/lineas', etiqueta: 'Líneas', pantalla: 'operacion.servicios' },
       { href: '/comercial/estaciones', etiqueta: 'Estaciones de servicio', pantalla: 'comercial.proveedores' },
-    ],
-  },
-  {
-    id: 'liquidacion',
-    etiqueta: 'Liquidación',
-    entradas: [
-      { href: '/liquidacion/tramos-liquidables', etiqueta: 'Tramos liquidables', pantalla: 'liquidacion.tramos' },
-      { href: '/liquidacion/liquidaciones', etiqueta: 'Liquidaciones', pantalla: 'liquidacion.liquidaciones' },
-      { href: '/liquidacion/reglas', etiqueta: 'Reglas de liquidación', pantalla: 'liquidacion.reglas' },
-    ],
-  },
-  {
-    id: 'finanzas',
-    etiqueta: 'Finanzas',
-    entradas: [
-      { href: '/finanzas/ingresos', etiqueta: 'Ingresos', pantalla: 'finanzas.ingresos' },
-      { href: '/finanzas/costos-directos', etiqueta: 'Costos directos', pantalla: 'finanzas.costos_directos' },
-      { href: '/finanzas/costos-indirectos', etiqueta: 'Costos indirectos', pantalla: 'finanzas.costos_indirectos' },
-      { href: '/finanzas/tipos-cambio', etiqueta: 'Tipos de cambio', pantalla: 'finanzas.tipos_cambio' },
-      { href: '/finanzas/asignacion', etiqueta: 'Asignación de costos', pantalla: 'finanzas.rentabilidad' },
-      { href: '/finanzas/rentabilidad', etiqueta: 'Rentabilidad', pantalla: 'finanzas.rentabilidad' },
-      { href: '/finanzas/cierre', etiqueta: 'Cierre de período', pantalla: 'finanzas.cierre' },
-      { href: '/finanzas/indices', etiqueta: 'Índices de ajuste', pantalla: 'finanzas.costos_indirectos' },
+      { href: '/comercial/proveedores', etiqueta: 'Proveedores', pantalla: 'comercial.proveedores' },
+      { href: '/operacion/transportistas', etiqueta: 'Transportistas externos', pantalla: 'operacion.servicios' },
     ],
   },
   {
     id: 'configuracion',
     etiqueta: 'Configuración',
     entradas: [
-      { href: '/configuracion/monedas', etiqueta: 'Monedas y moneda base', pantalla: 'configuracion.catalogos' },
-      { href: '/configuracion/paises', etiqueta: 'Países', pantalla: 'configuracion.catalogos' },
-      { href: '/configuracion/politica-tipo-cambio', etiqueta: 'Política de tipo de cambio', pantalla: 'configuracion.politica_tc' },
-      { href: '/configuracion/catalogos', etiqueta: 'Catálogos', pantalla: 'configuracion.catalogos' },
+      { href: '/configuracion/usuarios', etiqueta: 'Usuarios', pantalla: 'configuracion.usuarios' },
+      { href: '/finanzas/tipos-cambio', etiqueta: 'Tipos de cambio', pantalla: 'finanzas.tipos_cambio' },
+      { href: '/configuracion/monedas', etiqueta: 'Monedas', pantalla: 'configuracion.catalogos' },
       { href: '/configuracion/parametros', etiqueta: 'Parámetros', pantalla: 'configuracion.catalogos' },
-      { href: '/configuracion/usuarios', etiqueta: 'Usuarios y roles', pantalla: 'configuracion.usuarios' },
-    ],
-  },
-  {
-    id: 'auditoria',
-    etiqueta: 'Auditoría',
-    entradas: [
-      { href: '/auditoria/bitacora', etiqueta: 'Bitácora de cambios', pantalla: 'auditoria.bitacora' },
-      { href: '/auditoria/accesos', etiqueta: 'Accesos sensibles', pantalla: 'auditoria.accesos' },
-      { href: '/auditoria/usuarios', etiqueta: 'Usuarios', pantalla: 'auditoria.usuarios' },
-      { href: '/auditoria/particiones', etiqueta: 'Mantenimiento de particiones', pantalla: 'auditoria.particiones' },
-      { href: '/auditoria/historial-alertas', etiqueta: 'Historial de alertas', pantalla: 'auditoria.historial_alertas' },
+      { href: '/configuracion/catalogos', etiqueta: 'Catálogos', pantalla: 'configuracion.catalogos' },
     ],
   },
 ];

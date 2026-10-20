@@ -69,9 +69,16 @@ describe('matriz de permisos (especificación §16)', () => {
 });
 
 describe('navegación (especificación §3)', () => {
-  it('tiene 11 grupos y 68 entradas', () => {
-    expect(NAVEGACION.length).toBe(11);
-    expect(NAVEGACION.flatMap((g) => g.entradas).length).toBe(68);
+  it('menú corto: 7 grupos y solo pantallas que existen (las ocultas se abren desde otra pantalla)', () => {
+    expect(NAVEGACION.length).toBe(7);
+    const entradas = NAVEGACION.flatMap((g) => g.entradas);
+    expect(entradas.filter((e) => !e.oculta).length).toBe(27);
+    expect(entradas.filter((e) => e.oculta).map((e) => e.href)).toEqual([
+      '/operacion/viajes',
+      '/combustible/sin-documento',
+      '/combustible/cierres',
+      '/combustible/conciliacion',
+    ]);
   });
 
   it('todas las entradas apuntan a pantallas de la matriz', () => {
@@ -83,10 +90,12 @@ describe('navegación (especificación §3)', () => {
     expect(pantallaDeRuta('/otra-cosa')).toBeNull();
   });
 
-  it('el auditor ve los 11 grupos; TI no ve accesos sensibles', () => {
+  it('el menú no muestra entradas ocultas; TI ve los 7 grupos', () => {
     const ti = menuVisible(permisosDe(['ti'], agregado)).flatMap((g) => g.entradas.map((e) => e.href));
-    expect(ti).not.toContain('/auditoria/accesos');
-    expect(menuVisible(permisosDe(['auditor'], agregado)).length).toBe(11);
+    expect(ti).not.toContain('/combustible/cierres');
+    expect(ti).toContain('/combustible/viajes');
+    expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(7);
+    expect(pantallaDeRuta('/combustible/cierres/5')).toBe('combustible.cierre_viaje');
   });
 
   it('la ruta inicial de gerencia es el dashboard y la del chofer, sus cargas', () => {

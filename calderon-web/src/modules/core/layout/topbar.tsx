@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bell, ChevronDown, CircleDollarSign, Clock, LogOut, Menu, Search, UserRound } from 'lucide-react';
+import { ChevronDown, CircleDollarSign, Clock, LogOut, Menu, UserRound } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { ETIQUETA_ROL } from '@/modules/core/permissions/roles';
@@ -13,7 +13,7 @@ import { ZONAS_HORARIAS } from '@/modules/core/auth/zonas';
 /**
  * Barra superior (especificación §3): buscador global, zona horaria de visualización,
  * moneda base, notificaciones y menú de usuario.
- * El buscador y las notificaciones se conectan cuando existan los módulos de negocio.
+ * Sin buscador ni notificaciones mientras no hagan algo de verdad (menos botones muertos).
  */
 export function Topbar({ onAbrirMenu }: { onAbrirMenu: () => void }) {
   return (
@@ -21,32 +21,12 @@ export function Topbar({ onAbrirMenu }: { onAbrirMenu: () => void }) {
       <button type="button" onClick={onAbrirMenu} className="rounded-md p-1.5 text-tinta-suave hover:bg-hover lg:hidden" aria-label="Abrir menú">
         <Menu className="size-5" />
       </button>
-      <BuscadorGlobal />
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
         <SelectorZona />
         <IndicadorMoneda />
-        <Notificaciones />
         <MenuUsuario />
       </div>
     </header>
-  );
-}
-
-function BuscadorGlobal() {
-  return (
-    <form role="search" className="hidden max-w-md flex-1 md:block" onSubmit={(e) => e.preventDefault()}>
-      <label className="relative block">
-        <span className="sr-only">Buscar</span>
-        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-tinta-suave" />
-        <input
-          type="search"
-          disabled
-          placeholder="Buscar patente, servicio, legajo o cliente"
-          title="Disponible cuando se habiliten los módulos de negocio"
-          className="h-9 w-full rounded-md border border-borde bg-fondo pr-3 pl-8 text-sm placeholder:text-tinta-suave disabled:cursor-not-allowed disabled:opacity-70"
-        />
-      </label>
-    </form>
   );
 }
 
@@ -93,20 +73,6 @@ function IndicadorMoneda() {
       <CircleDollarSign className="size-4" />
       {monedaBase ?? 'Sin moneda base'}
     </span>
-  );
-}
-
-function Notificaciones() {
-  return (
-    <button
-      type="button"
-      disabled
-      className="relative rounded-md p-2 text-tinta-suave hover:bg-hover disabled:cursor-not-allowed disabled:opacity-70"
-      aria-label="Notificaciones"
-      title="Las notificaciones se activan con los módulos de anomalías y combustible"
-    >
-      <Bell className="size-5" />
-    </button>
   );
 }
 

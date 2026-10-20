@@ -63,7 +63,7 @@ const primeroDelMes = (hoy: FechaDia) => `${hoy.slice(0, 8)}01` as FechaDia;
  * y en cada fila el botón con el paso que sigue (un clic, ahora). Qué sigue lo decide la base
  * (ops.fn_pasos); acá solo se muestra y sus mensajes se ven tal cual.
  */
-export function OperacionesPantalla({ opInicial }: { opInicial?: number }) {
+export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: number; nueva?: boolean }) {
   const { zonaHoraria } = useSesion();
   const puede = useCan('operacion.servicios:editar');
   const vivo = useViajesEnVivo();
@@ -72,7 +72,7 @@ export function OperacionesPantalla({ opInicial }: { opInicial?: number }) {
   const [hasta, setHasta] = useState<string>(hoy);
   const [texto, setTexto] = useState(opInicial ? String(opInicial) : '');
   const [grupo, setGrupo] = useState<GrupoFiltro>('todos');
-  const [abierto, setAbiertoEstado] = useState<Abierto>(null);
+  const [abierto, setAbiertoEstado] = useState<Abierto>(nueva && puede ? { tipo: 'nueva' } : null);
   // ?op=<nro>: la ficha de esa operación se abre sola hasta que se toque otra cosa.
   const [auto, setAuto] = useState(!!opInicial);
   const setAbierto = (a: Abierto) => {
