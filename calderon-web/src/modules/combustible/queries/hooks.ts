@@ -33,6 +33,8 @@ import type { Bandeja } from '../domain/documento.types';
 import type { PeriodoParams } from '../domain/consumo.types';
 import { combustibleQueries as q } from './keys';
 import { cargaRepository } from '../repositories/carga.repository';
+import { gensetRepository } from '../repositories/genset.repository';
+import { anularCierreGenset, cerrarGenset, eliminarRegistroGenset, registrarGenset } from '../actions/genset.actions';
 
 /* ----------------------------------------------------------------------------
  * Lecturas
@@ -126,3 +128,13 @@ export const useGuardarBorrador = () => useEscritura(guardarBorradorCierre);
 export const useActualizarLimites = () => useEscritura(actualizarLimitesCierre);
 export const useAprobarCierre = () => useEscritura(aprobarCierre);
 export const useAnularCierre = () => useEscritura(anularCierre);
+
+// Migración 48: combustible de los gensets
+export const useGensetsCombustible = () =>
+  useQuery({ queryKey: ['combustible', 'gensets'] as const, queryFn: () => gensetRepository(browserDb()).lista(), staleTime: 30_000 });
+export const useFichaGenset = (gensetId: number) =>
+  useQuery({ queryKey: ['combustible', 'gensets', gensetId] as const, queryFn: () => gensetRepository(browserDb()).ficha(gensetId), staleTime: 15_000 });
+export const useRegistrarGenset = () => useEscritura(registrarGenset);
+export const useEliminarRegistroGenset = () => useEscritura(eliminarRegistroGenset);
+export const useCerrarGenset = () => useEscritura(cerrarGenset);
+export const useAnularCierreGenset = () => useEscritura(anularCierreGenset);

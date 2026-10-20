@@ -558,7 +558,33 @@ type UbicacionIns = {
 };
 /** ref.tipo_accesorio y mae.genset (migración 39). */
 type TipoAccesorioIns = { nombre: string; sigla: string; orden?: number; activo?: boolean };
-type GensetIns = { codigo: string; marca?: string | null; modelo?: string | null; numero_serie?: string | null; estado?: string; observaciones?: string | null };
+type GensetIns = {
+  codigo: string;
+  marca?: string | null;
+  modelo?: string | null;
+  numero_serie?: string | null;
+  estado?: string;
+  observaciones?: string | null;
+  /** Migración 48: capacidad del tanque (L) y consumo promedio (L/h). */
+  capacidad_l?: number | null;
+  consumo_lh?: number | null;
+};
+/** fue.fn_gensets_combustible (migración 48). */
+type GensetCombustibleRow = {
+  genset_id: number;
+  codigo: string;
+  semi: string | null;
+  capacidad_l: number | null;
+  consumo_lh: number | null;
+  consumo_real_lh: number | null;
+  ultimo_ts: string | null;
+  ultimo_horometro_h: number | null;
+  vuelta_inicio_id: number | null;
+  vuelta_desde: string | null;
+  vuelta_chofer: string | null;
+  por_cerrar: number;
+  descuentos_l: number;
+};
 /** mae.linea y mae.transportista (migración 41). */
 type LineaIns = {
   codigo: string;
@@ -1203,6 +1229,16 @@ export type Database = {
       fn_eliminar_carga: { Args: { p_carga: number; p_motivo: string }; Returns: string[] };
       /** Migración 47: corrige una carga en el lugar (p_datos con los nombres de columna). */
       fn_editar_carga: { Args: { p_carga: number; p_version: number; p_datos: Json; p_motivo?: string | null }; Returns: undefined };
+      // Migración 48: combustible de los gensets
+      fn_gensets_combustible: { Args: Record<string, never>; Returns: GensetCombustibleRow[] };
+      fn_genset_ficha: { Args: { p_genset: number }; Returns: Json };
+      fn_registrar_genset: { Args: { p_datos: Json }; Returns: number };
+      fn_eliminar_registro_genset: { Args: { p_registro: number; p_motivo: string }; Returns: undefined };
+      fn_cerrar_genset: {
+        Args: { p_inicio: number; p_chofer?: number | null; p_motivo_chofer?: string | null; p_ok_tolerancia?: boolean; p_observacion?: string | null };
+        Returns: number;
+      };
+      fn_anular_cierre_genset: { Args: { p_cierre: number; p_motivo: string }; Returns: undefined };
       /** Migración 47: odómetro de la telemetría más cercano (±6 h): { odometro_km, ts } o null. */
       fn_odometro_telemetria: { Args: { p_camion: number; p_ts: string }; Returns: Json };
       fn_resolver_solicitud: { Args: { p_id: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: SolicitudRow };

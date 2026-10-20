@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { PlugZap, Pencil, Plus, Trash2, Unplug } from 'lucide-react';
+import Link from 'next/link';
+import { Fuel, PlugZap, Pencil, Plus, Trash2, Unplug } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
@@ -9,6 +10,8 @@ import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
+import { useGensetsCombustible } from '@/modules/combustible/queries/hooks';
+import type { GensetCombustible } from '@/modules/combustible/domain/genset.types';
 import type { Genset } from '../domain/pizarra.types';
 import { useEliminarGenset, useGensets, useGuardarGenset, useInstalarGenset, useRetirarGenset, useSemis } from '../queries/hooks';
 import { diaHora } from './formato';
@@ -21,6 +24,7 @@ export function GensetsPantalla() {
   const puede = useCan('flota.pizarra:editar');
   const { zonaHoraria } = useSesion();
   const { data, isPending, isError, refetch } = useGensets();
+  const { data: combustible } = useGensetsCombustible();
   const [abierto, setAbierto] = useState<Abierto>(null);
 
   return (
@@ -48,6 +52,7 @@ export function GensetsPantalla() {
                 <th className={TH}>Marca y modelo</th>
                 <th className={TH}>N.º de serie</th>
                 <th className={TH}>Instalado en</th>
+                <th className={TH}>Combustible</th>
                 <th className={TH}>Estado</th>
                 {puede && <th className={TH} />}
               </tr>
@@ -55,7 +60,17 @@ export function GensetsPantalla() {
             <tbody className="divide-y divide-borde">
               {data.map((g) => {
                 const modo = abierto && abierto.modo !== 'nuevo' && abierto.g.id === g.id ? abierto.modo : null;
-                return <FilaGenset key={g.id} g={g} zona={zonaHoraria} puede={puede} modo={modo} onAbrir={setAbierto} />;
+                return (
+                  <FilaGenset
+                    key={g.id}
+                    g={g}
+                    c={combustible?.find((x) => x.gensetId === g.id)}
+                    zona={zonaHoraria}
+                    puede={puede}
+                    modo={modo}
+                    onAbrir={setAbierto}
+                  />
+                );
               })}
             </tbody>
           </table>
@@ -67,12 +82,14 @@ export function GensetsPantalla() {
 
 function FilaGenset({
   g,
+  c,
   zona,
   puede,
   modo,
   onAbrir,
 }: {
   g: Genset;
+  c: GensetCombustible | undefined;
   zona: string;
   puede: boolean;
   modo: Modo | null;
@@ -82,7 +99,11 @@ function FilaGenset({
   return (
     <>
       <tr>
-        <td className={cn(TD, 'font-mono font-semibold text-tinta')}>{g.codigo}</td>
+        <td className={cn(TD, 'font-mono font-semibold')}>
+          <Link href={`/flota/gensets/${g.id}`} className="text-marca hover:underline">
+            {g.codigo}
+          </Link>
+        </td>
         <td className={TD}>{[g.marca, g.modelo].filter(Boolean).join(' ') || '—'}</td>
         <td className={cn(TD, 'font-mono text-xs')}>{g.numeroSerie ?? '—'}</td>
         <td className={TD}>
@@ -94,6 +115,20 @@ function FilaGenset({
           ) : (
             <span className="text-tinta-suave">Sin instalar</span>
           )}
+        </td>
+        <td className={TD}>
+          <Link href={`/flota/gensets/${g.id}`} className="inline-flex flex-wrap items-center gap-1.5 hover:underline">
+            <Fuel className="size-3.5 text-tinta-suave" />
+            {c?.porCerrar ? <Chip tono="alerta">{c.porCerrar} para cerrar</Chip> : null}
+            {c?.vueltaDesde ? (
+              <span className="text-xs text-tinta-suave">
+                Lleno desde {diaHora(c.vueltaDesde, zona)}
+                {c.vueltaChofer ? ` · ${c.vueltaChofer}` : ''}
+              </span>
+            ) : (
+              !c?.porCerrar && <span className="text-xs text-tinta-suave">Ver combustible</span>
+            )}
+          </Link>
         </td>
         <td className={TD}>{g.estado === 'activo' ? <Chip tono="exito">Activo</Chip> : <Chip tono="neutro">Baja</Chip>}</td>
         {puede && (
@@ -123,7 +158,7 @@ function FilaGenset({
       </tr>
       {modo && (
         <tr>
-          <td colSpan={6} className="px-3 pb-3">
+          <td colSpan={7} className="px-3 pb-3">
             {modo === 'editar' && <FormGenset g={g} onCerrar={() => onAbrir(null)} />}
             {modo === 'eliminar' && <EliminarGenset g={g} onCerrar={() => onAbrir(null)} />}
             {modo === 'instalar' && <InstalarGenset g={g} onCerrar={() => onAbrir(null)} />}
@@ -145,13 +180,15 @@ function FormGenset({ g, onCerrar }: { g?: Genset; onCerrar: () => void }) {
     numeroSerie: g?.numeroSerie ?? '',
     estado: g?.estado ?? ('activo' as const),
     observaciones: g?.observaciones ?? '',
+    capacidadL: g?.capacidadL === null || g?.capacidadL === undefined ? '' : String(g.capacidadL).replace('.', ','),
+    consumoLh: g?.consumoLh === null || g?.consumoLh === undefined ? '' : String(g.consumoLh).replace('.', ','),
   });
-  const set = (k: 'codigo' | 'marca' | 'modelo' | 'numeroSerie' | 'observaciones') => (e: { target: { value: string } }) =>
+  const set = (k: 'codigo' | 'marca' | 'modelo' | 'numeroSerie' | 'observaciones' | 'capacidadL' | 'consumoLh') => (e: { target: { value: string } }) =>
     setV({ ...v, [k]: e.target.value });
   return (
     <Panel
       titulo={g ? `Editar ${g.codigo}` : 'Nuevo genset'}
-      explicacion="Un genset instalado no se da de baja: primero se retira del semi. Las horas de uso se agregan más adelante."
+      explicacion="Un genset instalado no se da de baja: primero se retira del semi. La capacidad y el consumo promedio sirven para el cierre de su combustible."
       error={error}
       ocupado={guardar.isPending}
       textoBoton={g ? 'Guardar cambios' : 'Dar de alta'}
@@ -175,6 +212,12 @@ function FormGenset({ g, onCerrar }: { g?: Genset; onCerrar: () => void }) {
           <option value="activo">Activo</option>
           <option value="baja">Baja</option>
         </select>
+      </Campo>
+      <Campo label="Capacidad del tanque (L)" error={campo('capacidadL')}>
+        <input inputMode="decimal" value={v.capacidadL} onChange={set('capacidadL')} />
+      </Campo>
+      <Campo label="Consumo promedio (L/h)" error={campo('consumoLh')} ayuda="Litros por hora de horómetro. Se compara en cada cierre.">
+        <input inputMode="decimal" value={v.consumoLh} onChange={set('consumoLh')} />
       </Campo>
       <Campo label="Observaciones" error={campo('observaciones')}>
         <input maxLength={500} value={v.observaciones} onChange={set('observaciones')} />

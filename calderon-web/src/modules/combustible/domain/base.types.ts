@@ -64,6 +64,7 @@ export interface ControlBase {
 /** Tipos del libro de un depósito (fue.movimiento_combustible). */
 export const TIPOS_MOVIMIENTO_BASE = [
   'entrada_camion',
+  'entrada_genset',
   'entrada_otra',
   'salida_carga_propia',
   'salida_otra',
@@ -77,6 +78,7 @@ export type TipoMovimientoBase = (typeof TIPOS_MOVIMIENTO_BASE)[number];
 export const esTipoMovimientoBase = esDe(TIPOS_MOVIMIENTO_BASE);
 export const ETIQUETA_TIPO_MOVIMIENTO_BASE: Record<TipoMovimientoBase, string> = {
   entrada_camion: 'Descarga de camión',
+  entrada_genset: 'Descarga de genset',
   entrada_otra: 'Entrada con motivo',
   salida_carga_propia: 'Carga a camión',
   salida_otra: 'Salida con motivo',

@@ -245,7 +245,7 @@ export const pizarraRepository = (db: Db) => {
       const [g, i, s] = await Promise.all([
         mae()
           .from('genset')
-          .select('id, codigo, marca, modelo, numero_serie, estado, observaciones, version_fila')
+          .select('id, codigo, marca, modelo, numero_serie, estado, observaciones, capacidad_l, consumo_lh, version_fila')
           .is('eliminado_en', null)
           .order('codigo'),
         mae().from('genset_instalacion').select('genset_id, semirremolque_id, desde').is('hasta', null).is('eliminado_en', null),
@@ -264,6 +264,8 @@ export const pizarraRepository = (db: Db) => {
           numeroSerie: x.numero_serie,
           estado: x.estado === 'baja' ? 'baja' : 'activo',
           observaciones: x.observaciones,
+          capacidadL: x.capacidad_l === null ? null : Number(x.capacidad_l),
+          consumoLh: x.consumo_lh === null ? null : Number(x.consumo_lh),
           versionFila: x.version_fila,
           semiId: v?.semirremolque_id ?? null,
           semiPatente: v ? (patente.get(v.semirremolque_id) ?? `#${v.semirremolque_id}`) : null,
@@ -280,6 +282,8 @@ export const pizarraRepository = (db: Db) => {
         numero_serie: d.numeroSerie,
         estado: d.estado,
         observaciones: d.observaciones,
+        capacidad_l: d.capacidadL,
+        consumo_lh: d.consumoLh,
       };
       if (d.id === null) {
         const { error } = await mae().from('genset').insert(fila);

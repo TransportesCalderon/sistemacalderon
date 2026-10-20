@@ -182,3 +182,26 @@ describe('Cargas más simples (migración 47)', () => {
     expect(documentoSchema.safeParse({ cargaId: 1, tipo: 'ticket', numero: '', fecha: '2026-10-19', archivo: null, hash: null, emisorId: null }).success).toBe(false);
   });
 });
+
+describe('Combustible de los gensets (migración 48)', () => {
+  it('vuelta: traduce el cálculo de la base sin calcular', async () => {
+    const { parsearVuelta } = await import('@/modules/combustible/domain/genset.types');
+    const v = parsearVuelta({
+      inicio: { id: 7, fecha_hora: '2026-10-10T12:00:00Z', litros: 200, horometro_h: 1000, chofer_id: 3, chofer: 'Pérez, Juan' },
+      fin: { id: 9, tipo: 'descarga', fecha_hora: '2026-10-15T12:00:00Z', litros: 250, horometro_h: 1080 },
+      situacion: 'por_cerrar', horas: 80, cargado_l: 0, descargado_l: 250, consumo_real_l: 150, consumo_esperado_l: 90, diferencia_l: 60,
+      tolerancia_l: 10, dentro_tolerancia: false, descuento_l: 60, precio_litro: 1200, moneda: 'CLP', descuento_importe: 72000,
+      chofer_propuesto_id: 3, cierre: null, pendientes: [], avisos: ['Exceso de consumo'],
+    });
+    expect(v).toMatchObject({ inicioId: 7, situacion: 'por_cerrar', descuentoL: 60, descuentoImporte: 72000, fin: { tipo: 'descarga' } });
+  });
+
+  it('registro: chofer y horómetro como texto del formulario', async () => {
+    const { registroGensetFormSchema } = await import('@/modules/combustible/domain/genset.schemas');
+    const r = registroGensetFormSchema.parse({
+      gensetId: '4', tipo: 'carga', fechaHoraLocal: '2026-10-19T10:30', litros: '180,5', horometroH: '12345,6', tanqueLleno: true, vacio: false,
+      choferId: '3', camionId: '', estacionId: '2', precioUnitario: '1250', moneda: 'CLP', ticketNumero: '', depositoId: '', observacion: '',
+    });
+    expect(r).toMatchObject({ gensetId: 4, litros: 180.5, horometroH: 12345.6, choferId: 3, camionId: null, ticketNumero: null });
+  });
+});

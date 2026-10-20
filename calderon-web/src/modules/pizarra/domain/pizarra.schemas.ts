@@ -20,6 +20,13 @@ const dia = z
   .transform((v) => (v === '' ? null : v))
   .refine((v) => v === null || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Fecha no válida.');
 
+/** Número decimal opcional (admite coma); vacío = null. */
+const decimal = (mensaje: string) =>
+  z
+    .union([z.string(), z.number(), z.null()])
+    .transform((v) => (v === null || v === '' ? null : Number(String(v).trim().replace(',', '.'))))
+    .refine((v) => v === null || (Number.isFinite(v) && v > 0), mensaje);
+
 /** Cantidad escrita en la celda: vacío = sin dato (null), si no un entero de 0 en adelante. */
 const cantidad = z
   .union([z.string(), z.number(), z.null()])
@@ -87,6 +94,8 @@ export const gensetSchema = z.object({
   numeroSerie: opcional(60),
   estado: z.enum(['activo', 'baja']),
   observaciones: opcional(500),
+  capacidadL: decimal('Litros, número mayor que cero.'),
+  consumoLh: decimal('Litros por hora, número mayor que cero.'),
 });
 export type GensetEntrada = z.input<typeof gensetSchema>;
 export type GensetDatos = z.output<typeof gensetSchema>;

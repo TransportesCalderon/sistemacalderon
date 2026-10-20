@@ -17,6 +17,7 @@ import { cargaFormSchema, type CargaFormEntrada } from '../../domain/carga.schem
 import { ETIQUETA_MEDIO_PAGO, MEDIOS_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
 import { useCamionesCombustible, useChoferesCombustible, useCrearCarga, useEditarCarga, useEstaciones, useMonedas, useOdometroTelemetria } from '../../queries/hooks';
 import { CLASE_TEXTAREA, ErrorBase } from '../comun/ui';
+import { DestinoCargaSelector } from './destino-carga';
 
 type Salida = ReturnType<typeof cargaFormSchema.parse>;
 
@@ -194,6 +195,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
         </h1>
         {carga && <p className="mt-1 text-sm text-tinta-suave">Se corrige sobre la misma carga. Queda registrado quién cambió qué.</p>}
       </header>
+      {!carga && !reemplazaId && <DestinoCargaSelector actual="tractor" />}
 
       <ErrorBase error={error} />
 

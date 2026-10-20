@@ -73,6 +73,12 @@ export const MENSAJES_RESTRICCION: Record<string, string> = {
   ux_transp_cuit: 'Ya existe un transportista con ese CUIT.',
   ck_transp_cuit: 'El CUIT tiene que tener 11 números.',
   ck_transp_razon: 'Indicá la razón social (hasta 200 caracteres).',
+  // Migración 48: combustible de los gensets.
+  ux_greg_instante: 'Ya hay un registro de ese genset a esa misma hora.',
+  ck_greg_litros: 'Los litros tienen que estar entre 0 y 5.000.',
+  ck_greg_horom: 'El horómetro no es válido.',
+  ck_genset_capacidad: 'La capacidad del tanque tiene que estar entre 1 y 5.000 L.',
+  ck_genset_consumo: 'El consumo promedio tiene que ser mayor que 0 y hasta 100 L/h.',
   // Migración 46: chofer y tractor, viajes de chofer.
   ck_linea_canon: 'El canon va con su moneda y no puede ser negativo.',
   ex_asig_un_titular: 'Ese tractor ya tiene otro chofer fijo en esas fechas.',

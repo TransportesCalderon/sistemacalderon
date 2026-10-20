@@ -115,6 +115,9 @@ export interface Genset {
   numeroSerie: string | null;
   estado: 'activo' | 'baja';
   observaciones: string | null;
+  /** Migración 48: capacidad del tanque (L) y consumo promedio esperado (L/h). */
+  capacidadL: number | null;
+  consumoLh: number | null;
   versionFila: number;
   /** Instalación vigente. */
   semiId: number | null;
