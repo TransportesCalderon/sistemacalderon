@@ -16,7 +16,6 @@ export const cargaFormSchema = z.object({
   litros: decimalTexto(false, 'Litros con hasta 2 decimales.').refine((v) => v !== null && v > 0, 'Los litros deben ser mayores que cero.'),
   precioUnitario: decimalTexto(false, 'Precio con hasta 4 decimales.'),
   moneda: z.string().trim().length(3, 'Elegí la moneda.'),
-  importeOriginal: decimalTexto(false, 'Importe con hasta 2 decimales.'),
   medioPago: z.enum(MEDIOS_PAGO, 'Elegí el medio de pago.'),
   odometroKm: decimalTexto(true, 'Odómetro con hasta 1 decimal.'),
   tanqueLleno: z.boolean(),
@@ -36,6 +35,7 @@ export const cargaAltaSchema = z.object({
   litros: z.number().positive(),
   precioUnitario: z.number().min(0),
   moneda: z.string().length(3),
+  /** Migración 44: lo recalcula la base (litros × precio); se envía el mismo cálculo. */
   importeOriginal: z.number().min(0),
   medioPago: z.enum(MEDIOS_PAGO),
   odometroKm: z.number().min(0).nullable(),
@@ -53,6 +53,12 @@ export const solicitarAnulacionSchema = z.object({
   motivo: textoObligatorio(500, 'Escribí el motivo de la anulación.'),
 });
 export type SolicitarAnulacionInput = z.input<typeof solicitarAnulacionSchema>;
+
+/** Migración 44: eliminar del todo una carga cargada por error. */
+export const eliminarCargaSchema = z.object({
+  cargaId: id(),
+  motivo: textoObligatorio(500, 'Escribí por qué se elimina.'),
+});
 
 export const resolverSolicitudSchema = z
   .object({

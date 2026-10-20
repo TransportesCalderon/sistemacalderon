@@ -156,3 +156,11 @@ describe('movimientos del camión y faltante (solo forma)', () => {
     expect(cargaFormSchema.parse({ ...f, faltanteLlenoL: '50' }).faltanteLlenoL).toBe(50);
   });
 });
+
+describe('Eliminar carga (migración 44)', () => {
+  it('pide la carga y el motivo', async () => {
+    const { eliminarCargaSchema } = await import('@/modules/combustible/domain/carga.schemas');
+    expect(eliminarCargaSchema.safeParse({ cargaId: 5, motivo: 'Cargada dos veces' }).success).toBe(true);
+    expect(eliminarCargaSchema.safeParse({ cargaId: 5, motivo: '  ' }).success).toBe(false);
+  });
+});

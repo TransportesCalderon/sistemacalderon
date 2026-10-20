@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Ban, Check, Flag, Undo2, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Ban, Check, Flag, Trash2, Undo2, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
@@ -11,7 +12,7 @@ import { conUnidad, formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import type { CargaId } from '@/shared/types/dominio';
 import { ETIQUETA_ESTADO_VALIDACION, ETIQUETA_MEDIO_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
-import { useCarga, useResolverSolicitud, useRetirarSolicitud, useSolicitarAnulacion } from '../../queries/hooks';
+import { useCarga, useEliminarCarga, useResolverSolicitud, useRetirarSolicitud, useSolicitarAnulacion } from '../../queries/hooks';
 import { AccionConMotivo, Cargando, Chip, Dato, ErrorBase, ErrorLectura, Seccion } from '../comun/ui';
 import { DestinoCarga, RolViajeChips, SituacionCargaChip } from './chips-carga';
 import { TicketCarga, ValidacionCarga } from './ticket-carga';
@@ -104,6 +105,9 @@ function Anulacion({ carga, onRecargar }: { carga: Carga; onRecargar: () => void
   const puedeEditar = useCan('combustible.cargas:editar');
   const puedeResolver = useCan('combustible.cargas:transicionar');
   const solicitar = useSolicitarAnulacion();
+  const eliminar = useEliminarCarga();
+  const router = useRouter();
+  const [errorEliminar, setErrorEliminar] = useState<ErrorAccion | null>(null);
   const resolver = useResolverSolicitud();
   const retirar = useRetirarSolicitud();
   const [error, setError] = useState<ErrorAccion | null>(null);
@@ -194,7 +198,28 @@ function Anulacion({ carga, onRecargar }: { carga: Carga; onRecargar: () => void
 
   if (!puedeEditar) return null;
   return (
-    <Seccion titulo="Anulación">
+    <Seccion titulo="Corregir">
+      {carga.estadoValidacion !== 'validada' && (
+        <AccionConMotivo
+          etiqueta="Eliminar carga"
+          icono={<Trash2 className="size-4" />}
+          titulo="Eliminar la carga"
+          explicacion="Para una carga cargada por error: desaparece del sistema junto con su ticket y sus movimientos (queda registrado en la auditoría). La elimina quien la cargó, o Administración de combustible o TI. No se puede si ya está validada o si un cierre o el cálculo de consumo ya la usaron."
+          ocupado={eliminar.isPending}
+          error={errorEliminar}
+          onRecargar={onRecargar}
+          onConfirmar={async (motivo) => {
+            setErrorEliminar(null);
+            const r = await eliminar.mutateAsync({ cargaId: carga.id, motivo });
+            if (!r.ok) {
+              setErrorEliminar(r.error);
+              return false;
+            }
+            router.push('/combustible/cargas');
+            return true;
+          }}
+        />
+      )}
       <AccionConMotivo
         etiqueta="Solicitar anulación"
         icono={<Ban className="size-4" />}

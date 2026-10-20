@@ -9,6 +9,7 @@ import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
+import { formatearNumero } from '@/shared/lib/numeros';
 import { horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
@@ -45,7 +46,6 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
       litros: '',
       precioUnitario: '',
       moneda: monedaBase ?? '',
-      importeOriginal: '',
       medioPago: 'tarjeta',
       odometroKm: '',
       tanqueLleno: false,
@@ -61,6 +61,14 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
   const tanqueLleno = watch('tanqueLleno');
   const esCorte = watch('esFrontera');
   const camion = camiones?.find((c) => c.id === camionId);
+  // Solo para mostrar: la base calcula y guarda el importe (litros × precio).
+  const aNumero = (v: unknown) => {
+    const t = String(v ?? '').trim().replace(',', '.');
+    return t === '' || Number.isNaN(Number(t)) ? null : Number(t);
+  };
+  const litrosN = aNumero(watch('litros'));
+  const precioN = aNumero(watch('precioUnitario'));
+  const importe = litrosN !== null && precioN !== null ? Math.round(litrosN * precioN * 100) / 100 : null;
 
   useEffect(() => {
     if (!tanqueLleno) setValue('esFrontera', false);
@@ -82,7 +90,7 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
       litros: d.litros ?? 0,
       precioUnitario: d.precioUnitario ?? 0,
       moneda: d.moneda,
-      importeOriginal: d.importeOriginal ?? 0,
+      importeOriginal: Math.round((d.litros ?? 0) * (d.precioUnitario ?? 0) * 100) / 100,
       medioPago: d.medioPago,
       odometroKm: d.odometroKm,
       tanqueLleno: d.tanqueLleno,
@@ -170,9 +178,13 @@ export function CargaForm({ camionInicial, reemplazaId }: { camionInicial: numbe
             ))}
           </select>
         </Campo>
-        <Campo label="Importe *" error={e.importeOriginal?.message}>
-          <input inputMode="decimal" {...register('importeOriginal')} />
-        </Campo>
+        <div className="grid content-start gap-1 text-sm">
+          <span className="font-medium text-tinta">Importe</span>
+          <span className="flex h-10 items-center rounded-md border border-borde bg-fondo px-3 tabular-nums">
+            {importe === null ? '—' : `${formatearNumero(importe)} ${watch('moneda') || ''}`}
+          </span>
+          <span className="text-xs text-tinta-suave">Litros × precio unitario (lo calcula el sistema).</span>
+        </div>
         <Campo label="Medio de pago *" error={e.medioPago?.message}>
           <select {...register('medioPago')}>
             {MEDIOS_PAGO.map((m) => (

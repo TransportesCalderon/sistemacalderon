@@ -15,7 +15,7 @@ import {
   traspasarResponsableBase,
 } from '../actions/base.actions';
 import { adjuntarDocumento, quitarDocumento, validarCarga } from '../actions/documento.actions';
-import { crearCarga, resolverSolicitudCarga, retirarSolicitudCarga, solicitarAnulacionCarga } from '../actions/carga.actions';
+import { crearCarga, eliminarCarga, resolverSolicitudCarga, retirarSolicitudCarga, solicitarAnulacionCarga } from '../actions/carga.actions';
 import { actualizarLimitesCierre, anularCierre, aprobarCierre, crearBorradorCierre, guardarBorradorCierre } from '../actions/cierre.actions';
 import {
   registrarDescarga,
@@ -87,6 +87,7 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
 
 export const useCrearCarga = () => useEscritura(crearCarga);
 export const useSolicitarAnulacion = () => useEscritura(solicitarAnulacionCarga);
+export const useEliminarCarga = () => useEscritura(eliminarCarga);
 export const useResolverSolicitud = () => useEscritura(resolverSolicitudCarga);
 export const useRetirarSolicitud = () => useEscritura(retirarSolicitudCarga);
 

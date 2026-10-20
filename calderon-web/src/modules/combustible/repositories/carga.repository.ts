@@ -3,6 +3,7 @@ import type { Database } from '@/shared/types/db';
 import type { CamionId, CargaId, ChoferId, DepositoId, FechaISO, SolicitudId } from '@/shared/types/dominio';
 import { diaSiguiente, num } from '../domain/comun';
 import type { CargaAlta } from '../domain/carga.schemas';
+import { BUCKET_DOCUMENTOS } from '../domain/documento.types';
 import {
   TAMANO_PAGINA_CARGAS,
   esEstadoValidacion,
@@ -231,6 +232,14 @@ export const cargaRepository = (db: Db) => ({
     const { data, error } = await db.schema('fue').rpc('fn_solicitar_anulacion_carga', { p_carga: cargaId, p_motivo: motivo });
     if (error) throw new RepoError(error);
     return data as SolicitudId;
+  },
+
+  /** Migración 44: elimina la carga en la base y después sus archivos (si el depósito no deja, quedan huérfanos sin datos). */
+  async eliminar(cargaId: number, motivo: string): Promise<void> {
+    const { data, error } = await db.schema('fue').rpc('fn_eliminar_carga', { p_carga: cargaId, p_motivo: motivo });
+    if (error) throw new RepoError(error);
+    const archivos = (data ?? []).filter(Boolean);
+    if (archivos.length > 0) await db.storage.from(BUCKET_DOCUMENTOS).remove(archivos);
   },
 
   async resolverSolicitud(solicitudId: number, aprobar: boolean, motivo: string | null): Promise<void> {

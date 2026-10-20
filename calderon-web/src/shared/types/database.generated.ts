@@ -1136,6 +1136,8 @@ export type Database = {
       fn_aprobar_cierre: { Args: { p_id: number; p_version: number }; Returns: CierreViajeRow };
       fn_anular_cierre: { Args: { p_id: number; p_version: number; p_motivo: string }; Returns: CierreViajeRow };
       fn_solicitar_anulacion_carga: { Args: { p_carga: number; p_motivo: string }; Returns: number };
+      /** Migración 44: elimina del todo una carga cargada por error; devuelve los archivos del ticket. */
+      fn_eliminar_carga: { Args: { p_carga: number; p_motivo: string }; Returns: string[] };
       fn_resolver_solicitud: { Args: { p_id: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: SolicitudRow };
       fn_retirar_solicitud: { Args: { p_id: number }; Returns: SolicitudRow };
       fn_descargar_combustible: {

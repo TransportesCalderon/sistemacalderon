@@ -13,6 +13,8 @@ export function cargaService(db: Db) {
   return {
     crear: (d: CargaAlta): Promise<CargaId> => repo.crear(d),
     solicitarAnulacion: (cargaId: number, motivo: string): Promise<SolicitudId> => repo.solicitarAnulacion(cargaId, motivo),
+    /** Migración 44: elimina del todo una carga cargada por error (las reglas las aplica la base). */
+    eliminar: (cargaId: number, motivo: string): Promise<void> => repo.eliminar(cargaId, motivo),
     /** Aprueba (ejecuta la anulación) o rechaza. Devuelve la carga, para refrescar su ficha. */
     async resolver(solicitudId: number, aprobar: boolean, motivo: string | null): Promise<CargaId | null> {
       const cargaId = await repo.cargaDeSolicitud(solicitudId);

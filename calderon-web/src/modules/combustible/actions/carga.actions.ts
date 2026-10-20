@@ -6,6 +6,7 @@ import {
   resolverSolicitudSchema,
   retirarSolicitudSchema,
   solicitarAnulacionSchema,
+  eliminarCargaSchema,
 } from '../domain/carga.schemas';
 import { cargaService } from '../services/carga.service';
 
@@ -31,6 +32,13 @@ export const solicitarAnulacionCarga = createAction({
   schema: solicitarAnulacionSchema,
   handler: ({ cargaId, motivo }, { db }) => cargaService(db).solicitarAnulacion(cargaId, motivo),
   invalida: ({ cargaId }) => rutas(cargaId),
+});
+
+export const eliminarCarga = createAction({
+  permiso: 'combustible.cargas:editar',
+  schema: eliminarCargaSchema,
+  handler: ({ cargaId, motivo }, { db }) => cargaService(db).eliminar(cargaId, motivo),
+  invalida: () => rutas(),
 });
 
 export const resolverSolicitudCarga = createAction({
