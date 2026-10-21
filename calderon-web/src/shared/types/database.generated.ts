@@ -1022,6 +1022,7 @@ export type Database = {
       fn_eliminar_chofer: { Args: { p_chofer: number; p_motivo: string }; Returns: string };
       /** Migración 46: chofer fijo del tractor desde una fecha (null = sin chofer). */
       fn_asignar_tractor: { Args: { p_camion: number; p_chofer: number | null; p_desde?: string | null }; Returns: undefined };
+      fn_chofer_de_tractor: { Args: { p_camion: number; p_fecha?: string | null }; Returns: number | null };
       fn_instalar_genset: { Args: { p_genset: number; p_semi: number; p_desde?: string | null }; Returns: number };
       fn_retirar_genset: { Args: { p_semi: number; p_hasta?: string | null }; Returns: number };
       fn_cambiar_capacidad_tanque: {

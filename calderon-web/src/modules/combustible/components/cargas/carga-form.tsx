@@ -10,12 +10,12 @@ import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
 import { formatearNumero } from '@/shared/lib/numeros';
-import { formatearFechaHora, horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
+import { formatearFechaHora, horaLocalAIso, hoyEnZona, isoAHoraLocal } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { cargaFormSchema, type CargaFormEntrada } from '../../domain/carga.schemas';
 import { ETIQUETA_MEDIO_PAGO, MEDIOS_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
-import { useCamionesCombustible, useChoferesCombustible, useCrearCarga, useEditarCarga, useEstaciones, useMonedas, useOdometroTelemetria } from '../../queries/hooks';
+import { useCamionesCombustible, useChoferesCombustible, useCrearCarga, useEditarCarga, useEstaciones, useMonedas, useOdometroTelemetria, useChoferDeTractor } from '../../queries/hooks';
 import { CLASE_TEXTAREA, ErrorBase } from '../comun/ui';
 import { DestinoCargaSelector } from './destino-carga';
 
@@ -63,7 +63,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
           camionId: camionInicial ? String(camionInicial) : '',
           choferId: '',
           estacionId: '',
-          fechaHoraLocal: isoAHoraLocal(new Date().toISOString(), zonaHoraria),
+          fechaHoraLocal: '',
           litros: '',
           precioUnitario: '',
           moneda: monedaBase ?? '',
@@ -110,15 +110,33 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
   const [odometroAuto, setOdometroAuto] = useState<string | null>(null);
   const odometro = watch('odometroKm');
   useEffect(() => {
-    const km = telemetria.data?.km;
-    if (km === undefined) return;
-    const valor = String(km).replace('.', ',');
-    if (odometro === '' || odometro === odometroAuto) {
-      setValue('odometroKm', valor, { shouldValidate: true });
-      setOdometroAuto(valor);
+    if (telemetria.isFetching || telemetria.data === undefined) return;
+    const puesto = odometro === '' || odometro === odometroAuto;
+    if (!puesto) return;
+    if (telemetria.data === null) {
+      // Para esa fecha no hay lectura: se borra el que había puesto la telemetría para otra hora
+      if (odometroAuto !== null) setValue('odometroKm', '', { shouldValidate: false });
+      setOdometroAuto(null);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando llega una lectura nueva
-  }, [telemetria.data]);
+    const valor = String(telemetria.data.km).replace('.', ',');
+    setValue('odometroKm', valor, { shouldValidate: true });
+    setOdometroAuto(valor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando llega la lectura de otra fecha o camión
+  }, [telemetria.data, telemetria.isFetching]);
+
+  // Chofer fijo del tractor a la fecha de la carga: se propone si no se eligió otro
+  const choferTractor = useChoferDeTractor(camionId, fechaIso ? fechaLocal.slice(0, 10) : hoyEnZona(zonaHoraria));
+  const [choferAuto, setChoferAuto] = useState<string | null>(null);
+  const chofer = watch('choferId');
+  useEffect(() => {
+    if (carga || choferTractor.data === undefined || !choferes) return;
+    if (chofer !== '' && chofer !== choferAuto) return;
+    const valor = choferTractor.data === null ? '' : String(choferTractor.data);
+    setValue('choferId', valor);
+    setChoferAuto(valor === '' ? null : valor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cuando cambia el tractor o la fecha
+  }, [choferTractor.data, choferes]);
 
   const enviar = handleSubmit(async (d) => {
     setError(null);
@@ -215,7 +233,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
             </select>
           )}
         </Campo>
-        <Campo label="Chofer" error={e.choferId?.message}>
+        <Campo label="Chofer" error={e.choferId?.message} {...(choferAuto !== null && chofer === choferAuto ? { ayuda: 'Chofer fijo del tractor: se puede cambiar.' } : {})}>
           <select {...register('choferId')}>
             <option value="">Sin informar</option>
             {choferes?.map((c) => (
@@ -239,9 +257,20 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
             ))}
           </select>
         </Campo>
-        <Campo label="Fecha y hora *" error={e.fechaHoraLocal?.message} ayuda={`Hora de ${zonaHoraria}`}>
-          <input type="datetime-local" {...register('fechaHoraLocal')} />
-        </Campo>
+        <div className="space-y-1">
+          <Campo label="Fecha y hora *" error={e.fechaHoraLocal?.message} ayuda={`La del ticket (hora de ${zonaHoraria}).`}>
+            <input type="datetime-local" {...register('fechaHoraLocal')} />
+          </Campo>
+          {!carga && (
+            <button
+              type="button"
+              className="text-xs text-marca hover:underline"
+              onClick={() => setValue('fechaHoraLocal', isoAHoraLocal(new Date().toISOString(), zonaHoraria), { shouldValidate: true })}
+            >
+              Es ahora
+            </button>
+          )}
+        </div>
         <Campo label="Litros *" error={e.litros?.message}>
           <input inputMode="decimal" {...register('litros')} />
         </Campo>

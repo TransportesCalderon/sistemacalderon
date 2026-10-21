@@ -260,6 +260,13 @@ export const cargaRepository = (db: Db) => ({
     return o && o.odometro_km !== undefined && o.ts ? { km: Number(o.odometro_km), ts: o.ts as FechaISO } : null;
   },
 
+  /** Chofer fijo del tractor en esa fecha (migración 46): se propone en el formulario de la carga. */
+  async choferDeTractor(camionId: number, fecha: string): Promise<number | null> {
+    const { data, error } = await db.schema('mae').rpc('fn_chofer_de_tractor', { p_camion: camionId, p_fecha: fecha });
+    if (error) throw new RepoError(error);
+    return data === null || data === undefined ? null : Number(data);
+  },
+
   async solicitarAnulacion(cargaId: number, motivo: string): Promise<SolicitudId> {
     const { data, error } = await db.schema('fue').rpc('fn_solicitar_anulacion_carga', { p_carga: cargaId, p_motivo: motivo });
     if (error) throw new RepoError(error);

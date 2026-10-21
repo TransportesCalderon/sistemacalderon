@@ -104,6 +104,14 @@ export const useOdometroTelemetria = (camionId: number | null, fechaHora: string
     enabled: !!camionId && !!fechaHora,
     staleTime: 60_000,
   });
+/** Chofer fijo del tractor a la fecha de la carga (se propone; se puede cambiar). */
+export const useChoferDeTractor = (camionId: number | null, fecha: string | null) =>
+  useQuery({
+    queryKey: ['combustible', 'chofer-tractor', camionId, fecha] as const,
+    queryFn: () => cargaRepository(browserDb()).choferDeTractor(camionId!, fecha!),
+    enabled: !!camionId && !!fecha,
+    staleTime: 60_000,
+  });
 export const useSolicitarAnulacion = () => useEscritura(solicitarAnulacionCarga);
 export const useEliminarCarga = () => useEscritura(eliminarCarga);
 export const useResolverSolicitud = () => useEscritura(resolverSolicitudCarga);
