@@ -3,6 +3,8 @@ import type { FechaISO } from '@/shared/types/dominio';
 /** Datos del acta del cierre (migración 56, fue.fn_acta_cierre). Lo calcula la base; acá solo se convierte. */
 export interface ActaExtra {
   capacidadL: number | null;
+  /** Migración 57: «actual» = los tanques figuran en la ficha desde después del viaje; se usó la capacidad de hoy. */
+  capacidadActual: boolean;
   salida: { fecha: FechaISO | null; estacion: string | null; litros: number | null; faltanteL: number; faltanteObs: string | null; inicioL: number | null };
   llegada: { fecha: FechaISO | null; estacion: string | null; litros: number | null; faltanteL: number; faltanteObs: string | null };
   cargas: { fecha: FechaISO; estacion: string | null; litros: number; corte: boolean; lleno: boolean }[];
@@ -45,6 +47,7 @@ export function parsearActa(d: unknown): ActaExtra {
   const r = o(x.ralenti);
   return {
     capacidadL: n(x.capacidad_l),
+    capacidadActual: o(x.capacidad).fuente === 'actual',
     salida: {
       fecha: t(s.fecha_hora) as FechaISO | null,
       estacion: t(s.estacion),

@@ -103,7 +103,7 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
       <Bloque titulo="Combustible al salir">
         <p>
           {x.salida.inicioL === null ? (
-            'Salió con los tanques llenos (no está cargada la capacidad de los tanques).'
+            'Salió con los tanques llenos (el camión no tiene tanques cargados en su ficha).'
           ) : x.salida.faltanteL > 0 ? (
             <>
               Salió con <b>{L(x.salida.inicioL, 0)}</b>: los tanques son de {L(x.capacidadL, 0)} y faltaron {L(x.salida.faltanteL)} para llenarlos
@@ -115,6 +115,9 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
             </>
           )}
           {x.salida.litros !== null && <span className="text-neutral-600"> En el llenado de salida se cargaron {L(x.salida.litros)}.</span>}
+          {x.capacidadActual && (
+            <span className="text-neutral-600"> (Capacidad de los tanques que figuran hoy en la ficha del camión.)</span>
+          )}
         </p>
       </Bloque>
 
