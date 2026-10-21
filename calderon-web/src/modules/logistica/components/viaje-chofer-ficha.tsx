@@ -298,7 +298,7 @@ function CombustibleCalculado({ cierreId }: { cierreId: CierreViajeId }) {
       {cierre && esBorrador && puedeCompletar && (
         <div className="border-t border-borde pt-3">
           <button type="button" className="inline-flex items-center gap-1 text-sm font-medium text-marca" onClick={() => setCompletar(!completar)} aria-expanded={completar}>
-            <ChevronDown className={cn('size-4 transition-transform', completar && 'rotate-180')} /> Programador de velocidad, test de alcohol, no imputable y observaciones
+            <ChevronDown className={cn('size-4 transition-transform', completar && 'rotate-180')} /> Completar el cierre: programador, test de alcohol, litros justificados y observaciones
           </button>
           {completar && (
             <div className="mt-3">

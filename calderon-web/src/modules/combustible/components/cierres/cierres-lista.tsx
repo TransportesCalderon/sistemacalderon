@@ -79,7 +79,7 @@ export function CierresLista() {
         </label>
         <label className="flex h-9 items-center gap-2 px-1 text-sm text-tinta-suave">
           <input type="checkbox" className="size-4 accent-marca" checked={Boolean(params.conImputable)} onChange={(e) => actualizar({ conImputable: e.target.checked })} />
-          Con imputable
+          Con descuento al chofer
         </label>
         {hayFiltros && (
           <button type="button" onClick={limpiar} className="flex h-9 items-center gap-1 rounded-md px-2 text-sm text-marca hover:bg-marca-suave">
@@ -107,7 +107,7 @@ export function CierresLista() {
                   <th className="px-3 py-2.5">Salida</th>
                   <th className="px-3 py-2.5">Llegada</th>
                   <th className="px-3 py-2.5 text-right">Diferencia</th>
-                  <th className="px-3 py-2.5 text-right">Imputable</th>
+                  <th className="px-3 py-2.5 text-right">A descontar</th>
                   <th className="px-3 py-2.5">Estado</th>
                 </tr>
               </thead>

@@ -162,6 +162,23 @@ function Pendientes({ resultado }: { resultado: ResultadoCierre }) {
   );
 }
 
+const FUENTES: Record<string, string> = {
+  telemetria: 'telemetría',
+  agregado_diario: 'resumen diario de la telemetría',
+  manual: 'cargado a mano',
+  cargas: 'odómetro de las cargas',
+  tramos: 'tramos operativos',
+};
+const fuente = (f: string | null) => (f ? (FUENTES[f] ?? f) : '—');
+
+/** La diferencia en palabras (el signo lo da la base; si se descuenta o no lo dice el resultado). */
+function explicacionDiferencia(d: number | null): string {
+  if (d === null) return 'Falta el consumo del motor para comparar.';
+  if (d > 0) return `Se cargaron ${formatearNumero(d)} L más de lo que consumió el motor: ese combustible no aparece.`;
+  if (d < 0) return `El motor consumió ${formatearNumero(-d)} L más de lo que se cargó.`;
+  return 'Lo cargado coincide con lo que consumió el motor.';
+}
+
 /** Cuatro cifras principales de un componente (libro, físico, diferencia, tolerancia). */
 function Cuatro({ libro, fisico, etiquetaLibro, etiquetaFisico, diferencia, tolerancia }: { libro: number | null; fisico: number | null; etiquetaLibro: string; etiquetaFisico: string; diferencia: number | null; tolerancia: number | null }) {
   return (
@@ -201,16 +218,17 @@ function CombustibleCamion({ resultado: { camion: c } }: { resultado: ResultadoC
         diferencia={c.diferenciaL}
         tolerancia={c.toleranciaL}
       />
+      <p className="text-sm text-tinta">{explicacionDiferencia(c.diferenciaL)}</p>
       <Detalle>
         <Dato etiqueta="Cargas del viaje">{conUnidad(c.cargasL, 'L')}</Dato>
         <Dato etiqueta="Entradas (bidón, otro camión)">{conUnidad(c.entradasL, 'L')}</Dato>
         <Dato etiqueta="Salidas (descargas, con motivo)">{conUnidad(c.salidasL, 'L')}</Dato>
         <Dato etiqueta="Faltó llenar al salir">{conUnidad(c.faltanteSalidaL, 'L')}</Dato>
         <Dato etiqueta="Faltó llenar al llegar">{conUnidad(c.faltanteLlegadaL, 'L')}</Dato>
-        <Dato etiqueta="Fuente del consumo">{c.fuenteConsumo ?? '—'}</Dato>
+        <Dato etiqueta="Consumo del motor, de">{fuente(c.fuenteConsumo)}</Dato>
         <Dato etiqueta="Km recorridos">
           {conUnidad(c.kmRecorridos, 'km', 1)}
-          {c.fuenteKm && <span className="ml-1 text-xs text-tinta-suave">({c.fuenteKm})</span>}
+          {c.fuenteKm && <span className="ml-1 text-xs text-tinta-suave">({fuente(c.fuenteKm)})</span>}
         </Dato>
         <Dato etiqueta="Consumo">{c.consumoL100km === null ? '—' : `${formatearNumero(c.consumoL100km)} L/100 km`}</Dato>
         <Dato etiqueta="Horas motor / ralentí">
@@ -245,11 +263,13 @@ function Resultado({ cierre, resultado }: { cierre: CierreViaje; resultado: Resu
   return (
     <Seccion titulo="Resultado">
       <dl className="grid gap-4 sm:grid-cols-3">
-        <Dato etiqueta="Imputable" destacado>
+        <Dato etiqueta="A descontar al chofer" destacado>
           {conUnidad(resultado.imputableTotalL, 'L')}
           {resultado.versionCalculo === 2 && (
             <span className="block text-xs font-normal text-tinta-suave">
-              Dentro de la tolerancia no se imputa. No imputable declarado: {conUnidad(resultado.camion.noImputableL, 'L')}.
+              {(resultado.imputableTotalL ?? 0) > 0
+                ? `Diferencia ${conUnidad(resultado.camion.diferenciaL, 'L')} − justificados ${conUnidad(resultado.camion.noImputableL, 'L')}.`
+                : 'Nada para descontar.'}
             </span>
           )}
         </Dato>

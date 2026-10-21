@@ -81,12 +81,12 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, zonaHoraria }: D
           </>
         )}
         {c && c.noImputableL !== null && c.noImputableL > 0 && (
-          <Fila etiqueta="No imputable">
+          <Fila etiqueta="Litros justificados">
             {litros(c.noImputableL)}
             {cierre.datos.noImputableMotivo && <span className="text-neutral-600"> · {cierre.datos.noImputableMotivo}</span>}
           </Fila>
         )}
-        <Fila etiqueta="Imputable" fuerte>
+        <Fila etiqueta="A descontar al chofer" fuerte>
           {litros(r?.imputableTotalL)}
         </Fila>
       </Bloque>

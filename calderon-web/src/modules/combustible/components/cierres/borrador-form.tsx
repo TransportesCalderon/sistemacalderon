@@ -128,11 +128,11 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
           </Campo>
         </Bloque>
 
-        <Bloque titulo="Combustible del camión: no imputable">
-          <Campo label="Litros no imputables" error={e.noImputableL?.message} ayuda="Solo cuenta si la diferencia supera la tolerancia.">
+        <Bloque titulo="Diferencia justificada (no se descuenta al chofer)">
+          <Campo label="Litros justificados" error={e.noImputableL?.message} ayuda="Parte de la diferencia que no es culpa del chofer (derrame, error del surtidor…). Se resta de lo que se le descuenta.">
             <input inputMode="decimal" placeholder="0" {...register('noImputableL')} />
           </Campo>
-          <Campo label="Horas de ralentí no imputables" error={e.noImputableRalentiH?.message}>
+          <Campo label="Horas de ralentí justificadas" error={e.noImputableRalentiH?.message}>
             <input inputMode="decimal" placeholder="0" {...register('noImputableRalentiH')} />
           </Campo>
           <Campo label="Motivo" error={e.noImputableMotivo?.message}>
