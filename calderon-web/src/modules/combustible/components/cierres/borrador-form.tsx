@@ -12,7 +12,7 @@ import type { ChoferId } from '@/shared/types/dominio';
 import { aFormularioBorrador, borradorFormSchema, type BorradorFormEntrada } from '../../domain/cierre.schemas';
 import { ETIQUETA_TEST_ALCOHOL, RESULTADOS_TEST_ALCOHOL, type CierreViaje } from '../../domain/cierre.types';
 import { formatearNumero } from '@/shared/lib/numeros';
-import { useChoferesCombustible, useGuardarBorrador, useTelemetriaCierre } from '../../queries/hooks';
+import { useChoferesCombustible, useGuardarBorrador, useResultadoCierre, useTelemetriaCierre } from '../../queries/hooks';
 import { CLASE_TEXTAREA, ErrorBase, Seccion } from '../comun/ui';
 
 type Salida = ReturnType<typeof borradorFormSchema.parse>;
@@ -26,11 +26,14 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
   const guardar = useGuardarBorrador();
   const { data: choferes } = useChoferesCombustible();
   const { data: tel } = useTelemetriaCierre(cierre.id, cierre.estado === 'borrador');
+  const { data: vivo } = useResultadoCierre(cierre.id, cierre.estado === 'borrador');
+  const propuesto = vivo?.choferPropuestoId ?? null;
   const [error, setError] = useState<ErrorAccion | null>(null);
   const [guardado, setGuardado] = useState(false);
   const form = useForm<BorradorFormEntrada, unknown, Salida>({
     resolver: zodResolver(borradorFormSchema),
-    values: aFormularioBorrador(cierre.datos),
+    // Migración 58: sin responsable guardado, se muestra elegido el chofer que propone la base
+    values: aFormularioBorrador({ ...cierre.datos, choferResponsableId: cierre.datos.choferResponsableId ?? propuesto ?? null }),
     resetOptions: { keepDirtyValues: true },
     mode: 'onTouched',
   });
@@ -160,7 +163,7 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
 
 const FUENTE: Record<string, string> = {
   telemetria: 'telemetría',
-  agregado_diario: 'resumen diario de la telemetría, aproximado',
+  agregado_diario: 'lecturas de la telemetría dentro del viaje, aproximado',
   cargas: 'odómetro de las cargas',
   tramos: 'tramos operativos',
 };

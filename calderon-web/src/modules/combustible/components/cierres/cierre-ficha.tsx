@@ -164,7 +164,7 @@ function Pendientes({ resultado }: { resultado: ResultadoCierre }) {
 
 const FUENTES: Record<string, string> = {
   telemetria: 'telemetría',
-  agregado_diario: 'resumen diario de la telemetría',
+  agregado_diario: 'lecturas de la telemetría, aproximado',
   manual: 'cargado a mano',
   cargas: 'odómetro de las cargas',
   tramos: 'tramos operativos',

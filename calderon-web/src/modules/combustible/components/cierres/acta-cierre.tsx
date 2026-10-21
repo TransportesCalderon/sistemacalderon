@@ -24,7 +24,7 @@ export interface DatosActa {
 const L = (v: number | null | undefined, dec = 1) => (v === null || v === undefined ? '—' : `${formatearNumero(v, dec)} L`);
 const FUENTE: Record<string, string> = {
   telemetria: 'telemetría',
-  agregado_diario: 'resumen diario de la telemetría, aproximado',
+  agregado_diario: 'lecturas de la telemetría, aproximado',
   resumen_diario: 'resumen diario de la telemetría, aproximado',
   manual: 'cargado a mano',
   cargas: 'odómetro de las cargas',
