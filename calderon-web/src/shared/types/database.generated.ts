@@ -637,6 +637,51 @@ type ConduccionDiariaRow = {
   acumulados: boolean;
   calculado_en: string;
 };
+/** ops.fn_costos_viajes (migración 51). */
+type CostoViajeRow = {
+  viaje_id: number;
+  numero: string;
+  estado: string;
+  salida_ts: string;
+  llegada_ts: string | null;
+  patente: string;
+  chofer: string;
+  km_linea: number | null;
+  km_reales: number | null;
+  litros: number | null;
+  combustible: number | null;
+  canon: number | null;
+  costo_km: number | null;
+  gastos: number | null;
+  total: number;
+  por_km: number | null;
+  operaciones: number;
+  moneda: string;
+  en_curso: boolean;
+  incompleto: boolean;
+};
+/** fue.fn_ralenti_mes (migración 50). */
+type RalentiMesRow = {
+  chofer_id: number | null;
+  chofer: string | null;
+  ralenti_l: number;
+  ralenti_h: number | null;
+  dias: number;
+  dias_sin_litros: number;
+  camiones: string | null;
+  permitido_l: number;
+  exceso_l: number;
+  precio_promedio: number | null;
+  precio_propuesto: number | null;
+  moneda: string;
+  importe: number | null;
+  cierre_id: number | null;
+  cierre_numero: string | null;
+  cierre_justificado_l: number | null;
+  cierre_exceso_l: number | null;
+  cierre_precio: number | null;
+  cierre_importe: number | null;
+};
 /** fue.fn_gensets_combustible (migración 48). */
 type GensetCombustibleRow = {
   genset_id: number;
@@ -1011,6 +1056,16 @@ export type Database = {
       fn_cerrar_viaje_chofer: { Args: { p_viaje: number; p_version: number }; Returns: undefined };
       fn_reabrir_viaje_chofer: { Args: { p_viaje: number; p_motivo: string }; Returns: undefined };
       fn_anular_viaje_chofer: { Args: { p_viaje: number; p_motivo: string }; Returns: undefined };
+      // Migración 51: km reales y costos del viaje
+      fn_telemetria_viaje: { Args: { p_viaje: number }; Returns: Json };
+      fn_costos_viaje: { Args: { p_viaje: number }; Returns: Json };
+      fn_costos_viajes: { Args: { p_desde: string; p_hasta: string }; Returns: CostoViajeRow[] };
+      fn_categorias_gasto_viaje: { Args: Record<string, never>; Returns: { codigo: string; nombre: string }[] };
+      fn_agregar_gasto_viaje: {
+        Args: { p_viaje: number; p_categoria: string; p_fecha: string; p_importe: number; p_moneda: string; p_documento?: string | null; p_observacion?: string | null };
+        Returns: number;
+      };
+      fn_anular_gasto_viaje: { Args: { p_gasto: number; p_motivo: string }; Returns: undefined };
       fn_operaciones: { Args: { p_desde?: string | null; p_hasta?: string | null }; Returns: OperacionRow[] };
       fn_alta_operaciones: { Args: { p_datos: Json; p_cantidad: number }; Returns: number[] };
       fn_avanzar: {
@@ -1342,6 +1397,14 @@ export type Database = {
         Returns: number;
       };
       fn_anular_cierre_genset: { Args: { p_cierre: number; p_motivo: string }; Returns: undefined };
+      // Migración 50: ralentí permitido por mes
+      fn_ralenti_mes: { Args: { p_mes: string }; Returns: RalentiMesRow[] };
+      fn_precio_promedio_mes: { Args: { p_mes: string }; Returns: number | null };
+      fn_cerrar_ralenti: {
+        Args: { p_chofer: number; p_mes: string; p_justificado_l?: number; p_motivo_justificado?: string | null; p_precio_litro?: number | null; p_observacion?: string | null };
+        Returns: number;
+      };
+      fn_anular_cierre_ralenti: { Args: { p_cierre: number; p_motivo: string }; Returns: undefined };
       /** Migración 47: odómetro de la telemetría más cercano (±6 h): { odometro_km, ts } o null. */
       fn_odometro_telemetria: { Args: { p_camion: number; p_ts: string }; Returns: Json };
       fn_resolver_solicitud: { Args: { p_id: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: SolicitudRow };

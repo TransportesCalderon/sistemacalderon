@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { browserDb } from '@/shared/supabase/browser';
+import { agregarGastoViaje, anularGastoViaje } from '../actions/costos.actions';
+import { costosRepository } from '../repositories/costos.repository';
 import { usePizarraEnVivo } from '@/modules/pizarra/queries/hooks';
 import {
   asignarViaje,
@@ -109,3 +111,13 @@ export const usePrepararCierreCombustible = () => useEscritura(prepararCierreCom
 export const useCerrarViajeChofer = () => useEscritura(cerrarViajeChofer);
 export const useReabrirViajeChofer = () => useEscritura(reabrirViajeChofer);
 export const useAnularViajeChofer = () => useEscritura(anularViajeChofer);
+
+// Migración 51: km reales y costos de los viajes
+export const useCostosViaje = (viajeId: number, enabled = true) =>
+  useQuery({ queryKey: ['logistica', 'costos', viajeId] as const, queryFn: () => costosRepository(browserDb()).deViaje(viajeId), enabled, staleTime: 60_000 });
+export const useCostosViajes = (desde: string, hasta: string) =>
+  useQuery({ queryKey: ['logistica', 'costos', 'lista', desde, hasta] as const, queryFn: () => costosRepository(browserDb()).lista(desde, hasta), staleTime: 60_000 });
+export const useCategoriasGasto = () =>
+  useQuery({ queryKey: ['logistica', 'costos', 'categorias'] as const, queryFn: () => costosRepository(browserDb()).categorias(), staleTime: 3_600_000 });
+export const useAgregarGastoViaje = () => useEscritura(agregarGastoViaje);
+export const useAnularGastoViaje = () => useEscritura(anularGastoViaje);

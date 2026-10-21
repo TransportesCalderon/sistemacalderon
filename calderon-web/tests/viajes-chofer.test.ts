@@ -36,3 +36,29 @@ describe('Tractores y viajes de chofer (migración 46)', () => {
     expect(pantallaDeRuta('/operacion/tractores')).toBe('operacion.tramos');
   });
 });
+
+describe('costos del viaje (migración 51)', () => {
+  it('lee los costos tal como los arma la base', async () => {
+    const { parsearCostosViaje } = await import('@/modules/logistica/domain/costos.types');
+    const c = parsearCostosViaje({
+      moneda: 'ARS', en_curso: false, km_linea: 1400, km_reales: 1500, fuente_km: 'telemetria',
+      telemetria: { km: 1500, litros: 480, horas_motor: 30, l_100km: 32 },
+      litros_cargados: 500, combustible: 500000, combustible_estimado: false, canon: 120000, canon_sin_cotizacion: 0,
+      costo_km_fijo: 100, costo_km: 150000, gastos: 5000,
+      gastos_detalle: [{ id: 1, categoria: 'Peaje', fecha: '2026-10-16', importe: 5000, moneda: 'ARS', importe_base: 5000, estado: 'registrado' }],
+      total: 775000, por_km: 516.67, operaciones: 1, por_operacion: 775000,
+    });
+    expect(c.kmReales).toBe(1500);
+    expect(c.l100km).toBe(32);
+    expect(c.gastosDetalle[0]?.anulado).toBe(false);
+    expect(c.total).toBe(775000);
+  });
+
+  it('sin telemetría ni gastos no rompe', async () => {
+    const { parsearCostosViaje } = await import('@/modules/logistica/domain/costos.types');
+    const c = parsearCostosViaje({ moneda: 'ARS', total: 0 });
+    expect(c.kmReales).toBeNull();
+    expect(c.gastosDetalle).toEqual([]);
+    expect(c.fuenteKm).toBeNull();
+  });
+});

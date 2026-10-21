@@ -100,6 +100,8 @@ export interface ViajeChofer {
   observacion: string | null;
   motivoAnulacion: string | null;
   cerradoEn: FechaISO | null;
+  /** Migración 51: sin usuario = lo cerró la tarea automática. */
+  cerradoPor: number | null;
   camion: { id: number; codigoInterno: string; patente: string };
   chofer: { id: number; nombre: string };
   salida: FechaISO;
@@ -131,6 +133,7 @@ export function parsearViajeChofer(d: J): ViajeChofer {
     observacion: t(d.observacion),
     motivoAnulacion: t(d.motivo_anulacion),
     cerradoEn: t(d.cerrado_en) as FechaISO | null,
+    cerradoPor: n(d.cerrado_por),
     camion: { id: Number(camion.id), codigoInterno: String(camion.codigo_interno ?? ''), patente: String(camion.patente ?? '') },
     chofer: { id: Number(chofer.id), nombre: String(chofer.nombre ?? '') },
     salida: String(d.salida_ts) as FechaISO,

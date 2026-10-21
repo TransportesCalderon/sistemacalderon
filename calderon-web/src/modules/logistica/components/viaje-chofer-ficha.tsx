@@ -26,6 +26,7 @@ import {
   useReabrirViajeChofer,
   useViajeChofer,
 } from '../queries/hooks';
+import { CostosViaje } from './costos-viaje';
 import { Lista } from './viajes-pantalla';
 import { SelectorItems, SituacionViajeChoferChip, formatoImporte, formatoNumero, type ItemElegido } from './viaje-chofer-comun';
 
@@ -64,6 +65,7 @@ export function ViajeChoferFicha({ id }: { id: number }) {
       <Recorrido v={v} />
       <Combustible v={v} />
       <Operaciones v={v} />
+      {v.estado !== 'anulado' && <CostosViaje viaje={v} />}
       <Acciones v={v} />
     </div>
   );
@@ -80,7 +82,12 @@ function Cabecera({ v }: { v: ViajeChofer }) {
           Viaje <span className="font-mono">{v.numero}</span>
         </h1>
         <SituacionViajeChoferChip s={v.situacion} />
-        {v.cerradoEn && <span className="text-sm text-tinta-suave">Cerrado el {formatearFechaHora(v.cerradoEn, zonaHoraria)}</span>}
+        {v.cerradoEn && (
+          <span className="text-sm text-tinta-suave">
+            Cerrado el {formatearFechaHora(v.cerradoEn, zonaHoraria)}
+            {v.cerradoPor === null && ' · automáticamente'}
+          </span>
+        )}
       </div>
       <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-tinta">
         <span>
