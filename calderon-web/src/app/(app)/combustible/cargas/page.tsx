@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { requirePermiso } from '@/modules/core/auth/guards';
+import { Pestanas } from '@/shared/ui/pestanas';
+import { PESTANAS_CARGAS } from '@/shared/ui/pestanas-secciones';
 import { CargasLista } from '@/modules/combustible/components/cargas/cargas-lista';
 import { parsearListaCargas } from '@/modules/combustible/domain/carga.lista';
 import { combustibleQueries as q } from '@/modules/combustible/queries/keys';
@@ -19,8 +21,11 @@ export default async function CargasPage({ searchParams }: Props) {
   const qc = getQueryClient();
   await Promise.all([qc.prefetchQuery(q.cargas.lista(db, params)), qc.prefetchQuery(q.catalogos.camiones(db))]);
   return (
-    <HydrationBoundary state={dehydrate(qc)}>
-      <CargasLista />
-    </HydrationBoundary>
+    <>
+      <Pestanas items={PESTANAS_CARGAS} />
+      <HydrationBoundary state={dehydrate(qc)}>
+        <CargasLista />
+      </HydrationBoundary>
+    </>
   );
 }

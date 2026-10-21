@@ -1,21 +1,26 @@
 import type { PantallaId } from '@/modules/core/permissions/matriz';
 
 /**
- * Menú lateral (rediseño del 20/10/2026: «lo sencillo antes que lo completo»).
- * Pocos grupos, por tarea del día a día, y solo pantallas que ya funcionan: las de la
- * especificación que todavía no existen no se muestran. Cada entrada declara la pantalla
- * de la matriz de permisos que la habilita: la misma lista alimenta el Sidebar y la
- * guardia de rutas del middleware. Las entradas «ocultas» son rutas que siguen
- * protegidas pero se abren desde otra pantalla (pestañas o enlaces), no desde el menú.
+ * Menú lateral (revisión del 21/10/2026: «encontrar rápido dónde cargar cada cosa»).
+ * - «Cargar nuevo» lleva directo al formulario de alta de lo que más se carga.
+ * - Las pantallas hermanas comparten una sola entrada y se cambian con pestañas arriba
+ *   de la pantalla (shared/ui/pestanas-secciones.ts). Esas rutas quedan «ocultas»: siguen
+ *   protegidas por el middleware, pero no ocupan lugar en el menú.
+ * Cada entrada declara la pantalla de la matriz de permisos que la habilita: la misma lista
+ * alimenta el Sidebar y la guardia de rutas del middleware.
  */
-export type IconoGrupo = 'inicio' | 'pendientes' | 'logistica' | 'combustible' | 'flota' | 'datos' | 'configuracion';
+export type IconoGrupo = 'inicio' | 'cargar' | 'pendientes' | 'logistica' | 'combustible' | 'flota' | 'datos' | 'configuracion';
 
 export interface EntradaMenu {
   href: string;
   etiqueta: string;
   pantalla: PantallaId;
-  /** Ruta protegida que no aparece en el menú (se llega desde otra pantalla). */
+  /** Ruta protegida que no aparece en el menú (se llega desde las pestañas u otra pantalla). */
   oculta?: boolean;
+  /** Permiso que hace falta para verla en el menú (por defecto «ver»; las altas piden «editar»). */
+  accion?: 'ver' | 'editar';
+  /** Rutas de las pestañas de esta entrada: estando en ellas, la entrada se marca como actual. */
+  incluye?: readonly string[];
 }
 
 export interface GrupoMenu {
@@ -31,21 +36,41 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     entradas: [{ href: '/inicio', etiqueta: 'Inicio', pantalla: 'inicio.dashboard' }],
   },
   {
+    id: 'cargar',
+    etiqueta: 'Cargar nuevo',
+    entradas: [
+      { href: '/combustible/cargas/nueva', etiqueta: 'Carga de combustible', pantalla: 'combustible.cargas', accion: 'editar' },
+      { href: '/operacion/operaciones?nueva=1', etiqueta: 'Operación de un cliente', pantalla: 'operacion.servicios', accion: 'editar' },
+      { href: '/combustible/movimientos/nuevo', etiqueta: 'Movimiento de combustible', pantalla: 'combustible.movimientos', accion: 'editar' },
+      { href: '/flota/camiones/nuevo', etiqueta: 'Camión', pantalla: 'flota.camiones', accion: 'editar' },
+      { href: '/flota/choferes/nuevo', etiqueta: 'Chofer', pantalla: 'flota.choferes', accion: 'editar' },
+      { href: '/comercial/clientes/nuevo', etiqueta: 'Cliente', pantalla: 'comercial.clientes', accion: 'editar' },
+    ],
+  },
+  {
     id: 'pendientes',
-    etiqueta: 'Mis pendientes',
-    entradas: [{ href: '/pendientes', etiqueta: 'Mis pendientes', pantalla: 'inicio.pendientes' }],
+    etiqueta: 'Pendientes y alertas',
+    entradas: [
+      { href: '/pendientes', etiqueta: 'Mis pendientes', pantalla: 'inicio.pendientes' },
+      { href: '/anomalias/alertas', etiqueta: 'Alertas de la telemetría', pantalla: 'anomalias.alertas' },
+    ],
   },
   {
     id: 'logistica',
-    // 21/10/2026: «todo en el viaje» — cada viaje trae adentro su combustible, su cierre y sus costos.
+    // «Todo en el viaje»: cada viaje trae adentro su combustible, su cierre y sus costos.
     etiqueta: 'Viajes',
     entradas: [
-      { href: '/operacion/tractores', etiqueta: 'Tractores y viajes', pantalla: 'operacion.tramos' },
-      { href: '/operacion/viajes-chofer', etiqueta: 'Viajes de chofer', pantalla: 'operacion.tramos', oculta: true },
       { href: '/operacion/operaciones', etiqueta: 'Operaciones', pantalla: 'operacion.servicios' },
-      { href: '/operacion/costos', etiqueta: 'Costos de viajes', pantalla: 'finanzas.costos_directos' },
+      {
+        href: '/operacion/tractores',
+        etiqueta: 'Tractores y viajes',
+        pantalla: 'operacion.tramos',
+        incluye: ['/operacion/viajes-chofer', '/combustible/cierres', '/operacion/costos', '/combustible/viajes', '/operacion/viajes'],
+      },
       { href: '/flota/pizarra', etiqueta: 'Pizarra Azul', pantalla: 'flota.pizarra' },
       { href: '/telemetria/mapa', etiqueta: 'Mapa de flota', pantalla: 'telemetria.mapa' },
+      { href: '/operacion/viajes-chofer', etiqueta: 'Viajes de chofer', pantalla: 'operacion.tramos', oculta: true },
+      { href: '/operacion/costos', etiqueta: 'Costos de viajes', pantalla: 'finanzas.costos_directos', oculta: true },
       { href: '/operacion/viajes', etiqueta: 'Viajes', pantalla: 'operacion.tramos', oculta: true },
     ],
   },
@@ -53,29 +78,43 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     id: 'combustible',
     etiqueta: 'Combustible',
     entradas: [
-      { href: '/combustible/cargas', etiqueta: 'Cargas', pantalla: 'combustible.cargas' },
-      { href: '/combustible/observadas', etiqueta: 'Por revisar', pantalla: 'combustible.bandejas', oculta: true },
+      {
+        href: '/combustible/cargas',
+        etiqueta: 'Cargas',
+        pantalla: 'combustible.cargas',
+        incluye: ['/combustible/observadas', '/combustible/sin-documento', '/combustible/movimientos'],
+      },
+      { href: '/combustible/base', etiqueta: 'Base Mendoza', pantalla: 'combustible.depositos' },
+      {
+        href: '/combustible/costo-medio',
+        etiqueta: 'Consumo y ralentí',
+        pantalla: 'combustible.consumo',
+        incluye: ['/combustible/conciliacion', '/combustible/ralenti'],
+      },
+      { href: '/combustible/observadas', etiqueta: 'Por validar', pantalla: 'combustible.bandejas', oculta: true },
       { href: '/combustible/sin-documento', etiqueta: 'Sin ticket', pantalla: 'combustible.bandejas', oculta: true },
+      { href: '/combustible/movimientos', etiqueta: 'Movimientos', pantalla: 'combustible.movimientos', oculta: true },
       { href: '/combustible/viajes', etiqueta: 'Viajes y cierres', pantalla: 'combustible.cierre_viaje', oculta: true },
       { href: '/combustible/cierres', etiqueta: 'Cierres de viaje', pantalla: 'combustible.cierre_viaje', oculta: true },
-      { href: '/combustible/movimientos', etiqueta: 'Movimientos', pantalla: 'combustible.movimientos' },
-      { href: '/combustible/base', etiqueta: 'Base Mendoza', pantalla: 'combustible.depositos' },
-      { href: '/anomalias/alertas', etiqueta: 'Alertas', pantalla: 'anomalias.alertas' },
-      { href: '/combustible/ralenti', etiqueta: 'Ralentí del mes', pantalla: 'combustible.cierre_viaje' },
-      { href: '/combustible/costo-medio', etiqueta: 'Consumo', pantalla: 'combustible.consumo' },
       { href: '/combustible/conciliacion', etiqueta: 'Cargado vs. motor', pantalla: 'combustible.consumo', oculta: true },
+      { href: '/combustible/ralenti', etiqueta: 'Ralentí del mes', pantalla: 'combustible.cierre_viaje', oculta: true },
     ],
   },
   {
     id: 'flota',
     etiqueta: 'Flota',
     entradas: [
-      { href: '/flota/camiones', etiqueta: 'Camiones', pantalla: 'flota.camiones' },
-      { href: '/flota/semirremolques', etiqueta: 'Semirremolques', pantalla: 'flota.camiones' },
-      { href: '/flota/choferes', etiqueta: 'Choferes', pantalla: 'flota.choferes' },
-      { href: '/telemetria/choferes', etiqueta: 'Puntaje de choferes', pantalla: 'telemetria.sesiones' },
-      { href: '/flota/gensets', etiqueta: 'Gensets', pantalla: 'flota.pizarra' },
-      { href: '/flota/accesorios', etiqueta: 'Accesorios', pantalla: 'flota.pizarra' },
+      {
+        href: '/flota/camiones',
+        etiqueta: 'Camiones y equipos',
+        pantalla: 'flota.camiones',
+        incluye: ['/flota/semirremolques', '/flota/gensets', '/flota/accesorios'],
+      },
+      { href: '/flota/choferes', etiqueta: 'Choferes', pantalla: 'flota.choferes', incluye: ['/telemetria/choferes'] },
+      { href: '/flota/semirremolques', etiqueta: 'Semirremolques', pantalla: 'flota.camiones', oculta: true },
+      { href: '/flota/gensets', etiqueta: 'Gensets', pantalla: 'flota.pizarra', oculta: true },
+      { href: '/flota/accesorios', etiqueta: 'Accesorios', pantalla: 'flota.pizarra', oculta: true },
+      { href: '/telemetria/choferes', etiqueta: 'Puntaje de choferes', pantalla: 'telemetria.sesiones', oculta: true },
     ],
   },
   {
@@ -85,9 +124,9 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/comercial/clientes', etiqueta: 'Clientes', pantalla: 'comercial.clientes' },
       { href: '/comercial/ubicaciones', etiqueta: 'Lugares', pantalla: 'comercial.ubicaciones' },
       { href: '/operacion/lineas', etiqueta: 'Líneas', pantalla: 'operacion.servicios' },
-      { href: '/comercial/estaciones', etiqueta: 'Estaciones de servicio', pantalla: 'comercial.proveedores' },
-      { href: '/comercial/proveedores', etiqueta: 'Proveedores', pantalla: 'comercial.proveedores' },
+      { href: '/comercial/proveedores', etiqueta: 'Proveedores y estaciones', pantalla: 'comercial.proveedores', incluye: ['/comercial/estaciones'] },
       { href: '/operacion/transportistas', etiqueta: 'Transportistas externos', pantalla: 'operacion.servicios' },
+      { href: '/comercial/estaciones', etiqueta: 'Estaciones de servicio', pantalla: 'comercial.proveedores', oculta: true },
     ],
   },
   {
@@ -95,11 +134,11 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     etiqueta: 'Configuración',
     entradas: [
       { href: '/configuracion/usuarios', etiqueta: 'Usuarios', pantalla: 'configuracion.usuarios' },
-      { href: '/finanzas/tipos-cambio', etiqueta: 'Tipos de cambio', pantalla: 'finanzas.tipos_cambio' },
-      { href: '/configuracion/monedas', etiqueta: 'Monedas', pantalla: 'configuracion.catalogos' },
-      { href: '/configuracion/parametros', etiqueta: 'Parámetros', pantalla: 'configuracion.catalogos' },
-      { href: '/configuracion/catalogos', etiqueta: 'Catálogos', pantalla: 'configuracion.catalogos' },
+      { href: '/finanzas/tipos-cambio', etiqueta: 'Monedas y tipos de cambio', pantalla: 'finanzas.tipos_cambio', incluye: ['/configuracion/monedas'] },
+      { href: '/configuracion/parametros', etiqueta: 'Parámetros y catálogos', pantalla: 'configuracion.catalogos', incluye: ['/configuracion/catalogos'] },
       { href: '/telemetria/datos', etiqueta: 'Datos de los camiones', pantalla: 'telemetria.calidad' },
+      { href: '/configuracion/monedas', etiqueta: 'Monedas', pantalla: 'configuracion.catalogos', oculta: true },
+      { href: '/configuracion/catalogos', etiqueta: 'Catálogos', pantalla: 'configuracion.catalogos', oculta: true },
     ],
   },
 ];
@@ -118,10 +157,32 @@ export function esRutaSinPantalla(pathname: string): boolean {
   return RUTAS_SIN_PANTALLA.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
-const ENTRADAS_POR_LONGITUD = NAVEGACION.flatMap((g) => g.entradas).sort((a, b) => b.href.length - a.href.length);
+const ENTRADAS_POR_LONGITUD = NAVEGACION.flatMap((g) => g.entradas)
+  .filter((e) => !e.href.includes('?'))
+  .sort((a, b) => b.href.length - a.href.length);
 
 /** Pantalla que protege una ruta (coincidencia por prefijo más largo); null si no es del menú. */
 export function pantallaDeRuta(pathname: string): PantallaId | null {
   const entrada = ENTRADAS_POR_LONGITUD.find((e) => pathname === e.href || pathname.startsWith(`${e.href}/`));
   return entrada?.pantalla ?? null;
+}
+
+function coincide(pathname: string, ruta: string): boolean {
+  return pathname === ruta || pathname.startsWith(`${ruta}/`);
+}
+
+/**
+ * Entrada del menú que corresponde a la ruta actual (la coincidencia más larga, contando
+ * las pestañas que incluye). Así se marca una sola entrada, aunque varias empiecen igual.
+ */
+export function entradaActual(pathname: string, entradas: readonly EntradaMenu[]): string | null {
+  let mejor: { href: string; largo: number } | null = null;
+  for (const e of entradas) {
+    // Las altas con «?» (abren un formulario sobre una lista) no marcan la lista
+    for (const r of [e.href, ...(e.incluye ?? [])].filter((x) => !x.includes('?'))) {
+      const largo = r.length;
+      if (coincide(pathname, r) && (!mejor || largo > mejor.largo)) mejor = { href: e.href, largo };
+    }
+  }
+  return mejor?.href ?? null;
 }

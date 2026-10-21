@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { requirePermiso } from '@/modules/core/auth/guards';
+import { Pestanas } from '@/shared/ui/pestanas';
+import { PESTANAS_EQUIPOS } from '@/shared/ui/pestanas-secciones';
 import { CamionesLista } from '@/modules/flota/components/camiones/camiones-lista';
 import { parsearListaCamiones } from '@/modules/flota/domain/camion.lista';
 import { camionesQueries, catalogosFlotaQueries } from '@/modules/flota/queries/keys';
@@ -21,8 +23,11 @@ export default async function CamionesPage({ searchParams }: Props) {
   await Promise.all([qc.prefetchQuery(camionesQueries.lista(db, params)), qc.prefetchQuery(catalogosFlotaQueries.obtener(db))]);
 
   return (
-    <HydrationBoundary state={dehydrate(qc)}>
-      <CamionesLista />
-    </HydrationBoundary>
+    <>
+      <Pestanas items={PESTANAS_EQUIPOS} />
+      <HydrationBoundary state={dehydrate(qc)}>
+        <CamionesLista />
+      </HydrationBoundary>
+    </>
   );
 }

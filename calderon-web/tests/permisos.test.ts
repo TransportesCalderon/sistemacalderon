@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ORDEN_COLUMNAS, PANTALLAS } from '@/modules/core/permissions/matriz';
 import { alcanceDe, can, permisosDe } from '@/modules/core/permissions/resolver';
 import { menuVisible, rutaInicial } from '@/modules/core/navigation/filtrar';
-import { NAVEGACION, pantallaDeRuta } from '@/modules/core/navigation/navigation';
+import { NAVEGACION, entradaActual, pantallaDeRuta } from '@/modules/core/navigation/navigation';
 import { decodificarClaims, identidadDesdeClaims } from '@/modules/core/auth/claims';
 
 const agregado = { gerenciaDetalleAlertas: 'agregado' as const };
@@ -76,19 +76,22 @@ describe('matriz de permisos (especificación §16)', () => {
 });
 
 describe('navegación (especificación §3)', () => {
-  it('menú corto: 7 grupos y solo pantallas que existen (las ocultas se abren desde otra pantalla)', () => {
-    expect(NAVEGACION.length).toBe(7);
+  it('menú corto: 8 grupos, «Cargar nuevo» y las pantallas hermanas como pestañas', () => {
+    expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'cargar', 'pendientes', 'logistica', 'combustible', 'flota', 'datos', 'configuracion']);
     const entradas = NAVEGACION.flatMap((g) => g.entradas);
-    expect(entradas.filter((e) => !e.oculta).length).toBe(31);
-    expect(entradas.filter((e) => e.oculta).map((e) => e.href)).toEqual([
-      '/operacion/viajes-chofer',
-      '/operacion/viajes',
-      '/combustible/observadas',
-      '/combustible/sin-documento',
-      '/combustible/viajes',
-      '/combustible/cierres',
-      '/combustible/conciliacion',
-    ]);
+    expect(entradas.filter((e) => !e.oculta).length).toBe(27);
+    expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
+    // Toda ruta incluida como pestaña sigue protegida por una entrada oculta o visible
+    for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
+  });
+
+  it('marca una sola entrada: la de la coincidencia más larga, contando las pestañas', () => {
+    const visibles = NAVEGACION.flatMap((g) => g.entradas).filter((e) => !e.oculta);
+    expect(entradaActual('/combustible/cargas/nueva', visibles)).toBe('/combustible/cargas/nueva');
+    expect(entradaActual('/combustible/cargas/12', visibles)).toBe('/combustible/cargas');
+    expect(entradaActual('/combustible/cierres/5', visibles)).toBe('/operacion/tractores');
+    expect(entradaActual('/flota/gensets', visibles)).toBe('/flota/camiones');
+    expect(entradaActual('/operacion/operaciones', visibles)).toBe('/operacion/operaciones');
   });
 
   it('todas las entradas apuntan a pantallas de la matriz', () => {
@@ -100,12 +103,12 @@ describe('navegación (especificación §3)', () => {
     expect(pantallaDeRuta('/otra-cosa')).toBeNull();
   });
 
-  it('el menú no muestra entradas ocultas; TI ve los 7 grupos', () => {
+  it('el menú no muestra entradas ocultas; TI ve los 8 grupos', () => {
     const ti = menuVisible(permisosDe(['ti'], agregado)).flatMap((g) => g.entradas.map((e) => e.href));
     expect(ti).not.toContain('/combustible/cierres');
     expect(ti).not.toContain('/combustible/viajes');
     expect(ti).toContain('/operacion/tractores');
-    expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(7);
+    expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(8);
     expect(pantallaDeRuta('/combustible/cierres/5')).toBe('combustible.cierre_viaje');
   });
 

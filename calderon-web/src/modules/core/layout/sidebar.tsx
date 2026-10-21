@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ChevronDown, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
-import type { GrupoMenu } from '@/modules/core/navigation/navigation';
+import { entradaActual, type GrupoMenu } from '@/modules/core/navigation/navigation';
 import { ICONO_GRUPO } from './iconos';
 
 const CLAVE_GRUPOS = 'tc.sidebar.grupos';
@@ -27,10 +27,6 @@ export function guardarLocal(clave: string, valor: unknown) {
   }
 }
 
-function estaActiva(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
 interface SidebarProps {
   menu: GrupoMenu[];
   plegado: boolean;
@@ -46,6 +42,7 @@ interface SidebarProps {
 export function Sidebar({ menu, plegado, onAlternarPlegado, abiertoMovil, onCerrarMovil }: SidebarProps) {
   const pathname = usePathname();
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
+  const actualHref = entradaActual(pathname, menu.flatMap((g) => g.entradas));
 
   useEffect(() => {
     setAbiertos(leerLocal<Record<string, boolean>>(CLAVE_GRUPOS, {}));
@@ -108,7 +105,7 @@ export function Sidebar({ menu, plegado, onAlternarPlegado, abiertoMovil, onCerr
           <ul className="space-y-1">
             {menu.map((grupo) => {
               const Icono = ICONO_GRUPO[grupo.id];
-              const activo = grupo.entradas.some((e) => estaActiva(pathname, e.href));
+              const activo = grupo.entradas.some((e) => e.href === actualHref);
               const abierto = abiertos[grupo.id] ?? activo;
               const unico = grupo.entradas.length === 1 ? grupo.entradas[0] : undefined;
 
@@ -165,7 +162,7 @@ export function Sidebar({ menu, plegado, onAlternarPlegado, abiertoMovil, onCerr
                   {abierto && (
                     <ul className="mt-1 mb-2 space-y-0.5 border-l border-borde pl-3 ml-4.5">
                       {grupo.entradas.map((entrada) => {
-                        const actual = estaActiva(pathname, entrada.href);
+                        const actual = entrada.href === actualHref;
                         return (
                           <li key={entrada.href}>
                             <Link

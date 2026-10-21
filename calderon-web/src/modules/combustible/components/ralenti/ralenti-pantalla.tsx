@@ -44,7 +44,7 @@ export function RalentiPantalla() {
         <Info className="mt-0.5 size-4 shrink-0" />
         Litros con el camión parado y el motor en marcha, según la telemetría, sumando todos los tractores que manejó cada chofer. Hasta
         {permitido !== undefined ? ` ${formatearNumero(permitido, 0)} L` : ' el permitido'} por mes no se descuenta; el resto sí, al cerrar el mes. El
-        permitido y el precio por litro se cambian en Configuración › Parámetros.
+        permitido y el precio por litro se cambian en Configuración › Parámetros y catálogos.
       </p>
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1 text-sm">

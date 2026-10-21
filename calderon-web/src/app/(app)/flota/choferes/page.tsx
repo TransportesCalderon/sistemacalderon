@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { requirePermiso } from '@/modules/core/auth/guards';
+import { Pestanas } from '@/shared/ui/pestanas';
+import { PESTANAS_CHOFERES } from '@/shared/ui/pestanas-secciones';
 import { alcanceDe } from '@/modules/core/permissions/resolver';
 import { ChoferesLista } from '@/modules/flota/components/choferes/choferes-lista';
 import { parsearListaChoferes } from '@/modules/flota/domain/chofer.lista';
@@ -31,8 +33,11 @@ export default async function ChoferesPage({ searchParams }: Props) {
   ]);
 
   return (
-    <HydrationBoundary state={dehydrate(qc)}>
-      <ChoferesLista />
-    </HydrationBoundary>
+    <>
+      <Pestanas items={PESTANAS_CHOFERES} />
+      <HydrationBoundary state={dehydrate(qc)}>
+        <ChoferesLista />
+      </HydrationBoundary>
+    </>
   );
 }
