@@ -24,6 +24,7 @@ export interface DiaConduccion {
   litros: number | null;
   horasMotor: number | null;
   ralentiH: number | null;
+  ralentiL: number | null;
   programadorKm: number | null;
   sobreVelocidadMin: number | null;
   rpmAltaMin: number | null;

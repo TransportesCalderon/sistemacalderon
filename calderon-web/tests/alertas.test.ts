@@ -25,3 +25,11 @@ describe('alertas (migración 49)', () => {
     expect(estaAbierta({ estado: 'descartada' })).toBe(false);
   });
 });
+
+describe('ralentí del mes (migración 50)', () => {
+  it('propone el mes anterior, también en enero', async () => {
+    const { mesAnterior } = await import('@/modules/combustible/domain/ralenti.types');
+    expect(mesAnterior('2026-10-21')).toBe('2026-09-01');
+    expect(mesAnterior('2027-01-05')).toBe('2026-12-01');
+  });
+});

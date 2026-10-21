@@ -39,6 +39,7 @@ export const conduccionRepository = (db: Db) => {
         litros: n(d.litros),
         horasMotor: n(d.horas_motor),
         ralentiH: n(d.ralenti_h),
+        ralentiL: n(d.ralenti_l),
         programadorKm: n(d.programador_km),
         sobreVelocidadMin: n(d.sobre_velocidad_min),
         rpmAltaMin: n(d.rpm_alta_min),
