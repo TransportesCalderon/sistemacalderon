@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { REFRESCO } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { importarTelemetriaAhora } from '../actions/flota.actions';
+import { conduccionRepository } from '../repositories/conduccion.repository';
 import { telemetriaQueries as q } from './keys';
 
 export const useFlotaEnVivo = () => useQuery({ ...q.enVivo(browserDb()), refetchInterval: REFRESCO.telemetriaVivo });
@@ -18,3 +19,29 @@ export function useImportarAhora() {
     onSuccess: () => qc.invalidateQueries({ queryKey: q.todo() }),
   });
 }
+
+// Migración 49: conducción por chofer y calidad de los datos
+export const usePuntajesChoferes = (desde: string, hasta: string) =>
+  useQuery({
+    queryKey: ['telemetria', 'puntajes', desde, hasta] as const,
+    queryFn: () => conduccionRepository(browserDb()).puntajes(desde, hasta),
+    staleTime: 60_000,
+  });
+export const useDiasChofer = (choferId: number | null, desde: string, hasta: string) =>
+  useQuery({
+    queryKey: ['telemetria', 'dias-chofer', choferId, desde, hasta] as const,
+    queryFn: () => conduccionRepository(browserDb()).diasChofer(choferId!, desde, hasta),
+    enabled: choferId !== null,
+    staleTime: 60_000,
+  });
+export const useInventarioTelemetria = (dias: number) =>
+  useQuery({ queryKey: ['telemetria', 'inventario', dias] as const, queryFn: () => conduccionRepository(browserDb()).inventario(dias), staleTime: 300_000 });
+export const useTarjetasSinEnlace = (dias: number) =>
+  useQuery({ queryKey: ['telemetria', 'sin-enlace', dias] as const, queryFn: () => conduccionRepository(browserDb()).sinEnlace(dias), staleTime: 300_000 });
+export const useProgramadorTelemetria = (camionId: number, desde: string, hasta: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ['telemetria', 'programador', camionId, desde, hasta] as const,
+    queryFn: () => conduccionRepository(browserDb()).programadorPct(camionId, desde, hasta),
+    enabled,
+    staleTime: 300_000,
+  });

@@ -61,6 +61,13 @@ describe('matriz de permisos (especificación §16)', () => {
     expect(can(permisosDe(['gerencia'], detalle), 'anomalias.alertas:ver')).toBe(true);
   });
 
+  it('migración 49: Adm. de combustible revisa alertas y Control cambia los umbrales', () => {
+    expect(can(permisosDe(['adm_combustible'], agregado), 'anomalias.alertas:transicionar')).toBe(true);
+    expect(can(permisosDe(['adm_combustible'], agregado), 'anomalias.reglas:editar')).toBe(false);
+    expect(can(permisosDe(['analista_control'], agregado), 'anomalias.reglas:editar')).toBe(true);
+    expect(can(permisosDe(['operaciones'], agregado), 'anomalias.alertas:ver')).toBe(false);
+  });
+
   it('finanzas registra pagos de liquidaciones pero no las edita', () => {
     const p = permisosDe(['finanzas'], agregado);
     expect(can(p, 'liquidacion.liquidaciones:transicionar')).toBe(true);
@@ -72,7 +79,7 @@ describe('navegación (especificación §3)', () => {
   it('menú corto: 7 grupos y solo pantallas que existen (las ocultas se abren desde otra pantalla)', () => {
     expect(NAVEGACION.length).toBe(7);
     const entradas = NAVEGACION.flatMap((g) => g.entradas);
-    expect(entradas.filter((e) => !e.oculta).length).toBe(27);
+    expect(entradas.filter((e) => !e.oculta).length).toBe(30);
     expect(entradas.filter((e) => e.oculta).map((e) => e.href)).toEqual([
       '/operacion/viajes-chofer',
       '/operacion/viajes',

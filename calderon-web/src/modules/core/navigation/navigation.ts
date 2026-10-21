@@ -58,6 +58,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/combustible/cierres', etiqueta: 'Cierres de viaje', pantalla: 'combustible.cierre_viaje', oculta: true },
       { href: '/combustible/movimientos', etiqueta: 'Movimientos', pantalla: 'combustible.movimientos' },
       { href: '/combustible/base', etiqueta: 'Base Mendoza', pantalla: 'combustible.depositos' },
+      { href: '/anomalias/alertas', etiqueta: 'Alertas', pantalla: 'anomalias.alertas' },
       { href: '/combustible/costo-medio', etiqueta: 'Consumo', pantalla: 'combustible.consumo' },
       { href: '/combustible/conciliacion', etiqueta: 'Cargado vs. motor', pantalla: 'combustible.consumo', oculta: true },
     ],
@@ -69,6 +70,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/flota/camiones', etiqueta: 'Camiones', pantalla: 'flota.camiones' },
       { href: '/flota/semirremolques', etiqueta: 'Semirremolques', pantalla: 'flota.camiones' },
       { href: '/flota/choferes', etiqueta: 'Choferes', pantalla: 'flota.choferes' },
+      { href: '/telemetria/choferes', etiqueta: 'Puntaje de choferes', pantalla: 'telemetria.sesiones' },
       { href: '/flota/gensets', etiqueta: 'Gensets', pantalla: 'flota.pizarra' },
       { href: '/flota/accesorios', etiqueta: 'Accesorios', pantalla: 'flota.pizarra' },
     ],
@@ -94,6 +96,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/configuracion/monedas', etiqueta: 'Monedas', pantalla: 'configuracion.catalogos' },
       { href: '/configuracion/parametros', etiqueta: 'Parámetros', pantalla: 'configuracion.catalogos' },
       { href: '/configuracion/catalogos', etiqueta: 'Catálogos', pantalla: 'configuracion.catalogos' },
+      { href: '/telemetria/datos', etiqueta: 'Datos de los camiones', pantalla: 'telemetria.calidad' },
     ],
   },
 ];

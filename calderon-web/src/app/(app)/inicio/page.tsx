@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ClipboardCheck, ClipboardList, Fuel, LayoutGrid, MapPin, Plus, Truck, UsersRound, type LucideIcon } from 'lucide-react';
+import { BellRing, ClipboardCheck, ClipboardList, Fuel, LayoutGrid, MapPin, Plus, Truck, UsersRound, type LucideIcon } from 'lucide-react';
 import { requirePermiso } from '@/modules/core/auth/guards';
 import { can } from '@/modules/core/permissions/resolver';
 import type { Permiso } from '@/modules/core/permissions/types';
@@ -25,6 +25,7 @@ const TAREAS: readonly Tarea[] = [
   { href: '/flota/pizarra', titulo: 'Pizarra Azul', detalle: 'Dónde está cada semi y qué hace', icono: LayoutGrid, permiso: 'flota.pizarra:ver' },
   { href: '/combustible/cargas/nueva', titulo: 'Registrar carga', detalle: 'Una carga de combustible con su ticket', icono: Fuel, permiso: 'combustible.cargas:editar', principal: true },
   { href: '/pendientes', titulo: 'Mis pendientes', detalle: 'Lo que espera una acción tuya', icono: ClipboardCheck, permiso: 'inicio.pendientes:ver' },
+  { href: '/anomalias/alertas', titulo: 'Alertas', detalle: 'Lo que detectó la telemetría para revisar', icono: BellRing, permiso: 'anomalias.alertas:ver' },
   { href: '/telemetria/mapa', titulo: 'Mapa de flota', detalle: 'Los tractores en el mapa, en vivo', icono: MapPin, permiso: 'telemetria.mapa:ver' },
   { href: '/flota/choferes', titulo: 'Choferes', detalle: 'Datos, licencia y visa', icono: UsersRound, permiso: 'flota.choferes:ver' },
 ];

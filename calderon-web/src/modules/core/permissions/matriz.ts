@@ -61,9 +61,11 @@ export const PANTALLAS = {
   'operacion.planificacion': { etiqueta: 'Planificación de flota', fila: ['L', 'E', 'L', '—', '—', 'L', '—', '—', 'E A', 'L'] },
   'operacion.control_mendoza': { etiqueta: 'Control Mendoza', fila: ['L', 'E', 'E', 'P', '—', 'L', '—', '—', 'E A', 'L'] },
   'operacion.eventos':       { etiqueta: 'Eventos operativos', fila: ['—', 'E', 'E', '—', '—', 'L', '—', '—', 'E A', 'L'] },
-  'anomalias.alertas':       { etiqueta: 'Bandeja y ficha de alertas', fila: ['L*', '—', '—', '—', '—', 'A', '—', '—', 'E A', 'L'] },
+  // Migración 49: Administración de combustible también revisa alertas (la base lo permite).
+  'anomalias.alertas':       { etiqueta: 'Bandeja y ficha de alertas', fila: ['L*', '—', '—', '—', 'A', 'A', '—', '—', 'E A', 'L'] },
   'anomalias.casos':         { etiqueta: 'Casos de revisión', fila: ['L', '—', '—', '—', '—', 'E A', '—', '—', 'E A', 'L'] },
-  'anomalias.reglas':        { etiqueta: 'Reglas y umbrales de anomalía', fila: ['—', '—', '—', '—', '—', 'L', '—', '—', 'E A', 'L'] },
+  // Migración 49: Control cambia los umbrales (la base lo permite a Control y TI).
+  'anomalias.reglas':        { etiqueta: 'Reglas y umbrales de anomalía', fila: ['—', '—', '—', '—', '—', 'E', '—', '—', 'E A', 'L'] },
   'anomalias.lineas_base':   { etiqueta: 'Líneas base y ejecuciones', fila: ['L', '—', '—', '—', '—', 'L', '—', '—', 'E A', 'L'] },
   'telemetria.mapa':         { etiqueta: 'Mapa, recorrido, eventos, paradas', fila: ['L', 'L', 'L', '—', 'L', 'L', '—', '—', 'E A', 'L'] },
   'telemetria.sesiones':     { etiqueta: 'Sesiones de conductor, resumen diario', fila: ['L', 'L', '—', '—', '—', 'L', '—', '—', 'E A', 'L'] },

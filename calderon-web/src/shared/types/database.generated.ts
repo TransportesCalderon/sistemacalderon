@@ -569,6 +569,74 @@ type GensetIns = {
   capacidad_l?: number | null;
   consumo_lh?: number | null;
 };
+/** ana.fn_bandeja_alertas (migración 49). */
+type AlertaRow = {
+  id: number;
+  codigo: string;
+  tipo: string;
+  categoria: string;
+  severidad: string;
+  estado: string;
+  resolucion: string | null;
+  camion_id: number | null;
+  patente: string | null;
+  chofer_id: number | null;
+  chofer: string | null;
+  carga_id: number | null;
+  ocurrio_desde: string | null;
+  ocurrio_hasta: string | null;
+  detectada_en: string;
+  valor_observado: number | null;
+  valor_esperado: number | null;
+  unidad: string | null;
+  evidencia: Json;
+  descuento_l: number | null;
+  descuento_importe: number | null;
+  moneda: string | null;
+  descuento_chofer: string | null;
+  comentarios: number;
+};
+/** tel.fn_puntaje_choferes (migración 49). */
+type PuntajeChoferRow = {
+  chofer_id: number;
+  chofer: string;
+  km: number;
+  litros: number | null;
+  l_100km: number | null;
+  programador_pct: number | null;
+  ralenti_pct: number | null;
+  sobre_velocidad_min_100km: number | null;
+  frenada_fuerte_s_100km: number | null;
+  rpm_alta_pct: number | null;
+  alertas: number;
+  puntaje: number | null;
+  dias: number;
+  camiones: string | null;
+  con_acumulados: boolean;
+};
+/** tel.conduccion_diaria (migración 49). */
+type ConduccionDiariaRow = {
+  camion_id: number;
+  chofer_id: number | null;
+  fecha: string;
+  km: number;
+  litros: number | null;
+  horas_motor: number | null;
+  movimiento_h: number | null;
+  ralenti_h: number | null;
+  ralenti_l: number | null;
+  programador_km: number | null;
+  programador_h: number | null;
+  sobre_velocidad_min: number | null;
+  rpm_alta_min: number | null;
+  frenada_fuerte_s: number | null;
+  frenadas: number | null;
+  velocidad_max: number | null;
+  peso_medio_kg: number | null;
+  lecturas: number;
+  acumulados: boolean;
+  calculado_en: string;
+};
 /** fue.fn_gensets_combustible (migración 48). */
 type GensetCombustibleRow = {
   genset_id: number;
@@ -1178,6 +1246,41 @@ export type Database = {
     Functions: {
       fn_importar_api_camiones: { Args: { p_marca?: string; p_origen?: string }; Returns: Json };
       fn_importar_todas: { Args: { p_origen?: string }; Returns: Json };
+      // Migración 49: datos de los camiones, conducción y puntaje
+      fn_inventario_campos: {
+        Args: { p_dias?: number };
+        Returns: { marca: string; seccion: string; campo: string; lecturas: number; total: number; pct: number; ejemplo: string | null }[];
+      };
+      fn_choferes_sin_enlace: {
+        Args: { p_dias?: number };
+        Returns: { chofer_externo_id: string; camion_id: number; patente: string; ultimo_ts: string; lecturas: number }[];
+      };
+      fn_programador_pct: { Args: { p_camion: number; p_desde: string; p_hasta: string }; Returns: number | null };
+      fn_puntaje_choferes: { Args: { p_desde: string; p_hasta: string }; Returns: PuntajeChoferRow[] };
+      fn_conduccion_chofer: { Args: { p_chofer: number; p_desde: string; p_hasta: string }; Returns: ConduccionDiariaRow[] };
+    };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
+  /** Migración 49: alertas (motor de anomalías). Solo funciones. */
+  ana: {
+    Tables: { [_ in never]: never };
+    Views: { [_ in never]: never };
+    Functions: {
+      fn_bandeja_alertas: { Args: { p_vista?: string; p_desde?: string | null; p_hasta?: string | null }; Returns: AlertaRow[] };
+      fn_alerta_detalle: { Args: { p_alerta: number }; Returns: Json };
+      fn_reglas_vigentes: {
+        Args: Record<string, never>;
+        Returns: { codigo: string; nombre: string; descripcion: string | null; categoria: string; version: number; parametros: Json; activa: boolean; vigente_desde: string }[];
+      };
+      fn_tomar_alerta: { Args: { p_alerta: number }; Returns: undefined };
+      fn_resolver_alerta: {
+        Args: { p_alerta: number; p_decision: string; p_justificacion: string; p_chofer?: number | null; p_litros?: number | null };
+        Returns: undefined;
+      };
+      fn_reabrir_alerta: { Args: { p_alerta: number; p_justificacion: string }; Returns: undefined };
+      fn_comentar_alerta: { Args: { p_alerta: number; p_texto: string }; Returns: undefined };
+      fn_cambiar_umbrales: { Args: { p_codigo: string; p_parametros: Json; p_activa?: boolean }; Returns: string };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

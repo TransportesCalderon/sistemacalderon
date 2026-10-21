@@ -11,6 +11,7 @@ import { Campo } from '@/shared/ui/campo';
 import type { ChoferId } from '@/shared/types/dominio';
 import { aFormularioBorrador, borradorFormSchema, type BorradorFormEntrada } from '../../domain/cierre.schemas';
 import { ETIQUETA_TEST_ALCOHOL, RESULTADOS_TEST_ALCOHOL, type CierreViaje } from '../../domain/cierre.types';
+import { useProgramadorTelemetria } from '@/modules/telemetria/queries/hooks';
 import { useChoferesCombustible, useGuardarBorrador } from '../../queries/hooks';
 import { CLASE_TEXTAREA, ErrorBase, Seccion } from '../comun/ui';
 
@@ -75,9 +76,12 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
           <Campo label="Motivo (si no es el propuesto)" error={e.motivoChofer?.message}>
             <input {...register('motivoChofer')} />
           </Campo>
-          <Campo label="Programador de velocidad (%)" error={e.programadorVelocidadPct?.message}>
-            <input inputMode="decimal" {...register('programadorVelocidadPct')} />
-          </Campo>
+          <div className="space-y-1">
+            <Campo label="Programador de velocidad (%)" error={e.programadorVelocidadPct?.message}>
+              <input inputMode="decimal" {...register('programadorVelocidadPct')} />
+            </Campo>
+            <SugerenciaProgramador cierre={cierre} onUsar={(v) => form.setValue('programadorVelocidadPct', v, { shouldDirty: true })} />
+          </div>
           <Campo label="Test de alcohol" error={e.testAlcohol?.message} ayuda="Dato sensible.">
             <select {...register('testAlcohol')}>
               <option value="">Sin informar</option>
@@ -129,6 +133,21 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
         </div>
       </Seccion>
     </form>
+  );
+}
+
+/** Migración 49: % de km con programador según la telemetría entre la salida y la llegada. */
+function SugerenciaProgramador({ cierre, onUsar }: { cierre: CierreViaje; onUsar: (v: string) => void }) {
+  const { data } = useProgramadorTelemetria(cierre.camionId, cierre.salidaTs, cierre.llegadaTs, cierre.estado === 'borrador');
+  if (data === null || data === undefined) return null;
+  const texto = String(data).replace('.', ',');
+  return (
+    <p className="text-xs text-tinta-suave">
+      Telemetría: {texto} %{' '}
+      <button type="button" className="text-marca hover:underline" onClick={() => onUsar(texto)}>
+        Usar
+      </button>
+    </p>
   );
 }
 
