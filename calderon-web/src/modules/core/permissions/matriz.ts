@@ -57,7 +57,8 @@ export const PANTALLAS = {
   // El alta y la edición del tanque son configuración (configuracion.catalogos: solo TI; la base solo deja a tc_admin).
   'combustible.depositos':   { etiqueta: 'Tanque de base', fila: ['L', 'L', 'E', '—', 'E A', 'L', '—', 'L', 'E A', 'L'] },
   'operacion.servicios':     { etiqueta: 'Servicios comerciales', fila: ['L', 'E A', '—', '—', '—', 'L', 'L', 'L A', 'E A', 'L'] },
-  'operacion.tramos':        { etiqueta: 'Tramos operativos y composición', fila: ['L', 'E A', 'L', '—', '—', 'L', 'L', 'L', 'E A', 'L'] },
+  // 21/10/2026: Adm. de combustible ve los viajes (el cierre de combustible está adentro del viaje).
+  'operacion.tramos':        { etiqueta: 'Tramos operativos y composición', fila: ['L', 'E A', 'L', '—', 'L', 'L', 'L', 'L', 'E A', 'L'] },
   'operacion.planificacion': { etiqueta: 'Planificación de flota', fila: ['L', 'E', 'L', '—', '—', 'L', '—', '—', 'E A', 'L'] },
   'operacion.control_mendoza': { etiqueta: 'Control Mendoza', fila: ['L', 'E', 'E', 'P', '—', 'L', '—', '—', 'E A', 'L'] },
   'operacion.eventos':       { etiqueta: 'Eventos operativos', fila: ['—', 'E', 'E', '—', '—', 'L', '—', '—', 'E A', 'L'] },

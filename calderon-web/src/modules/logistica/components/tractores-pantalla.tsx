@@ -40,7 +40,7 @@ export function TractoresPantalla() {
 
   return (
     <div className="space-y-5">
-      <Encabezado titulo="Tractores y viajes" subtitulo="Logística" />
+      <Encabezado titulo="Tractores y viajes" subtitulo="Viajes" />
       <Pestanas items={PESTANAS_TRACTORES} />
       <p className="max-w-3xl text-sm text-tinta-suave">
         Cada tractor tiene su chofer fijo. El viaje del chofer empieza con la carga a tanque lleno y termina con la siguiente carga a tanque

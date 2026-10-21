@@ -79,12 +79,13 @@ describe('navegación (especificación §3)', () => {
   it('menú corto: 7 grupos y solo pantallas que existen (las ocultas se abren desde otra pantalla)', () => {
     expect(NAVEGACION.length).toBe(7);
     const entradas = NAVEGACION.flatMap((g) => g.entradas);
-    expect(entradas.filter((e) => !e.oculta).length).toBe(32);
+    expect(entradas.filter((e) => !e.oculta).length).toBe(31);
     expect(entradas.filter((e) => e.oculta).map((e) => e.href)).toEqual([
       '/operacion/viajes-chofer',
       '/operacion/viajes',
       '/combustible/observadas',
       '/combustible/sin-documento',
+      '/combustible/viajes',
       '/combustible/cierres',
       '/combustible/conciliacion',
     ]);
@@ -102,7 +103,8 @@ describe('navegación (especificación §3)', () => {
   it('el menú no muestra entradas ocultas; TI ve los 7 grupos', () => {
     const ti = menuVisible(permisosDe(['ti'], agregado)).flatMap((g) => g.entradas.map((e) => e.href));
     expect(ti).not.toContain('/combustible/cierres');
-    expect(ti).toContain('/combustible/viajes');
+    expect(ti).not.toContain('/combustible/viajes');
+    expect(ti).toContain('/operacion/tractores');
     expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(7);
     expect(pantallaDeRuta('/combustible/cierres/5')).toBe('combustible.cierre_viaje');
   });

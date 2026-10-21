@@ -37,7 +37,7 @@ export function ViajesChoferLista() {
 
   return (
     <div className="space-y-5">
-      <Encabezado titulo="Tractores y viajes" subtitulo="Logística" />
+      <Encabezado titulo="Tractores y viajes" subtitulo="Viajes" />
       <Pestanas items={PESTANAS_TRACTORES} />
       <div className="flex flex-wrap items-center gap-2">
         <input

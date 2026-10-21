@@ -37,11 +37,12 @@ export const NAVEGACION: readonly GrupoMenu[] = [
   },
   {
     id: 'logistica',
-    etiqueta: 'Logística',
+    // 21/10/2026: «todo en el viaje» — cada viaje trae adentro su combustible, su cierre y sus costos.
+    etiqueta: 'Viajes',
     entradas: [
-      { href: '/operacion/operaciones', etiqueta: 'Operaciones', pantalla: 'operacion.servicios' },
       { href: '/operacion/tractores', etiqueta: 'Tractores y viajes', pantalla: 'operacion.tramos' },
       { href: '/operacion/viajes-chofer', etiqueta: 'Viajes de chofer', pantalla: 'operacion.tramos', oculta: true },
+      { href: '/operacion/operaciones', etiqueta: 'Operaciones', pantalla: 'operacion.servicios' },
       { href: '/operacion/costos', etiqueta: 'Costos de viajes', pantalla: 'finanzas.costos_directos' },
       { href: '/flota/pizarra', etiqueta: 'Pizarra Azul', pantalla: 'flota.pizarra' },
       { href: '/telemetria/mapa', etiqueta: 'Mapa de flota', pantalla: 'telemetria.mapa' },
@@ -55,7 +56,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/combustible/cargas', etiqueta: 'Cargas', pantalla: 'combustible.cargas' },
       { href: '/combustible/observadas', etiqueta: 'Por revisar', pantalla: 'combustible.bandejas', oculta: true },
       { href: '/combustible/sin-documento', etiqueta: 'Sin ticket', pantalla: 'combustible.bandejas', oculta: true },
-      { href: '/combustible/viajes', etiqueta: 'Viajes y cierres', pantalla: 'combustible.cierre_viaje' },
+      { href: '/combustible/viajes', etiqueta: 'Viajes y cierres', pantalla: 'combustible.cierre_viaje', oculta: true },
       { href: '/combustible/cierres', etiqueta: 'Cierres de viaje', pantalla: 'combustible.cierre_viaje', oculta: true },
       { href: '/combustible/movimientos', etiqueta: 'Movimientos', pantalla: 'combustible.movimientos' },
       { href: '/combustible/base', etiqueta: 'Base Mendoza', pantalla: 'combustible.depositos' },

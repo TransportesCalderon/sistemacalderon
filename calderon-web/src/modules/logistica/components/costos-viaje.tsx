@@ -267,7 +267,7 @@ export function CostosViajesPantalla() {
 
   return (
     <div className="space-y-5">
-      <Encabezado titulo="Costos de viajes" subtitulo="Logística" />
+      <Encabezado titulo="Costos de viajes" subtitulo="Viajes" />
       <p className="max-w-3xl text-sm text-tinta-suave">
         Por viaje de chofer: combustible de las cargas, canon, km reales × costo fijo por km (Configuración › Parámetros) y los gastos cargados en el
         viaje. Los km de la línea son los que se liquidan; los reales salen de la telemetría.

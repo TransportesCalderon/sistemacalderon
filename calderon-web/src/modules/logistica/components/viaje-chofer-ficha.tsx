@@ -210,7 +210,7 @@ function Combustible({ v }: { v: ViajeChofer }) {
         <p className="text-sm text-tinta-suave">—</p>
       ) : (
         <div className="space-y-2">
-          <p className="text-sm text-tinta-suave">El tractor ya cargó a tanque lleno: se puede calcular el combustible (plataforma, diferencia, km, consumo).</p>
+          <p className="text-sm text-tinta-suave">El tractor ya cargó a tanque lleno: el combustible se calcula solo en unos minutos. Si no aparece, tocá Calcular.</p>
           {puede && (
             <button
               type="button"
