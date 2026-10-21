@@ -11,8 +11,8 @@ import { Campo } from '@/shared/ui/campo';
 import type { ChoferId } from '@/shared/types/dominio';
 import { aFormularioBorrador, borradorFormSchema, type BorradorFormEntrada } from '../../domain/cierre.schemas';
 import { ETIQUETA_TEST_ALCOHOL, RESULTADOS_TEST_ALCOHOL, type CierreViaje } from '../../domain/cierre.types';
-import { useProgramadorTelemetria } from '@/modules/telemetria/queries/hooks';
-import { useChoferesCombustible, useGuardarBorrador } from '../../queries/hooks';
+import { formatearNumero } from '@/shared/lib/numeros';
+import { useChoferesCombustible, useGuardarBorrador, useTelemetriaCierre } from '../../queries/hooks';
 import { CLASE_TEXTAREA, ErrorBase, Seccion } from '../comun/ui';
 
 type Salida = ReturnType<typeof borradorFormSchema.parse>;
@@ -25,6 +25,7 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
   const puedeEditar = useCan('combustible.cierre_viaje:editar');
   const guardar = useGuardarBorrador();
   const { data: choferes } = useChoferesCombustible();
+  const { data: tel } = useTelemetriaCierre(cierre.id, cierre.estado === 'borrador');
   const [error, setError] = useState<ErrorAccion | null>(null);
   const [guardado, setGuardado] = useState(false);
   const form = useForm<BorradorFormEntrada, unknown, Salida>({
@@ -80,7 +81,24 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
             <Campo label="Programador de velocidad (%)" error={e.programadorVelocidadPct?.message}>
               <input inputMode="decimal" {...register('programadorVelocidadPct')} />
             </Campo>
-            <SugerenciaProgramador cierre={cierre} onUsar={(v) => form.setValue('programadorVelocidadPct', v, { shouldDirty: true })} />
+            {tel && (
+              <p className="text-xs text-tinta-suave">
+                {tel.programadorPct === null ? (
+                  'La telemetría no tiene este dato para el viaje: cargalo a mano.'
+                ) : (
+                  <>
+                    Telemetría: {formatearNumero(tel.programadorPct, 1)} %{' '}
+                    <button
+                      type="button"
+                      className="text-marca hover:underline"
+                      onClick={() => form.setValue('programadorVelocidadPct', String(tel.programadorPct).replace('.', ','), { shouldDirty: true })}
+                    >
+                      Usar
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
           </div>
           <Campo label="Test de alcohol" error={e.testAlcohol?.message} ayuda="Dato sensible.">
             <select {...register('testAlcohol')}>
@@ -94,11 +112,15 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
           </Campo>
         </Bloque>
 
-        <Bloque titulo="Ajustes manuales de plataforma">
-          <Campo label="Km (manual)" error={e.kmManual?.message}>
+        <Bloque titulo="Corregir la telemetría (solo si falta o está mal)">
+          <Campo label="Km (manual)" error={e.kmManual?.message} {...(tel ? { ayuda: ayudaTelemetria(tel.km, tel.fuenteKm, 'km') } : {})}>
             <input inputMode="decimal" {...register('kmManual')} />
           </Campo>
-          <Campo label="Consumo de plataforma (manual, L)" error={e.consumoPlataformaManualL?.message}>
+          <Campo
+            label="Consumo de plataforma (manual, L)"
+            error={e.consumoPlataformaManualL?.message}
+            {...(tel ? { ayuda: ayudaTelemetria(tel.consumoL, tel.fuenteConsumo, 'L') } : {})}
+          >
             <input inputMode="decimal" {...register('consumoPlataformaManualL')} />
           </Campo>
           <Campo label="Motivo del ajuste" error={e.motivoAjuste?.message}>
@@ -136,19 +158,17 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
   );
 }
 
-/** Migración 49: % de km con programador según la telemetría entre la salida y la llegada. */
-function SugerenciaProgramador({ cierre, onUsar }: { cierre: CierreViaje; onUsar: (v: string) => void }) {
-  const { data } = useProgramadorTelemetria(cierre.camionId, cierre.salidaTs, cierre.llegadaTs, cierre.estado === 'borrador');
-  if (data === null || data === undefined) return null;
-  const texto = String(data).replace('.', ',');
-  return (
-    <p className="text-xs text-tinta-suave">
-      Telemetría: {texto} %{' '}
-      <button type="button" className="text-marca hover:underline" onClick={() => onUsar(texto)}>
-        Usar
-      </button>
-    </p>
-  );
+const FUENTE: Record<string, string> = {
+  telemetria: 'telemetría',
+  agregado_diario: 'resumen diario de la telemetría, aproximado',
+  cargas: 'odómetro de las cargas',
+  tramos: 'tramos operativos',
+};
+
+/** Migración 53: lo que toma el sistema sin ajuste manual, al lado de cada campo. */
+function ayudaTelemetria(valor: number | null, fuente: string | null, unidad: string): string {
+  if (valor === null || !fuente) return 'Sin dato de la telemetría: cargalo a mano, con el motivo.';
+  return `El sistema toma ${formatearNumero(valor, unidad === 'km' ? 0 : 1)} ${unidad} (${FUENTE[fuente] ?? fuente}). Dejalo vacío salvo que esté mal.`;
 }
 
 function Bloque({ titulo, children }: { titulo: string; children: ReactNode }) {

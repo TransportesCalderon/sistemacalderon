@@ -1379,6 +1379,8 @@ export type Database = {
     };
     Functions: {
       fn_resultado_cierre: { Args: { p_id: number }; Returns: Json };
+      /** Migración 53: lo que toma el sistema de la telemetría para el cierre, sin los ajustes manuales. */
+      fn_telemetria_cierre: { Args: { p_cierre: number }; Returns: Json };
       fn_verificar_cierre: { Args: { p_id: number }; Returns: Json };
       fn_aprobar_cierre: { Args: { p_id: number; p_version: number }; Returns: CierreViajeRow };
       fn_anular_cierre: { Args: { p_id: number; p_version: number; p_motivo: string }; Returns: CierreViajeRow };

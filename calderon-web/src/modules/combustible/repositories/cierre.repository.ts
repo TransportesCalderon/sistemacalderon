@@ -25,6 +25,14 @@ import { nombresDe } from './catalogo-combustible.repository';
  * La aplicación solo escribe las columnas del borrador que la base le permite.
  */
 type Fila = Database['fue']['Tables']['cierre_viaje']['Row'];
+
+export interface TelemetriaCierre {
+  km: number | null;
+  fuenteKm: string | null;
+  consumoL: number | null;
+  fuenteConsumo: string | null;
+  programadorPct: number | null;
+}
 type FilaCierre = Pick<
   Fila,
   | 'id'
@@ -191,6 +199,22 @@ export const cierreRepository = (db: Db) => ({
     const { data, error } = await db.schema('fue').rpc('fn_resultado_cierre', { p_id: id });
     if (error) throw new RepoError(error);
     return parsearResultado(data);
+  },
+
+  /** Migración 53: lo que dice la telemetría para el cierre (sin los ajustes manuales). */
+  async telemetria(id: CierreViajeId): Promise<TelemetriaCierre> {
+    const { data, error } = await db.schema('fue').rpc('fn_telemetria_cierre', { p_cierre: id });
+    if (error) throw new RepoError(error);
+    const x = (data && typeof data === 'object' && !Array.isArray(data) ? data : {}) as Record<string, unknown>;
+    const n = (v: unknown) => (v === null || v === undefined || v === '' ? null : Number(v));
+    const t = (v: unknown) => (typeof v === 'string' ? v : null);
+    return {
+      km: n(x.km),
+      fuenteKm: t(x.fuente_km),
+      consumoL: n(x.consumo_l),
+      fuenteConsumo: t(x.fuente_consumo),
+      programadorPct: n(x.programador_pct),
+    };
   },
 
   async verificar(id: CierreViajeId): Promise<Verificacion> {

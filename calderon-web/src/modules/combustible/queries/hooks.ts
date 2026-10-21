@@ -33,7 +33,10 @@ import type { Bandeja } from '../domain/documento.types';
 import type { PeriodoParams } from '../domain/consumo.types';
 import { combustibleQueries as q } from './keys';
 import { cargaRepository } from '../repositories/carga.repository';
+import { cierreRepository } from '../repositories/cierre.repository';
 import { gensetRepository } from '../repositories/genset.repository';
+import { ralentiRepository } from '../repositories/ralenti.repository';
+import { anularCierreRalenti, cerrarRalenti } from '../actions/ralenti.actions';
 import { anularCierreGenset, cerrarGenset, eliminarRegistroGenset, registrarGenset } from '../actions/genset.actions';
 
 /* ----------------------------------------------------------------------------
@@ -74,6 +77,9 @@ export const useViajes = (p: ViajeListaParams) => useQuery({ ...q.viajes.lista(b
 export const useCierres = (p: CierreListaParams) => useQuery({ ...q.cierres.lista(browserDb(), p), placeholderData: keepPreviousData });
 export const useCierre = (id: CierreViajeId) => useQuery(q.cierres.detalle(browserDb(), id));
 export const useResultadoCierre = (id: CierreViajeId, enabled: boolean) => useQuery({ ...q.cierres.resultado(browserDb(), id), enabled });
+/** Migración 53: lo que dice la telemetría para el cierre, para mostrarlo al lado de cada campo del borrador. */
+export const useTelemetriaCierre = (id: CierreViajeId, enabled: boolean) =>
+  useQuery({ queryKey: ['combustible', 'cierres', 'telemetria', id] as const, queryFn: () => cierreRepository(browserDb()).telemetria(id), enabled, staleTime: 60_000 });
 export const useVerificacion = (id: CierreViajeId, enabled: boolean) => useQuery({ ...q.cierres.verificacion(browserDb(), id), enabled, retry: false });
 
 /* ----------------------------------------------------------------------------
@@ -138,3 +144,9 @@ export const useRegistrarGenset = () => useEscritura(registrarGenset);
 export const useEliminarRegistroGenset = () => useEscritura(eliminarRegistroGenset);
 export const useCerrarGenset = () => useEscritura(cerrarGenset);
 export const useAnularCierreGenset = () => useEscritura(anularCierreGenset);
+
+// Migración 50: ralentí permitido por mes
+export const useRalentiMes = (mes: string) =>
+  useQuery({ queryKey: ['combustible', 'ralenti', mes] as const, queryFn: () => ralentiRepository(browserDb()).mes(mes), staleTime: 30_000, placeholderData: keepPreviousData });
+export const useCerrarRalenti = () => useEscritura(cerrarRalenti);
+export const useAnularCierreRalenti = () => useEscritura(anularCierreRalenti);
