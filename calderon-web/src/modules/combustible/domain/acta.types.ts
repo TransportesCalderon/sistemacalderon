@@ -1,0 +1,102 @@
+import type { FechaISO } from '@/shared/types/dominio';
+
+/** Datos del acta del cierre (migración 56, fue.fn_acta_cierre). Lo calcula la base; acá solo se convierte. */
+export interface ActaExtra {
+  capacidadL: number | null;
+  salida: { fecha: FechaISO | null; estacion: string | null; litros: number | null; faltanteL: number; faltanteObs: string | null; inicioL: number | null };
+  llegada: { fecha: FechaISO | null; estacion: string | null; litros: number | null; faltanteL: number; faltanteObs: string | null };
+  cargas: { fecha: FechaISO; estacion: string | null; litros: number; corte: boolean; lleno: boolean }[];
+  movimientos: { fecha: FechaISO; tipo: string; litros: number; motivo: string | null }[];
+  km: number | null;
+  fuenteKm: string | null;
+  consumoMotorL: number | null;
+  fuenteConsumo: string | null;
+  l100km: number | null;
+  horasMotor: number | null;
+  ralenti: { litros: number | null; horas: number | null; fuente: string | null };
+  programadorPct: number | null;
+  cargasL: number | null;
+  entradasL: number | null;
+  salidasL: number | null;
+  faltanteSalidaL: number | null;
+  faltanteLlegadaL: number | null;
+  libroL: number | null;
+  diferenciaL: number | null;
+  toleranciaL: number | null;
+  justificadosL: number | null;
+  motivoJustificados: string | null;
+  aDescontarL: number | null;
+  comentario: string | null;
+  observaciones: string | null;
+  ajusteManual: string | null;
+  alertas: { tipo: string; cuando: FechaISO; valor: number | null; unidad: string | null; estado: string; resolucion: string | null }[];
+}
+
+type J = Record<string, unknown>;
+const o = (v: unknown): J => (v && typeof v === 'object' && !Array.isArray(v) ? (v as J) : {});
+const a = (v: unknown): J[] => (Array.isArray(v) ? (v as J[]) : []);
+const n = (v: unknown) => (v === null || v === undefined || v === '' ? null : Number(v));
+const t = (v: unknown) => (typeof v === 'string' && v !== '' ? v : null);
+
+export function parsearActa(d: unknown): ActaExtra {
+  const x = o(d);
+  const s = o(x.salida);
+  const l = o(x.llegada);
+  const r = o(x.ralenti);
+  return {
+    capacidadL: n(x.capacidad_l),
+    salida: {
+      fecha: t(s.fecha_hora) as FechaISO | null,
+      estacion: t(s.estacion),
+      litros: n(s.litros),
+      faltanteL: n(s.faltante_lleno_l) ?? 0,
+      faltanteObs: t(s.faltante_observacion),
+      inicioL: n(s.inicio_l),
+    },
+    llegada: {
+      fecha: t(l.fecha_hora) as FechaISO | null,
+      estacion: t(l.estacion),
+      litros: n(l.litros),
+      faltanteL: n(l.faltante_lleno_l) ?? 0,
+      faltanteObs: t(l.faltante_observacion),
+    },
+    cargas: a(x.cargas).map((k) => ({
+      fecha: (t(k.fecha_hora) ?? '') as FechaISO,
+      estacion: t(k.estacion),
+      litros: Number(k.litros),
+      corte: k.es_frontera === true,
+      lleno: k.tanque_lleno === true,
+    })),
+    movimientos: a(x.movimientos).map((m) => ({ fecha: (t(m.fecha_hora) ?? '') as FechaISO, tipo: t(m.tipo) ?? '', litros: Number(m.litros), motivo: t(m.motivo) })),
+    km: n(x.km),
+    fuenteKm: t(x.fuente_km),
+    consumoMotorL: n(x.consumo_motor_l),
+    fuenteConsumo: t(x.fuente_consumo),
+    l100km: n(x.l_100km),
+    horasMotor: n(x.horas_motor),
+    ralenti: { litros: n(r.litros), horas: n(r.horas) ?? n(r.horas_resumen), fuente: t(r.fuente) },
+    programadorPct: n(x.programador_pct),
+    cargasL: n(x.cargas_l),
+    entradasL: n(x.entradas_l),
+    salidasL: n(x.salidas_l),
+    faltanteSalidaL: n(x.faltante_salida_l),
+    faltanteLlegadaL: n(x.faltante_llegada_l),
+    libroL: n(x.libro_l),
+    diferenciaL: n(x.diferencia_l),
+    toleranciaL: n(x.tolerancia_l),
+    justificadosL: n(x.justificados_l),
+    motivoJustificados: t(x.motivo_justificados),
+    aDescontarL: n(x.a_descontar_l),
+    comentario: t(x.comentario),
+    observaciones: t(x.observaciones),
+    ajusteManual: t(x.ajuste_manual),
+    alertas: a(x.alertas).map((y) => ({
+      tipo: t(y.tipo) ?? '',
+      cuando: (t(y.cuando) ?? '') as FechaISO,
+      valor: n(y.valor),
+      unidad: t(y.unidad),
+      estado: t(y.estado) ?? '',
+      resolucion: t(y.resolucion),
+    })),
+  };
+}

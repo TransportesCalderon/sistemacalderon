@@ -205,3 +205,29 @@ describe('Combustible de los gensets (migración 48)', () => {
     expect(r).toMatchObject({ gensetId: 4, litros: 180.5, horometroH: 12345.6, choferId: 3, camionId: null, ticketNumero: null });
   });
 });
+
+describe('acta del cierre (migración 56)', () => {
+  it('lee los datos del acta tal como los arma la base', async () => {
+    const { parsearActa } = await import('@/modules/combustible/domain/acta.types');
+    const a = parsearActa({
+      capacidad_l: 1000,
+      salida: { fecha_hora: '2026-10-15T15:11:00Z', estacion: 'Copec', litros: 400, faltante_lleno_l: 50, inicio_l: 950 },
+      cargas: [{ fecha_hora: '2026-10-16T20:11:00Z', estacion: 'Copec', litros: 500, es_frontera: false, tanque_lleno: false }],
+      ralenti: { litros: 18, horas: 3.6, fuente: 'telemetria' },
+      km: 1440, diferencia_l: 132, a_descontar_l: 132, alertas: [],
+    });
+    expect(a.salida.inicioL).toBe(950);
+    expect(a.salida.faltanteL).toBe(50);
+    expect(a.cargas).toHaveLength(1);
+    expect(a.ralenti.litros).toBe(18);
+    expect(a.aDescontarL).toBe(132);
+  });
+
+  it('un acta sin telemetría no rompe', async () => {
+    const { parsearActa } = await import('@/modules/combustible/domain/acta.types');
+    const a = parsearActa({});
+    expect(a.km).toBeNull();
+    expect(a.ralenti.litros).toBeNull();
+    expect(a.cargas).toEqual([]);
+  });
+});
