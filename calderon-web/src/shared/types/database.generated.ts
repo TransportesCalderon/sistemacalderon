@@ -1056,6 +1056,8 @@ export type Database = {
       fn_cerrar_viaje_chofer: { Args: { p_viaje: number; p_version: number }; Returns: undefined };
       fn_reabrir_viaje_chofer: { Args: { p_viaje: number; p_motivo: string }; Returns: undefined };
       fn_anular_viaje_chofer: { Args: { p_viaje: number; p_motivo: string }; Returns: undefined };
+      /** Migración 55: cierra el viaje y aprueba su combustible en un paso. */
+      fn_cerrar_y_aprobar: { Args: { p_viaje: number; p_version: number }; Returns: undefined };
       // Migración 51: km reales y costos del viaje
       fn_telemetria_viaje: { Args: { p_viaje: number }; Returns: Json };
       fn_costos_viaje: { Args: { p_viaje: number }; Returns: Json };

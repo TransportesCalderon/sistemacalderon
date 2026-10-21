@@ -379,7 +379,7 @@ function Acciones({ cierre, onRecargar }: { cierre: CierreViaje; onRecargar: () 
         icono={<Stamp className="size-4" />}
         primario
         titulo="Aprobar el cierre"
-        explicacion="Al aprobar, la base congela el resultado. Lo aprueba un usuario distinto del que preparó el borrador."
+        explicacion="Al aprobar, el resultado queda congelado: lo que se descuenta al chofer ya no cambia."
         pideMotivo={false}
         ocupado={aprobar.isPending}
         error={null}

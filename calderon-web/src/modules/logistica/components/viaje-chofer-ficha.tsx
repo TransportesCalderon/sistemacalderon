@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Ban, Calculator, ChevronDown, CircleAlert, Flag, Fuel, LoaderCircle, Lock, Pencil, Plus, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, Ban, Calculator, ChevronDown, CircleAlert, Flag, Fuel, LoaderCircle, Lock, Pencil, Plus, RotateCcw, Stamp, Trash2, TriangleAlert } from 'lucide-react';
 import { BorradorForm } from '@/modules/combustible/components/cierres/borrador-form';
 import { AccionConMotivo, Cargando, Chip, DiferenciaL, ErrorBase, ErrorLectura, Seccion } from '@/modules/combustible/components/comun/ui';
 import { useCierre, useMonedas, useResultadoCierre } from '@/modules/combustible/queries/hooks';
@@ -20,6 +20,7 @@ import {
   useAnularViajeChofer,
   useCambiarChoferViaje,
   useCerrarViajeChofer,
+  useCerrarYAprobarViaje,
   useOpcionesViaje,
   usePrepararCierreCombustible,
   useQuitarItemViaje,
@@ -543,11 +544,14 @@ function Agregar({ v, onCerrar }: { v: ViajeChofer; onCerrar: () => void }) {
 // ------------------------------------------------------------------- acciones
 function Acciones({ v }: { v: ViajeChofer }) {
   const puede = useCan('operacion.tramos:transicionar');
+  const puedeAprobar = useCan('combustible.cierre_viaje:transicionar');
+  const cerrarYAprobar = useCerrarYAprobarViaje();
+  const combustiblePorAprobar = v.cierre !== null && v.cierre.estado === 'borrador';
   const cerrar = useCerrarViajeChofer();
   const reabrir = useReabrirViajeChofer();
   const anular = useAnularViajeChofer();
   const [error, setError] = useState<ErrorAccion | null>(null);
-  if (!puede || v.estado === 'anulado') return null;
+  if ((!puede && !puedeAprobar) || v.estado === 'anulado') return null;
   const ejecutar = async (p: Promise<Resultado>) => {
     setError(null);
     const r = await p;
@@ -558,8 +562,8 @@ function Acciones({ v }: { v: ViajeChofer }) {
     <Seccion titulo="Cerrar el viaje">
       {v.estado === 'abierto' ? (
         <p className="text-sm text-tinta-suave">
-          Al cerrar quedan fijos el canon y los km para la liquidación del chofer. El combustible lo aprueba Administración de combustible en su
-          cierre.
+          Al cerrar quedan fijos el canon y los km para la liquidación del chofer. Con «Cerrar y aprobar» también se aprueba el combustible: queda
+          congelado lo que se descuenta al chofer.
         </p>
       ) : (
         <p className="flex items-center gap-2 text-sm text-exito">
@@ -568,11 +572,24 @@ function Acciones({ v }: { v: ViajeChofer }) {
       )}
       <ErrorBase error={error} />
       <div className="flex flex-wrap gap-3">
-        {v.estado === 'abierto' && (
+        {puedeAprobar && combustiblePorAprobar && (v.estado === 'abierto' ? puede : true) && (
+          <AccionConMotivo
+            etiqueta={v.estado === 'abierto' ? 'Cerrar y aprobar' : 'Aprobar el combustible'}
+            icono={<Stamp className="size-4" />}
+            primario
+            titulo={v.estado === 'abierto' ? `Cerrar el viaje ${v.numero} y aprobar su combustible` : `Aprobar el combustible del viaje ${v.numero}`}
+            explicacion={`Chofer ${v.chofer.nombre}: ${v.canonTotal.map((c) => formatoImporte(c.moneda, c.total)).join(' + ') || 'sin canon'} y ${formatoNumero(v.kmTotal)} km. El combustible queda congelado como está ahora.`}
+            pideMotivo={false}
+            ocupado={cerrarYAprobar.isPending}
+            error={null}
+            onConfirmar={() => ejecutar(cerrarYAprobar.mutateAsync({ viajeId: v.id, versionFila: v.versionFila }))}
+          />
+        )}
+        {puede && v.estado === 'abierto' && (
           <AccionConMotivo
             etiqueta="Cerrar viaje"
             icono={<Flag className="size-4" />}
-            primario
+            primario={!(puedeAprobar && combustiblePorAprobar)}
             titulo={`Cerrar el viaje ${v.numero}`}
             explicacion={`Chofer ${v.chofer.nombre}: ${v.canonTotal.map((c) => formatoImporte(c.moneda, c.total)).join(' + ') || 'sin canon'} y ${formatoNumero(v.kmTotal)} km.`}
             pideMotivo={false}
@@ -581,7 +598,7 @@ function Acciones({ v }: { v: ViajeChofer }) {
             onConfirmar={() => ejecutar(cerrar.mutateAsync({ viajeId: v.id, versionFila: v.versionFila }))}
           />
         )}
-        {v.estado === 'cerrado' && (
+        {puede && v.estado === 'cerrado' && (
           <AccionConMotivo
             etiqueta="Reabrir"
             icono={<RotateCcw className="size-4" />}
@@ -592,7 +609,7 @@ function Acciones({ v }: { v: ViajeChofer }) {
             onConfirmar={(motivo) => ejecutar(reabrir.mutateAsync({ viajeId: v.id, motivo }))}
           />
         )}
-        {v.estado === 'abierto' && (
+        {puede && v.estado === 'abierto' && (
           <AccionConMotivo
             etiqueta="Anular viaje"
             icono={<Ban className="size-4" />}

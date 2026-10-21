@@ -38,6 +38,7 @@ import {
   asignarTractor,
   cambiarChoferViaje,
   cerrarViajeChofer,
+  cerrarYAprobarViaje,
   iniciarViajeChofer,
   prepararCierreCombustible,
   quitarItemViaje,
@@ -109,6 +110,7 @@ export const useQuitarItemViaje = () => useEscritura(quitarItemViaje);
 export const useCambiarChoferViaje = () => useEscritura(cambiarChoferViaje);
 export const usePrepararCierreCombustible = () => useEscritura(prepararCierreCombustible);
 export const useCerrarViajeChofer = () => useEscritura(cerrarViajeChofer);
+export const useCerrarYAprobarViaje = () => useEscritura(cerrarYAprobarViaje);
 export const useReabrirViajeChofer = () => useEscritura(reabrirViajeChofer);
 export const useAnularViajeChofer = () => useEscritura(anularViajeChofer);
 

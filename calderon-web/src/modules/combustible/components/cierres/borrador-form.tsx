@@ -139,7 +139,7 @@ export function BorradorForm({ cierre }: { cierre: CierreViaje }) {
             <input {...register('noImputableMotivo')} />
           </Campo>
         </Bloque>
-        <TextoLargo etiqueta="Justificación de la diferencia del camión" error={e.justificacion?.message}>
+        <TextoLargo etiqueta="Comentario sobre la diferencia (opcional)" error={e.justificacion?.message}>
           <textarea rows={2} className={CLASE_TEXTAREA} {...register('justificacion')} />
         </TextoLargo>
 

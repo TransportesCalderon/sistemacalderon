@@ -96,6 +96,7 @@ export const viajesChoferRepository = (db: Db) => {
       return data;
     },
     cerrar: (viaje: number, version: number) => llamar(ops().rpc('fn_cerrar_viaje_chofer', { p_viaje: viaje, p_version: version })),
+    cerrarYAprobar: (viaje: number, version: number) => llamar(ops().rpc('fn_cerrar_y_aprobar', { p_viaje: viaje, p_version: version })),
     reabrir: (viaje: number, motivo: string) => llamar(ops().rpc('fn_reabrir_viaje_chofer', { p_viaje: viaje, p_motivo: motivo })),
     anular: (viaje: number, motivo: string) => llamar(ops().rpc('fn_anular_viaje_chofer', { p_viaje: viaje, p_motivo: motivo })),
   };
