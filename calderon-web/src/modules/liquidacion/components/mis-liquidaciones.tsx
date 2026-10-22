@@ -44,7 +44,7 @@ export function MisLiquidaciones() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold tabular-nums text-tinta">{pesos(l.neto, l.moneda)}</p>
+                  <p className="font-semibold tabular-nums text-tinta">{pesos(l.legal && l.legal.totalHaberes > 0 ? l.legal.aPagar : l.neto, l.moneda)}</p>
                   <Chip tono={TONO_LIQ[l.estado]}>{ETIQUETA_ESTADO_LIQ[l.estado]}</Chip>
                 </div>
                 <ChevronDown className={cn('size-4 shrink-0 text-tinta-suave transition-transform', abierta === l.id && 'rotate-180')} />
@@ -53,7 +53,7 @@ export function MisLiquidaciones() {
                 <div className="mt-4 space-y-3 border-t border-borde pt-4">
                   <Recibo l={l} compacto />
                   <Link href={`/chofer/liquidaciones/${l.id}/recibo`} target="_blank" className="inline-flex items-center gap-1 text-sm text-marca">
-                    <Printer className="size-4" /> Ver el recibo para imprimir
+                    <Printer className="size-4" /> Ver los papeles (liquidación de sueldo, planilla y egreso)
                   </Link>
                 </div>
               )}

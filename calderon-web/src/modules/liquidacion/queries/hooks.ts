@@ -4,7 +4,12 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { ActionResult } from '@/server/actions/result';
 import { browserDb } from '@/shared/supabase/browser';
 import {
+  adjuntarFirmada,
   agregarRenglon,
+  guardarEmpresa,
+  guardarFicha,
+  guardarIndicadores,
+  guardarLegal,
   anularLiquidacion,
   aprobarLiquidacion,
   guardarConcepto,
@@ -33,6 +38,8 @@ export const useLiquidacion = (id: number | null) =>
 export const useMisLiquidaciones = () => useQuery({ queryKey: [...CLAVE, 'mias'], queryFn: () => repo().mias() });
 export const useTarifas = () => useQuery({ queryKey: [...CLAVE, 'tarifas'], queryFn: () => repo().tarifas() });
 export const useConceptos = () => useQuery({ queryKey: [...CLAVE, 'conceptos'], queryFn: () => repo().conceptos() });
+export const useDatosLegales = (activo = true) =>
+  useQuery({ queryKey: [...CLAVE, 'datos-legales'], queryFn: () => repo().datosLegales(), enabled: activo });
 
 function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
   const qc = useQueryClient();
@@ -52,3 +59,8 @@ export const useAprobarLiquidacion = () => useEscritura(aprobarLiquidacion);
 export const usePagarLiquidacion = () => useEscritura(pagarLiquidacion);
 export const useReabrirLiquidacion = () => useEscritura(reabrirLiquidacion);
 export const useAnularLiquidacion = () => useEscritura(anularLiquidacion);
+export const useGuardarEmpresa = () => useEscritura(guardarEmpresa);
+export const useGuardarIndicadores = () => useEscritura(guardarIndicadores);
+export const useGuardarFicha = () => useEscritura(guardarFicha);
+export const useGuardarLegal = () => useEscritura(guardarLegal);
+export const useAdjuntarFirmada = () => useEscritura(adjuntarFirmada);

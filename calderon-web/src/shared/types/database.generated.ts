@@ -1370,7 +1370,39 @@ export type Database = {
       };
       fn_quitar_renglon: { Args: { p_renglon: number }; Returns: undefined };
       fn_aprobar_liquidacion: { Args: { p_liq: number; p_version: number }; Returns: undefined };
-      fn_pagar_liquidacion: { Args: { p_liq: number; p_fecha: string; p_forma?: string | null }; Returns: undefined };
+      fn_pagar_liquidacion: {
+        Args: { p_liq: number; p_fecha: string; p_forma?: string | null; p_banco?: string | null; p_numero?: string | null };
+        Returns: string;
+      };
+      // Migración 66: liquidación de sueldo (Chile) y comprobante de egreso
+      fn_datos_legales: { Args: Record<string, never>; Returns: Json };
+      fn_guardar_empresa: { Args: { p_razon_social: string; p_rut: string; p_direccion: string | null; p_comuna: string | null }; Returns: undefined };
+      fn_guardar_indicadores: {
+        Args: { p_periodo: string; p_uf: number; p_utm: number; p_tope_imponible_uf: number; p_tope_cesantia_uf: number };
+        Returns: number;
+      };
+      fn_guardar_ficha_laboral: {
+        Args: {
+          p_chofer: number;
+          p_rut: string;
+          p_extranjero: boolean;
+          p_cargo: string;
+          p_afp: string;
+          p_afp_comision_pct: number;
+          p_salud: string;
+          p_isapre: string | null;
+          p_isapre_plan_uf: number | null;
+          p_contrato: string;
+          p_contrato_firmado: boolean;
+          p_observacion?: string | null;
+        };
+        Returns: number;
+      };
+      fn_guardar_legal: {
+        Args: { p_liq: number; p_dias_licencia: number; p_dias_sin_licencia: number; p_dias_vacaciones: number; p_haberes: Json };
+        Returns: Json;
+      };
+      fn_adjuntar_firmada: { Args: { p_liq: number; p_ruta: string }; Returns: undefined };
       fn_reabrir_liquidacion: { Args: { p_liq: number; p_motivo: string }; Returns: undefined };
       fn_anular_liquidacion: { Args: { p_liq: number; p_motivo: string }; Returns: undefined };
       fn_liquidacion: { Args: { p_liq: number }; Returns: Json };

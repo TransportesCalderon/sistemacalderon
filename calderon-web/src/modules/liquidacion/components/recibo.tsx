@@ -9,6 +9,7 @@ import { pesos, TIPOS_RENGLON, TITULO_TIPO, type Liquidacion } from '../domain/l
  */
 export function Recibo({ l, compacto = false }: { l: Liquidacion; compacto?: boolean }) {
   const subtotal = { remunerativo: l.remunerativo, no_remunerativo: l.noRemunerativo, descuento: l.descuentos } as const;
+  const legal = l.legal && l.legal.totalHaberes > 0 ? l.legal : null;
   return (
     <div className={cn('space-y-4 text-sm text-tinta', !compacto && 'print:text-black')}>
       {!compacto && (
@@ -53,10 +54,27 @@ export function Recibo({ l, compacto = false }: { l: Liquidacion; compacto?: boo
           </section>
         );
       })}
-      <div className="flex items-center justify-between rounded-lg bg-marca-suave px-4 py-3 text-base font-semibold text-marca print:bg-transparent print:px-0">
-        <span>Neto a cobrar</span>
-        <span className="tabular-nums">{pesos(l.neto, l.moneda)}</span>
-      </div>
+      {legal ? (
+        <>
+          <div className="flex items-center justify-between px-4 text-sm">
+            <span>Neto de la planilla</span>
+            <span className="tabular-nums">{pesos(l.neto, l.moneda)}</span>
+          </div>
+          <div className="flex items-center justify-between px-4 text-sm text-error">
+            <span>Descuentos legales (AFP, salud, cesantía, impuesto)</span>
+            <span className="tabular-nums">− {pesos(legal.totalDescuentos)}</span>
+          </div>
+          <div className="flex items-center justify-between rounded-lg bg-marca-suave px-4 py-3 text-base font-semibold text-marca print:bg-transparent print:px-0">
+            <span>A cobrar</span>
+            <span className="tabular-nums">{pesos(legal.aPagar, l.moneda)}</span>
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-between rounded-lg bg-marca-suave px-4 py-3 text-base font-semibold text-marca print:bg-transparent print:px-0">
+          <span>Neto a cobrar</span>
+          <span className="tabular-nums">{pesos(l.neto, l.moneda)}</span>
+        </div>
+      )}
       {!compacto && (
         <footer className="space-y-1 text-xs text-tinta-suave">
           {l.aprobadaEn && <p>Aprobada el {formatearFechaDia(l.aprobadaEn.slice(0, 10))}{l.aprobadaPor && ` por ${l.aprobadaPor}`}.</p>}

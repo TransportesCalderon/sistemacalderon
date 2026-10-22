@@ -63,4 +63,5 @@ export const PESTANAS_RRHH = [
   { href: '/rrhh/liquidaciones', etiqueta: 'Liquidaciones' },
   { href: '/rrhh/liquidacion', etiqueta: 'Resumen para liquidar' },
   { href: '/rrhh/tarifas', etiqueta: 'Tarifas y conceptos' },
+  { href: '/rrhh/datos-legales', etiqueta: 'Datos legales' },
 ] as const;

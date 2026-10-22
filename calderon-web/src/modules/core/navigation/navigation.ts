@@ -146,9 +146,10 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     entradas: [
       { href: '/rrhh/fondos', etiqueta: 'Fondos de choferes', pantalla: 'rrhh.fondos' },
       // Migración 62: liquidación mensual; el resumen y las tarifas son pestañas
-      { href: '/rrhh/liquidaciones', etiqueta: 'Liquidaciones', pantalla: 'liquidacion.liquidaciones', incluye: ['/rrhh/liquidacion', '/rrhh/tarifas'] },
+      { href: '/rrhh/liquidaciones', etiqueta: 'Liquidaciones', pantalla: 'liquidacion.liquidaciones', incluye: ['/rrhh/liquidacion', '/rrhh/tarifas', '/rrhh/datos-legales'] },
       { href: '/rrhh/liquidacion', etiqueta: 'Resumen para liquidar', pantalla: 'liquidacion.liquidaciones', oculta: true },
       { href: '/rrhh/tarifas', etiqueta: 'Tarifas y conceptos', pantalla: 'liquidacion.reglas', oculta: true },
+      { href: '/rrhh/datos-legales', etiqueta: 'Datos legales', pantalla: 'liquidacion.reglas', oculta: true },
     ],
   },
   {

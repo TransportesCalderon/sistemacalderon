@@ -33,3 +33,33 @@ describe('liquidaciones (migración 62)', () => {
     expect(can(permisosDe(['chofer'], agregado), 'liquidacion.liquidaciones:ver')).toBe(false);
   });
 });
+
+describe('liquidación de sueldo de Chile (migración 66)', () => {
+  it('lee el cálculo legal y el egreso tal como los manda la base', async () => {
+    const { parsearLiquidacion } = await import('@/modules/liquidacion/domain/liquidacion.types');
+    const { clp } = await import('@/modules/liquidacion/domain/legal.types');
+    const l = parsearLiquidacion({
+      id: 1,
+      numero: 'LQ-000001',
+      estado: 'pagada',
+      egreso_numero: 'CE-000001',
+      egreso_letras: 'un millón ochenta y un mil cuarenta y nueve pesos',
+      legal: {
+        congelado: true,
+        faltan: [],
+        ficha: { rut: '12.345.678-5', salud: 'fonasa', contrato: 'indefinido', afp_comision_pct: 0.46 },
+        haberes: [{ codigo: 'SUELDO_BASE', nombre: 'Sueldo base', imponible: true, importe: 553553 }],
+        total_haberes: 1664000,
+        liquido: 1447959,
+        a_pagar: 1081049,
+      },
+      planilla: { viajes: [], fondo: [{ moneda: 'CLP', entregado: 563030, gastos: 225000, devuelto: 0, diferencia: 338030 }] },
+    });
+    expect(l.legal?.liquido).toBe(1447959);
+    expect(l.legal?.ficha?.rut).toBe('12.345.678-5');
+    expect(l.legal?.haberes[0]?.imponible).toBe(true);
+    expect(l.planilla.fondo[0]?.diferencia).toBe(338030);
+    expect(l.egresoNumero).toBe('CE-000001');
+    expect(clp(1081049)).toBe('1.081.049');
+  });
+});

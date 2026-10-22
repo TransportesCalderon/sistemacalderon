@@ -58,5 +58,46 @@ export const renglonSchema = z.object({
 export type RenglonEntrada = z.infer<typeof renglonSchema>;
 export const idSchema = z.object({ id });
 export const aprobarSchema = z.object({ id, version: z.number().int().positive() });
-export const pagarSchema = z.object({ id, fecha, forma: texto(120) });
+export const pagarSchema = z.object({ id, fecha, forma: texto(120), banco: texto(80), numero: texto(40) });
+
+// Migración 66: datos para la liquidación de sueldo de Chile
+export const empresaSchema = z.object({
+  razonSocial: z.string().trim().min(3, 'Escribí la razón social.').max(120),
+  rut: z.string().trim().min(3, 'Escribí el RUT.').max(15),
+  direccion: texto(150),
+  comuna: texto(80),
+});
+export type EmpresaEntrada = z.infer<typeof empresaSchema>;
+export const indicadoresSchema = z.object({
+  periodo: fecha,
+  uf: numeroOpc.refine((v) => v !== null && v > 0, 'Escribí la UF.'),
+  utm: numeroOpc.refine((v) => v !== null && v > 0, 'Escribí la UTM.'),
+  topeImponibleUf: numeroOpc.refine((v) => v !== null && v > 0, 'Escribí el tope.'),
+  topeCesantiaUf: numeroOpc.refine((v) => v !== null && v > 0, 'Escribí el tope.'),
+});
+export type IndicadoresEntrada = z.infer<typeof indicadoresSchema>;
+export const fichaSchema = z.object({
+  choferId: id,
+  rut: z.string().trim().min(3, 'Escribí el RUT.').max(15),
+  extranjero: z.boolean(),
+  cargo: z.string().trim().min(2, 'Escribí el cargo.').max(80),
+  afp: z.string().trim().min(2, 'Escribí la AFP.').max(40),
+  afpComisionPct: numeroOpc.refine((v) => v !== null, 'Escribí la comisión.'),
+  salud: z.enum(['fonasa', 'isapre']),
+  isapre: texto(60),
+  isaprePlanUf: numeroOpc,
+  contrato: z.enum(['indefinido', 'plazo_fijo']),
+  contratoFirmado: z.boolean(),
+  observacion: texto(500),
+});
+export type FichaEntrada = z.infer<typeof fichaSchema>;
+export const legalSchema = z.object({
+  liquidacionId: id,
+  diasLicencia: z.number().int().min(0).max(31),
+  diasSinLicencia: z.number().int().min(0).max(31),
+  diasVacaciones: z.number().int().min(0).max(31),
+  haberes: z.array(z.object({ codigo: z.string().regex(/^[A-Z_]{3,30}$/), importe: numeroOpc })).max(30),
+});
+export type LegalEntrada = z.infer<typeof legalSchema>;
+export const firmadaSchema = z.object({ id, ruta: z.string().min(5).max(300) });
 export const motivoSchema = z.object({ id, motivo });

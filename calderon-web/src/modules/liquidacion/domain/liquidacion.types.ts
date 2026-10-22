@@ -1,4 +1,5 @@
 import type { Json } from '@/shared/types/database.generated';
+import { parsearLegal, parsearLegalCarga, parsearPlanilla, type Legal, type LegalCarga, type Planilla } from './legal.types';
 
 /**
  * Liquidación mensual del chofer (migración 62). La base arma los renglones y los totales;
@@ -68,6 +69,16 @@ export interface Liquidacion {
   motivo: string | null;
   version: number;
   renglones: Renglon[];
+  /** Migración 66: planilla, liquidación de sueldo (Chile) y comprobante de egreso */
+  planilla: Planilla;
+  legal: Legal | null;
+  legalCarga: LegalCarga | null;
+  egresoNumero: string | null;
+  egresoLetras: string | null;
+  pagoBanco: string | null;
+  pagoNumero: string | null;
+  firmadaRuta: string | null;
+  firmadaEn: string | null;
 }
 
 export const parsearLiquidacion = (v: Json | unknown): Liquidacion => {
@@ -95,6 +106,15 @@ export const parsearLiquidacion = (v: Json | unknown): Liquidacion => {
     formaPago: s(x.forma_pago),
     motivo: s(x.motivo),
     version: n(x.version) ?? 1,
+    planilla: parsearPlanilla(x.planilla),
+    legal: parsearLegal(x.legal),
+    legalCarga: parsearLegalCarga(x.legal_carga),
+    egresoNumero: s(x.egreso_numero),
+    egresoLetras: s(x.egreso_letras),
+    pagoBanco: s(x.pago_banco),
+    pagoNumero: s(x.pago_numero),
+    firmadaRuta: s(x.firmada_ruta),
+    firmadaEn: s(x.firmada_en),
     renglones: arr(x.renglones).map((r) => {
       const y = o(r);
       return {

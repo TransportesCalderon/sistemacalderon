@@ -4,7 +4,12 @@ import { createAction } from '@/server/actions/create-action';
 import {
   aprobarSchema,
   conceptoSchema,
+  empresaSchema,
+  fichaSchema,
+  firmadaSchema,
   idSchema,
+  indicadoresSchema,
+  legalSchema,
   motivoSchema,
   pagarSchema,
   prepararSchema,
@@ -18,7 +23,7 @@ import { liquidacionRepository } from '../repositories/liquidacion.repository';
  * Escrituras de liquidaciones (migración 62). El permiso de la pantalla es el primer filtro;
  * la base vuelve a exigir RRHH o TI (y Finanzas para registrar el pago).
  */
-const rutas = () => ({ paths: ['/rrhh/liquidaciones', '/rrhh/tarifas', '/chofer/liquidaciones'] });
+const rutas = () => ({ paths: ['/rrhh/liquidaciones', '/rrhh/tarifas', '/rrhh/datos-legales', '/chofer/liquidaciones'] });
 
 export const guardarTarifa = createAction({
   permiso: 'liquidacion.reglas:editar',
@@ -71,7 +76,7 @@ export const aprobarLiquidacion = createAction({
 export const pagarLiquidacion = createAction({
   permiso: 'liquidacion.liquidaciones:transicionar',
   schema: pagarSchema,
-  handler: (d, { db }) => liquidacionRepository(db).pagar(d.id, d.fecha, d.forma),
+  handler: (d, { db }) => liquidacionRepository(db).pagar(d.id, d.fecha, d.forma, d.banco, d.numero),
   invalida: rutas,
 });
 export const reabrirLiquidacion = createAction({
@@ -84,5 +89,37 @@ export const anularLiquidacion = createAction({
   permiso: 'liquidacion.liquidaciones:transicionar',
   schema: motivoSchema,
   handler: (d, { db }) => liquidacionRepository(db).anular(d.id, d.motivo),
+  invalida: rutas,
+});
+
+// Migración 66: liquidación de sueldo de Chile y comprobante de egreso
+export const guardarEmpresa = createAction({
+  permiso: 'liquidacion.reglas:editar',
+  schema: empresaSchema,
+  handler: (d, { db }) => liquidacionRepository(db).guardarEmpresa(d),
+  invalida: rutas,
+});
+export const guardarIndicadores = createAction({
+  permiso: 'liquidacion.reglas:editar',
+  schema: indicadoresSchema,
+  handler: (d, { db }) => liquidacionRepository(db).guardarIndicadores(d),
+  invalida: rutas,
+});
+export const guardarFicha = createAction({
+  permiso: 'liquidacion.reglas:editar',
+  schema: fichaSchema,
+  handler: (d, { db }) => liquidacionRepository(db).guardarFicha(d),
+  invalida: rutas,
+});
+export const guardarLegal = createAction({
+  permiso: 'liquidacion.liquidaciones:editar',
+  schema: legalSchema,
+  handler: (d, { db }) => liquidacionRepository(db).guardarLegal(d),
+  invalida: rutas,
+});
+export const adjuntarFirmada = createAction({
+  permiso: 'liquidacion.liquidaciones:transicionar',
+  schema: firmadaSchema,
+  handler: (d, { db }) => liquidacionRepository(db).adjuntarFirmada(d.id, d.ruta),
   invalida: rutas,
 });

@@ -27,7 +27,9 @@ import {
   useQuitarRenglon,
   useReabrirLiquidacion,
 } from '../queries/hooks';
+import { CopiaFirmada } from './copia-firmada';
 import { Recibo } from './recibo';
+import { SueldoLegal } from './sueldo-legal';
 
 export const TONO_LIQ: Record<EstadoLiquidacion, Tono> = { borrador: 'alerta', aprobada: 'marca', pagada: 'exito', anulada: 'neutro' };
 
@@ -151,7 +153,7 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
   const quitar = useQuitarRenglon();
   const envio = useEnvio();
   const [agregar, setAgregar] = useState(false);
-  const [pago, setPago] = useState({ fecha: hoyEnZona(zonaHoraria) as string, forma: '' });
+  const [pago, setPago] = useState({ fecha: hoyEnZona(zonaHoraria) as string, forma: '', banco: '', numero: '' });
 
   if (isLoading || !l) return <Cargando texto="Abriendo la liquidación…" />;
   const borrador = l.estado === 'borrador';
@@ -166,9 +168,9 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
           {l.motivo && <p className="text-xs text-tinta-suave">Último motivo: {l.motivo}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
-          {l.estado !== 'borrador' && l.estado !== 'anulada' && (
+          {l.estado !== 'anulada' && (
             <Link href={`/rrhh/liquidaciones/${l.id}/recibo`} target="_blank" className="inline-flex items-center gap-1 text-marca hover:underline">
-              <Printer className="size-4" /> Recibo
+              <Printer className="size-4" /> {l.estado === 'borrador' ? 'Vista previa de los papeles' : 'Papeles para firmar'}
             </Link>
           )}
           <button type="button" className="text-tinta-suave hover:underline" onClick={onCerrar}>
@@ -213,6 +215,9 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
         )}
       </div>
 
+      <SueldoLegal l={l} />
+      <CopiaFirmada l={l} />
+
       {agregar && <FormRenglon liquidacionId={l.id} onListo={() => setAgregar(false)} />}
       <ErrorBase error={envio.error} />
 
@@ -248,15 +253,21 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
               <input type="date" value={pago.fecha} onChange={(e) => setPago({ ...pago, fecha: e.target.value })} />
             </Campo>
             <Campo label="Forma (opcional)">
-              <input value={pago.forma} maxLength={120} placeholder="Transferencia, efectivo…" onChange={(e) => setPago({ ...pago, forma: e.target.value })} />
+              <input value={pago.forma} maxLength={120} placeholder="Transferencia, cheque…" onChange={(e) => setPago({ ...pago, forma: e.target.value })} />
+            </Campo>
+            <Campo label="Banco (opcional)">
+              <input value={pago.banco} maxLength={80} onChange={(e) => setPago({ ...pago, banco: e.target.value })} />
+            </Campo>
+            <Campo label="N° de cheque u operación">
+              <input value={pago.numero} maxLength={40} onChange={(e) => setPago({ ...pago, numero: e.target.value })} />
             </Campo>
             <button
               type="button"
               className={BOTON_PRIMARIO}
               disabled={pagar.isPending}
-              onClick={() => void envio.enviar(pagar.mutateAsync({ id: l.id, fecha: pago.fecha, forma: pago.forma }), () => undefined)}
+              onClick={() => void envio.enviar(pagar.mutateAsync({ id: l.id, fecha: pago.fecha, forma: pago.forma, banco: pago.banco, numero: pago.numero }), () => undefined)}
             >
-              Registrar el pago
+              Registrar el pago (numera el comprobante de egreso)
             </button>
           </div>
         )}
