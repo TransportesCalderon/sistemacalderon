@@ -5,7 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Gauge, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, Camera, Gauge, LoaderCircle } from 'lucide-react';
+import { AvisoIA } from '@/modules/ia/aviso-ia';
+import { useLectorIA } from '@/modules/ia/use-lector-ia';
+import { idAleatorio, prepararArchivo, sha256Hex } from '@/shared/lib/archivo';
+import { browserDb } from '@/shared/supabase/browser';
+import { BUCKET_DOCUMENTOS, rutaArchivo } from '../../domain/documento.types';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
@@ -15,7 +20,18 @@ import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { cargaFormSchema, type CargaFormEntrada } from '../../domain/carga.schemas';
 import { ETIQUETA_MEDIO_PAGO, MEDIOS_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
-import { useCamionesCombustible, useChoferesCombustible, useCrearCarga, useEditarCarga, useEstaciones, useMonedas, useOdometroTelemetria, useChoferDeTractor } from '../../queries/hooks';
+import {
+  useAdjuntarDocumento,
+  useCamionesCombustible,
+  useChoferDeTractor,
+  useChoferesCombustible,
+  useCrearCarga,
+  useEditarCarga,
+  useEmisorTicket,
+  useEstaciones,
+  useMonedas,
+  useOdometroTelemetria,
+} from '../../queries/hooks';
 import { CLASE_TEXTAREA, ErrorBase } from '../comun/ui';
 import { DestinoCargaSelector } from './destino-carga';
 
@@ -138,6 +154,50 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cuando cambia el tractor o la fecha
   }, [choferTractor.data, choferes]);
 
+  // Migración 64: foto del ticket leída con IA (solo en el alta y si la IA está activada).
+  // La IA propone; la persona revisa el formulario y guarda como siempre.
+  const lector = useLectorIA('ticket_combustible');
+  const adjuntar = useAdjuntarDocumento();
+  const [fotoTicket, setFotoTicket] = useState<File | null>(null);
+  const emisor = useEmisorTicket(Number(watch('estacionId')) || null);
+  const conIA = !carga && lector.disponible;
+  const leerTicket = async (archivo: File) => {
+    setFotoTicket(archivo);
+    const r = await lector.leer(archivo);
+    if (!r) return;
+    const p = r.propuesta;
+    const op = { shouldValidate: true, shouldDirty: true } as const;
+    if (p.camion_id && !watch('camionId')) setValue('camionId', String(p.camion_id), op);
+    if (p.estacion_id) setValue('estacionId', String(p.estacion_id), op);
+    if (p.fecha) setValue('fechaHoraLocal', `${p.fecha}T${p.hora ?? '12:00'}`, op);
+    if (p.litros) setValue('litros', txt(p.litros), op);
+    if (p.precio_unitario) setValue('precioUnitario', txt(p.precio_unitario), op);
+    if (p.moneda && monedas?.some((m) => m.codigo === p.moneda)) setValue('moneda', p.moneda, op);
+    if (p.odometro_km) setValue('odometroKm', txt(p.odometro_km), op);
+  };
+  // Después de crear la carga: la foto queda como su ticket (si la IA leyó el número)
+  const adjuntarTicket = async (cargaId: number, fechaDia: string) => {
+    if (!fotoTicket || lector.estado.fase !== 'listo' || !lector.estado.propuesta.numero_comprobante) return;
+    try {
+      const { blob, extension, tipo } = await prepararArchivo(fotoTicket);
+      const hash = await sha256Hex(blob);
+      const ruta = rutaArchivo(cargaId, extension, idAleatorio());
+      const subida = await browserDb().storage.from(BUCKET_DOCUMENTOS).upload(ruta, blob, { contentType: tipo, upsert: false });
+      if (subida.error) return;
+      await adjuntar.mutateAsync({
+        cargaId,
+        tipo: 'ticket',
+        numero: lector.estado.propuesta.numero_comprobante,
+        fecha: fechaDia,
+        archivo: ruta,
+        hash,
+        emisorId: emisor.data ?? null,
+      });
+    } catch {
+      // si no se pudo adjuntar, se adjunta después desde la ficha de la carga
+    }
+  };
+
   const enviar = handleSubmit(async (d) => {
     setError(null);
     const fechaHora = horaLocalAIso(d.fechaHoraLocal, zonaHoraria);
@@ -198,6 +258,10 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
       }
       return;
     }
+    if (conIA) {
+      await adjuntarTicket(r.data, d.fechaHoraLocal.slice(0, 10));
+      await lector.marcarUsada({ litros: d.litros, precio_unitario: d.precioUnitario, estacion_id: Number(d.estacionId) || null, fecha: d.fechaHoraLocal.slice(0, 10) });
+    }
     router.push(`/combustible/cargas/${r.data}`);
   });
 
@@ -216,6 +280,33 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
       {!carga && !reemplazaId && <DestinoCargaSelector actual="tractor" />}
 
       <ErrorBase error={error} />
+
+      {conIA && (
+        <section className={cn(TARJETA, 'space-y-3 p-5')} aria-label="Foto del ticket">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className={cn(BOTON_SECUNDARIO, 'cursor-pointer')}>
+              <Camera className="size-4" /> {fotoTicket ? 'Otra foto del ticket' : 'Foto del ticket: completar con IA'}
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                capture="environment"
+                className="sr-only"
+                disabled={lector.estado.fase === 'leyendo'}
+                onChange={(ev) => {
+                  const f = ev.target.files?.[0];
+                  if (f) void leerTicket(f);
+                  ev.target.value = '';
+                }}
+              />
+            </label>
+            {fotoTicket && <span className="text-sm text-tinta-suave">{fotoTicket.name}</span>}
+          </div>
+          <AvisoIA estado={lector.estado} />
+          <p className="text-xs text-tinta-suave">
+            Opcional. La IA lee el ticket y completa lo que puede; revisá todo antes de guardar. Si lee el número, la foto queda adjunta como ticket.
+          </p>
+        </section>
+      )}
 
       <section className={cn(TARJETA, 'grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3')} aria-label="Datos de la carga">
         {carga && <input type="hidden" {...register('camionId')} />}

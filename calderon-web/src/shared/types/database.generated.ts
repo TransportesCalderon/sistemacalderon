@@ -1062,6 +1062,12 @@ export type Database = {
       // Migración 51: km reales y costos del viaje
       fn_telemetria_viaje: { Args: { p_viaje: number }; Returns: Json };
       fn_costos_viaje: { Args: { p_viaje: number }; Returns: Json };
+      // Lectura de tickets con IA (64)
+      fn_ia_estado: { Args: Record<string, never>; Returns: Json };
+      fn_ia_leer: { Args: { p_tipo: string; p_imagen_base64: string; p_media_type?: string }; Returns: number };
+      fn_ia_resultado: { Args: { p_lectura: number }; Returns: Json };
+      fn_ia_marcar_usada: { Args: { p_lectura: number; p_guardado: Json }; Returns: undefined };
+      fn_ia_uso: { Args: { p_dias?: number }; Returns: Json };
       // Cierres por hacer (63)
       fn_cierres_por_hacer: { Args: { p_dias?: number }; Returns: Json };
       fn_cerrar_y_aprobar_varios: { Args: { p_viajes: number[] }; Returns: Json };

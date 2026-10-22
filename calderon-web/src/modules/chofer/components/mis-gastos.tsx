@@ -13,6 +13,8 @@ import { Campo } from '@/shared/ui/campo';
 import { dinero, ETIQUETA_ESTADO, ETIQUETA_MOVIMIENTO, nombrePeriodo, type EstadoMovimiento, type MiFondo, type Movimiento, type Saldo } from '../domain/chofer.types';
 import { useMiFondo, useRetirarGasto, useSubirGasto } from '../queries/hooks';
 import { abrirArchivo, borrarArchivo, posicionActual, subirArchivo } from './archivos';
+import { AvisoIA } from '@/modules/ia/aviso-ia';
+import { useLectorIA } from '@/modules/ia/use-lector-ia';
 
 export const TONO_ESTADO: Record<EstadoMovimiento, Tono> = {
   registrado: 'neutro',
@@ -162,6 +164,24 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
   const [subiendo, setSubiendo] = useState(false);
   const ocupado = subiendo || subir.isPending;
   const campo = (n: string) => error?.campos?.[n];
+  // Migración 64: con la IA activada, la foto del comprobante completa los datos (el chofer los revisa)
+  const lector = useLectorIA('comprobante_gasto');
+  const elegirFoto = async (f: File) => {
+    setArchivo(f);
+    if (!lector.disponible) return;
+    const r = await lector.leer(f);
+    if (!r) return;
+    const p = r.propuesta;
+    setV((x) => ({
+      ...x,
+      categoria: p.categoria && fondo.categorias.some((c) => c.codigo === p.categoria) ? p.categoria : x.categoria,
+      importe: p.importe_total ? String(p.importe_total).replace('.', ',') : x.importe,
+      moneda: p.moneda && fondo.monedas.includes(p.moneda) ? p.moneda : x.moneda,
+      fecha: p.fecha ?? x.fecha,
+      lugar: p.lugar ?? x.lugar,
+      detalle: p.detalle ?? x.detalle,
+    }));
+  };
 
   const enviar = async () => {
     setError(null);
@@ -189,6 +209,7 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
         setError(r.error);
         return;
       }
+      await lector.marcarUsada({ categoria: v.categoria, importe_total: v.importe, moneda: v.moneda, fecha: v.fecha });
       onListo();
     } catch (e) {
       setSubiendo(false);
@@ -200,6 +221,22 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
   return (
     <section className={cn(TARJETA, 'space-y-3 p-4')}>
       <h2 className="font-semibold text-tinta">Nuevo gasto</h2>
+      <label className={`${BOTON_SECUNDARIO} w-full cursor-pointer`}>
+        <Camera className="size-5" />
+        {archivo ? archivo.name : lector.disponible ? 'Foto del comprobante (la IA completa los datos)' : 'Foto del comprobante'}
+        <input
+          type="file"
+          accept="image/*,application/pdf"
+          capture="environment"
+          className="sr-only"
+          disabled={lector.estado.fase === 'leyendo'}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void elegirFoto(f);
+          }}
+        />
+      </label>
+      <AvisoIA estado={lector.estado} />
       <Campo label="¿Qué gasto es?" error={campo('categoria')}>
         <select value={v.categoria} onChange={(e) => setV({ ...v, categoria: e.target.value })}>
           <option value="">Elegí…</option>
@@ -227,11 +264,6 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
       <Campo label="Fecha del comprobante" error={campo('fecha')}>
         <input type="date" value={v.fecha} onChange={(e) => setV({ ...v, fecha: e.target.value })} />
       </Campo>
-      <label className={`${BOTON_SECUNDARIO} w-full cursor-pointer`}>
-        <Camera className="size-5" />
-        {archivo ? archivo.name : 'Foto del comprobante'}
-        <input type="file" accept="image/*,application/pdf" capture="environment" className="sr-only" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
-      </label>
       <Campo label="Dónde (opcional)" error={campo('lugar')}>
         <input value={v.lugar} maxLength={120} onChange={(e) => setV({ ...v, lugar: e.target.value })} placeholder="Ej.: peaje Uspallata" />
       </Campo>
