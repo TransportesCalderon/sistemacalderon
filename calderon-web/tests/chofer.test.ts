@@ -41,5 +41,8 @@ describe('módulo del chofer (migraciones 60 y 61)', () => {
     expect(pantallaDeRuta('/chofer/gastos')).toBe('chofer.mis_gastos');
     expect(pantallaDeRuta('/rrhh/fondos')).toBe('rrhh.fondos');
     expect(pantallaDeRuta('/rrhh/liquidacion')).toBe('liquidacion.liquidaciones');
+    expect(pantallaDeRuta('/rrhh/liquidaciones/4/recibo')).toBe('liquidacion.liquidaciones');
+    expect(pantallaDeRuta('/rrhh/tarifas')).toBe('liquidacion.reglas');
+    expect(pantallaDeRuta('/chofer/liquidaciones/4/recibo')).toBe('chofer.mis_liquidaciones');
   });
 });

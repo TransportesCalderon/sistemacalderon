@@ -59,5 +59,7 @@ export const PESTANAS_AJUSTES = [
 
 export const PESTANAS_RRHH = [
   { href: '/rrhh/fondos', etiqueta: 'Fondos de choferes' },
+  { href: '/rrhh/liquidaciones', etiqueta: 'Liquidaciones' },
   { href: '/rrhh/liquidacion', etiqueta: 'Resumen para liquidar' },
+  { href: '/rrhh/tarifas', etiqueta: 'Tarifas y conceptos' },
 ] as const;

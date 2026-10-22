@@ -52,6 +52,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     entradas: [
       { href: '/chofer', etiqueta: 'Mi carga', pantalla: 'chofer.mi_carga' },
       { href: '/chofer/gastos', etiqueta: 'Mis gastos', pantalla: 'chofer.mis_gastos' },
+      { href: '/chofer/liquidaciones', etiqueta: 'Mis liquidaciones', pantalla: 'chofer.mis_liquidaciones' },
     ],
   },
   {
@@ -137,12 +138,15 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     ],
   },
   {
-    // Migración 61: fondo fijo de los choferes y lo que hay que tener en cuenta al liquidar.
+    // Migraciones 61 y 62: fondo fijo de los choferes y liquidación mensual.
     id: 'rrhh',
     etiqueta: 'Administración',
     entradas: [
-      { href: '/rrhh/fondos', etiqueta: 'Fondos de choferes', pantalla: 'rrhh.fondos', incluye: ['/rrhh/liquidacion'] },
+      { href: '/rrhh/fondos', etiqueta: 'Fondos de choferes', pantalla: 'rrhh.fondos' },
+      // Migración 62: liquidación mensual; el resumen y las tarifas son pestañas
+      { href: '/rrhh/liquidaciones', etiqueta: 'Liquidaciones', pantalla: 'liquidacion.liquidaciones', incluye: ['/rrhh/liquidacion', '/rrhh/tarifas'] },
       { href: '/rrhh/liquidacion', etiqueta: 'Resumen para liquidar', pantalla: 'liquidacion.liquidaciones', oculta: true },
+      { href: '/rrhh/tarifas', etiqueta: 'Tarifas y conceptos', pantalla: 'liquidacion.reglas', oculta: true },
     ],
   },
   {

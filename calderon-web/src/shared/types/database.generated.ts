@@ -1329,6 +1329,43 @@ export type Database = {
       fn_resumen_liquidacion: { Args: { p_periodo: string | null }; Returns: Json };
       fn_periodo_de: { Args: { p_fecha: string }; Returns: string };
       fn_categorias_gasto_chofer: { Args: Record<string, never>; Returns: { codigo: string; nombre: string }[] };
+      // Liquidaciones (62)
+      fn_tarifas: { Args: Record<string, never>; Returns: Json };
+      fn_guardar_tarifa: {
+        Args: { p_chofer: number | null; p_desde: string; p_sueldo_fijo: number | null; p_precio_km: number | null; p_observacion?: string | null };
+        Returns: number;
+      };
+      fn_quitar_tarifa: { Args: { p_tarifa: number }; Returns: undefined };
+      fn_conceptos_liquidacion: { Args: Record<string, never>; Returns: Json };
+      fn_guardar_concepto: {
+        Args: {
+          p_id: number | null;
+          p_codigo: string;
+          p_nombre: string;
+          p_tipo: string;
+          p_calculo: string;
+          p_valor: number | null;
+          p_base: string | null;
+          p_automatico: boolean;
+          p_activo: boolean;
+          p_orden?: number;
+        };
+        Returns: number;
+      };
+      fn_preparar_liquidacion: { Args: { p_chofer: number; p_periodo: string }; Returns: number };
+      fn_preparar_liquidaciones: { Args: { p_periodo: string }; Returns: Json };
+      fn_agregar_renglon: {
+        Args: { p_liq: number; p_tipo: string | null; p_descripcion: string | null; p_importe: number; p_concepto?: number | null; p_cantidad?: number | null };
+        Returns: number;
+      };
+      fn_quitar_renglon: { Args: { p_renglon: number }; Returns: undefined };
+      fn_aprobar_liquidacion: { Args: { p_liq: number; p_version: number }; Returns: undefined };
+      fn_pagar_liquidacion: { Args: { p_liq: number; p_fecha: string; p_forma?: string | null }; Returns: undefined };
+      fn_reabrir_liquidacion: { Args: { p_liq: number; p_motivo: string }; Returns: undefined };
+      fn_anular_liquidacion: { Args: { p_liq: number; p_motivo: string }; Returns: undefined };
+      fn_liquidacion: { Args: { p_liq: number }; Returns: Json };
+      fn_liquidaciones: { Args: { p_periodo: string }; Returns: Json };
+      fn_mis_liquidaciones: { Args: Record<string, never>; Returns: Json };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

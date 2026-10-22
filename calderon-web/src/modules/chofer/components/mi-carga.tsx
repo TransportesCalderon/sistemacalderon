@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { FileUp, MapPin, Navigation, Package, Receipt, Truck } from 'lucide-react';
+import { FileText, FileUp, MapPin, Navigation, Package, Receipt, Truck } from 'lucide-react';
 import { Cargando, ErrorLectura } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
@@ -52,9 +52,14 @@ export function MiCarga() {
         data.cargas.map((c) => <TarjetaCarga key={c.servicioId} c={c} />)
       )}
 
-      <Link href="/chofer/gastos" className={`${BOTON_SECUNDARIO} w-full`}>
-        <Receipt className="size-5" /> Mis gastos y fondo
-      </Link>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Link href="/chofer/gastos" className={`${BOTON_SECUNDARIO} w-full`}>
+          <Receipt className="size-5" /> Mis gastos y fondo
+        </Link>
+        <Link href="/chofer/liquidaciones" className={`${BOTON_SECUNDARIO} w-full`}>
+          <FileText className="size-5" /> Mis liquidaciones
+        </Link>
+      </div>
     </div>
   );
 }

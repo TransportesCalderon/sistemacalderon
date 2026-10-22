@@ -86,6 +86,7 @@ export const PANTALLAS = {
   // TI no las ve: necesitan un usuario vinculado a un chofer.
   'chofer.mi_carga':         { etiqueta: 'Mi carga (chofer): documentos y ubicación', fila: ['—', '—', '—', 'P', '—', '—', '—', '—', '—', '—'] },
   'chofer.mis_gastos':       { etiqueta: 'Mis gastos y fondo (chofer)', fila: ['—', '—', '—', 'P', '—', '—', '—', '—', '—', '—'] },
+  'chofer.mis_liquidaciones': { etiqueta: 'Mis liquidaciones (chofer, aprobadas)', fila: ['—', '—', '—', 'P', '—', '—', '—', '—', '—', '—'] },
   // Fondo fijo de los choferes: entregas, vueltos, revisión de gastos y cierre del período (la base exige RRHH, Finanzas o TI).
   'rrhh.fondos':             { etiqueta: 'Fondos y gastos de choferes', fila: ['L', 'L', '—', '—', '—', 'L', 'E A', 'E A', 'E A', 'L'] },
   'comercial.clientes':      { etiqueta: 'Clientes', fila: ['L', 'E', '—', '—', '—', '—', '—', 'E', 'E A', 'L'] },
