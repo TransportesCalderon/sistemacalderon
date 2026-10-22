@@ -87,6 +87,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
         pantalla: 'operacion.tramos',
         incluye: ['/operacion/viajes-chofer', '/combustible/cierres', '/operacion/costos', '/combustible/viajes', '/operacion/viajes'],
       },
+      // Migración 63: todos los cierres pendientes en un lugar, con lo que falta y aprobar varios
+      { href: '/operacion/por-cerrar', etiqueta: 'Cierres por hacer', pantalla: 'operacion.tramos' },
       { href: '/flota/pizarra', etiqueta: 'Pizarra Azul', pantalla: 'flota.pizarra' },
       { href: '/telemetria/mapa', etiqueta: 'Mapa de flota', pantalla: 'telemetria.mapa' },
       { href: '/operacion/viajes-chofer', etiqueta: 'Viajes de chofer', pantalla: 'operacion.tramos', oculta: true },

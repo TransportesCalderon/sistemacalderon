@@ -1062,6 +1062,10 @@ export type Database = {
       // Migración 51: km reales y costos del viaje
       fn_telemetria_viaje: { Args: { p_viaje: number }; Returns: Json };
       fn_costos_viaje: { Args: { p_viaje: number }; Returns: Json };
+      // Cierres por hacer (63)
+      fn_cierres_por_hacer: { Args: { p_dias?: number }; Returns: Json };
+      fn_cerrar_y_aprobar_varios: { Args: { p_viajes: number[] }; Returns: Json };
+      fn_completar_operaciones_viaje: { Args: { p_viaje: number }; Returns: number };
       // Módulo del chofer (60)
       fn_mi_chofer: { Args: Record<string, never>; Returns: number | null };
       fn_mis_cargas: { Args: Record<string, never>; Returns: Json };

@@ -26,6 +26,7 @@ export const PESTANAS_CONSUMO = [
 export const PESTANAS_TRACTORES = [
   { href: '/operacion/tractores', etiqueta: 'Tractores' },
   { href: '/operacion/viajes-chofer', etiqueta: 'Viajes de chofer' },
+  { href: '/operacion/por-cerrar', etiqueta: 'Cierres por hacer' },
   { href: '/combustible/cierres', etiqueta: 'Cierres de combustible' },
   { href: '/operacion/costos', etiqueta: 'Costos de viajes' },
 ] as const;
