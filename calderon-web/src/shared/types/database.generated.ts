@@ -1062,6 +1062,25 @@ export type Database = {
       // Migración 51: km reales y costos del viaje
       fn_telemetria_viaje: { Args: { p_viaje: number }; Returns: Json };
       fn_costos_viaje: { Args: { p_viaje: number }; Returns: Json };
+      // Módulo del chofer (60)
+      fn_mi_chofer: { Args: Record<string, never>; Returns: number | null };
+      fn_mis_cargas: { Args: Record<string, never>; Returns: Json };
+      fn_documentos_operacion: { Args: { p_servicio: number }; Returns: Json };
+      fn_subir_documento_operacion: {
+        Args: {
+          p_servicio: number;
+          p_tipo: string;
+          p_archivo: string;
+          p_hash?: string | null;
+          p_nombre_archivo?: string | null;
+          p_nota?: string | null;
+          p_latitud?: number | null;
+          p_longitud?: number | null;
+        };
+        Returns: number;
+      };
+      fn_quitar_documento_operacion: { Args: { p_documento: number }; Returns: string };
+      fn_seguimiento_operacion: { Args: { p_servicio: number; p_horas?: number }; Returns: Json };
       fn_costos_viajes: { Args: { p_desde: string; p_hasta: string }; Returns: CostoViajeRow[] };
       fn_categorias_gasto_viaje: { Args: Record<string, never>; Returns: { codigo: string; nombre: string }[] };
       fn_agregar_gasto_viaje: {
@@ -1206,7 +1225,7 @@ export type Database = {
         }[];
       };
       fn_cuentas_sin_vincular: { Args: Record<string, never>; Returns: { email: string; creada_en: string }[] };
-      fn_guardar_usuario: { Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean }; Returns: number };
+      fn_guardar_usuario: { Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean; p_chofer?: number | null }; Returns: number };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
@@ -1248,6 +1267,68 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       fn_actualizar_cotizaciones: { Args: { p_dias?: number; p_origen?: string; p_bcra?: Json }; Returns: Json };
+      // Fondo fijo del chofer, gastos y resumen para liquidar (61)
+      fn_mi_fondo: { Args: Record<string, never>; Returns: Json };
+      fn_subir_gasto: {
+        Args: {
+          p_categoria: string;
+          p_moneda: string;
+          p_importe: number;
+          p_fecha: string;
+          p_comprobante?: string | null;
+          p_hash?: string | null;
+          p_nombre_archivo?: string | null;
+          p_detalle?: string | null;
+          p_lugar?: string | null;
+          p_latitud?: number | null;
+          p_longitud?: number | null;
+        };
+        Returns: number;
+      };
+      fn_retirar_gasto: { Args: { p_gasto: number }; Returns: string | null };
+      fn_fondos_choferes: {
+        Args: Record<string, never>;
+        Returns: {
+          chofer_id: number;
+          chofer: string;
+          legajo: string | null;
+          saldos: Json;
+          por_revisar: number;
+          ultimo_movimiento: string | null;
+          ultimo_cierre: string | null;
+        }[];
+      };
+      fn_fondo_chofer: { Args: { p_chofer: number; p_desde?: string | null; p_hasta?: string | null }; Returns: Json };
+      fn_gastos_por_revisar: { Args: Record<string, never>; Returns: Json };
+      fn_entregar_fondo: {
+        Args: { p_chofer: number; p_moneda: string; p_importe: number; p_fecha: string; p_detalle?: string | null; p_servicio?: number | null };
+        Returns: number;
+      };
+      fn_registrar_devolucion: {
+        Args: { p_chofer: number; p_moneda: string; p_importe: number; p_fecha: string; p_detalle?: string | null };
+        Returns: number;
+      };
+      fn_cargar_gasto_chofer: {
+        Args: {
+          p_chofer: number;
+          p_categoria: string;
+          p_moneda: string;
+          p_importe: number;
+          p_fecha: string;
+          p_detalle?: string | null;
+          p_comprobante?: string | null;
+          p_hash?: string | null;
+          p_nombre_archivo?: string | null;
+        };
+        Returns: Json;
+      };
+      fn_revisar_gasto: { Args: { p_gasto: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: Json };
+      fn_anular_movimiento_fondo: { Args: { p_movimiento: number; p_motivo: string }; Returns: undefined };
+      fn_cerrar_fondo: { Args: { p_chofer: number; p_periodo: string }; Returns: Json };
+      fn_reabrir_fondo: { Args: { p_chofer: number; p_periodo: string; p_motivo: string }; Returns: undefined };
+      fn_resumen_liquidacion: { Args: { p_periodo: string | null }; Returns: Json };
+      fn_periodo_de: { Args: { p_fecha: string }; Returns: string };
+      fn_categorias_gasto_chofer: { Args: Record<string, never>; Returns: { codigo: string; nombre: string }[] };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
@@ -1302,6 +1383,34 @@ export type Database = {
       }>;
     };
     Functions: {
+      // Ubicación del celular del chofer (60)
+      fn_registrar_posicion_celular: {
+        Args: {
+          p_latitud: number;
+          p_longitud: number;
+          p_precision_m?: number | null;
+          p_velocidad_kmh?: number | null;
+          p_rumbo?: number | null;
+          p_ts?: string | null;
+        };
+        Returns: Json;
+      };
+      fn_celulares_en_vivo: {
+        Args: { p_horas?: number };
+        Returns: {
+          chofer_id: number;
+          chofer: string;
+          servicio_id: number | null;
+          numero_operacion: number | null;
+          camion_id: number | null;
+          patente: string | null;
+          ts: string;
+          latitud: number;
+          longitud: number;
+          velocidad_kmh: number | null;
+          precision_m: number | null;
+        }[];
+      };
       fn_importar_api_camiones: { Args: { p_marca?: string; p_origen?: string }; Returns: Json };
       fn_importar_todas: { Args: { p_origen?: string }; Returns: Json };
       // Migración 49: datos de los camiones, conducción y puntaje

@@ -15,6 +15,7 @@ import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { enlaceAlta, haceTexto, minutosDesde, senalDe, type Senal } from '../domain/flota.types';
 import { useCorridasApi, useFlotaEnVivo, useImportarAhora, useVehiculosApi } from '../queries/hooks';
 import { MapaFlota } from './mapa-flota';
+import { useCelularesEnVivo } from '@/modules/chofer/queries/hooks';
 
 const SENAL: Record<Senal, { texto: string; tono: 'exito' | 'alerta' | 'neutro' }> = {
   vivo: { texto: 'En línea', tono: 'exito' },
@@ -28,6 +29,7 @@ export function FlotaPantalla() {
   const esTi = useCan('configuracion.catalogos:editar');
   const puedeAltaCamion = useCan('flota.camiones:editar');
   const { data, isPending, isError, refetch } = useFlotaEnVivo();
+  const celulares = useCelularesEnVivo();
   const { data: vehiculos } = useVehiculosApi();
   const [elegido, setElegido] = useState<number | null>(null);
   const sinEnlace = (vehiculos ?? []).filter((v) => v.camionId === null);
@@ -72,14 +74,17 @@ export function FlotaPantalla() {
         <Cargando texto="Cargando la flota…" />
       ) : isError ? (
         <ErrorLectura texto="No se pudo cargar la telemetría." onReintentar={() => refetch()} />
-      ) : data.length === 0 ? (
+      ) : data.length === 0 && (celulares.data?.length ?? 0) === 0 ? (
         <Vacio
           icono={<RadioTower className="size-6" />}
           texto="Todavía no llegaron datos de los camiones. La tarea programada los trae cada 10 minutos."
         />
       ) : (
         <>
-          <MapaFlota camiones={data} seleccionado={elegido} onSeleccionar={setElegido} />
+          <MapaFlota camiones={data} celulares={celulares.data ?? []} seleccionado={elegido} onSeleccionar={setElegido} />
+          {(celulares.data?.length ?? 0) > 0 && (
+            <p className="text-xs text-tinta-suave">Los cuadrados violetas son el celular de los choferes con carga (comparten la ubicación con la aplicación abierta).</p>
+          )}
           <Seccion titulo={`Camiones (${data.length})`}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[860px] text-sm">

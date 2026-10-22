@@ -17,7 +17,7 @@ export const ROLES_APP = [
 
 export type RolApp = (typeof ROLES_APP)[number];
 
-export const ROLES_BD = ['tc_admin', 'tc_app', 'tc_lectura', 'tc_auditor'] as const;
+export const ROLES_BD = ['tc_admin', 'tc_app', 'tc_lectura', 'tc_auditor', 'tc_chofer'] as const;
 export type RolBd = (typeof ROLES_BD)[number];
 
 export const ETIQUETA_ROL: Record<RolApp, string> = {

@@ -48,12 +48,23 @@ describe('matriz de permisos (especificación §16)', () => {
     expect(can(permisosDe(['base_mendoza'], agregado), 'combustible.depositos:editar')).toBe(true);
   });
 
-  it('el chofer tiene alcance propio en sus cargas', () => {
-    expect(alcanceDe(permisosDe(['chofer'], agregado), 'combustible.cargas:editar')).toBe('propio');
+  it('el chofer solo tiene sus dos pantallas, con alcance propio (migración 60)', () => {
+    const p = permisosDe(['chofer'], agregado);
+    expect(alcanceDe(p, 'chofer.mi_carga:editar')).toBe('propio');
+    expect(alcanceDe(p, 'chofer.mis_gastos:editar')).toBe('propio');
+    expect(alcanceDe(p, 'combustible.cargas:ver')).toBeNull();
+    expect(can(p, 'rrhh.fondos:ver')).toBe(false);
   });
 
-  it('con varios roles gana el alcance total', () => {
+  it('los fondos de choferes los manejan RRHH, Finanzas y TI', () => {
+    for (const rol of ORDEN_COLUMNAS) {
+      expect(can(permisosDe([rol], agregado), 'rrhh.fondos:transicionar'), rol).toBe(['rrhh', 'finanzas', 'ti'].includes(rol));
+    }
+  });
+
+  it('con varios roles suma los permisos de todos', () => {
     expect(alcanceDe(permisosDe(['chofer', 'base_mendoza'], agregado), 'combustible.cargas:editar')).toBe('todo');
+    expect(alcanceDe(permisosDe(['chofer', 'base_mendoza'], agregado), 'chofer.mi_carga:editar')).toBe('propio');
   });
 
   it('gerencia ve alertas solo si el parámetro está en detalle', () => {
@@ -76,10 +87,10 @@ describe('matriz de permisos (especificación §16)', () => {
 });
 
 describe('navegación (especificación §3)', () => {
-  it('menú corto: 8 grupos, «Cargar nuevo» y las pantallas hermanas como pestañas', () => {
-    expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'cargar', 'pendientes', 'logistica', 'combustible', 'flota', 'datos', 'configuracion']);
+  it('menú corto: «Cargar nuevo», lo del chofer aparte y las pantallas hermanas como pestañas', () => {
+    expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'chofer', 'cargar', 'pendientes', 'logistica', 'combustible', 'flota', 'rrhh', 'datos', 'configuracion']);
     const entradas = NAVEGACION.flatMap((g) => g.entradas);
-    expect(entradas.filter((e) => !e.oculta).length).toBe(27);
+    expect(entradas.filter((e) => !e.oculta).length).toBe(30);
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     // Toda ruta incluida como pestaña sigue protegida por una entrada oculta o visible
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
@@ -103,18 +114,19 @@ describe('navegación (especificación §3)', () => {
     expect(pantallaDeRuta('/otra-cosa')).toBeNull();
   });
 
-  it('el menú no muestra entradas ocultas; TI ve los 8 grupos', () => {
+  it('el menú no muestra entradas ocultas; TI ve 9 grupos (no el del chofer)', () => {
     const ti = menuVisible(permisosDe(['ti'], agregado)).flatMap((g) => g.entradas.map((e) => e.href));
     expect(ti).not.toContain('/combustible/cierres');
     expect(ti).not.toContain('/combustible/viajes');
     expect(ti).toContain('/operacion/tractores');
-    expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(8);
+    expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(9);
     expect(pantallaDeRuta('/combustible/cierres/5')).toBe('combustible.cierre_viaje');
   });
 
-  it('la ruta inicial de gerencia es el dashboard y la del chofer, sus cargas', () => {
+  it('la ruta inicial de gerencia es el dashboard y la del chofer, Mi carga', () => {
     expect(rutaInicial(permisosDe(['gerencia'], agregado))).toBe('/inicio');
-    expect(rutaInicial(permisosDe(['chofer'], agregado))).toBe('/combustible/cargas');
+    expect(rutaInicial(permisosDe(['chofer'], agregado))).toBe('/chofer');
+    expect(menuVisible(permisosDe(['chofer'], agregado)).map((g) => g.id)).toEqual(['chofer']);
   });
 });
 

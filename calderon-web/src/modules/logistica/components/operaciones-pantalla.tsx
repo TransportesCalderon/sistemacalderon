@@ -47,6 +47,7 @@ import {
   useViajesEnVivo,
 } from '../queries/hooks';
 import { Lista } from './viajes-pantalla';
+import { SeguimientoOperacion } from '@/modules/chofer/components/seguimiento-operacion';
 
 type Abierto =
   | { tipo: 'nueva'; base?: Operacion }
@@ -477,6 +478,9 @@ function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: str
         ))}
       </dl>
       {o.observacion && <p className="text-sm text-tinta">{o.observacion}</p>}
+      {!o.transportistaId && o.estado !== 'sin_confirmar' && (
+        <SeguimientoOperacion servicioId={o.servicioId} abierta={['planificado', 'en_curso'].includes(o.estado)} />
+      )}
     </div>
   );
 }

@@ -14,6 +14,8 @@ import type { RolApp } from './roles';
  *
  * Orden de columnas: Ger, Ope, BMz, Cho, AdC, Ana, RH, Fin, TI, Aud.
  *
+ * 22/10/2026 (migración 60): el chofer solo tiene sus dos pantallas propias (chofer.*).
+ *
  * Decisión de la empresa (18/10/2026): TI tiene 'E A' en todas las pantallas de negocio para poder
  * probar el sistema completo. Se exceptúa Auditoría (bitácora y accesos sensibles: solo lectura o
  * auditor). La base sigue exigiendo que lo aprobado lo apruebe otro usuario.
@@ -39,8 +41,8 @@ export const PANTALLAS = {
   //                                         Ger   Ope    BMz  Cho  AdC    Ana    RH     Fin    TI     Aud
   'inicio.dashboard':        { etiqueta: 'Dashboard', fila: ['L', 'L', '—', '—', 'L', 'L', 'L', 'L', 'E A', 'L'] },
   'inicio.pendientes':       { etiqueta: 'Mis pendientes', fila: ['—', 'L', 'L', '—', 'L', 'L', 'L', 'L', 'E A', '—'] },
-  'combustible.cargas':      { etiqueta: 'Cargas y ficha de carga', fila: ['L', 'L', 'E', 'P', 'E A', 'L', '—', 'L', 'E A', 'L'] },
-  'combustible.documentos':  { etiqueta: 'Documentos de carga', fila: ['—', 'L', 'E', 'P', 'E', 'L', '—', 'L', 'E A', 'L'] },
+  'combustible.cargas':      { etiqueta: 'Cargas y ficha de carga', fila: ['L', 'L', 'E', '—', 'E A', 'L', '—', 'L', 'E A', 'L'] },
+  'combustible.documentos':  { etiqueta: 'Documentos de carga', fila: ['—', 'L', 'E', '—', 'E', 'L', '—', 'L', 'E A', 'L'] },
   'combustible.bandejas':    { etiqueta: 'Bandejas de cargas', fila: ['—', '—', '—', '—', 'A', 'L', '—', '—', 'E A', 'L'] },
   'combustible.mediciones':  { etiqueta: 'Mediciones manuales', fila: ['—', 'L', 'E', '—', 'E', 'L', '—', '—', 'E A', 'L'] },
   'combustible.consumo':     { etiqueta: 'Consumo, conciliación, costo medio', fila: ['L', 'L', '—', '—', 'L', 'L', '—', 'L', 'E A', 'L'] },
@@ -60,7 +62,7 @@ export const PANTALLAS = {
   // 21/10/2026: Adm. de combustible ve los viajes (el cierre de combustible está adentro del viaje).
   'operacion.tramos':        { etiqueta: 'Tramos operativos y composición', fila: ['L', 'E A', 'L', '—', 'L', 'L', 'L', 'L', 'E A', 'L'] },
   'operacion.planificacion': { etiqueta: 'Planificación de flota', fila: ['L', 'E', 'L', '—', '—', 'L', '—', '—', 'E A', 'L'] },
-  'operacion.control_mendoza': { etiqueta: 'Control Mendoza', fila: ['L', 'E', 'E', 'P', '—', 'L', '—', '—', 'E A', 'L'] },
+  'operacion.control_mendoza': { etiqueta: 'Control Mendoza', fila: ['L', 'E', 'E', '—', '—', 'L', '—', '—', 'E A', 'L'] },
   'operacion.eventos':       { etiqueta: 'Eventos operativos', fila: ['—', 'E', 'E', '—', '—', 'L', '—', '—', 'E A', 'L'] },
   // Migración 49: Administración de combustible también revisa alertas (la base lo permite).
   'anomalias.alertas':       { etiqueta: 'Bandeja y ficha de alertas', fila: ['L*', '—', '—', '—', 'A', 'A', '—', '—', 'E A', 'L'] },
@@ -75,15 +77,22 @@ export const PANTALLAS = {
   // accesorios del semi, tipos de accesorio y gensets. El viaje (tractor, chofer, carga) se asigna en Operación.
   'flota.pizarra':           { etiqueta: 'Pizarra Azul, gensets y accesorios', fila: ['L', 'E', 'E', '—', 'L', 'L', '—', 'L', 'E A', 'L'] },
   'flota.camiones':          { etiqueta: 'Camiones y semirremolques', fila: ['L', 'E', 'L', '—', 'L', 'L', '—', 'L', 'E A', 'L'] },
-  'flota.choferes':          { etiqueta: 'Choferes (sin documento)', fila: ['L', 'E', 'L', 'P', 'L', 'L', 'E', 'L', 'E A', 'L'] },
-  'flota.documento_chofer':  { etiqueta: 'Documento del chofer', fila: ['—', '—', '—', 'P', '—', 'L', 'E', '—', 'E A', 'L'] },
+  'flota.choferes':          { etiqueta: 'Choferes (sin documento)', fila: ['L', 'E', 'L', '—', 'L', 'L', 'E', 'L', 'E A', 'L'] },
+  'flota.documento_chofer':  { etiqueta: 'Documento del chofer', fila: ['—', '—', '—', '—', '—', 'L', 'E', '—', 'E A', 'L'] },
   'flota.asignaciones':      { etiqueta: 'Asignaciones camión–chofer', fila: ['L', 'E', 'L', '—', 'L', 'L', 'L', '—', 'E A', 'L'] },
   'flota.dispositivos':      { etiqueta: 'Dispositivos de telemetría', fila: ['—', 'L', '—', '—', '—', 'L', '—', '—', 'E A', 'L'] },
+  // Migración 60/61: módulo del chofer. El chofer entra con el rol de base tc_chofer, que solo ejecuta las funciones de
+  // su módulo (la base filtra por su propio chofer). Por eso el chofer ya no tiene 'P' en las pantallas de la oficina.
+  // TI no las ve: necesitan un usuario vinculado a un chofer.
+  'chofer.mi_carga':         { etiqueta: 'Mi carga (chofer): documentos y ubicación', fila: ['—', '—', '—', 'P', '—', '—', '—', '—', '—', '—'] },
+  'chofer.mis_gastos':       { etiqueta: 'Mis gastos y fondo (chofer)', fila: ['—', '—', '—', 'P', '—', '—', '—', '—', '—', '—'] },
+  // Fondo fijo de los choferes: entregas, vueltos, revisión de gastos y cierre del período (la base exige RRHH, Finanzas o TI).
+  'rrhh.fondos':             { etiqueta: 'Fondos y gastos de choferes', fila: ['L', 'L', '—', '—', '—', 'L', 'E A', 'E A', 'E A', 'L'] },
   'comercial.clientes':      { etiqueta: 'Clientes', fila: ['L', 'E', '—', '—', '—', '—', '—', 'E', 'E A', 'L'] },
   'comercial.ubicaciones':   { etiqueta: 'Ubicaciones y geocercas', fila: ['L', 'E', 'L', '—', 'L', 'L', '—', '—', 'E A', 'L'] },
   'comercial.proveedores':   { etiqueta: 'Proveedores y estaciones', fila: ['—', 'L', 'L', '—', 'E', 'L', '—', 'E', 'E A', 'L'] },
-  'liquidacion.tramos':      { etiqueta: 'Tramos liquidables', fila: ['—', 'L', '—', 'P', '—', '—', 'E A', 'L', 'E A', 'L'] },
-  'liquidacion.liquidaciones': { etiqueta: 'Liquidaciones', fila: ['L', '—', '—', 'P', '—', '—', 'E A', 'L A', 'E A', 'L'] },
+  'liquidacion.tramos':      { etiqueta: 'Tramos liquidables', fila: ['—', 'L', '—', '—', '—', '—', 'E A', 'L', 'E A', 'L'] },
+  'liquidacion.liquidaciones': { etiqueta: 'Liquidaciones', fila: ['L', '—', '—', '—', '—', '—', 'E A', 'L A', 'E A', 'L'] },
   'liquidacion.reglas':      { etiqueta: 'Reglas de liquidación', fila: ['—', '—', '—', '—', '—', '—', 'E', 'L', 'E A', 'L'] },
   'finanzas.ingresos':       { etiqueta: 'Ingresos', fila: ['L', 'E', '—', '—', '—', '—', '—', 'E A', 'E A', 'L'] },
   'finanzas.costos_directos': { etiqueta: 'Costos directos', fila: ['L', 'E', '—', '—', 'E', '—', '—', 'E A', 'E A', 'L'] },

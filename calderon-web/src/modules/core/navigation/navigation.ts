@@ -9,7 +9,17 @@ import type { PantallaId } from '@/modules/core/permissions/matriz';
  * Cada entrada declara la pantalla de la matriz de permisos que la habilita: la misma lista
  * alimenta el Sidebar y la guardia de rutas del middleware.
  */
-export type IconoGrupo = 'inicio' | 'cargar' | 'pendientes' | 'logistica' | 'combustible' | 'flota' | 'datos' | 'configuracion';
+export type IconoGrupo =
+  | 'inicio'
+  | 'chofer'
+  | 'cargar'
+  | 'pendientes'
+  | 'logistica'
+  | 'combustible'
+  | 'flota'
+  | 'rrhh'
+  | 'datos'
+  | 'configuracion';
 
 export interface EntradaMenu {
   href: string;
@@ -34,6 +44,15 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     id: 'inicio',
     etiqueta: 'Inicio',
     entradas: [{ href: '/inicio', etiqueta: 'Inicio', pantalla: 'inicio.dashboard' }],
+  },
+  {
+    // Migración 60: lo único que ve el chofer (en el celular).
+    id: 'chofer',
+    etiqueta: 'Mi trabajo',
+    entradas: [
+      { href: '/chofer', etiqueta: 'Mi carga', pantalla: 'chofer.mi_carga' },
+      { href: '/chofer/gastos', etiqueta: 'Mis gastos', pantalla: 'chofer.mis_gastos' },
+    ],
   },
   {
     id: 'cargar',
@@ -115,6 +134,15 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/flota/gensets', etiqueta: 'Gensets', pantalla: 'flota.pizarra', oculta: true },
       { href: '/flota/accesorios', etiqueta: 'Accesorios', pantalla: 'flota.pizarra', oculta: true },
       { href: '/telemetria/choferes', etiqueta: 'Puntaje de choferes', pantalla: 'telemetria.sesiones', oculta: true },
+    ],
+  },
+  {
+    // Migración 61: fondo fijo de los choferes y lo que hay que tener en cuenta al liquidar.
+    id: 'rrhh',
+    etiqueta: 'Administración',
+    entradas: [
+      { href: '/rrhh/fondos', etiqueta: 'Fondos de choferes', pantalla: 'rrhh.fondos', incluye: ['/rrhh/liquidacion'] },
+      { href: '/rrhh/liquidacion', etiqueta: 'Resumen para liquidar', pantalla: 'liquidacion.liquidaciones', oculta: true },
     ],
   },
   {

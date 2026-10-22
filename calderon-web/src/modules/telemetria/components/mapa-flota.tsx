@@ -13,12 +13,25 @@ const escapar = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)
  * Mapa de la flota (Leaflet + OpenStreetMap). Cada camión es un punto con su patente; el color
  * indica si la señal está al día. Leaflet se carga solo en el navegador.
  */
+export interface CelularEnMapa {
+  choferId: number;
+  chofer: string;
+  numeroOperacion: number | null;
+  patente: string | null;
+  ts: string;
+  latitud: number;
+  longitud: number;
+}
+
 export function MapaFlota({
   camiones,
+  celulares = [],
   seleccionado,
   onSeleccionar,
 }: {
   camiones: CamionEnVivo[];
+  /** Migración 60: celulares de los choferes con carga (sobre todo tractores sin telemetría). */
+  celulares?: CelularEnMapa[];
   seleccionado: number | null;
   onSeleccionar: (id: number) => void;
 }) {
@@ -58,7 +71,7 @@ export function MapaFlota({
     if (!mapa.current) return;
     void import('leaflet').then((L) => dibujar(L));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camiones, seleccionado]);
+  }, [camiones, celulares, seleccionado]);
 
   function dibujar(L: typeof import('leaflet')) {
     const m = mapa.current;
@@ -83,6 +96,19 @@ export function MapaFlota({
         .addTo(g);
       puntos.push([c.latitud, c.longitud]);
       if (elegido) m.setView([c.latitud, c.longitud], Math.max(m.getZoom(), 11));
+    }
+    for (const c of celulares) {
+      const texto = `${c.chofer}${c.numeroOperacion ? ` · Op. ${c.numeroOperacion}` : ''} (celular)`;
+      const icono = L.divIcon({
+        className: '',
+        iconSize: [0, 0],
+        html: `<div style="transform:translate(-7px,-7px);display:flex;align-items:center;gap:4px;white-space:nowrap">
+                 <span style="flex:none;display:inline-block;width:14px;height:14px;border-radius:3px;background:${senalDe(minutosDesde(c.ts)) === 'vivo' ? '#7c3aed' : '#a78bfa'};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)"></span>
+                 <span style="font:600 11px/1 system-ui;background:#f5f3ff;color:#5b21b6;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${escapar(texto)}</span>
+               </div>`,
+      });
+      L.marker([c.latitud, c.longitud], { icon: icono }).addTo(g);
+      puntos.push([c.latitud, c.longitud]);
     }
     if (!encuadrado.current && puntos.length > 0) {
       m.fitBounds(L.latLngBounds(puntos), { padding: [40, 40], maxZoom: 11 });

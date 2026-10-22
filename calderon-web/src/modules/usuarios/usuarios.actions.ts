@@ -12,6 +12,8 @@ export const guardarUsuario = createAction({
     nombre: z.string().trim().min(1, 'Escribí el nombre.').max(200, 'Máximo 200 caracteres.'),
     roles: z.array(z.string()).min(1, 'Elegí al menos un rol.'),
     activo: z.boolean(),
+    // Migración 60: con el rol chofer, a qué chofer corresponde (la base lo exige)
+    choferId: z.number().int().positive().nullable(),
   }),
   handler: (d, { db }) => usuariosRepository(db).guardar(d),
   invalida: () => ({ paths: ['/configuracion/usuarios'] }),

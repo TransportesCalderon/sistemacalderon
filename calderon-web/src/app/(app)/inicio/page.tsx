@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { BellRing, ClipboardCheck, ClipboardList, Fuel, LayoutGrid, MapPin, Plus, Truck, UsersRound, type LucideIcon } from 'lucide-react';
+import { BellRing, ClipboardCheck, ClipboardList, Fuel, LayoutGrid, MapPin, Plus, Truck, UsersRound, Wallet, type LucideIcon } from 'lucide-react';
 import { requirePermiso } from '@/modules/core/auth/guards';
 import { can } from '@/modules/core/permissions/resolver';
 import type { Permiso } from '@/modules/core/permissions/types';
@@ -27,6 +27,7 @@ const TAREAS: readonly Tarea[] = [
   { href: '/pendientes', titulo: 'Mis pendientes', detalle: 'Lo que espera una acción tuya', icono: ClipboardCheck, permiso: 'inicio.pendientes:ver' },
   { href: '/anomalias/alertas', titulo: 'Alertas', detalle: 'Lo que detectó la telemetría para revisar', icono: BellRing, permiso: 'anomalias.alertas:ver' },
   { href: '/telemetria/mapa', titulo: 'Mapa de flota', detalle: 'Los tractores en el mapa, en vivo', icono: MapPin, permiso: 'telemetria.mapa:ver' },
+  { href: '/rrhh/fondos', titulo: 'Fondos de choferes', detalle: 'Entregar dinero y revisar los gastos que suben', icono: Wallet, permiso: 'rrhh.fondos:ver' },
   { href: '/flota/choferes', titulo: 'Choferes', detalle: 'Datos, licencia y visa', icono: UsersRound, permiso: 'flota.choferes:ver' },
 ];
 

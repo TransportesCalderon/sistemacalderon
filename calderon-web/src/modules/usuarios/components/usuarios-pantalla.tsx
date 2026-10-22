@@ -12,11 +12,12 @@ import { formatearFechaHora } from '@/shared/lib/fechas';
 import { FRESCURA } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { Campo } from '@/shared/ui/campo';
+import { useChoferesCombustible } from '@/modules/combustible/queries/hooks';
 import { guardarUsuario } from '../usuarios.actions';
 import { usuariosRepository, type Usuario } from '../usuarios.repository';
 
-/** Roles que se asignan desde acá (chofer todavía no tiene acceso: la oficina registra las cargas). */
-const ROLES_ASIGNABLES = ROLES_APP.filter((r) => r !== 'chofer');
+/** Roles que se asignan desde acá. Migración 60: el chofer entra al celular (Mi carga, Mis gastos), vinculado a su ficha. */
+const ROLES_ASIGNABLES = ROLES_APP;
 
 /**
  * Configuración > Usuarios y roles (migración 34). La cuenta de acceso (email y contraseña) se crea
@@ -158,6 +159,8 @@ function FormUsuario({ email, usuario, onCerrar }: { email: string; usuario?: Us
   const [nombre, setNombre] = useState(usuario?.nombre ?? '');
   const [roles, setRoles] = useState<RolApp[]>(usuario?.roles ?? []);
   const [activo, setActivo] = useState(usuario?.activo ?? true);
+  const [choferId, setChoferId] = useState<number | null>(usuario?.choferId ?? null);
+  const choferes = useChoferesCombustible();
   const alternar = (r: RolApp) => setRoles(roles.includes(r) ? roles.filter((x) => x !== r) : [...roles, r]);
 
   return (
@@ -168,7 +171,7 @@ function FormUsuario({ email, usuario, onCerrar }: { email: string; usuario?: Us
       ocupado={guardar.isPending}
       textoBoton={usuario ? 'Guardar cambios' : 'Vincular'}
       onCerrar={onCerrar}
-      onConfirmar={() => enviar(guardar.mutateAsync({ email, nombre, roles, activo }), onCerrar)}
+      onConfirmar={() => enviar(guardar.mutateAsync({ email, nombre, roles, activo, choferId: roles.includes('chofer') ? choferId : null }), onCerrar)}
     >
       <Campo label="Nombre *" error={campo('nombre')}>
         <input maxLength={200} value={nombre} onChange={(e) => setNombre(e.target.value)} />
@@ -185,6 +188,18 @@ function FormUsuario({ email, usuario, onCerrar }: { email: string; usuario?: Us
         </div>
         {campo('roles') && <p className="text-xs text-error">{campo('roles')}</p>}
       </fieldset>
+      {roles.includes('chofer') && (
+        <Campo label="Es el chofer *" ayuda="Ve solo su carga asignada y sus gastos, desde el celular.">
+          <select value={choferId ?? ''} onChange={(e) => setChoferId(e.target.value ? Number(e.target.value) : null)}>
+            <option value="">Elegí…</option>
+            {(choferes.data ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+        </Campo>
+      )}
       {usuario && (
         <label className="flex items-center gap-2 text-sm text-tinta">
           <input type="checkbox" className="size-4 accent-marca" checked={activo} onChange={(e) => setActivo(e.target.checked)} />

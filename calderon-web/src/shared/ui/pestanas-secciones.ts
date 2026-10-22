@@ -56,3 +56,8 @@ export const PESTANAS_AJUSTES = [
   { href: '/configuracion/parametros', etiqueta: 'Parámetros' },
   { href: '/configuracion/catalogos', etiqueta: 'Catálogos' },
 ] as const;
+
+export const PESTANAS_RRHH = [
+  { href: '/rrhh/fondos', etiqueta: 'Fondos de choferes' },
+  { href: '/rrhh/liquidacion', etiqueta: 'Resumen para liquidar' },
+] as const;

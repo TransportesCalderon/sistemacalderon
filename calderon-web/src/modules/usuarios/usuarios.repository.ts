@@ -9,6 +9,7 @@ export interface Usuario {
   email: string | null;
   activo: boolean;
   roles: RolApp[];
+  choferId: number | null;
   ultimoIngreso: FechaISO | null;
 }
 
@@ -29,6 +30,7 @@ export const usuariosRepository = (db: Db) => ({
       email: u.email,
       activo: u.activo,
       roles: (u.roles ?? []).filter(esRol),
+      choferId: u.chofer_id,
       ultimoIngreso: u.ultimo_ingreso as FechaISO | null,
     }));
   },
@@ -37,10 +39,10 @@ export const usuariosRepository = (db: Db) => ({
     if (error) throw new RepoError(error);
     return (data ?? []).map((c) => ({ email: c.email, creadaEn: c.creada_en as FechaISO }));
   },
-  async guardar(d: { email: string; nombre: string; roles: string[]; activo: boolean }): Promise<number> {
+  async guardar(d: { email: string; nombre: string; roles: string[]; activo: boolean; choferId: number | null }): Promise<number> {
     const { data, error } = await db
       .schema('seg')
-      .rpc('fn_guardar_usuario', { p_email: d.email, p_nombre: d.nombre, p_roles: d.roles, p_activo: d.activo });
+      .rpc('fn_guardar_usuario', { p_email: d.email, p_nombre: d.nombre, p_roles: d.roles, p_activo: d.activo, p_chofer: d.choferId });
     if (error) throw new RepoError(error);
     return data as number;
   },
