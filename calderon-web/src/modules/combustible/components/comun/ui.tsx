@@ -68,10 +68,13 @@ export function Cargando({ texto }: { texto: string }) {
   );
 }
 
-export function ErrorLectura({ texto, onReintentar }: { texto: string; onReintentar: () => void }) {
+export function ErrorLectura({ texto, onReintentar, error }: { texto: string; onReintentar: () => void; error?: unknown }) {
+  // El mensaje de la base (o de la API) tal cual, para saber qué pasó
+  const detalle = error instanceof Error ? error.message : null;
   return (
     <div className="space-y-3 p-6 text-sm">
       <p className="text-error">{texto}</p>
+      {detalle && <p className="text-xs text-tinta-suave">{detalle}</p>}
       <button type="button" onClick={onReintentar} className="text-marca hover:underline">
         Reintentar
       </button>

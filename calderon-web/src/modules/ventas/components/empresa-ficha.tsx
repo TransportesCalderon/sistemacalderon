@@ -42,13 +42,13 @@ import { ChipCotizacion, ChipEtapa, ChipFactura, PAISES } from './comun';
 
 /** Ventas › ficha de una empresa: datos, contactos, negocios, actividades, cotizaciones y facturas. */
 export function EmpresaFicha({ id }: { id: number }) {
-  const { data: e, isLoading, isError, refetch } = useEmpresa(id);
+  const { data: e, isLoading, isError, error, refetch } = useEmpresa(id);
   const puede = useCan('ventas.empresas:editar');
   const puedeCotizar = useCan('ventas.cotizaciones:editar');
   const [editando, setEditando] = useState(false);
 
   if (isLoading) return <Cargando texto="Abriendo la empresa…" />;
-  if (isError) return <ErrorLectura texto="No se pudo leer la empresa." onReintentar={() => void refetch()} />;
+  if (isError) return <ErrorLectura texto="No se pudo leer la empresa." onReintentar={() => void refetch()} error={error} />;
   if (!e) return <p className="text-sm text-tinta-suave">La empresa no existe.</p>;
 
   return (

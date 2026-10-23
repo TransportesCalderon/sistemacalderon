@@ -20,7 +20,7 @@ export function CotizacionesPantalla() {
   const puede = useCan('ventas.cotizaciones:editar');
   const [estado, setEstado] = useState<EstadoCotizacion | null>(null);
   const [texto, setTexto] = useState('');
-  const { data, isLoading, isError, refetch } = useCotizaciones(estado, texto.trim() || null);
+  const { data, isLoading, isError, error, refetch } = useCotizaciones(estado, texto.trim() || null);
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -53,7 +53,7 @@ export function CotizacionesPantalla() {
       {isLoading ? (
         <Cargando texto="Leyendo las cotizaciones…" />
       ) : isError || !data ? (
-        <ErrorLectura texto="No se pudieron leer las cotizaciones." onReintentar={() => void refetch()} />
+        <ErrorLectura texto="No se pudieron leer las cotizaciones." onReintentar={() => void refetch()} error={error} />
       ) : data.length === 0 ? (
         <Vacio icono={<FileText className="size-6" />} texto="No hay cotizaciones con ese filtro." />
       ) : (

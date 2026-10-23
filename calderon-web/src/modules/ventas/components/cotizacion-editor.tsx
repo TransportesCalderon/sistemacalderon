@@ -63,7 +63,7 @@ const aTexto = (v: number | null) => (v === null ? '' : String(v));
 /** Ventas › Cotización: nueva o una existente. En borrador se edita; después solo cambia de estado. */
 export function CotizacionEditor({ id, empresaInicial }: { id: number | null; empresaInicial: number | null }) {
   const router = useRouter();
-  const { data: c, isLoading, isError, refetch } = useCotizacion(id);
+  const { data: c, isLoading, isError, error, refetch } = useCotizacion(id);
   const tarifario = useTarifario();
   const empresas = useEmpresas(null, null);
   const puedeEditar = useCan('ventas.cotizaciones:editar');
@@ -117,7 +117,7 @@ export function CotizacionEditor({ id, empresaInicial }: { id: number | null; em
   const editable = borrador && puedeEditar;
 
   if (id && isLoading) return <Cargando texto="Abriendo la cotización…" />;
-  if (id && (isError || !c)) return <ErrorLectura texto="No se pudo leer la cotización." onReintentar={() => void refetch()} />;
+  if (id && (isError || !c)) return <ErrorLectura texto="No se pudo leer la cotización." onReintentar={() => void refetch()} error={error} />;
 
   const cambiar = (clave: string, cambio: Partial<Fila>) => setFilas((fs) => fs.map((f) => (f.clave === clave ? { ...f, ...cambio } : f)));
   const quitar = (clave: string) => setFilas((fs) => fs.filter((f) => f.clave !== clave));

@@ -14,14 +14,14 @@ import { useCompletarActividad, useMoverNegocio, useTablero } from '../queries/h
 
 /** Ventas › Tablero: números del mes, lo que hay que hacer y los negocios por etapa. */
 export function TableroVentas() {
-  const { data, isLoading, isError, refetch } = useTablero();
+  const { data, isLoading, isError, error, refetch } = useTablero();
   const puede = useCan('ventas.empresas:editar');
   const puedeCotizar = useCan('ventas.cotizaciones:editar');
   const completar = useCompletarActividad();
   const envio = useEnvio();
 
   if (isLoading) return <Cargando texto="Armando el tablero…" />;
-  if (isError || !data) return <ErrorLectura texto="No se pudo leer el tablero." onReintentar={() => void refetch()} />;
+  if (isError || !data) return <ErrorLectura texto="No se pudo leer el tablero." onReintentar={() => void refetch()} error={error} />;
   const c = data.cotizacionesMes;
   return (
     <div className="space-y-5">

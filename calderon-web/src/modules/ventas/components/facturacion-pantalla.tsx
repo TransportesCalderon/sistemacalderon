@@ -62,7 +62,7 @@ export function FacturacionPantalla() {
 }
 
 function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
-  const { data, isLoading, isError, refetch } = usePorFacturar();
+  const { data, isLoading, isError, error, refetch } = usePorFacturar();
   const puede = useCan('ventas.facturacion:editar');
   const crear = useCrearFactura();
   const envio = useEnvio();
@@ -79,7 +79,7 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
   useEffect(() => setMarcadas(new Set((data ?? []).map((o) => o.servicioId))), [data]);
 
   if (isLoading) return <Cargando texto="Buscando lo entregado sin facturar…" />;
-  if (isError || !data) return <ErrorLectura texto="No se pudo leer lo pendiente de facturar." onReintentar={() => void refetch()} />;
+  if (isError || !data) return <ErrorLectura texto="No se pudo leer lo pendiente de facturar." onReintentar={() => void refetch()} error={error} />;
   if (data.length === 0) return <Vacio icono={<Receipt className="size-6" />} texto="No hay operaciones entregadas sin facturar." />;
   const alternar = (id: number) =>
     setMarcadas((m) => {
@@ -174,7 +174,7 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
 
 function FacturasVista({ abierta, onAbrir }: { abierta: number | null; onAbrir: (id: number | null) => void }) {
   const [estado, setEstado] = useState<EstadoFactura | null>('borrador');
-  const { data, isLoading, isError, refetch } = useFacturas(estado);
+  const { data, isLoading, isError, error, refetch } = useFacturas(estado);
   return (
     <div className="space-y-4">
       {abierta && <FichaFactura id={abierta} onCerrar={() => onAbrir(null)} />}
@@ -196,7 +196,7 @@ function FacturasVista({ abierta, onAbrir }: { abierta: number | null; onAbrir: 
       {isLoading ? (
         <Cargando texto="Leyendo las facturas…" />
       ) : isError || !data ? (
-        <ErrorLectura texto="No se pudieron leer las facturas." onReintentar={() => void refetch()} />
+        <ErrorLectura texto="No se pudieron leer las facturas." onReintentar={() => void refetch()} error={error} />
       ) : data.length === 0 ? (
         <Vacio icono={<Receipt className="size-6" />} texto="No hay facturas en este grupo." />
       ) : (

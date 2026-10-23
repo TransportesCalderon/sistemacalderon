@@ -28,7 +28,7 @@ export function EmpresasPantalla() {
   const [solo, setSolo] = useState<string | null>(null);
   const [texto, setTexto] = useState('');
   const [nueva, setNueva] = useState(false);
-  const { data, isLoading, isError, refetch } = useEmpresas(texto.trim() || null, solo);
+  const { data, isLoading, isError, error, refetch } = useEmpresas(texto.trim() || null, solo);
 
   return (
     <div className="space-y-4">
@@ -64,7 +64,7 @@ export function EmpresasPantalla() {
       {isLoading ? (
         <Cargando texto="Leyendo las empresas…" />
       ) : isError || !data ? (
-        <ErrorLectura texto="No se pudieron leer las empresas." onReintentar={() => void refetch()} />
+        <ErrorLectura texto="No se pudieron leer las empresas." onReintentar={() => void refetch()} error={error} />
       ) : data.length === 0 ? (
         <Vacio icono={<Users className="size-6" />} texto="No hay empresas con ese filtro." />
       ) : (

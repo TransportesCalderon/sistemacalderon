@@ -23,9 +23,9 @@ import {
 
 /** Ventas › Tarifas y costos: el costo por km, el tarifario por ruta y los adicionales. */
 export function TarifasVentasPantalla() {
-  const { data, isLoading, isError, refetch } = useTarifario();
+  const { data, isLoading, isError, error, refetch } = useTarifario();
   if (isLoading) return <Cargando texto="Leyendo las tarifas…" />;
-  if (isError || !data) return <ErrorLectura texto="No se pudieron leer las tarifas." onReintentar={() => void refetch()} />;
+  if (isError || !data) return <ErrorLectura texto="No se pudieron leer las tarifas." onReintentar={() => void refetch()} error={error} />;
   return (
     <div className="space-y-5">
       <Encabezado titulo="Tarifas y costos" subtitulo="Ventas" />
