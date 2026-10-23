@@ -13,6 +13,7 @@ export const ROLES_APP = [
   'finanzas',
   'ti',
   'auditor',
+  'comercial',
 ] as const;
 
 export type RolApp = (typeof ROLES_APP)[number];
@@ -31,4 +32,5 @@ export const ETIQUETA_ROL: Record<RolApp, string> = {
   finanzas: 'Finanzas',
   ti: 'Administrador del sistema',
   auditor: 'Auditor',
+  comercial: 'Ventas',
 };

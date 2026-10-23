@@ -14,6 +14,7 @@ export type IconoGrupo =
   | 'chofer'
   | 'cargar'
   | 'pendientes'
+  | 'ventas'
   | 'logistica'
   | 'combustible'
   | 'flota'
@@ -73,6 +74,18 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     entradas: [
       { href: '/pendientes', etiqueta: 'Mis pendientes', pantalla: 'inicio.pendientes' },
       { href: '/anomalias/alertas', etiqueta: 'Alertas de la telemetría', pantalla: 'anomalias.alertas' },
+    ],
+  },
+  {
+    // Migración 67: seguimiento de clientes, cotizador, tarifas y facturación
+    id: 'ventas',
+    etiqueta: 'Ventas',
+    entradas: [
+      { href: '/ventas', etiqueta: 'Tablero', pantalla: 'ventas.tablero' },
+      { href: '/ventas/empresas', etiqueta: 'Clientes y prospectos', pantalla: 'ventas.empresas' },
+      { href: '/ventas/cotizaciones', etiqueta: 'Cotizaciones', pantalla: 'ventas.cotizaciones' },
+      { href: '/ventas/tarifas', etiqueta: 'Tarifas y costos', pantalla: 'ventas.tarifas' },
+      { href: '/ventas/facturacion', etiqueta: 'Facturación', pantalla: 'ventas.facturacion' },
     ],
   },
   {

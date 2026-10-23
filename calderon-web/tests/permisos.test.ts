@@ -88,9 +88,9 @@ describe('matriz de permisos (especificación §16)', () => {
 
 describe('navegación (especificación §3)', () => {
   it('menú corto: «Cargar nuevo», lo del chofer aparte y las pantallas hermanas como pestañas', () => {
-    expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'chofer', 'cargar', 'pendientes', 'logistica', 'combustible', 'flota', 'rrhh', 'datos', 'configuracion']);
+    expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'chofer', 'cargar', 'pendientes', 'ventas', 'logistica', 'combustible', 'flota', 'rrhh', 'datos', 'configuracion']);
     const entradas = NAVEGACION.flatMap((g) => g.entradas);
-    expect(entradas.filter((e) => !e.oculta).length).toBe(33);
+    expect(entradas.filter((e) => !e.oculta).length).toBe(38);
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     // Toda ruta incluida como pestaña sigue protegida por una entrada oculta o visible
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
@@ -114,12 +114,12 @@ describe('navegación (especificación §3)', () => {
     expect(pantallaDeRuta('/otra-cosa')).toBeNull();
   });
 
-  it('el menú no muestra entradas ocultas; TI ve 9 grupos (no el del chofer)', () => {
+  it('el menú no muestra entradas ocultas; TI ve 10 grupos (no el del chofer)', () => {
     const ti = menuVisible(permisosDe(['ti'], agregado)).flatMap((g) => g.entradas.map((e) => e.href));
     expect(ti).not.toContain('/combustible/cierres');
     expect(ti).not.toContain('/combustible/viajes');
     expect(ti).toContain('/operacion/tractores');
-    expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(9);
+    expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(10);
     expect(pantallaDeRuta('/combustible/cierres/5')).toBe('combustible.cierre_viaje');
   });
 

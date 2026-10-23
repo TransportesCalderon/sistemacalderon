@@ -1508,6 +1508,72 @@ export type Database = {
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };
+  /** Migración 67: ventas (seguimiento, tarifario, cotizaciones y facturación). Solo funciones. */
+  ven: {
+    Tables: { [_ in never]: never };
+    Views: { [_ in never]: never };
+    Functions: {
+      fn_tablero: { Args: Record<string, never>; Returns: Json };
+      fn_empresas: { Args: { p_texto?: string | null; p_solo?: string | null }; Returns: Json };
+      fn_empresa: { Args: { p_id: number }; Returns: Json };
+      fn_tarifario: { Args: Record<string, never>; Returns: Json };
+      fn_sugerir: {
+        Args: { p_linea: number; p_empresa: number; p_unidad?: string; p_contenedor?: string | null; p_vuelta_vacia?: boolean };
+        Returns: Json;
+      };
+      fn_cotizaciones: { Args: { p_estado?: string | null; p_texto?: string | null }; Returns: Json };
+      fn_cotizacion: { Args: { p_id: number }; Returns: Json };
+      fn_por_facturar: { Args: Record<string, never>; Returns: Json };
+      fn_facturas: { Args: { p_estado?: string | null }; Returns: Json };
+      fn_factura: { Args: { p_id: number }; Returns: Json };
+      fn_guardar_empresa: { Args: { p_id: number | null; p_datos: Json }; Returns: number };
+      fn_guardar_contacto: { Args: { p_id: number | null; p_empresa: number; p_datos: Json }; Returns: number };
+      fn_quitar_contacto: { Args: { p_id: number }; Returns: undefined };
+      fn_guardar_negocio: { Args: { p_id: number | null; p_empresa: number; p_datos: Json }; Returns: number };
+      fn_mover_negocio: { Args: { p_id: number; p_etapa: string; p_motivo?: string | null }; Returns: undefined };
+      fn_guardar_actividad: { Args: { p_id: number | null; p_empresa: number; p_datos: Json }; Returns: number };
+      fn_completar_actividad: { Args: { p_id: number; p_resultado?: string | null }; Returns: undefined };
+      fn_quitar_actividad: { Args: { p_id: number }; Returns: undefined };
+      fn_hacer_cliente: { Args: { p_empresa: number; p_cliente_existente?: number | null; p_datos?: Json | null }; Returns: number };
+      fn_guardar_tarifa: {
+        Args: {
+          p_linea: number;
+          p_cliente: number | null;
+          p_unidad: string;
+          p_precio: number;
+          p_desde: string;
+          p_contenedor?: string | null;
+          p_observacion?: string | null;
+        };
+        Returns: number;
+      };
+      fn_quitar_tarifa: { Args: { p_id: number }; Returns: undefined };
+      fn_guardar_adicional: {
+        Args: { p_codigo: string | null; p_nombre: string; p_unidad: string; p_precio: number | null; p_activo?: boolean };
+        Returns: undefined;
+      };
+      fn_guardar_parametros: {
+        Args: { p_margen: number; p_validez: number; p_condiciones: string | null; p_costo_km_manual: number | null };
+        Returns: undefined;
+      };
+      fn_recalcular_costo_km: { Args: Record<string, never>; Returns: Json };
+      fn_guardar_cotizacion: { Args: { p_id: number | null; p_version: number | null; p_datos: Json }; Returns: number };
+      fn_enviar_cotizacion: { Args: { p_id: number; p_version: number }; Returns: undefined };
+      fn_responder_cotizacion: {
+        Args: { p_id: number; p_aceptada: boolean; p_motivo?: string | null; p_guardar_tarifas?: boolean };
+        Returns: number;
+      };
+      fn_anular_cotizacion: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      fn_duplicar_cotizacion: { Args: { p_id: number }; Returns: number };
+      fn_crear_factura: { Args: { p_cliente: number; p_servicios: number[] }; Returns: number };
+      fn_guardar_factura: { Args: { p_id: number; p_version: number; p_renglones: Json; p_observacion?: string | null }; Returns: undefined };
+      fn_emitir_factura: { Args: { p_id: number; p_version: number; p_numero_fiscal: string; p_fecha: string }; Returns: undefined };
+      fn_cobrar_factura: { Args: { p_id: number; p_fecha: string }; Returns: undefined };
+      fn_anular_factura: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+    };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
   /** Migración 49: alertas (motor de anomalías). Solo funciones. */
   ana: {
     Tables: { [_ in never]: never };
