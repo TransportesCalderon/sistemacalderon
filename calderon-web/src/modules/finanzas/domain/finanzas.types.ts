@@ -708,6 +708,7 @@ export const ETIQUETA_MEDIO_CARGA: Record<string, string> = {
   tarjeta: 'Tarjeta',
   efectivo: 'Efectivo',
   surtidor_propio: 'Surtidor propio',
+  fondo_chofer: 'Fondo del chofer',
 };
 export interface MedioPago {
   id: number;

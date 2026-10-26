@@ -94,7 +94,9 @@ export function CombustiblePantalla() {
           </Campo>
           <Campo label="Medio de la carga">
             <select value={form.medio} onChange={(e) => setForm({ ...form, medio: e.target.value as Form['medio'] })}>
-              {Object.entries(ETIQUETA_MEDIO_CARGA).map(([v, e]) => (
+              {Object.entries(ETIQUETA_MEDIO_CARGA)
+                .filter(([v]) => v !== 'fondo_chofer')
+                .map(([v, e]) => (
                 <option key={v} value={v}>
                   {e}
                 </option>

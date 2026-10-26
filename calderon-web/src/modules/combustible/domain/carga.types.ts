@@ -16,13 +16,14 @@ export const ETIQUETA_ESTADO_VALIDACION: Record<EstadoValidacion, string> = {
   anulada: 'Anulada',
 };
 
-export const MEDIOS_PAGO = ['tarjeta', 'cuenta_corriente', 'efectivo', 'surtidor_propio'] as const;
+export const MEDIOS_PAGO = ['tarjeta', 'cuenta_corriente', 'efectivo', 'surtidor_propio', 'fondo_chofer'] as const;
 export type MedioPago = (typeof MEDIOS_PAGO)[number];
 export const ETIQUETA_MEDIO_PAGO: Record<MedioPago, string> = {
   tarjeta: 'Tarjeta',
   cuenta_corriente: 'Cuenta corriente',
   efectivo: 'Efectivo',
   surtidor_propio: 'Surtidor propio',
+  fondo_chofer: 'Fondo del chofer',
 };
 
 /**
