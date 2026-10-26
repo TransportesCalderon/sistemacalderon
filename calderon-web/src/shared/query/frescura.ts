@@ -13,4 +13,6 @@ export const FRESCURA = {
 export const REFRESCO = {
   bandeja: 60_000,
   telemetriaVivo: 30_000,
+  /** El mapa de flota: lo último que llegó de cada camión (las marcas mandan cada 2 a 5 minutos). */
+  mapa: 5_000,
 } as const;

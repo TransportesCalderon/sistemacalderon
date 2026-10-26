@@ -9,7 +9,7 @@ import { conduccionRepository } from '../repositories/conduccion.repository';
 import { trackerwayRepository } from '../repositories/trackerway.repository';
 import { telemetriaQueries as q } from './keys';
 
-export const useFlotaEnVivo = () => useQuery({ ...q.enVivo(browserDb()), refetchInterval: REFRESCO.telemetriaVivo });
+export const useFlotaEnVivo = () => useQuery({ ...q.enVivo(browserDb()), staleTime: REFRESCO.mapa, refetchInterval: REFRESCO.mapa });
 export const useVehiculosApi = () => useQuery(q.vehiculosApi(browserDb()));
 export const useCorridasApi = (enabled: boolean) =>
   useQuery({ ...q.corridas(browserDb()), enabled, refetchInterval: REFRESCO.telemetriaVivo });
