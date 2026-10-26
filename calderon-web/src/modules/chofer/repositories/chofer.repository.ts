@@ -126,8 +126,8 @@ export const choferRepository = (db: Db) => {
     },
     async registrarEntrega(e: Entrega): Promise<number> {
       return e.tipo === 'entrega'
-        ? leer(fin().rpc('fn_entregar_fondo', { p_chofer: e.choferId, p_moneda: e.moneda, p_importe: e.importe, p_fecha: e.fecha, p_detalle: e.detalle }))
-        : leer(fin().rpc('fn_registrar_devolucion', { p_chofer: e.choferId, p_moneda: e.moneda, p_importe: e.importe, p_fecha: e.fecha, p_detalle: e.detalle }));
+        ? leer(fin().rpc('fn_entregar_fondo', { p_chofer: e.choferId, p_moneda: e.moneda, p_importe: e.importe, p_fecha: e.fecha, p_detalle: e.detalle, p_cuenta: e.cuentaId ?? null }))
+        : leer(fin().rpc('fn_registrar_devolucion', { p_chofer: e.choferId, p_moneda: e.moneda, p_importe: e.importe, p_fecha: e.fecha, p_detalle: e.detalle, p_cuenta: e.cuentaId ?? null }));
     },
     async cargarGasto(g: GastoOficina) {
       const r = (await leer(

@@ -1,6 +1,13 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/database.generated';
 import {
+  parsearAuxiliares,
+  parsearCargas,
+  parsearCombustible,
+  parsearCuentasElegibles,
+  parsearMayor,
+  parsearPendientes,
+  parsearTraza,
   parsearCartola,
   parsearCuentasDinero,
   parsearEstadoResultados,
@@ -23,6 +30,7 @@ import type {
   GastoEntrada,
   GastoFijoEntrada,
   ImportarCartolaEntrada,
+  MedioPagoEntrada,
   MovimientoEntrada,
   ProveedorEntrada,
 } from '../domain/finanzas.schemas';
@@ -216,6 +224,41 @@ export const finanzasRepository = (db: Db) => {
           } as Json,
         }),
       );
+    },
+    // Migración 74
+    async cuentasParaElegir() {
+      return parsearCuentasElegibles(await leer(fin().rpc('fn_cuentas_para_elegir')));
+    },
+    async mayor(cuenta: number, desde: string, hasta: string, terceroTipo: string | null, terceroId: number | null) {
+      return parsearMayor(
+        await leer(fin().rpc('fn_mayor', { p_cuenta: cuenta, p_desde: desde, p_hasta: hasta, p_tercero_tipo: terceroTipo, p_tercero_id: terceroId })),
+      );
+    },
+    async auxiliares(hasta: string | null) {
+      return parsearAuxiliares(await leer(fin().rpc('fn_auxiliares', { p_hasta: hasta })));
+    },
+    async traza(origen: string, id: number) {
+      return parsearTraza(await leer(fin().rpc('fn_traza', { p_origen: origen, p_id: id })));
+    },
+    async combustible() {
+      return parsearCombustible(await leer(fin().rpc('fn_combustible_finanzas')));
+    },
+    async cargasPorFacturar(proveedor: number, gasto: number | null) {
+      return parsearCargas(await leer(fin().rpc('fn_cargas_por_facturar', { p_proveedor: proveedor, p_gasto: gasto })));
+    },
+    async pendientes() {
+      return parsearPendientes(await leer(fin().rpc('fn_pendientes_contables')));
+    },
+    async guardarMedioPago(m: MedioPagoEntrada): Promise<number> {
+      return leer(
+        fin().rpc('fn_guardar_medio_pago', {
+          p_id: m.id,
+          p_datos: { nombre: m.nombre, medio: m.medio, tipo: m.tipo, proveedor_id: m.proveedorId, cuenta_dinero_id: m.cuentaDineroId, activo: m.activo } as Json,
+        }),
+      );
+    },
+    async vincularCargas(gasto: number, cargas: number[]): Promise<number> {
+      return leer(fin().rpc('fn_vincular_cargas', { p_gasto: gasto, p_cargas: cargas }));
     },
     async recontabilizar() {
       return leer(fin().rpc('fn_recontabilizar_todo'));

@@ -1,5 +1,7 @@
 'use client';
 
+import { ElegirCuentaDinero } from '@/modules/finanzas/components/elegir-cuenta';
+import { TrazaContable } from '@/modules/finanzas/components/traza';
 import { useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Calculator, Check, ChevronLeft, ChevronRight, LoaderCircle, Printer, RefreshCw, Trash2, Undo2, X } from 'lucide-react';
@@ -153,7 +155,7 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
   const quitar = useQuitarRenglon();
   const envio = useEnvio();
   const [agregar, setAgregar] = useState(false);
-  const [pago, setPago] = useState({ fecha: hoyEnZona(zonaHoraria) as string, forma: '', banco: '', numero: '' });
+  const [pago, setPago] = useState({ fecha: hoyEnZona(zonaHoraria) as string, forma: '', banco: '', numero: '', cuentaId: null as number | null });
 
   if (isLoading || !l) return <Cargando texto="Abriendo la liquidación…" />;
   const borrador = l.estado === 'borrador';
@@ -261,11 +263,12 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
             <Campo label="N° de cheque u operación">
               <input value={pago.numero} maxLength={40} onChange={(e) => setPago({ ...pago, numero: e.target.value })} />
             </Campo>
+            <ElegirCuentaDinero valor={pago.cuentaId} onCambio={(c) => setPago({ ...pago, cuentaId: c })} />
             <button
               type="button"
               className={BOTON_PRIMARIO}
               disabled={pagar.isPending}
-              onClick={() => void envio.enviar(pagar.mutateAsync({ id: l.id, fecha: pago.fecha, forma: pago.forma, banco: pago.banco, numero: pago.numero }), () => undefined)}
+              onClick={() => void envio.enviar(pagar.mutateAsync({ id: l.id, fecha: pago.fecha, forma: pago.forma, banco: pago.banco, numero: pago.numero, cuentaId: pago.cuentaId }), () => undefined)}
             >
               Registrar el pago (numera el comprobante de egreso)
             </button>
@@ -303,6 +306,7 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
           />
         )}
       </div>
+      {l.estado !== 'borrador' && <TrazaContable origen="liquidacion" id={l.id} />}
     </section>
   );
 }

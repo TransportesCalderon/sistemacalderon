@@ -70,4 +70,5 @@ export const PESTANAS_RRHH = [
 export const PESTANAS_GASTOS = [
   { href: '/finanzas/gastos', etiqueta: 'Gastos' },
   { href: '/finanzas/gastos-fijos', etiqueta: 'Gastos fijos' },
+  { href: '/finanzas/combustible', etiqueta: 'Combustible' },
 ] as const;

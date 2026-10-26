@@ -12,7 +12,7 @@ import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { ETIQUETA_ESTADO_FAC, ETIQUETA_UNIDAD, usd, type EstadoFactura, type PorFacturar } from '../domain/ventas.types';
-import { useCuentasDinero } from '@/modules/finanzas/queries/hooks';
+import { useCuentasParaElegir } from '@/modules/finanzas/queries/hooks';
 import { useAnularFactura, useCobrarFactura, useCrearFactura, useEmitirFactura, useFactura, useFacturas, useGuardarFactura, usePorFacturar } from '../queries/hooks';
 import { ChipFactura } from './comun';
 
@@ -262,8 +262,8 @@ function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => void }) {
   const [emision, setEmision] = useState({ numero: '', fecha: hoyEnZona(zonaHoraria) as string });
   const [cobro, setCobro] = useState(hoyEnZona(zonaHoraria) as string);
   // Migración 73: en qué banco o caja entró (solo las de la moneda de la factura)
-  const { data: cuentasDinero } = useCuentasDinero(puedeEstado);
-  const cuentasCobro = (cuentasDinero ?? []).filter((c) => c.activa && c.moneda === f?.moneda);
+  const { data: cuentasDinero } = useCuentasParaElegir(puedeEstado);
+  const cuentasCobro = (cuentasDinero ?? []).filter((c) => c.moneda === f?.moneda);
   const [cuentaCobro, setCuentaCobro] = useState<number | null>(null);
   useEffect(() => {
     if (!f) return;

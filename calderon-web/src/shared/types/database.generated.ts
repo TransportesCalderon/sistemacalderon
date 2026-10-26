@@ -1364,6 +1364,16 @@ export type Database = {
       fn_ignorar_linea: { Args: { p_linea: number; p_ignorar: boolean }; Returns: undefined };
       fn_crear_desde_linea: { Args: { p_linea: number; p_datos: Json }; Returns: number };
       fn_recontabilizar_todo: { Args: Record<string, never>; Returns: Json };
+      // Migración 74: contabilidad integrada
+      fn_cuentas_para_elegir: { Args: Record<string, never>; Returns: Json };
+      fn_mayor: { Args: { p_cuenta: number; p_desde: string; p_hasta: string; p_tercero_tipo?: string | null; p_tercero_id?: number | null }; Returns: Json };
+      fn_auxiliares: { Args: { p_hasta?: string | null }; Returns: Json };
+      fn_traza: { Args: { p_origen: string; p_id: number }; Returns: Json };
+      fn_combustible_finanzas: { Args: Record<string, never>; Returns: Json };
+      fn_cargas_por_facturar: { Args: { p_proveedor: number; p_gasto?: number | null }; Returns: Json };
+      fn_pendientes_contables: { Args: Record<string, never>; Returns: Json };
+      fn_guardar_medio_pago: { Args: { p_id: number | null; p_datos: Json }; Returns: number };
+      fn_vincular_cargas: { Args: { p_gasto: number; p_cargas: number[] }; Returns: number };
       // Fondo fijo del chofer, gastos y resumen para liquidar (61)
       fn_mi_fondo: { Args: Record<string, never>; Returns: Json };
       fn_subir_gasto: {
@@ -1398,11 +1408,11 @@ export type Database = {
       fn_fondo_chofer: { Args: { p_chofer: number; p_desde?: string | null; p_hasta?: string | null }; Returns: Json };
       fn_gastos_por_revisar: { Args: Record<string, never>; Returns: Json };
       fn_entregar_fondo: {
-        Args: { p_chofer: number; p_moneda: string; p_importe: number; p_fecha: string; p_detalle?: string | null; p_servicio?: number | null };
+        Args: { p_chofer: number; p_moneda: string; p_importe: number; p_fecha: string; p_detalle?: string | null; p_servicio?: number | null; p_cuenta?: number | null };
         Returns: number;
       };
       fn_registrar_devolucion: {
-        Args: { p_chofer: number; p_moneda: string; p_importe: number; p_fecha: string; p_detalle?: string | null };
+        Args: { p_chofer: number; p_moneda: string; p_importe: number; p_fecha: string; p_detalle?: string | null; p_cuenta?: number | null };
         Returns: number;
       };
       fn_cargar_gasto_chofer: {
@@ -1458,7 +1468,7 @@ export type Database = {
       fn_quitar_renglon: { Args: { p_renglon: number }; Returns: undefined };
       fn_aprobar_liquidacion: { Args: { p_liq: number; p_version: number }; Returns: undefined };
       fn_pagar_liquidacion: {
-        Args: { p_liq: number; p_fecha: string; p_forma?: string | null; p_banco?: string | null; p_numero?: string | null };
+        Args: { p_liq: number; p_fecha: string; p_forma?: string | null; p_banco?: string | null; p_numero?: string | null; p_cuenta?: number | null };
         Returns: string;
       };
       // Migración 66: liquidación de sueldo (Chile) y comprobante de egreso

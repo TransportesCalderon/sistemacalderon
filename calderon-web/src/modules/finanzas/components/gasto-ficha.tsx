@@ -17,6 +17,8 @@ import { cuentasParaGasto, dinero, TIPOS_DOCUMENTO, type Asiento, type Gasto, ty
 import {
   useAnularGasto,
   useCamionesFinanzas,
+  useCargasPorFacturar,
+  useVincularCargas,
   useCuentasDinero,
   useGasto,
   useGuardarGasto,
@@ -25,6 +27,7 @@ import {
   useRegistrarMovimiento,
 } from '../queries/hooks';
 import { fecha, MONEDAS, OpcionesCuentas } from './comun';
+import { TrazaContable } from './traza';
 
 interface Form {
   fecha: string;
@@ -282,7 +285,8 @@ export function GastoFicha({ id }: { id: number | null }) {
             )}
             {g.estado === 'vigente' && g.saldo > 0 && <PagarGasto gastoId={g.id} moneda={g.moneda} saldo={g.saldo} />}
           </Seccion>
-          <VerAsiento asiento={g.asiento} />
+          {g.proveedorId && <CargasDeLaFactura gasto={g} />}
+          <TrazaContable origen="gasto" id={g.id} />
         </>
       )}
     </div>
@@ -491,5 +495,84 @@ export function VerAsiento({ asiento }: { asiento: Asiento | null }) {
         </tbody>
       </table>
     </details>
+  );
+}
+
+/** Cargas de combustible (guías) que cubre esta factura del proveedor (migración 74). */
+function CargasDeLaFactura({ gasto: g }: { gasto: Gasto }) {
+  const puede = useCan('finanzas.gastos:editar');
+  const { data } = useCargasPorFacturar(g.proveedorId, g.id);
+  const vincular = useVincularCargas();
+  const envio = useEnvio();
+  const [marcadas, setMarcadas] = useState<Set<number> | null>(null);
+  const lista = data ?? [];
+  if (lista.length === 0 && g.cargas.length === 0) return null;
+  const actuales = marcadas ?? new Set(lista.filter((c) => c.enEsta).map((c) => c.id));
+  const suma = lista.filter((c) => actuales.has(c.id)).reduce((s, c) => s + c.clp, 0);
+  const editable = puede && g.estado === 'vigente';
+  return (
+    <Seccion titulo="Cargas de combustible que cubre esta factura">
+      <p className="text-sm text-tinta-suave">
+        Son las cargas en cuenta corriente o con tarjeta de este proveedor que todavía no tienen factura. Marcá las que vienen en esta factura (las
+        guías): así el combustible queda contado una sola vez y la diferencia (IVA, ajustes de precio) se ve sola.
+      </p>
+      <div className="max-h-96 overflow-auto">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 bg-panel text-xs text-tinta-suave">
+            <tr>
+              <th className="w-8 py-1" />
+              <th className="py-1 text-left font-medium">Fecha</th>
+              <th className="py-1 text-left font-medium">Camión</th>
+              <th className="py-1 text-left font-medium">Guía</th>
+              <th className="py-1 text-right font-medium">Litros</th>
+              <th className="py-1 text-right font-medium">Importe</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-borde tabular-nums">
+            {lista.map((c) => (
+              <tr key={c.id}>
+                <td className="py-1">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-marca"
+                    disabled={!editable}
+                    checked={actuales.has(c.id)}
+                    aria-label={`Carga del ${fecha(c.fecha)}`}
+                    onChange={(e) => {
+                      const n = new Set(actuales);
+                      if (e.target.checked) n.add(c.id);
+                      else n.delete(c.id);
+                      setMarcadas(n);
+                    }}
+                  />
+                </td>
+                <td className="py-1">{fecha(c.fecha)}</td>
+                <td className="py-1">{c.camion ?? '—'}</td>
+                <td className="py-1">{c.guia ?? '—'}</td>
+                <td className="py-1 text-right">{c.litros}</td>
+                <td className="py-1 text-right">{dinero(c.clp)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-sm">
+        Marcadas: <span className="font-semibold tabular-nums">{dinero(suma)}</span> · Factura: <span className="font-semibold tabular-nums">{dinero(g.totalClp)}</span>
+        {actuales.size > 0 && Math.abs(g.totalClp - suma) >= 1 && (
+          <span className="text-tinta-suave"> · diferencia {dinero(g.totalClp - suma)} (IVA y ajustes)</span>
+        )}
+      </p>
+      <ErrorBase error={envio.error} />
+      {editable && marcadas && (
+        <button
+          type="button"
+          className={BOTON_PRIMARIO}
+          disabled={vincular.isPending}
+          onClick={() => void envio.enviar(vincular.mutateAsync({ gastoId: g.id, cargas: [...actuales] }), () => setMarcadas(null))}
+        >
+          {vincular.isPending && <LoaderCircle className="size-4 animate-spin" />} Guardar las cargas de la factura
+        </button>
+      )}
+    </Seccion>
   );
 }

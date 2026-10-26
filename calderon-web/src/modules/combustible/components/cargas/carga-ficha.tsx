@@ -1,5 +1,6 @@
 'use client';
 
+import { TrazaContable } from '@/modules/finanzas/components/traza';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -101,6 +102,7 @@ export function CargaFicha({ id }: { id: CargaId }) {
       )}
       <TicketCarga carga={carga} />
       <Anulacion carga={carga} onRecargar={() => refetch()} />
+      <TrazaContable origen="carga" id={carga.id} />
     </div>
   );
 }

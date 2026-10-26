@@ -124,3 +124,16 @@ export type CrearDesdeLineaEntrada = z.infer<typeof crearDesdeLineaSchema>;
 export const idSchema = z.object({ id });
 export const anularSchema = z.object({ id, motivo });
 export const periodoSchema = z.object({ periodo: fecha });
+
+// Migración 74
+export const medioPagoSchema = z.object({
+  id: id.nullable(),
+  nombre: z.string().trim().min(2, 'Escribí el nombre.').max(80),
+  medio: z.enum(['tarjeta', 'cuenta_corriente', 'efectivo', 'surtidor_propio']),
+  tipo: z.enum(['factura_posterior', 'prepago', 'caja', 'tanque_propio']),
+  proveedorId: id.nullable(),
+  cuentaDineroId: id.nullable(),
+  activo: z.boolean(),
+});
+export type MedioPagoEntrada = z.infer<typeof medioPagoSchema>;
+export const vincularCargasSchema = z.object({ gastoId: id, cargas: z.array(id).max(2000) });

@@ -14,6 +14,8 @@ import {
   guardarCuentaDinero,
   guardarGasto,
   guardarGastoFijo,
+  guardarMedioPago,
+  vincularCargas,
   guardarProveedorRapido,
   ignorarLinea,
   importarCartola,
@@ -47,6 +49,24 @@ export const useFlujoCaja = (desde: string, hasta: string) =>
 export const useLibroDiario = (desde: string, hasta: string, enabled: boolean) =>
   useQuery({ queryKey: [...CLAVE, 'diario', desde, hasta], queryFn: () => repo().libroDiario(desde, hasta), enabled });
 
+// Migración 74
+export const useCuentasParaElegir = (enabled = true) =>
+  useQuery({ queryKey: [...CLAVE, 'cuentas-elegir'], queryFn: () => repo().cuentasParaElegir(), enabled, staleTime: 60_000, retry: false });
+export const useMayor = (cuenta: number | null, desde: string, hasta: string, terceroTipo: string | null, terceroId: number | null) =>
+  useQuery({
+    queryKey: [...CLAVE, 'mayor', cuenta, desde, hasta, terceroTipo, terceroId],
+    queryFn: () => repo().mayor(cuenta!, desde, hasta, terceroTipo, terceroId),
+    enabled: !!cuenta,
+    placeholderData: keepPreviousData,
+  });
+export const useAuxiliares = (hasta: string | null) => useQuery({ queryKey: [...CLAVE, 'auxiliares', hasta], queryFn: () => repo().auxiliares(hasta) });
+export const useTraza = (origen: string, id: number | null) =>
+  useQuery({ queryKey: [...CLAVE, 'traza', origen, id], queryFn: () => repo().traza(origen, id!), enabled: !!id });
+export const useCombustibleFinanzas = () => useQuery({ queryKey: [...CLAVE, 'combustible'], queryFn: () => repo().combustible() });
+export const useCargasPorFacturar = (proveedor: number | null, gasto: number | null) =>
+  useQuery({ queryKey: [...CLAVE, 'cargas-por-facturar', proveedor, gasto], queryFn: () => repo().cargasPorFacturar(proveedor!, gasto), enabled: !!proveedor });
+export const usePendientesContables = () => useQuery({ queryKey: [...CLAVE, 'pendientes'], queryFn: () => repo().pendientes() });
+
 function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
   const qc = useQueryClient();
   return useMutation({
@@ -70,3 +90,5 @@ export const useDesconciliar = () => useEscritura(desconciliar);
 export const useIgnorarLinea = () => useEscritura(ignorarLinea);
 export const useCrearDesdeLinea = () => useEscritura(crearDesdeLinea);
 export const useRecontabilizar = () => useEscritura(recontabilizar);
+export const useGuardarMedioPago = () => useEscritura(guardarMedioPago);
+export const useVincularCargas = () => useEscritura(vincularCargas);

@@ -76,7 +76,7 @@ export const aprobarLiquidacion = createAction({
 export const pagarLiquidacion = createAction({
   permiso: 'liquidacion.liquidaciones:transicionar',
   schema: pagarSchema,
-  handler: (d, { db }) => liquidacionRepository(db).pagar(d.id, d.fecha, d.forma, d.banco, d.numero),
+  handler: (d, { db }) => liquidacionRepository(db).pagar(d.id, d.fecha, d.forma, d.banco, d.numero, d.cuentaId ?? null),
   invalida: rutas,
 });
 export const reabrirLiquidacion = createAction({

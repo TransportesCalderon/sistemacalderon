@@ -69,6 +69,10 @@ export interface CuentaContable {
   activa: boolean;
   banco: boolean;
   conMovimientos: boolean;
+  /** Lo decide la base (migración 74): sirve para un gasto / para otro ingreso o egreso. */
+  paraGasto: boolean;
+  paraMovimiento: boolean;
+  saldo: number;
 }
 export const parsearPlan = (raw: unknown): CuentaContable[] =>
   arr(raw).map((c) => ({
@@ -82,13 +86,14 @@ export const parsearPlan = (raw: unknown): CuentaContable[] =>
     activa: c.activa !== false,
     banco: c.banco === true,
     conMovimientos: c.con_movimientos === true,
+    paraGasto: c.para_gasto === true,
+    paraMovimiento: c.para_movimiento === true,
+    saldo: num(c.saldo),
   }));
-/** Cuentas que sirven para un gasto (lo mismo que valida la base, para no ofrecer las otras). */
-export const cuentasParaGasto = (plan: CuentaContable[]) =>
-  plan.filter((c) => c.imputable && c.activa && !c.uso && !c.banco && (c.tipo === 'costo' || c.tipo === 'gasto' || c.tipo === 'activo' || c.tipo === 'pasivo'));
-/** Cuentas para otro ingreso u otro egreso. */
-export const cuentasParaMovimiento = (plan: CuentaContable[]) =>
-  plan.filter((c) => c.imputable && c.activa && !c.banco && !['CXC', 'CXP', 'TRANSITORIA'].includes(c.uso ?? ''));
+/** Cuentas que sirven para un gasto (la base lo marca en el plan). */
+export const cuentasParaGasto = (plan: CuentaContable[]) => plan.filter((c) => c.paraGasto);
+/** Cuentas para otro ingreso u otro egreso (la base lo marca en el plan). */
+export const cuentasParaMovimiento = (plan: CuentaContable[]) => plan.filter((c) => c.paraMovimiento);
 
 // ---------------------------------------------------------------------------
 // Bancos y cajas
@@ -244,6 +249,7 @@ export interface Gasto {
   periodo: string | null;
   pagos: PagoDeGasto[];
   asiento: Asiento | null;
+  cargas: CargaCombustible[];
 }
 export function parsearGasto(raw: unknown): Gasto {
   const g = (raw ?? {}) as Obj;
@@ -288,6 +294,7 @@ export function parsearGasto(raw: unknown): Gasto {
       conciliado: p.conciliado === true,
     })),
     asiento: parsearAsiento(g.asiento),
+    cargas: parsearCargas(g.cargas),
   };
 }
 
@@ -583,6 +590,11 @@ export const parsearLibroDiario = (raw: unknown): RenglonDiario[] =>
   }));
 
 export interface TableroFinanzas {
+  fletesPorFacturarClp: number;
+  combustiblePorFacturarClp: number;
+  fondosChoferesClp: number;
+  sueldosPorPagarClp: number;
+  pendientesContables: number;
   hoy: string;
   bancos: { nombre: string; moneda: string; saldo: number; saldoClp: number | null }[];
   disponibleClp: number;
@@ -607,6 +619,11 @@ export interface TableroFinanzas {
 export function parsearTablero(raw: unknown): TableroFinanzas {
   const j = (raw ?? {}) as Obj;
   return {
+    fletesPorFacturarClp: num(j.fletes_por_facturar_clp),
+    combustiblePorFacturarClp: num(j.combustible_por_facturar_clp),
+    fondosChoferesClp: num(j.fondos_choferes_clp),
+    sueldosPorPagarClp: num(j.sueldos_por_pagar_clp),
+    pendientesContables: num(j.pendientes_contables),
     hoy: String(j.hoy ?? ''),
     bancos: arr(j.bancos).map((b) => ({ nombre: String(b.nombre), moneda: String(b.moneda), saldo: num(b.saldo), saldoClp: numN(b.saldo_clp) })),
     disponibleClp: num(j.disponible_clp),
@@ -639,3 +656,233 @@ export function aCsv(filas: (string | number | null)[][]): string {
   };
   return '﻿' + filas.map((f) => f.map(celda).join(';')).join('\r\n');
 }
+
+// ---------------------------------------------------------------------------
+// Migración 74: contabilidad integrada (combustible, fondos, sueldos, fletes)
+// ---------------------------------------------------------------------------
+export interface CuentaElegible {
+  id: number;
+  nombre: string;
+  moneda: string;
+  tipo: 'banco' | 'caja';
+}
+export const parsearCuentasElegibles = (raw: unknown): CuentaElegible[] =>
+  arr(raw).map((c) => ({ id: num(c.id), nombre: String(c.nombre), moneda: String(c.moneda), tipo: c.tipo === 'caja' ? 'caja' : 'banco' }));
+
+export interface CargaCombustible {
+  id: number;
+  fecha: string;
+  camion: string | null;
+  estacion: string | null;
+  litros: number;
+  moneda: string;
+  importe: number;
+  clp: number;
+  guia: string | null;
+  enEsta: boolean;
+}
+export function parsearCargas(raw: unknown): CargaCombustible[] {
+  return arr(raw).map((c) => ({
+    id: num(c.id),
+    fecha: String(c.fecha),
+    camion: txt(c.camion),
+    estacion: txt(c.estacion),
+    litros: num(c.litros),
+    moneda: String(c.moneda ?? 'CLP'),
+    importe: num(c.importe),
+    clp: num(c.clp),
+    guia: txt(c.guia),
+    enEsta: c.en_esta === true,
+  }));
+}
+
+export type TipoMedioPago = 'factura_posterior' | 'prepago' | 'caja' | 'tanque_propio';
+export const ETIQUETA_TIPO_MEDIO: Record<TipoMedioPago, string> = {
+  factura_posterior: 'Factura después (cuenta corriente o tarjeta con factura)',
+  prepago: 'Tarjeta prepaga (descuenta saldo)',
+  caja: 'Sale de una caja o banco en el momento',
+  tanque_propio: 'Tanque propio (al costo medio)',
+};
+export const ETIQUETA_MEDIO_CARGA: Record<string, string> = {
+  cuenta_corriente: 'Cuenta corriente',
+  tarjeta: 'Tarjeta',
+  efectivo: 'Efectivo',
+  surtidor_propio: 'Surtidor propio',
+};
+export interface MedioPago {
+  id: number;
+  nombre: string;
+  medio: string;
+  proveedorId: number | null;
+  proveedor: string | null;
+  tipo: TipoMedioPago;
+  cuentaDineroId: number | null;
+  cuentaDinero: string | null;
+  cuenta: string | null;
+  activo: boolean;
+  saldoPrepago: number | null;
+}
+export interface CombustibleFinanzas {
+  medios: MedioPago[];
+  porFacturar: { proveedorId: number | null; proveedor: string | null; saldo: number; cargas: number; desde: string | null }[];
+  pendientes: number;
+}
+export function parsearCombustible(raw: unknown): CombustibleFinanzas {
+  const j = (raw ?? {}) as Obj;
+  return {
+    medios: arr(j.medios).map((m) => ({
+      id: num(m.id),
+      nombre: String(m.nombre),
+      medio: String(m.medio),
+      proveedorId: numN(m.proveedor_id),
+      proveedor: txt(m.proveedor),
+      tipo: m.tipo as TipoMedioPago,
+      cuentaDineroId: numN(m.cuenta_dinero_id),
+      cuentaDinero: txt(m.cuenta_dinero),
+      cuenta: txt(m.cuenta),
+      activo: m.activo !== false,
+      saldoPrepago: numN(m.saldo_prepago),
+    })),
+    porFacturar: arr(j.por_facturar).map((p) => ({
+      proveedorId: numN(p.proveedor_id),
+      proveedor: txt(p.proveedor),
+      saldo: num(p.saldo),
+      cargas: num(p.cargas),
+      desde: txt(p.desde),
+    })),
+    pendientes: num(j.pendientes),
+  };
+}
+
+export interface RenglonMayor {
+  fecha: string;
+  asiento: number;
+  glosa: string;
+  cuenta: string;
+  detalle: string | null;
+  tercero: string | null;
+  camion: string | null;
+  debe: number;
+  haber: number;
+  saldo: number;
+  origen: string;
+  origenId: number;
+  ruta: string | null;
+}
+export interface Mayor {
+  cuenta: { id: number; codigo: string; nombre: string; tipo: TipoCuenta };
+  tercero: string | null;
+  saldoInicial: number;
+  renglones: RenglonMayor[];
+}
+export function parsearMayor(raw: unknown): Mayor {
+  const j = (raw ?? {}) as Obj;
+  const c = (j.cuenta ?? {}) as Obj;
+  return {
+    cuenta: { id: num(c.id), codigo: String(c.codigo ?? ''), nombre: String(c.nombre ?? ''), tipo: c.tipo as TipoCuenta },
+    tercero: txt(j.tercero),
+    saldoInicial: num(j.saldo_inicial),
+    renglones: arr(j.renglones).map((r) => ({
+      fecha: String(r.fecha),
+      asiento: num(r.asiento),
+      glosa: String(r.glosa),
+      cuenta: String(r.cuenta),
+      detalle: txt(r.detalle),
+      tercero: txt(r.tercero),
+      camion: txt(r.camion),
+      debe: num(r.debe),
+      haber: num(r.haber),
+      saldo: num(r.saldo),
+      origen: String(r.origen),
+      origenId: num(r.origen_id),
+      ruta: txt(r.ruta),
+    })),
+  };
+}
+
+export interface SaldoTercero {
+  cuentaId: number;
+  cuenta: string;
+  uso: string | null;
+  terceroTipo: 'cliente' | 'proveedor' | 'chofer' | null;
+  terceroId: number | null;
+  tercero: string;
+  saldo: number;
+  desde: string | null;
+}
+export const parsearAuxiliares = (raw: unknown): SaldoTercero[] =>
+  arr(raw).map((a) => ({
+    cuentaId: num(a.cuenta_id),
+    cuenta: String(a.cuenta),
+    uso: txt(a.uso),
+    terceroTipo: (txt(a.tercero_tipo) as SaldoTercero['terceroTipo']) ?? null,
+    terceroId: numN(a.tercero_id),
+    tercero: String(a.tercero),
+    saldo: num(a.saldo),
+    desde: txt(a.desde),
+  }));
+
+/**
+ * Qué significa el saldo de cada cuenta con auxiliar, en palabras. La base da el saldo como
+ * debe − haber; en las cuentas de deuda (acreedora) se muestra dado vuelta.
+ */
+export const SENTIDO_AUXILIAR: Record<string, { titulo: string; positivo: string; acreedora: boolean }> = {
+  CXC: { titulo: 'Clientes (facturas por cobrar)', positivo: 'nos debe', acreedora: false },
+  FLETES_POR_FACTURAR: { titulo: 'Fletes entregados sin facturar', positivo: 'falta facturar', acreedora: false },
+  CXP: { titulo: 'Proveedores (facturas por pagar)', positivo: 'le debemos', acreedora: true },
+  POR_FACTURAR: { titulo: 'Combustible y compras sin factura del proveedor', positivo: 'falta la factura', acreedora: true },
+  FONDOS_CHOFERES: { titulo: 'Fondos de choferes por rendir', positivo: 'tiene para rendir', acreedora: false },
+  REM_POR_PAGAR: { titulo: 'Sueldos por pagar', positivo: 'le debemos', acreedora: true },
+  LEYES_SOCIALES: { titulo: 'Leyes sociales por pagar (Previred)', positivo: 'por pagar', acreedora: true },
+};
+/** Saldo de un auxiliar en el sentido natural de su cuenta (positivo = lo normal). */
+export const saldoNatural = (a: SaldoTercero) => (SENTIDO_AUXILIAR[a.uso ?? '']?.acreedora ? -a.saldo : a.saldo);
+
+export interface Traza {
+  asientos: (Asiento & { origen: string; id: number })[];
+  relacionados: { clase: string; id: number; texto: string; ruta: string | null }[];
+  movimientos: { id: number; numero: string; fecha: string; tipo: string; estado: string; cuenta: string; moneda: string; monto: number;
+    cartola: { fecha: string; descripcion: string; monto: number } | null }[];
+  pendiente: string | null;
+}
+export function parsearTraza(raw: unknown): Traza {
+  const j = (raw ?? {}) as Obj;
+  return {
+    asientos: arr(j.asientos).map((a) => ({ ...(parsearAsiento(a) as Asiento), origen: String(a.origen), id: num(a.id) })),
+    relacionados: arr(j.relacionados).map((r) => ({ clase: String(r.clase), id: num(r.id), texto: String(r.texto), ruta: txt(r.ruta) })),
+    movimientos: arr(j.movimientos).map((m) => ({
+      id: num(m.id),
+      numero: String(m.numero),
+      fecha: String(m.fecha),
+      tipo: String(m.tipo),
+      estado: String(m.estado),
+      cuenta: String(m.cuenta),
+      moneda: String(m.moneda),
+      monto: num(m.monto),
+      cartola: m.cartola ? { fecha: String((m.cartola as Obj).fecha), descripcion: String((m.cartola as Obj).descripcion), monto: num((m.cartola as Obj).monto) } : null,
+    })),
+    pendiente: txt(j.pendiente),
+  };
+}
+
+export interface PendienteContable {
+  origen: string;
+  origenId: number;
+  motivo: string;
+  desde: string;
+  ruta: string | null;
+}
+export const parsearPendientes = (raw: unknown): PendienteContable[] =>
+  arr(raw).map((p) => ({ origen: String(p.origen), origenId: num(p.origen_id), motivo: String(p.motivo), desde: String(p.desde), ruta: txt(p.ruta) }));
+export const ETIQUETA_ORIGEN: Record<string, string> = {
+  factura: 'Factura de venta',
+  factura_cobro: 'Cobro sin banco',
+  gasto: 'Gasto',
+  movimiento: 'Movimiento de dinero',
+  apertura: 'Saldo inicial',
+  carga: 'Carga de combustible',
+  fondo: 'Fondo de chofer',
+  liquidacion: 'Liquidación',
+  liquidacion_pago: 'Sueldo pagado sin banco',
+  servicio: 'Flete entregado',
+};

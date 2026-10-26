@@ -68,6 +68,14 @@ export function TableroFinanzas() {
           y después tocá «Rehacer asientos» en el Plan de cuentas.
         </Aviso>
       )}
+      {t.pendientesContables > 0 && (
+        <Aviso>
+          {t.pendientesContables === 1 ? 'Un documento no entró' : `${t.pendientesContables} documentos no entraron`} a la contabilidad.{' '}
+          <Link href="/finanzas/plan-cuentas" className="font-medium underline">
+            Ver por qué
+          </Link>
+        </Aviso>
+      )}
       {t.cobrosSinCuentaClp !== 0 && (
         <Aviso>
           Hay {dinero(t.cobrosSinCuentaClp)} de facturas cobradas sin decir a qué banco entraron.{' '}
@@ -104,6 +112,23 @@ export function TableroFinanzas() {
           tono={resMes < 0 ? 'alerta' : 'normal'}
           href="/finanzas/informes"
         />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Indicador
+          titulo="Fletes entregados sin facturar"
+          valor={dinero(t.fletesPorFacturarClp)}
+          detalle="ya son ingreso; falta emitir la factura"
+          href="/finanzas/informes"
+        />
+        <Indicador
+          titulo="Combustible sin factura del proveedor"
+          valor={dinero(t.combustiblePorFacturarClp)}
+          detalle="cargas en cuenta corriente o tarjeta"
+          href="/finanzas/combustible"
+        />
+        <Indicador titulo="Fondos de choferes por rendir" valor={dinero(t.fondosChoferesClp)} detalle="plata entregada que falta rendir" href="/rrhh/fondos" />
+        <Indicador titulo="Sueldos y leyes sociales por pagar" valor={dinero(t.sueldosPorPagarClp)} detalle="liquidaciones aprobadas sin pagar" href="/rrhh/liquidaciones" />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">

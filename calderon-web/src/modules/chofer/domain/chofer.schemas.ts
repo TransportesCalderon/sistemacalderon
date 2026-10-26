@@ -73,6 +73,7 @@ export const entregaSchema = z.object({
   importe,
   fecha,
   detalle: textoOpc(500),
+  cuentaId: id.nullable().optional(),
 });
 export type Entrega = z.infer<typeof entregaSchema>;
 

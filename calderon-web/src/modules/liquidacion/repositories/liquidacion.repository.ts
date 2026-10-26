@@ -86,8 +86,8 @@ export const liquidacionRepository = (db: Db) => {
     async aprobar(id: number, version: number) {
       await leer(fin().rpc('fn_aprobar_liquidacion', { p_liq: id, p_version: version }));
     },
-    async pagar(id: number, fecha: string, forma: string | null, banco: string | null, numero: string | null): Promise<string> {
-      return leer(fin().rpc('fn_pagar_liquidacion', { p_liq: id, p_fecha: fecha, p_forma: forma, p_banco: banco, p_numero: numero }));
+    async pagar(id: number, fecha: string, forma: string | null, banco: string | null, numero: string | null, cuenta: number | null = null): Promise<string> {
+      return leer(fin().rpc('fn_pagar_liquidacion', { p_liq: id, p_fecha: fecha, p_forma: forma, p_banco: banco, p_numero: numero, p_cuenta: cuenta }));
     },
     // Migración 66
     async datosLegales() {

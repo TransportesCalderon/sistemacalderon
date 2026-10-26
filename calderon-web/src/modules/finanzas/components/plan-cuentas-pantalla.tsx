@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Pencil, Plus, RefreshCw } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Seccion } from '@/modules/combustible/components/comun/ui';
@@ -8,8 +9,9 @@ import { useCan } from '@/modules/core/permissions/can';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_ICONO, BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { ETIQUETA_TIPO_CUENTA, type CuentaContable } from '../domain/finanzas.types';
-import { useGuardarCuentaContable, usePlanCuentas, useRecontabilizar } from '../queries/hooks';
+import { dinero, ETIQUETA_ORIGEN, ETIQUETA_TIPO_CUENTA, type CuentaContable } from '../domain/finanzas.types';
+import { useGuardarCuentaContable, usePendientesContables, usePlanCuentas, useRecontabilizar } from '../queries/hooks';
+import { fecha } from './comun';
 
 interface Form {
   id: number | null;
@@ -73,6 +75,7 @@ export function PlanCuentasPantalla() {
       </p>
       {rehecho && <p className="text-sm text-exito">{rehecho}</p>}
       <ErrorBase error={envioR.error} />
+      <Pendientes />
 
       {form && (
         <Panel
@@ -107,6 +110,7 @@ export function PlanCuentasPantalla() {
               <tr>
                 <th className={TH}>Código y nombre</th>
                 <th className={TH}>Tipo</th>
+                <th className={cn(TH, 'text-right')}>Saldo hoy</th>
                 <th className={TH} />
                 <th className={TH} />
               </tr>
@@ -118,6 +122,15 @@ export function PlanCuentasPantalla() {
                     <span className="tabular-nums">{c.codigo}</span> · {c.nombre}
                   </td>
                   <td className={cn(TD, 'text-xs text-tinta-suave')}>{ETIQUETA_TIPO_CUENTA[c.tipo]}</td>
+                  <td className={cn(TD, 'text-right tabular-nums')}>
+                    {c.imputable && c.saldo !== 0 ? (
+                      <Link href={`/finanzas/informes?mayor=${c.id}`} className="hover:underline">
+                        {dinero(['pasivo', 'patrimonio', 'ingreso'].includes(c.tipo) ? -c.saldo : c.saldo)}
+                      </Link>
+                    ) : (
+                      ''
+                    )}
+                  </td>
                   <td className={TD}>
                     {c.uso && <Chip tono="marca">Del sistema</Chip>}
                     {c.banco && <Chip tono="neutro">Banco o caja</Chip>}
@@ -136,5 +149,35 @@ export function PlanCuentasPantalla() {
         </div>
       </Seccion>
     </div>
+  );
+}
+
+/** Documentos que no entraron a la contabilidad (falta tipo de cambio, costo del tanque, etc.). */
+function Pendientes() {
+  const { data } = usePendientesContables();
+  if (!data || data.length === 0) return null;
+  return (
+    <Seccion titulo={`${data.length} documento(s) sin contabilizar`}>
+      <p className="mb-2 text-sm text-tinta-suave">
+        La operación quedó guardada, pero no entró a la contabilidad. Corregí lo que dice el motivo y tocá «Rehacer asientos».
+      </p>
+      <ul className="divide-y divide-borde text-sm">
+        {data.map((p) => (
+          <li key={`${p.origen}-${p.origenId}`} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
+            <span className="font-medium">
+              {p.ruta ? (
+                <Link href={p.ruta} className="text-marca hover:underline">
+                  {ETIQUETA_ORIGEN[p.origen] ?? p.origen} {p.origenId}
+                </Link>
+              ) : (
+                `${ETIQUETA_ORIGEN[p.origen] ?? p.origen} ${p.origenId}`
+              )}
+            </span>
+            <span className="text-alerta">{p.motivo}</span>
+            <span className="text-xs text-tinta-suave">desde {fecha(p.desde.slice(0, 10))}</span>
+          </li>
+        ))}
+      </ul>
+    </Seccion>
   );
 }

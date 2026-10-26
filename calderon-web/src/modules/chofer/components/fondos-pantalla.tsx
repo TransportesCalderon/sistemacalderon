@@ -1,5 +1,6 @@
 'use client';
 
+import { ElegirCuentaDinero } from '@/modules/finanzas/components/elegir-cuenta';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, Check, ExternalLink, LoaderCircle, Lock, Unlock, Wallet, X } from 'lucide-react';
 import { TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
@@ -362,7 +363,7 @@ function FormEntrega({ choferId, tipo, onListo }: { choferId: number; tipo: 'ent
   const monedas = useMonedas();
   const registrar = useRegistrarEntrega();
   const envio = useEnvio();
-  const [v, setV] = useState({ moneda: '', importe: '', fecha: hoyEnZona(zonaHoraria) as string, detalle: '' });
+  const [v, setV] = useState({ moneda: '', importe: '', fecha: hoyEnZona(zonaHoraria) as string, detalle: '', cuentaId: null as number | null });
   return (
     <div className="grid gap-3 rounded-lg border border-borde bg-fondo/40 p-4 sm:grid-cols-4">
       <h3 className="font-medium text-tinta sm:col-span-4">{tipo === 'entrega' ? 'Entregar dinero al chofer' : 'El chofer devolvió el vuelto'}</h3>
@@ -385,6 +386,11 @@ function FormEntrega({ choferId, tipo, onListo }: { choferId: number; tipo: 'ent
       <Campo label="Detalle (opcional)">
         <input value={v.detalle} maxLength={500} onChange={(e) => setV({ ...v, detalle: e.target.value })} placeholder="Ej.: para el viaje a Chile" />
       </Campo>
+      <ElegirCuentaDinero
+        valor={v.cuentaId}
+        onCambio={(c) => setV({ ...v, cuentaId: c })}
+        etiqueta={tipo === 'entrega' ? 'Sale de (banco o caja)' : 'Entra a (banco o caja)'}
+      />
       <div className="sm:col-span-4">
         <ErrorBase error={envio.error} />
         <button

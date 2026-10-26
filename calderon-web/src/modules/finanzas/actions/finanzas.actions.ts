@@ -10,6 +10,8 @@ import {
   gastoFijoSchema,
   gastoSchema,
   ignorarSchema,
+  medioPagoSchema,
+  vincularCargasSchema,
   importarCartolaSchema,
   lineaSchema,
   movimientoSchema,
@@ -113,5 +115,19 @@ export const recontabilizar = createAction({
   permiso: 'finanzas.plan_cuentas:editar',
   schema: z.object({}),
   handler: (_d, { db }) => repo(db).recontabilizar(),
+  invalida: () => RUTAS,
+});
+
+// Migración 74
+export const guardarMedioPago = createAction({
+  permiso: 'finanzas.gastos:editar',
+  schema: medioPagoSchema,
+  handler: (d, { db }) => repo(db).guardarMedioPago(d),
+  invalida: () => RUTAS,
+});
+export const vincularCargas = createAction({
+  permiso: 'finanzas.gastos:editar',
+  schema: vincularCargasSchema,
+  handler: (d, { db }) => repo(db).vincularCargas(d.gastoId, d.cargas),
   invalida: () => RUTAS,
 });

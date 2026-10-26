@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { can, permisosDe } from '@/modules/core/permissions/resolver';
 import { buscarTitulos, filasParaImportar, leerCsv, mapeoCompleto, textoCelda } from '@/modules/finanzas/domain/cartola';
 import { gastoSchema, movimientoSchema } from '@/modules/finanzas/domain/finanzas.schemas';
-import { aCsv, cuentasParaGasto, dinero, dineroCorto, mesCorto, parsearPlan, parsearTablero } from '@/modules/finanzas/domain/finanzas.types';
+import { aCsv, cuentasParaGasto, cuentasParaMovimiento, dinero, dineroCorto, mesCorto, parsearAuxiliares, parsearPlan, parsearTablero, saldoNatural } from '@/modules/finanzas/domain/finanzas.types';
 
 const agregado = { gerenciaDetalleAlertas: 'agregado' as const };
 
@@ -48,15 +48,23 @@ describe('finanzas (migración 73)', () => {
     ]);
   });
 
-  it('para un gasto solo ofrece cuentas que la base acepta', () => {
+  it('para un gasto o un ingreso/egreso ofrece lo que la base marca (no repite la regla)', () => {
     const plan = parsearPlan([
-      { id: 1, codigo: '1.1.03', nombre: 'Clientes', tipo: 'activo', imputable: true, uso: 'CXC' },
-      { id: 2, codigo: '1.1.01.01', nombre: 'Banco', tipo: 'activo', imputable: true, banco: true },
-      { id: 3, codigo: '6.1.03', nombre: 'Arriendos', tipo: 'gasto', imputable: true },
-      { id: 4, codigo: '6', nombre: 'Gastos', tipo: 'gasto', imputable: false },
-      { id: 5, codigo: '4.1.01', nombre: 'Fletes', tipo: 'ingreso', imputable: true, uso: 'VENTAS' },
+      { id: 1, codigo: '1.1.03', nombre: 'Clientes', tipo: 'activo', imputable: true, uso: 'CXC', para_gasto: false, para_movimiento: false },
+      { id: 3, codigo: '6.1.03', nombre: 'Arriendos', tipo: 'gasto', imputable: true, para_gasto: true, para_movimiento: true },
+      { id: 6, codigo: '2.1.05', nombre: 'IVA débito', tipo: 'pasivo', imputable: true, uso: 'IVA_DEBITO', para_gasto: false, para_movimiento: true },
     ]);
     expect(cuentasParaGasto(plan).map((c) => c.id)).toEqual([3]);
+    expect(cuentasParaMovimiento(plan).map((c) => c.id)).toEqual([3, 6]);
+  });
+
+  it('saldos por tercero: las deudas se muestran en positivo', () => {
+    const [cxp, cxc] = parsearAuxiliares([
+      { cuenta_id: 1, cuenta: 'Proveedores', uso: 'CXP', tercero_tipo: 'proveedor', tercero_id: 9, tercero: 'Shell', saldo: -100000 },
+      { cuenta_id: 2, cuenta: 'Clientes', uso: 'CXC', tercero_tipo: 'cliente', tercero_id: 3, tercero: 'Cliente', saldo: 5000 },
+    ]);
+    expect(saldoNatural(cxp!)).toBe(100000);
+    expect(saldoNatural(cxc!)).toBe(5000);
   });
 
   it('formularios: la categoría es obligatoria y los montos aceptan «1.234.567»', () => {

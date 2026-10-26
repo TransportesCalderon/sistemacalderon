@@ -58,7 +58,7 @@ export const renglonSchema = z.object({
 export type RenglonEntrada = z.infer<typeof renglonSchema>;
 export const idSchema = z.object({ id });
 export const aprobarSchema = z.object({ id, version: z.number().int().positive() });
-export const pagarSchema = z.object({ id, fecha, forma: texto(120), banco: texto(80), numero: texto(40) });
+export const pagarSchema = z.object({ id, fecha, forma: texto(120), banco: texto(80), numero: texto(40), cuentaId: id.nullable().optional() });
 
 // Migración 66: datos para la liquidación de sueldo de Chile
 export const empresaSchema = z.object({

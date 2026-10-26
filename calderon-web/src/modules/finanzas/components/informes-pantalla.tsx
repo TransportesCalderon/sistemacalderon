@@ -1,18 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Download } from 'lucide-react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { BookOpen, Download, Users } from 'lucide-react';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { Cargando, Encabezado, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
 import { hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
-import { aCsv, dinero, mesCorto, type EstadoResultados, type FlujoCaja, type RenglonDiario } from '../domain/finanzas.types';
-import { useEstadoResultados, useFlujoCaja, useLibroDiario } from '../queries/hooks';
+import { aCsv, dinero, mesCorto, type EstadoResultados, type FlujoCaja, type RenglonDiario, SENTIDO_AUXILIAR, ETIQUETA_ORIGEN, saldoNatural, type SaldoTercero } from '../domain/finanzas.types';
+import { useAuxiliares, useEstadoResultados, useFlujoCaja, useLibroDiario, useMayor, usePlanCuentas } from '../queries/hooks';
 import { fecha } from './comun';
 
-type Vista = 'resultados' | 'flujo' | 'diario';
+type Vista = 'resultados' | 'flujo' | 'diario' | 'mayor' | 'saldos';
 
 function bajar(nombre: string, contenido: string) {
   const url = URL.createObjectURL(new Blob([contenido], { type: 'text/csv;charset=utf-8' }));
@@ -27,9 +29,11 @@ function bajar(nombre: string, contenido: string) {
 export function InformesPantalla() {
   const { zonaHoraria } = useSesion();
   const hoy = hoyEnZona(zonaHoraria) as string;
-  const [vista, setVista] = useState<Vista>('resultados');
+  const pedida = Number(useSearchParams().get('mayor')) || null;
+  const [vista, setVista] = useState<Vista>(pedida ? 'mayor' : 'resultados');
   const [desde, setDesde] = useState(`${hoy.slice(0, 4)}-01-01`);
   const [hasta, setHasta] = useState(hoy);
+  const [filtroMayor, setFiltroMayor] = useState<FiltroMayor>({ cuenta: pedida, terceroTipo: null, terceroId: null, tercero: null });
   return (
     <div className="space-y-5">
       <Encabezado titulo="Informes" subtitulo="Finanzas" />
@@ -39,6 +43,8 @@ export function InformesPantalla() {
             ['resultados', 'Estado de resultados'],
             ['flujo', 'Flujo de caja'],
             ['diario', 'Libro diario'],
+            ['mayor', 'Libro mayor'],
+            ['saldos', 'Saldos por cliente, proveedor y chofer'],
           ] as const
         ).map(([v, t]) => (
           <button
@@ -74,7 +80,17 @@ export function InformesPantalla() {
           Año pasado
         </button>
       </div>
-      {vista === 'resultados' ? <Resultados desde={desde} hasta={hasta} /> : vista === 'flujo' ? <Flujo desde={desde} hasta={hasta} /> : <Diario desde={desde} hasta={hasta} />}
+      {vista === 'resultados' ? (
+        <Resultados desde={desde} hasta={hasta} />
+      ) : vista === 'flujo' ? (
+        <Flujo desde={desde} hasta={hasta} />
+      ) : vista === 'diario' ? (
+        <Diario desde={desde} hasta={hasta} />
+      ) : vista === 'mayor' ? (
+        <LibroMayor desde={desde} hasta={hasta} filtro={filtroMayor} onFiltro={setFiltroMayor} />
+      ) : (
+        <Saldos hasta={hasta} onVer={(f) => (setFiltroMayor(f), setVista('mayor'))} />
+      )}
     </div>
   );
 }
@@ -326,6 +342,165 @@ function TablaDiario({ filas, desde, hasta }: { filas: RenglonDiario[]; desde: s
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+interface FiltroMayor {
+  cuenta: number | null;
+  terceroTipo: string | null;
+  terceroId: number | null;
+  tercero: string | null;
+}
+
+/** Libro mayor: todos los movimientos de una cuenta (y opcionalmente de un cliente, proveedor o chofer), con saldo. */
+function LibroMayor({ desde, hasta, filtro, onFiltro }: { desde: string; hasta: string; filtro: FiltroMayor; onFiltro: (f: FiltroMayor) => void }) {
+  const { data: plan } = usePlanCuentas();
+  const { data, isLoading, isError, error, refetch } = useMayor(filtro.cuenta, desde, hasta, filtro.terceroTipo, filtro.terceroId);
+  const imputables = (plan ?? []).filter((c) => c.imputable);
+  // Las cuentas de deuda, patrimonio e ingresos se leen al revés (haber − debe): así el saldo normal es positivo
+  const signo = data && ['pasivo', 'patrimonio', 'ingreso'].includes(data.cuenta.tipo) ? -1 : 1;
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          className={CONTROL_FILTRO}
+          aria-label="Cuenta"
+          value={filtro.cuenta ?? ''}
+          onChange={(e) => onFiltro({ cuenta: e.target.value ? Number(e.target.value) : null, terceroTipo: null, terceroId: null, tercero: null })}
+        >
+          <option value="">Elegí la cuenta…</option>
+          {imputables.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.codigo} · {c.nombre}
+            </option>
+          ))}
+        </select>
+        {filtro.tercero && (
+          <button type="button" className={cn(CONTROL_FILTRO, 'hover:bg-hover')} onClick={() => onFiltro({ ...filtro, terceroTipo: null, terceroId: null, tercero: null })}>
+            Solo {filtro.tercero} ✕
+          </button>
+        )}
+        {data && data.renglones.length > 0 && (
+          <button
+            type="button"
+            className={BOTON_SECUNDARIO}
+            onClick={() =>
+              bajar(
+                `mayor-${data.cuenta.codigo}-${desde}-${hasta}.csv`,
+                aCsv([
+                  ['Fecha', 'Asiento', 'Glosa', 'Detalle', 'Tercero', 'Camión', 'Debe', 'Haber', 'Saldo'],
+                  ...data.renglones.map((r) => [r.fecha, r.asiento, r.glosa, r.detalle, r.tercero, r.camion, r.debe, r.haber, signo * r.saldo]),
+                ]),
+              )
+            }
+          >
+            <Download className="size-4" /> Bajar para Excel
+          </button>
+        )}
+      </div>
+      {!filtro.cuenta ? (
+        <Vacio icono={<BookOpen className="size-6" />} texto="Elegí una cuenta para ver su libro mayor." />
+      ) : isLoading ? (
+        <Cargando texto="Armando el mayor…" />
+      ) : isError || !data ? (
+        <ErrorLectura texto="No se pudo leer el libro mayor." onReintentar={() => void refetch()} error={error} />
+      ) : (
+        <div className={cn(TARJETA, 'overflow-x-auto p-0')}>
+          <table className="w-full min-w-[900px] text-sm tabular-nums">
+            <thead className="border-b border-borde bg-fondo">
+              <tr>
+                <th className={TH}>Fecha</th>
+                <th className={TH}>Qué fue</th>
+                <th className={TH}>Cliente / proveedor / chofer</th>
+                <th className={cn(TH, 'text-right')}>Debe</th>
+                <th className={cn(TH, 'text-right')}>Haber</th>
+                <th className={cn(TH, 'text-right')}>Saldo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-borde">
+              <tr className="bg-fondo/50">
+                <td className={TD}>{fecha(desde)}</td>
+                <td className={TD} colSpan={4}>
+                  Saldo al empezar
+                </td>
+                <td className={cn(TD, 'text-right font-medium whitespace-nowrap')}>{dinero(signo * data.saldoInicial)}</td>
+              </tr>
+              {data.renglones.map((r, i) => (
+                <tr key={`${r.asiento}-${i}`}>
+                  <td className={TD}>{fecha(r.fecha)}</td>
+                  <td className={TD}>
+                    {r.ruta ? (
+                      <Link href={r.ruta} className="text-marca hover:underline">
+                        {r.glosa}
+                      </Link>
+                    ) : (
+                      r.glosa
+                    )}
+                    <span className="block text-xs text-tinta-suave">
+                      {[ETIQUETA_ORIGEN[r.origen] ?? r.origen, r.detalle, r.camion].filter(Boolean).join(' · ')}
+                    </span>
+                  </td>
+                  <td className={cn(TD, 'text-xs')}>{r.tercero ?? ''}</td>
+                  <td className={cn(TD, 'text-right whitespace-nowrap')}>{r.debe ? dinero(r.debe) : ''}</td>
+                  <td className={cn(TD, 'text-right whitespace-nowrap')}>{r.haber ? dinero(r.haber) : ''}</td>
+                  <td className={cn(TD, 'text-right font-medium whitespace-nowrap')}>{dinero(signo * r.saldo)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {data.renglones.length === 0 && <p className="p-3 text-sm text-tinta-suave">Sin movimientos en estas fechas.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Saldos abiertos de cada cliente, proveedor y chofer (auxiliares), agrupados por cuenta. */
+function Saldos({ hasta, onVer }: { hasta: string; onVer: (f: FiltroMayor) => void }) {
+  const { data, isLoading, isError, error, refetch } = useAuxiliares(hasta);
+  if (isLoading) return <Cargando texto="Sumando saldos…" />;
+  if (isError || !data) return <ErrorLectura texto="No se pudieron leer los saldos." onReintentar={() => void refetch()} error={error} />;
+  if (data.length === 0) return <Vacio icono={<Users className="size-6" />} texto={`Al ${fecha(hasta)} no hay saldos abiertos.`} />;
+  const grupos = new Map<number, SaldoTercero[]>();
+  for (const a of data) grupos.set(a.cuentaId, [...(grupos.get(a.cuentaId) ?? []), a]);
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-tinta-suave">Saldos al {fecha(hasta)}. Tocá un nombre para ver todos sus movimientos.</p>
+      {[...grupos.values()].map((filas) => {
+        const s = SENTIDO_AUXILIAR[filas[0]!.uso ?? ''];
+        const total = filas.reduce((t, f) => t + saldoNatural(f), 0);
+        return (
+          <div key={filas[0]!.cuentaId} className={cn(TARJETA, 'p-0')}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-borde px-3 py-2">
+              <h3 className="font-medium text-tinta">{s?.titulo ?? filas[0]!.cuenta}</h3>
+              <span className="text-sm font-medium tabular-nums">{dinero(total)}</span>
+            </div>
+            <table className="w-full text-sm tabular-nums">
+              <tbody className="divide-y divide-borde">
+                {filas.map((f) => (
+                  <tr key={`${f.terceroTipo}-${f.terceroId}`}>
+                    <td className={TD}>
+                      <button
+                        type="button"
+                        className="text-left text-marca hover:underline"
+                        onClick={() => onVer({ cuenta: f.cuentaId, terceroTipo: f.terceroTipo, terceroId: f.terceroId, tercero: f.tercero })}
+                      >
+                        {f.tercero}
+                      </button>
+                    </td>
+                    <td className={cn(TD, 'text-xs text-tinta-suave')}>{f.desde ? `desde ${fecha(f.desde)}` : ''}</td>
+                    <td className={cn(TD, 'text-right')}>
+                      {dinero(Math.abs(saldoNatural(f)))}
+                      <span className="block text-xs text-tinta-suave">{saldoNatural(f) >= 0 ? (s?.positivo ?? '') : 'al revés de lo normal'}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
     </div>
   );
 }
