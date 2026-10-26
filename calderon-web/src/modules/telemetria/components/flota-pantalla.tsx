@@ -32,7 +32,8 @@ export function FlotaPantalla() {
   const celulares = useCelularesEnVivo();
   const { data: vehiculos } = useVehiculosApi();
   const [elegido, setElegido] = useState<number | null>(null);
-  const sinEnlace = (vehiculos ?? []).filter((v) => v.camionId === null);
+  // Los equipos de Trackerway se enlazan en Configuración › Equipos GPS (migración 72)
+  const sinEnlace = (vehiculos ?? []).filter((v) => v.camionId === null && v.marca !== 'trackerway');
 
   return (
     <div className="space-y-5">

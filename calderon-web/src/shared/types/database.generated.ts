@@ -1550,6 +1550,11 @@ export type Database = {
       };
       fn_importar_api_camiones: { Args: { p_marca?: string; p_origen?: string }; Returns: Json };
       fn_importar_todas: { Args: { p_origen?: string }; Returns: Json };
+      // Migración 72: equipos GPS de Trackerway
+      fn_trackerway_panel: { Args: Record<string, never>; Returns: Json };
+      fn_trackerway_buscar: { Args: Record<string, never>; Returns: Json };
+      fn_trackerway_enlazar: { Args: { p_imei: string; p_camion: number | null }; Returns: undefined };
+      fn_trackerway_importar: { Args: { p_imei: string; p_importar: boolean }; Returns: undefined };
       // Migración 49: datos de los camiones, conducción y puntaje
       fn_inventario_campos: {
         Args: { p_dias?: number };

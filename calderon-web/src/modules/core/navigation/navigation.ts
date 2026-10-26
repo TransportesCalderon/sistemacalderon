@@ -185,6 +185,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/finanzas/tipos-cambio', etiqueta: 'Monedas y tipos de cambio', pantalla: 'finanzas.tipos_cambio', incluye: ['/configuracion/monedas'] },
       { href: '/configuracion/parametros', etiqueta: 'Parámetros y catálogos', pantalla: 'configuracion.catalogos', incluye: ['/configuracion/catalogos'] },
       { href: '/telemetria/datos', etiqueta: 'Datos de los camiones', pantalla: 'telemetria.calidad' },
+      { href: '/telemetria/equipos', etiqueta: 'Equipos GPS (Trackerway)', pantalla: 'telemetria.calidad' },
       { href: '/configuracion/monedas', etiqueta: 'Monedas', pantalla: 'configuracion.catalogos', oculta: true },
       { href: '/configuracion/catalogos', etiqueta: 'Catálogos', pantalla: 'configuracion.catalogos', oculta: true },
     ],

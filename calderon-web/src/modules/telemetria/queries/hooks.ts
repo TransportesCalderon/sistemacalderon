@@ -4,7 +4,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { REFRESCO } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { importarTelemetriaAhora } from '../actions/flota.actions';
+import { buscarEquiposTrackerway, enlazarEquipoTrackerway, importarEquipoTrackerway } from '../actions/trackerway.actions';
 import { conduccionRepository } from '../repositories/conduccion.repository';
+import { trackerwayRepository } from '../repositories/trackerway.repository';
 import { telemetriaQueries as q } from './keys';
 
 export const useFlotaEnVivo = () => useQuery({ ...q.enVivo(browserDb()), refetchInterval: REFRESCO.telemetriaVivo });
@@ -45,3 +47,15 @@ export const useProgramadorTelemetria = (camionId: number, desde: string, hasta:
     enabled,
     staleTime: 300_000,
   });
+
+// Migración 72: equipos GPS de Trackerway
+export const usePanelTrackerway = () =>
+  useQuery({ queryKey: ['telemetria', 'trackerway'] as const, queryFn: () => trackerwayRepository(browserDb()).panel(), staleTime: 30_000 });
+
+function useCambioTrackerway<A, R>(fn: (a: A) => Promise<R>) {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: fn, onSuccess: () => qc.invalidateQueries({ queryKey: q.todo() }) });
+}
+export const useBuscarEquiposTrackerway = () => useCambioTrackerway(buscarEquiposTrackerway);
+export const useEnlazarEquipoTrackerway = () => useCambioTrackerway(enlazarEquipoTrackerway);
+export const useImportarEquipoTrackerway = () => useCambioTrackerway(importarEquipoTrackerway);
