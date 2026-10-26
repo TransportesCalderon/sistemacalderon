@@ -11,7 +11,7 @@ import type {
   TerceroDatos,
   TransportistaDatos,
 } from '../domain/operacion.schemas';
-import { esEstadoLogistica, esPasoOperacion, type Hito, type SugerenciaCliente, type Linea, type Operacion, type Transportista } from '../domain/operacion.types';
+import { esEstadoLogistica, esPasoOperacion, type Hito, type SugerenciaCliente, type Linea, type Operacion, type TramosOperacion, type Transportista } from '../domain/operacion.types';
 
 /** Datos de la operación como los recibe la base (ops.fn_guardar_operacion / fn_alta_operaciones). */
 const datosOperacion = (d: OperacionDatos) => ({
@@ -83,6 +83,7 @@ export const operacionesRepository = (db: Db) => {
         tipoContenedor: o.tipo_contenedor,
         contenedor: o.contenedor,
         contenedorVacio: o.contenedor_vacio === true,
+        redline: o.redline ?? null,
         precinto: o.precinto,
         taraMaxDias: o.tara_max_dias,
         booking: o.booking,
@@ -139,6 +140,25 @@ export const operacionesRepository = (db: Db) => {
         }),
       ),
 
+    async tramos(servicio: number): Promise<TramosOperacion> {
+      const { data, error } = await ops().rpc('fn_tramos_de_operacion', { p_servicio: servicio });
+      if (error) throw new RepoError(error);
+      const j = (data ?? {}) as Record<string, unknown>;
+      const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+      return {
+        lineaOperacion: typeof j.linea_operacion === 'string' ? j.linea_operacion : null,
+        kmOperacion: num(j.km_operacion),
+        tramos: (Array.isArray(j.tramos) ? (j.tramos as Record<string, unknown>[]) : []).map((t) => ({
+          viajeId: Number(t.viaje_id),
+          viaje: String(t.viaje ?? ''),
+          estadoViaje: String(t.estado_viaje ?? ''),
+          chofer: typeof t.chofer === 'string' ? t.chofer : null,
+          camion: typeof t.camion === 'string' ? t.camion : null,
+          linea: typeof t.linea === 'string' ? t.linea : null,
+          km: num(t.km),
+        })),
+      };
+    },
     async sugerencia(cliente: number): Promise<SugerenciaCliente | null> {
       const { data, error } = await ops().rpc('fn_sugerencia_cliente', { p_cliente: cliente });
       if (error) throw new RepoError(error);

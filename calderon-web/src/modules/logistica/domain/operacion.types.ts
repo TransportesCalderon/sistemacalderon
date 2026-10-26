@@ -160,6 +160,8 @@ export interface Operacion {
   contenedor: string | null;
   /** Migración 76: lleva un contenedor vacío en lugar de mercadería. */
   contenedorVacio: boolean;
+  /** Migración 79: traída de Redline (número, estado y equipo como figuraban allá). */
+  redline: { numero: number; estado: string; camion: string | null; semi: string | null; chofer: string | null } | null;
   precinto: string | null;
   taraMaxDias: number | null;
   booking: string | null;
@@ -221,6 +223,13 @@ export interface Linea {
   /** Migración 75: consumo objetivo de la línea cargada (L/100 km). */
   consumoObjetivo: number | null;
   versionFila: number;
+}
+
+/** Migración 81: qué tramo de la operación hizo cada chofer (viajes de chofer). */
+export interface TramosOperacion {
+  lineaOperacion: string | null;
+  kmOperacion: number | null;
+  tramos: { viajeId: number; viaje: string; estadoViaje: string; chofer: string | null; camion: string | null; linea: string | null; km: number | null }[];
 }
 
 export interface Transportista {

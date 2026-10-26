@@ -43,6 +43,7 @@ import {
   useOpcionesViaje,
   useQuitarEquipo,
   useSugerenciaCliente,
+  useTramosOperacion,
   useTransportistas,
   useViajesEnVivo,
 } from '../queries/hooks';
@@ -87,7 +88,7 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
     return (data ?? []).filter(
       (o) =>
         !t ||
-        [String(o.numero), o.cliente, o.linea, o.contenedor, o.chofer, o.tractor, o.semi, o.booking, o.crt, o.mic, o.transportista].some(
+        [String(o.numero), o.redline ? String(o.redline.numero) : null, o.cliente, o.linea, o.contenedor, o.chofer, o.tractor, o.semi, o.booking, o.crt, o.mic, o.transportista].some(
           (c) => normalizar(c).includes(t),
         ),
     );
@@ -269,6 +270,7 @@ function FilaOperacion({
             {o.numero}
           </span>
           <span className="block pl-[18px] text-[11px] text-tinta-suave">{etiquetaTipo(o.tipo)}</span>
+          {o.redline && <span className="block pl-[18px] text-[11px] text-tinta-suave">Redline {o.redline.numero}</span>}
         </td>
         <td className={cn(TD, 'font-medium text-tinta')}>
           {o.cliente}
@@ -390,6 +392,15 @@ function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: str
             {o.linea && ` · ${o.linea}`}
             {o.motivoCancelacion && ` · Cancelada: ${o.motivoCancelacion}`}
           </p>
+          {o.redline && (
+            <p className="text-xs text-tinta-suave">
+              Traída de Redline: N° {o.redline.numero} · {o.redline.estado}
+              {[o.redline.camion && `camión ${o.redline.camion}`, o.redline.semi && `semi ${o.redline.semi}`, o.redline.chofer && `chofer ${o.redline.chofer}`]
+                .filter(Boolean)
+                .map((t) => ` · ${t}`)
+                .join('')}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {acciones.map((a) => (
@@ -414,6 +425,8 @@ function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: str
           )}
         </div>
       </div>
+
+      <TramosDeLaOperacion servicioId={o.servicioId} />
 
       {puede && o.posibles.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
@@ -605,7 +618,8 @@ function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Operacion; d
   const { data: lineas } = useLineas();
   const { error, enviar, campo } = useEnvio();
   const editar = !!base && !duplicar;
-  const soloDocs = editar && !esAbierta(base);
+  // Migración 79: una entregada traída de Redline se puede completar (línea, lugares, cliente)
+  const soloDocs = editar && !esAbierta(base) && !(base.redline && base.estado === 'entregado');
   const [f, setF] = useState<Form>(() => {
     const v = vacioForm(zona);
     if (!base) return v;
@@ -990,5 +1004,36 @@ function PanelCancelar({ o, onCerrar }: { o: Operacion; onCerrar: () => void }) 
         <input maxLength={500} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
       </Campo>
     </Panel>
+  );
+}
+
+/** Migración 81: qué tramo de la operación hizo cada chofer, en qué viaje. */
+function TramosDeLaOperacion({ servicioId }: { servicioId: number }) {
+  const { data } = useTramosOperacion(servicioId);
+  if (!data || data.tramos.length === 0) return null;
+  const km = data.tramos.reduce((t, x) => t + (x.km ?? 0), 0);
+  return (
+    <div className="text-sm">
+      <p className="text-xs font-medium text-tinta-suave uppercase">Viajes de chofer</p>
+      <ul className="mt-1 space-y-0.5">
+        {data.tramos.map((t) => (
+          <li key={`${t.viajeId}-${t.linea}`}>
+            <Link href={`/operacion/viajes-chofer/${t.viajeId}`} className="font-mono text-marca hover:underline">
+              {t.viaje}
+            </Link>{' '}
+            · {t.linea ?? 'sin tramo'}
+            {t.km !== null && ` · ${t.km.toLocaleString('es-AR')} km`}
+            {t.chofer && ` · ${t.chofer}`}
+            {t.camion && <span className="font-mono text-tinta-suave"> · {t.camion}</span>}
+          </li>
+        ))}
+      </ul>
+      {data.tramos.length > 1 && (
+        <p className="mt-1 text-xs text-tinta-suave">
+          {data.tramos.length} tramos · {km.toLocaleString('es-AR')} km
+          {data.kmOperacion !== null && ` (la operación ${data.lineaOperacion ?? ''} tiene ${data.kmOperacion.toLocaleString('es-AR')} km)`}
+        </p>
+      )}
+    </div>
   );
 }

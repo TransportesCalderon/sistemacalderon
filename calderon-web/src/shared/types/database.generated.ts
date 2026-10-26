@@ -783,6 +783,8 @@ type OperacionRow = {
   contenedor: string | null;
   /** Migración 76. */
   contenedor_vacio?: boolean | null;
+  /** Migración 79. */
+  redline?: { numero: number; estado: string; camion: string | null; semi: string | null; chofer: string | null } | null;
   precinto: string | null;
   tara_max_dias: number | null;
   booking: string | null;
@@ -1167,6 +1169,8 @@ export type Database = {
         Returns: undefined;
       };
       fn_sugerencia_cliente: { Args: { p_cliente: number }; Returns: Json };
+      /** Migración 81. */
+      fn_tramos_de_operacion: { Args: { p_servicio: number }; Returns: Json };
       fn_guardar_operacion: { Args: { p_servicio: number | null; p_version: number | null; p_datos: Json }; Returns: number };
       fn_confirmar_operacion: { Args: { p_servicio: number }; Returns: undefined };
       fn_asignar_equipo: {

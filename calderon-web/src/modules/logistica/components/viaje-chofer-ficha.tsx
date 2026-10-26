@@ -393,7 +393,7 @@ function FilaItem({ i, puede, editando, onEditar }: { i: ItemViaje; puede: boole
           {i.relevo.length > 0 && (
             <span className="mt-1 flex flex-wrap gap-1">
               {i.relevo.map((r) => (
-                <Link key={r.viajeId} href={`/operacion/viajes-chofer/${r.viajeId}`} title="Esta operación la hizo también otro chofer: revisá canon y km">
+                <Link key={r.viajeId} href={`/operacion/viajes-chofer/${r.viajeId}`} title="Esta operación está también en otro viaje: revisá que cada chofer tenga su tramo">
                   <Chip tono="alerta">
                     Relevo con {r.numero} · {r.chofer}
                   </Chip>

@@ -54,6 +54,7 @@ export const useOperaciones = (desde: FechaDia | null, hasta: FechaDia | null) =
 export const useSugerenciaCliente = (cliente: number | null) =>
   useQuery({ ...q.sugerencia(browserDb(), cliente ?? 0), enabled: !!cliente });
 export const useLineas = () => useQuery(q.lineas(browserDb()));
+export const useTramosOperacion = (servicio: number) => useQuery(q.tramos(browserDb(), servicio));
 export const useTransportistas = () => useQuery(q.transportistas(browserDb()));
 
 /** El mismo aviso de tiempo real de la Pizarra («cambió la pizarra») refresca también la lista de Logística. */

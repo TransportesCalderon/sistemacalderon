@@ -103,23 +103,28 @@ export function SelectorItems({
                     </span>
                   </span>
                 </label>
-                {!o.linea && marcada(o.servicioId) && (
-                  <div className="flex items-center gap-2 px-3 pb-2 pl-9 text-sm">
-                    <span className="text-alerta">Esta operación no tiene línea:</span>
+                {marcada(o.servicioId) && (
+                  <div className="flex flex-wrap items-center gap-2 px-3 pb-2 pl-9 text-sm">
+                    <span className={o.linea ? 'text-tinta-suave' : 'text-alerta'}>
+                      {o.linea ? 'Tramo que hizo este chofer:' : 'Esta operación no tiene línea. Tramo que hizo:'}
+                    </span>
                     <select
-                      aria-label={`Línea de la operación ${o.numero}`}
+                      aria-label={`Tramo de la operación ${o.numero}`}
                       value={elegidos.find((e) => e.servicioId === o.servicioId)?.lineaId ?? ''}
                       onChange={(e) =>
                         onCambiar(elegidos.map((x) => (x.servicioId === o.servicioId ? { ...x, lineaId: e.target.value ? Number(e.target.value) : null } : x)))
                       }
                       className="h-8 rounded-md border border-borde bg-panel px-2 text-sm"
                     >
-                      <option value="">Elegí la línea…</option>
-                      {lineas?.filter((l) => l.activa).map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.codigo}
-                        </option>
-                      ))}
+                      <option value="">{o.linea ? `Toda la operación (${o.linea})` : 'Elegí el tramo…'}</option>
+                      {lineas
+                        ?.filter((l) => l.activa && l.codigo !== o.linea)
+                        .map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.codigo}
+                            {l.distanciaKm !== null ? ` · ${l.distanciaKm.toLocaleString('es-AR')} km` : ''}
+                          </option>
+                        ))}
                     </select>
                   </div>
                 )}
