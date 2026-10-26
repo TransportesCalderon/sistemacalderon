@@ -58,7 +58,8 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: accion,
-    onSuccess: (r) => (r.ok ? qc.invalidateQueries({ queryKey: CLAVE }) : undefined),
+    // Migración 73: emitir o cobrar cambia también Finanzas
+    onSuccess: (r) => (r.ok ? Promise.all([qc.invalidateQueries({ queryKey: CLAVE }), qc.invalidateQueries({ queryKey: ['finanzas'] })]) : undefined),
   });
 }
 export const useGuardarEmpresa = () => useEscritura(guardarEmpresa);

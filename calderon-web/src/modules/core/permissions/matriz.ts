@@ -14,6 +14,8 @@ import type { RolApp } from './roles';
  *
  * Orden de columnas: Ger, Ope, BMz, Cho, AdC, Ana, RH, Fin, TI, Aud, Ven.
  *
+ * 23/10/2026 (migración 73): pantallas finanzas.resumen, gastos, cobros_pagos, bancos, informes y plan_cuentas.
+ *
  * 22/10/2026 (migración 67): columna Ven (rol «comercial», Ventas) y las pantallas ventas.*.
  *
  * 22/10/2026 (migración 60): el chofer solo tiene sus dos pantallas propias (chofer.*).
@@ -104,6 +106,13 @@ export const PANTALLAS = {
   'finanzas.tipos_cambio':   { etiqueta: 'Tipos de cambio', fila: ['L', '—', '—', '—', 'L', '—', 'L', 'E', 'E A', 'L', '—'] },
   'finanzas.rentabilidad':   { etiqueta: 'Asignación de costos y rentabilidad', fila: ['L', 'L', '—', '—', '—', '—', '—', 'L', 'E A', 'L', '—'] },
   'finanzas.cierre':         { etiqueta: 'Cierre de período', fila: ['L', '—', '—', '—', '—', '—', '—', 'A', 'E A', 'L', '—'] },
+  // Migración 73: finanzas y contabilidad (Chile, pesos). Cargan Finanzas y TI; ven Gerencia y Auditoría.
+  'finanzas.resumen':        { etiqueta: 'Resumen financiero (tablero)', fila: ['L', '—', '—', '—', '—', '—', '—', 'E A', 'E A', 'L', '—'] },
+  'finanzas.gastos':         { etiqueta: 'Gastos y gastos fijos', fila: ['L', '—', '—', '—', '—', '—', '—', 'E A', 'E A', 'L', '—'] },
+  'finanzas.cobros_pagos':   { etiqueta: 'Cobros y pagos', fila: ['L', '—', '—', '—', '—', '—', '—', 'E A', 'E A', 'L', '—'] },
+  'finanzas.bancos':         { etiqueta: 'Bancos, cajas y cartola', fila: ['L', '—', '—', '—', '—', '—', '—', 'E A', 'E A', 'L', '—'] },
+  'finanzas.informes':       { etiqueta: 'Estado de resultados, flujo de caja y libro diario', fila: ['L', '—', '—', '—', '—', '—', '—', 'E A', 'E A', 'L', '—'] },
+  'finanzas.plan_cuentas':   { etiqueta: 'Plan de cuentas', fila: ['L', '—', '—', '—', '—', '—', '—', 'E A', 'E A', 'L', '—'] },
   'configuracion.catalogos': { etiqueta: 'Monedas, países, catálogos, parámetros', fila: ['L', 'L', '—', '—', 'L', 'L', 'L', 'L', 'E A', 'L', '—'] },
   // Agregada con la migración 34: alta, roles y desactivación de usuarios. Solo TI (la base lo vuelve a exigir).
   'configuracion.usuarios':  { etiqueta: 'Usuarios y roles', fila: ['—', '—', '—', '—', '—', '—', '—', '—', 'E A', '—', '—'] },

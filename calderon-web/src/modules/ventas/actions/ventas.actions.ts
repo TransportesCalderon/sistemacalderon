@@ -98,7 +98,7 @@ export const emitirFactura = createAction({
 export const cobrarFactura = createAction({
   permiso: 'ventas.facturacion:transicionar',
   schema: cobrarSchema,
-  handler: (d, { db }) => repo(db).cobrarFactura(d.id, d.fecha),
+  handler: (d, { db }) => repo(db).cobrarFactura(d.id, d.fecha, d.cuentaId ?? null),
   invalida: rutas,
 });
 export const anularFactura = createAction({

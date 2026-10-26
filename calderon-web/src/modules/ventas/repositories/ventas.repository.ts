@@ -255,8 +255,9 @@ export const ventasRepository = (db: Db) => {
     async emitirFactura(id: number, version: number, numeroFiscal: string, fecha: string) {
       await leer(ven().rpc('fn_ven_emitir_factura', { p_id: id, p_version: version, p_numero_fiscal: numeroFiscal, p_fecha: fecha }));
     },
-    async cobrarFactura(id: number, fecha: string) {
-      await leer(ven().rpc('fn_ven_cobrar_factura', { p_id: id, p_fecha: fecha }));
+    async cobrarFactura(id: number, fecha: string, cuentaId: number | null = null) {
+      // Migración 73: el cobro entra a un banco o caja de Finanzas (y se contabiliza)
+      await leer(ven().rpc('fn_ven_cobrar_factura', { p_id: id, p_fecha: fecha, p_cuenta: cuentaId }));
     },
     async anularFactura(id: number, motivo: string) {
       await leer(ven().rpc('fn_ven_anular_factura', { p_id: id, p_motivo: motivo }));

@@ -12,6 +12,7 @@ import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { ETIQUETA_ESTADO_FAC, ETIQUETA_UNIDAD, usd, type EstadoFactura, type PorFacturar } from '../domain/ventas.types';
+import { useCuentasDinero } from '@/modules/finanzas/queries/hooks';
 import { useAnularFactura, useCobrarFactura, useCrearFactura, useEmitirFactura, useFactura, useFacturas, useGuardarFactura, usePorFacturar } from '../queries/hooks';
 import { ChipFactura } from './comun';
 
@@ -260,6 +261,10 @@ function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => void }) {
   const [obs, setObs] = useState('');
   const [emision, setEmision] = useState({ numero: '', fecha: hoyEnZona(zonaHoraria) as string });
   const [cobro, setCobro] = useState(hoyEnZona(zonaHoraria) as string);
+  // Migración 73: en qué banco o caja entró (solo las de la moneda de la factura)
+  const { data: cuentasDinero } = useCuentasDinero(puedeEstado);
+  const cuentasCobro = (cuentasDinero ?? []).filter((c) => c.activa && c.moneda === f?.moneda);
+  const [cuentaCobro, setCuentaCobro] = useState<number | null>(null);
   useEffect(() => {
     if (!f) return;
     setFilas(f.renglones.map((r) => ({ clave: `r${++k}`, servicioId: r.servicioId, descripcion: r.descripcion, cantidad: String(r.cantidad), precio: String(r.precio) })));
@@ -401,11 +406,23 @@ function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => void }) {
             <Campo label="Fecha del cobro">
               <input type="date" value={cobro} onChange={(e) => setCobro(e.target.value)} />
             </Campo>
+            {cuentasCobro.length > 0 && (
+              <Campo label="Entró a">
+                <select value={cuentaCobro ?? ''} onChange={(e) => setCuentaCobro(e.target.value ? Number(e.target.value) : null)}>
+                  <option value="">Elegí el banco o la caja…</option>
+                  {cuentasCobro.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+            )}
             <button
               type="button"
               className={BOTON_PRIMARIO}
               disabled={cobrar.isPending}
-              onClick={() => void envio.enviar(cobrar.mutateAsync({ id: f.id, fecha: cobro }), () => undefined)}
+              onClick={() => void envio.enviar(cobrar.mutateAsync({ id: f.id, fecha: cobro, cuentaId: cuentaCobro }), () => undefined)}
             >
               Registrar el cobro
             </button>

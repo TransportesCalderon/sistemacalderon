@@ -1093,7 +1093,7 @@ export type Database = {
       fn_ven_crear_factura: { Args: { p_cliente: number; p_servicios: number[] }; Returns: number };
       fn_ven_guardar_factura: { Args: { p_id: number; p_version: number; p_renglones: Json; p_observacion?: string | null }; Returns: undefined };
       fn_ven_emitir_factura: { Args: { p_id: number; p_version: number; p_numero_fiscal: string; p_fecha: string }; Returns: undefined };
-      fn_ven_cobrar_factura: { Args: { p_id: number; p_fecha: string }; Returns: undefined };
+      fn_ven_cobrar_factura: { Args: { p_id: number; p_fecha: string; p_cuenta?: number | null }; Returns: undefined };
       fn_ven_anular_factura: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_pizarra: { Args: Record<string, never>; Returns: PizarraRow[] };
       // Migración 46: viajes de chofer
@@ -1335,6 +1335,35 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       fn_actualizar_cotizaciones: { Args: { p_dias?: number; p_origen?: string; p_bcra?: Json }; Returns: Json };
+      // Migración 73: finanzas y contabilidad
+      fn_plan_cuentas: { Args: Record<string, never>; Returns: Json };
+      fn_cuentas_dinero: { Args: Record<string, never>; Returns: Json };
+      fn_gastos: { Args: { p_filtro?: Json }; Returns: Json };
+      fn_gasto: { Args: { p_id: number }; Returns: Json };
+      fn_gastos_fijos: { Args: Record<string, never>; Returns: Json };
+      fn_movimientos: { Args: { p_cuenta: number | null; p_desde: string | null; p_hasta: string | null }; Returns: Json };
+      fn_por_cobrar: { Args: Record<string, never>; Returns: Json };
+      fn_por_pagar: { Args: Record<string, never>; Returns: Json };
+      fn_cartola: { Args: { p_cuenta: number; p_solo_pendientes?: boolean }; Returns: Json };
+      fn_estado_resultados: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
+      fn_flujo_caja: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
+      fn_libro_diario: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
+      fn_tablero_finanzas: { Args: Record<string, never>; Returns: Json };
+      fn_guardar_cuenta_contable: { Args: { p_id: number | null; p_datos: Json }; Returns: number };
+      fn_guardar_proveedor_rapido: { Args: { p_razon_social: string; p_rut: string | null }; Returns: number };
+      fn_guardar_cuenta_dinero: { Args: { p_id: number | null; p_datos: Json }; Returns: number };
+      fn_guardar_gasto: { Args: { p_id: number | null; p_version: number | null; p_datos: Json }; Returns: number };
+      fn_anular_gasto: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      fn_guardar_gasto_fijo: { Args: { p_id: number | null; p_datos: Json }; Returns: number };
+      fn_generar_gastos_fijos: { Args: { p_periodo: string }; Returns: number };
+      fn_registrar_movimiento: { Args: { p_datos: Json }; Returns: number };
+      fn_anular_movimiento: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      fn_importar_cartola: { Args: { p_cuenta: number; p_filas: Json }; Returns: Json };
+      fn_conciliar: { Args: { p_linea: number; p_movimiento: number }; Returns: undefined };
+      fn_desconciliar: { Args: { p_linea: number }; Returns: undefined };
+      fn_ignorar_linea: { Args: { p_linea: number; p_ignorar: boolean }; Returns: undefined };
+      fn_crear_desde_linea: { Args: { p_linea: number; p_datos: Json }; Returns: number };
+      fn_recontabilizar_todo: { Args: Record<string, never>; Returns: Json };
       // Fondo fijo del chofer, gastos y resumen para liquidar (61)
       fn_mi_fondo: { Args: Record<string, never>; Returns: Json };
       fn_subir_gasto: {

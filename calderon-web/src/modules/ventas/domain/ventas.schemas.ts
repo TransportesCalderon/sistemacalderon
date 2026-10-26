@@ -158,4 +158,4 @@ export const guardarFacturaSchema = z.object({
 });
 export type GuardarFacturaEntrada = z.infer<typeof guardarFacturaSchema>;
 export const emitirSchema = z.object({ id, version: z.number().int().positive(), numeroFiscal: z.string().trim().max(40), fecha });
-export const cobrarSchema = z.object({ id, fecha });
+export const cobrarSchema = z.object({ id, fecha, cuentaId: id.nullable().optional() });

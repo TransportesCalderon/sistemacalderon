@@ -65,3 +65,9 @@ export const PESTANAS_RRHH = [
   { href: '/rrhh/tarifas', etiqueta: 'Tarifas y conceptos' },
   { href: '/rrhh/datos-legales', etiqueta: 'Datos legales' },
 ] as const;
+
+/** Migración 73: gastos y su plantilla mensual. */
+export const PESTANAS_GASTOS = [
+  { href: '/finanzas/gastos', etiqueta: 'Gastos' },
+  { href: '/finanzas/gastos-fijos', etiqueta: 'Gastos fijos' },
+] as const;

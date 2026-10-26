@@ -19,6 +19,7 @@ export type IconoGrupo =
   | 'combustible'
   | 'flota'
   | 'rrhh'
+  | 'finanzas'
   | 'datos'
   | 'configuracion';
 
@@ -163,6 +164,20 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/rrhh/liquidacion', etiqueta: 'Resumen para liquidar', pantalla: 'liquidacion.liquidaciones', oculta: true },
       { href: '/rrhh/tarifas', etiqueta: 'Tarifas y conceptos', pantalla: 'liquidacion.reglas', oculta: true },
       { href: '/rrhh/datos-legales', etiqueta: 'Datos legales', pantalla: 'liquidacion.reglas', oculta: true },
+    ],
+  },
+  {
+    // Migración 73: finanzas y contabilidad (los asientos los arma la base)
+    id: 'finanzas',
+    etiqueta: 'Finanzas',
+    entradas: [
+      { href: '/finanzas', etiqueta: 'Resumen', pantalla: 'finanzas.resumen' },
+      { href: '/finanzas/gastos', etiqueta: 'Gastos', pantalla: 'finanzas.gastos', incluye: ['/finanzas/gastos-fijos'] },
+      { href: '/finanzas/cobros-pagos', etiqueta: 'Cobros y pagos', pantalla: 'finanzas.cobros_pagos' },
+      { href: '/finanzas/bancos', etiqueta: 'Bancos y cajas', pantalla: 'finanzas.bancos' },
+      { href: '/finanzas/informes', etiqueta: 'Informes', pantalla: 'finanzas.informes' },
+      { href: '/finanzas/plan-cuentas', etiqueta: 'Plan de cuentas', pantalla: 'finanzas.plan_cuentas' },
+      { href: '/finanzas/gastos-fijos', etiqueta: 'Gastos fijos', pantalla: 'finanzas.gastos', oculta: true },
     ],
   },
   {
