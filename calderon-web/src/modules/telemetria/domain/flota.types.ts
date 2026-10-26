@@ -21,6 +21,48 @@ export interface CamionEnVivo {
   motorEncendido: boolean | null;
 }
 
+/** Migración 84: lo que el mapa agrega de cada camión (estela, chofer, viaje y operación). */
+export interface DetalleMapa {
+  camionId: number;
+  /** Posiciones de la más vieja a la más nueva: latitud, longitud, velocidad, hora. */
+  estela: { lat: number; lng: number; vel: number | null; ts: string }[];
+  chofer: string | null;
+  choferFuente: 'tarjeta' | 'asignado';
+  viaje: { id: number; numero: string } | null;
+  operacion: { numero: number; cliente: string; linea: string | null; estado: string; contenedor: string | null; producto: string | null } | null;
+}
+
+export function parsearMapa(v: unknown): DetalleMapa[] {
+  const o = (x: unknown) => (x && typeof x === 'object' && !Array.isArray(x) ? (x as Record<string, unknown>) : null);
+  return (Array.isArray(v) ? v : []).flatMap((x) => {
+    const d = o(x);
+    if (!d) return [];
+    const viaje = o(d.viaje);
+    const op = o(d.operacion);
+    return [
+      {
+        camionId: Number(d.camion_id),
+        estela: (Array.isArray(d.estela) ? (d.estela as unknown[][]) : [])
+          .filter((p) => Array.isArray(p) && p[0] != null && p[1] != null)
+          .map((p) => ({ lat: Number(p[0]), lng: Number(p[1]), vel: p[2] == null ? null : Number(p[2]), ts: String(p[3]) })),
+        chofer: typeof d.chofer === 'string' ? d.chofer : null,
+        choferFuente: d.chofer_fuente === 'tarjeta' ? 'tarjeta' : 'asignado',
+        viaje: viaje ? { id: Number(viaje.id), numero: String(viaje.numero) } : null,
+        operacion: op
+          ? {
+              numero: Number(op.numero),
+              cliente: String(op.cliente ?? ''),
+              linea: typeof op.linea === 'string' ? op.linea : null,
+              estado: String(op.estado ?? ''),
+              contenedor: typeof op.contenedor === 'string' ? op.contenedor : null,
+              producto: typeof op.producto === 'string' ? op.producto : null,
+            }
+          : null,
+      },
+    ];
+  });
+}
+
 export interface VehiculoApi {
   marca: string;
   vin: string;

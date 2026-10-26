@@ -1,6 +1,6 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { FechaISO } from '@/shared/types/dominio';
-import type { CamionEnVivo, CorridaApi, VehiculoApi } from '../domain/flota.types';
+import { parsearMapa, type CamionEnVivo, type CorridaApi, type DetalleMapa, type VehiculoApi } from '../domain/flota.types';
 
 const n = (v: number | string | null | undefined) => (v === null || v === undefined ? null : Number(v));
 
@@ -25,6 +25,13 @@ export const flotaRepository = (db: Db) => ({
       nivelL: n(f.nivel_combustible_l),
       motorEncendido: f.motor_encendido,
     }));
+  },
+
+  /** Migración 84: estela, chofer, viaje y operación de cada camión. */
+  async mapa(minutos: number): Promise<DetalleMapa[]> {
+    const { data, error } = await db.schema('tel').rpc('fn_mapa_flota', { p_minutos: minutos });
+    if (error) throw new RepoError(error);
+    return parsearMapa(data);
   },
 
   async vehiculosApi(): Promise<VehiculoApi[]> {

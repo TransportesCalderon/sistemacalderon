@@ -13,7 +13,7 @@ import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { enlaceAlta, haceTexto, minutosDesde, senalDe, type Senal } from '../domain/flota.types';
-import { useCorridasApi, useFlotaEnVivo, useImportarAhora, useVehiculosApi } from '../queries/hooks';
+import { useCorridasApi, useFlotaEnVivo, useImportarAhora, useMapaFlota, useVehiculosApi } from '../queries/hooks';
 import { MapaFlota } from './mapa-flota';
 import { useCelularesEnVivo } from '@/modules/chofer/queries/hooks';
 
@@ -23,7 +23,7 @@ const SENAL: Record<Senal, { texto: string; tono: 'exito' | 'alerta' | 'neutro' 
   sin_senal: { texto: 'Sin señal', tono: 'neutro' },
 };
 
-/** Telemetría > Mapa de flota: última posición, velocidad y combustible de cada camión (cada 10 minutos). */
+/** Telemetría > Mapa de flota: última posición, velocidad y combustible de cada camión con la estela de por dónde viene y el chofer. */
 export function FlotaPantalla() {
   const { zonaHoraria } = useSesion();
   const esTi = useCan('configuracion.catalogos:editar');
@@ -32,6 +32,10 @@ export function FlotaPantalla() {
   const celulares = useCelularesEnVivo();
   const { data: vehiculos } = useVehiculosApi();
   const [elegido, setElegido] = useState<number | null>(null);
+  const [minutos, setMinutos] = useState(120);
+  const mapa = useMapaFlota(minutos);
+  const detalles = mapa.data ?? [];
+  const choferDe = new Map(detalles.map((d) => [d.camionId, d.chofer]));
   // Los equipos de Trackerway se enlazan en Configuración › Equipos GPS (migración 72)
   const sinEnlace = (vehiculos ?? []).filter((v) => v.camionId === null && v.marca !== 'trackerway');
 
@@ -78,20 +82,33 @@ export function FlotaPantalla() {
       ) : data.length === 0 && (celulares.data?.length ?? 0) === 0 ? (
         <Vacio
           icono={<RadioTower className="size-6" />}
-          texto="Todavía no llegaron datos de los camiones. La tarea programada los trae cada 10 minutos."
+          texto="Todavía no llegaron datos de los camiones. La tarea programada los trae cada 1 o 2 minutos."
         />
       ) : (
         <>
-          <MapaFlota camiones={data} celulares={celulares.data ?? []} seleccionado={elegido} onSeleccionar={setElegido} />
+          <MapaFlota
+            camiones={data}
+            celulares={celulares.data ?? []}
+            detalles={detalles}
+            minutosEstela={minutos}
+            onMinutosEstela={setMinutos}
+            zonaHoraria={zonaHoraria}
+            seleccionado={elegido}
+            onSeleccionar={setElegido}
+          />
+          <p className="text-xs text-tinta-suave">
+            La línea verde muestra por dónde vino cada camión. Tocá un camión para ver el chofer, la operación y el viaje.
+          </p>
           {(celulares.data?.length ?? 0) > 0 && (
             <p className="text-xs text-tinta-suave">Los cuadrados violetas son el celular de los choferes con carga (comparten la ubicación con la aplicación abierta).</p>
           )}
           <Seccion titulo={`Camiones (${data.length})`}>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] text-sm">
+              <table className="w-full min-w-[980px] text-sm">
                 <thead className="border-y border-borde bg-fondo">
                   <tr>
                     <th className={TH}>Camión</th>
+                    <th className={TH}>Chofer</th>
                     <th className={TH}>Señal</th>
                     <th className={TH}>Última lectura</th>
                     <th className={cn(TH, 'text-right')}>Velocidad</th>
@@ -114,6 +131,7 @@ export function FlotaPantalla() {
                           <span className="font-mono font-medium text-tinta">{c.patente}</span>
                           <span className="block text-xs text-tinta-suave">{c.codigoInterno}</span>
                         </td>
+                        <td className={TD}>{choferDe.get(c.camionId) ?? '—'}</td>
                         <td className={TD}>
                           <Chip tono={s.tono}>{s.texto}</Chip>
                         </td>

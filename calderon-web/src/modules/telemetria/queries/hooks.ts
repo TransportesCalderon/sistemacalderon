@@ -10,6 +10,8 @@ import { trackerwayRepository } from '../repositories/trackerway.repository';
 import { telemetriaQueries as q } from './keys';
 
 export const useFlotaEnVivo = () => useQuery({ ...q.enVivo(browserDb()), staleTime: REFRESCO.mapa, refetchInterval: REFRESCO.mapa });
+/** Migración 84: estela y ficha de cada camión (cada 30 segundos). */
+export const useMapaFlota = (minutos: number) => useQuery({ ...q.mapa(browserDb(), minutos), refetchInterval: REFRESCO.telemetriaVivo });
 export const useVehiculosApi = () => useQuery(q.vehiculosApi(browserDb()));
 export const useCorridasApi = (enabled: boolean) =>
   useQuery({ ...q.corridas(browserDb()), enabled, refetchInterval: REFRESCO.telemetriaVivo });

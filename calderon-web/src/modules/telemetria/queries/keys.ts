@@ -12,6 +12,12 @@ export const telemetriaQueries = {
       queryFn: () => flotaRepository(db).enVivo(),
       staleTime: FRESCURA.telemetriaVivo,
     }),
+  mapa: (db: Db, minutos: number) =>
+    queryOptions({
+      queryKey: ['telemetria', 'mapa', minutos] as const,
+      queryFn: () => flotaRepository(db).mapa(minutos),
+      staleTime: FRESCURA.telemetriaVivo,
+    }),
   vehiculosApi: (db: Db) =>
     queryOptions({
       queryKey: ['telemetria', 'vehiculos-api'] as const,
