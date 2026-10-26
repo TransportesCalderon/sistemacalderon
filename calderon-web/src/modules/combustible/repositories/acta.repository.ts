@@ -18,6 +18,9 @@ export interface FuenteActa {
 export async function datosActa(db: Db, id: CierreViajeId): Promise<FuenteActa | null> {
   const cierre = await cierreRepository(db).obtener(id);
   if (!cierre) return null;
+  // Migración 85: el Eco Score del viaje se pide una vez a la API y queda guardado (el acta lo lee)
+  const eco = await db.schema('fue').rpc('fn_eco_score_cierre', { p_cierre: id });
+  if (eco.error) throw new RepoError(eco.error);
   const choferId = cierre.congelado?.choferResponsableId ?? cierre.datos.choferResponsableId;
   const [camion, nombres, aprobador, acta] = await Promise.all([
     db.schema('mae').from('camion').select('codigo_interno, patente').eq('id', cierre.camionId).maybeSingle(),

@@ -1686,6 +1686,7 @@ export type Database = {
       fn_telemetria_cierre: { Args: { p_cierre: number }; Returns: Json };
       /** Migración 56: datos del acta del cierre para el chofer. */
       fn_acta_cierre: { Args: { p_cierre: number }; Returns: Json };
+      fn_eco_score_cierre: { Args: { p_cierre: number }; Returns: Json };
       fn_verificar_cierre: { Args: { p_id: number }; Returns: Json };
       fn_aprobar_cierre: { Args: { p_id: number; p_version: number }; Returns: CierreViajeRow };
       fn_anular_cierre: { Args: { p_id: number; p_version: number; p_motivo: string }; Returns: CierreViajeRow };

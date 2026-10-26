@@ -25,7 +25,7 @@ export const ETIQUETA_RESOLUCION: Record<string, string> = {
 
 export const ETIQUETA_SEVERIDAD: Record<string, string> = { alta: 'Alta', media: 'Media', baja: 'Baja' };
 
-const UNIDAD: Record<string, string> = { l: 'L', km: 'km', min: 'min', l_100km: 'L/100 km' };
+const UNIDAD: Record<string, string> = { l: 'L', km: 'km', min: 'min', l_100km: 'L/100 km', pct: '%' };
 export const etiquetaUnidad = (u: string | null) => (u ? (UNIDAD[u] ?? u) : '');
 
 export interface Alerta {
@@ -127,6 +127,14 @@ export const ETIQUETA_DATO: Record<string, string> = {
   pct: 'Porcentaje sobre lo normal',
   km_min: 'Km mínimos por día',
   dias_base: 'Días para calcular lo normal',
+  // Migración 85: programador de velocidad cada 100 km
+  odometro_desde_km: 'Desde el km (odómetro)',
+  odometro_hasta_km: 'Hasta el km (odómetro)',
+  km_medidos: 'Km medidos',
+  km_con_programador: 'Km con programador',
+  km_tramo: 'Cada cuántos km',
+  pct_alta: 'Porcentaje para «alta»',
+  cobertura_pct: 'Datos mínimos del tramo (%)',
 };
 
 /** Evidencia que se muestra (sin coordenadas ni datos internos). */

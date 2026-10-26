@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { ETIQUETA_ESTADO, ETIQUETA_RESOLUCION, etiquetaUnidad } from '@/modules/anomalias/domain/alerta.types';
+import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { conSigno, formatearNumero } from '@/shared/lib/numeros';
-import type { ActaExtra } from '../../domain/acta.types';
+import { PARTE_ECO, type ActaExtra } from '../../domain/acta.types';
 import type { CierreViaje } from '../../domain/cierre.types';
 import { BotonImprimir } from './boton-imprimir';
 
@@ -39,6 +40,10 @@ const MOVIMIENTO: Record<string, string> = {
   entrada_motivo: 'Entrada con motivo',
 };
 const ENTRADA = new Set(['recepcion_camion', 'entrada_motivo']);
+// Migración 85: el color lo decide la base (naranja: más del 5 % sobre el objetivo; rojo: más del 10 %)
+const COLOR = { normal: '', naranja: 'text-orange-600', rojo: 'text-red-600' } as const;
+const RECUADRO = { normal: 'border border-neutral-400', naranja: 'border-2 border-orange-500 bg-orange-50', rojo: 'border-2 border-red-600 bg-red-50' } as const;
+const MARCA_ECO: Record<string, string> = { volvo: 'Volvo Connect', renault: 'Renault Optifleet' };
 
 export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHoraria }: DatosActa) {
   const r = cierre.congelado;
@@ -47,12 +52,15 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
   const dif = x.diferenciaL;
   const obj = x.objetivo;
   // Lo consumido contra el objetivo (solo para comparar rendimiento; no se descuenta)
-  const vsObjetivo = obj?.debioL != null && x.consumoMotorL !== null ? x.consumoMotorL - obj.debioL : null;
+  const vsObjetivo = x.vsObjetivo?.litros ?? null;
+  const nivel = x.vsObjetivo?.nivel ?? 'normal';
+  const eco = x.ecoScore;
+  const partesEco = eco ? Object.entries(eco.componentes).filter(([k]) => PARTE_ECO[k]) : [];
   const ajustes = (x.entradasL ?? 0) > 0 || (x.salidasL ?? 0) > 0 || (x.faltanteLlegadaL ?? 0) > 0 || (x.faltanteSalidaL ?? 0) > 0;
 
   return (
     <div className="mx-auto max-w-[190mm] bg-white p-8 text-[12px] leading-snug text-black print:p-0">
-      <style>{'@page { size: A4; margin: 12mm; } @media print { body { background: white; } }'}</style>
+      <style>{'@page { size: A4; margin: 12mm; } @media print { body { background: white; } * { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }'}</style>
 
       <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
         <p className="text-sm text-neutral-600">Vista para imprimir. Para el PDF, elegí «Guardar como PDF» en la ventana de impresión.</p>
@@ -80,7 +88,12 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
       {/* Resumen en una línea, lo primero que lee el chofer */}
       <section className="mt-4 grid grid-cols-5 gap-2 break-inside-avoid">
         <Cifra etiqueta="Km recorridos" valor={x.km === null ? '—' : `${formatearNumero(x.km, 0)} km`} />
-        <Cifra etiqueta="Consumió el motor" valor={L(x.consumoMotorL, 0)} />
+        <Cifra
+          etiqueta="Consumió el motor"
+          valor={L(x.consumoMotorL, 0)}
+          nivel={nivel}
+          nota={x.vsObjetivo ? `${x.vsObjetivo.pct > 0 ? '+' : ''}${formatearNumero(x.vsObjetivo.pct, 1)} % del objetivo` : undefined}
+        />
         <Cifra etiqueta="Debió consumir (objetivo)" valor={L(obj?.debioL ?? null, 0)} />
         <Cifra etiqueta="En ralentí" valor={x.ralenti.litros === null ? '—' : `${L(x.ralenti.litros, 0)}`} />
         <Cifra etiqueta="A descontar" valor={L(x.aDescontarL, 1)} fuerte />
@@ -103,6 +116,21 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
           <span className="text-neutral-600">{fuente(x.fuenteKm)}</span>
         </Fila>
         <Fila etiqueta="Programador de velocidad">{x.programadorPct === null ? '—' : `${formatearNumero(x.programadorPct, 0)} % de los km`}</Fila>
+        <Fila etiqueta={`Eco Score${eco?.marca && MARCA_ECO[eco.marca] ? ` (${MARCA_ECO[eco.marca]})` : ''}`}>
+          {eco?.total == null ? (
+            <span className="text-neutral-600">{eco?.motivo ?? 'Sin dato'}</span>
+          ) : (
+            <>
+              <b>{formatearNumero(eco.total, 1)}</b> de 100
+              {partesEco.length > 0 && (
+                <span className="text-neutral-600">
+                  {' · '}
+                  {partesEco.map(([k, v]) => `${PARTE_ECO[k]} ${formatearNumero(v, 0)}`).join(' · ')}
+                </span>
+              )}
+            </>
+          )}
+        </Fila>
       </Bloque>
 
       <Bloque titulo="Combustible al salir">
@@ -217,12 +245,12 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
               {[
                 ...obj.tramos.map(
                   (k) =>
-                    `${k.vacio ? 'Playo' : k.contenedorVacio ? 'Contenedor vacío' : (k.linea ?? 'Línea')}${(k.vacio || k.contenedorVacio) && k.linea ? ` ${k.linea}` : ''} ${k.km === null ? '' : `${formatearNumero(k.km, 0)} km`} a ${
+                    `${k.vacio ? 'Vacío' : k.contenedorVacio ? 'Contenedor vacío' : (k.linea ?? 'Línea')}${(k.vacio || k.contenedorVacio) && k.linea ? ` ${k.linea}` : ''} ${k.km === null ? '' : `${formatearNumero(k.km, 0)} km`} a ${
                       k.objetivo === null ? 'sin objetivo' : formatearNumero(k.objetivo, 1)
                     }`,
                 ),
                 ...(obj.kmVacioSinRegistrar > 0
-                  ? [`Playo sin registrar ${formatearNumero(obj.kmVacioSinRegistrar, 0)} km a ${formatearNumero(obj.vacioL100km ?? 0, 1)}`]
+                  ? [`Vacío sin registrar ${formatearNumero(obj.kmVacioSinRegistrar, 0)} km a ${formatearNumero(obj.vacioL100km ?? 0, 1)}`]
                   : []),
               ].join(' · ')}
             </span>
@@ -230,17 +258,19 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
           </Fila>
         )}
         <Fila etiqueta="Rendimiento real">
-          {x.l100kmMotor === null ? '—' : `${formatearNumero(x.l100kmMotor, 1)} L cada 100 km`}
+          <span className={cn('font-bold', COLOR[nivel])}>{x.l100kmMotor === null ? '—' : `${formatearNumero(x.l100kmMotor, 1)} L cada 100 km`}</span>
           {obj?.l100km != null && <span className="text-neutral-600"> · objetivo {formatearNumero(obj.l100km, 1)} L cada 100 km</span>}
           {x.horasMotor !== null && <span className="text-neutral-600"> · {formatearNumero(x.horasMotor, 1)} h de motor</span>}
         </Fila>
         {vsObjetivo !== null && (
           <Fila etiqueta="Contra el objetivo">
-            {vsObjetivo > 0
-              ? `Consumió ${L(vsObjetivo)} más que el objetivo`
-              : vsObjetivo < 0
-                ? `Consumió ${L(-vsObjetivo)} menos que el objetivo`
-                : 'Consumió justo el objetivo'}
+            <span className={cn('font-bold', COLOR[nivel])}>
+              {vsObjetivo > 0
+                ? `Consumió ${L(vsObjetivo)} más que el objetivo (+${formatearNumero(x.vsObjetivo?.pct ?? 0, 1)} %)`
+                : vsObjetivo < 0
+                  ? `Consumió ${L(-vsObjetivo)} menos que el objetivo (${formatearNumero(x.vsObjetivo?.pct ?? 0, 1)} %)`
+                  : 'Consumió justo el objetivo'}
+            </span>
             <span className="text-neutral-600"> (solo para comparar; no se descuenta)</span>
           </Fila>
         )}
@@ -316,7 +346,8 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
       <footer className="mt-4 border-t border-neutral-400 pt-2 text-[10px] text-neutral-600">
         <p>
           «Consumió el motor» es lo que mide la computadora del camión. «Debió consumir» es el consumo objetivo de cada tramo (promedio
-          ponderado por km; con contenedor vacío {formatearNumero(obj?.contenedorVacioL100km ?? 28, 0)} y playo {formatearNumero(obj?.vacioL100km ?? 26, 0)} L cada 100 km) por los km del viaje. Se descuenta lo
+          ponderado por km; con contenedor vacío {formatearNumero(obj?.contenedorVacioL100km ?? 28, 0)} y vacío, sin contenedor, {formatearNumero(obj?.vacioL100km ?? 26, 0)} L cada 100 km) por los km del viaje. En
+          naranja si consumió más de un {formatearNumero(x.vsObjetivo?.naranjaPct ?? 5, 0)} % sobre el objetivo; en rojo, más de un {formatearNumero(x.vsObjetivo?.rojoPct ?? 10, 0)} %. Se descuenta lo
           cargado que el motor no consumió. Valores congelados al aprobar el cierre.
         </p>
         {cierre.huella && <p className="mt-1 font-mono break-all">Huella: {cierre.huella}</p>}
@@ -325,11 +356,12 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
   );
 }
 
-function Cifra({ etiqueta, valor, fuerte }: { etiqueta: string; valor: string; fuerte?: boolean }) {
+function Cifra({ etiqueta, valor, fuerte, nivel = 'normal', nota }: { etiqueta: string; valor: string; fuerte?: boolean; nivel?: keyof typeof COLOR; nota?: string }) {
   return (
-    <div className={fuerte ? 'border-2 border-black p-2' : 'border border-neutral-400 p-2'}>
+    <div className={cn('p-2', fuerte ? 'border-2 border-black' : RECUADRO[nivel])}>
       <p className="text-[10px] tracking-wide text-neutral-600 uppercase">{etiqueta}</p>
-      <p className="text-base font-bold tabular-nums">{valor}</p>
+      <p className={cn('text-base font-bold tabular-nums', COLOR[nivel])}>{valor}</p>
+      {nota && <p className={cn('text-[10px] tabular-nums', COLOR[nivel] || 'text-neutral-600')}>{nota}</p>}
     </div>
   );
 }
