@@ -158,6 +158,8 @@ export interface Operacion {
   pesoKg: number | null;
   tipoContenedor: string | null;
   contenedor: string | null;
+  /** Migración 76: lleva un contenedor vacío en lugar de mercadería. */
+  contenedorVacio: boolean;
   precinto: string | null;
   taraMaxDias: number | null;
   booking: string | null;

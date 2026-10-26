@@ -217,12 +217,12 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
               {[
                 ...obj.tramos.map(
                   (k) =>
-                    `${k.vacio ? 'Vacío' : (k.linea ?? 'Línea')}${k.vacio && k.linea ? ` ${k.linea}` : ''} ${k.km === null ? '' : `${formatearNumero(k.km, 0)} km`} a ${
+                    `${k.vacio ? 'Playo' : k.contenedorVacio ? 'Contenedor vacío' : (k.linea ?? 'Línea')}${(k.vacio || k.contenedorVacio) && k.linea ? ` ${k.linea}` : ''} ${k.km === null ? '' : `${formatearNumero(k.km, 0)} km`} a ${
                       k.objetivo === null ? 'sin objetivo' : formatearNumero(k.objetivo, 1)
                     }`,
                 ),
                 ...(obj.kmVacioSinRegistrar > 0
-                  ? [`Vacío sin registrar ${formatearNumero(obj.kmVacioSinRegistrar, 0)} km a ${formatearNumero(obj.vacioL100km ?? 0, 1)}`]
+                  ? [`Playo sin registrar ${formatearNumero(obj.kmVacioSinRegistrar, 0)} km a ${formatearNumero(obj.vacioL100km ?? 0, 1)}`]
                   : []),
               ].join(' · ')}
             </span>
@@ -316,7 +316,7 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
       <footer className="mt-4 border-t border-neutral-400 pt-2 text-[10px] text-neutral-600">
         <p>
           «Consumió el motor» es lo que mide la computadora del camión. «Debió consumir» es el consumo objetivo de cada tramo (promedio
-          ponderado por km; los tramos vacíos a {formatearNumero(obj?.vacioL100km ?? 28, 0)} L cada 100 km) por los km del viaje. Se descuenta lo
+          ponderado por km; con contenedor vacío {formatearNumero(obj?.contenedorVacioL100km ?? 28, 0)} y playo {formatearNumero(obj?.vacioL100km ?? 26, 0)} L cada 100 km) por los km del viaje. Se descuenta lo
           cargado que el motor no consumió. Valores congelados al aprobar el cierre.
         </p>
         {cierre.huella && <p className="mt-1 font-mono break-all">Huella: {cierre.huella}</p>}

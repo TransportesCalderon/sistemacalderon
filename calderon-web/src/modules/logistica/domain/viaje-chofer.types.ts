@@ -79,6 +79,8 @@ export interface ItemViaje {
   tipoOperacion: string | null;
   cliente: string | null;
   contenedor: string | null;
+  /** Migración 76: fue con el contenedor vacío (el canon se ajusta a mano). */
+  contenedorVacio: boolean;
   lineaId: number;
   linea: string;
   canon: number | null;
@@ -155,6 +157,7 @@ export function parsearViajeChofer(d: J): ViajeChofer {
       tipoOperacion: t(i.tipo_operacion),
       cliente: t(i.cliente),
       contenedor: t(i.contenedor),
+      contenedorVacio: i.contenedor_vacio === true,
       lineaId: Number(i.linea_id),
       linea: String(i.linea ?? ''),
       canon: n(i.canon),

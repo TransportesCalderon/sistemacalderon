@@ -781,6 +781,8 @@ type OperacionRow = {
   peso_kg: number | null;
   tipo_contenedor: string | null;
   contenedor: string | null;
+  /** Migración 76. */
+  contenedor_vacio?: boolean | null;
   precinto: string | null;
   tara_max_dias: number | null;
   booking: string | null;

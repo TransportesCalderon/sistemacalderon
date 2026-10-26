@@ -38,6 +38,9 @@ describe('Operaciones (migración 41)', () => {
     expect(r.origenId).toBeNull();
     expect(r.producto).toBe('Banana');
     expect(r.pesoKg).toBe(22680);
+    // Migración 76: sin marcar, va con mercadería
+    expect(r.contenedorVacio).toBe(false);
+    expect(operacionSchema.parse({ ...base, contenedorVacio: true }).contenedorVacio).toBe(true);
     expect(r.fechaPresentacion).toBeNull();
   });
 

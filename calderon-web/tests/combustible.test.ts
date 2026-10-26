@@ -245,7 +245,7 @@ describe('acta del cierre (migración 56)', () => {
     expect(a.l100kmMotor).toBe(40.12);
     expect(a.objetivo?.debioL).toBe(910);
     expect(a.objetivo?.kmVacioSinRegistrar).toBe(600);
-    expect(a.objetivo?.tramos[0]).toEqual({ linea: 'SAI-BSAS', operacion: '12', vacio: false, km: 1400, objetivo: 33 });
+    expect(a.objetivo?.tramos[0]).toEqual({ linea: 'SAI-BSAS', operacion: '12', vacio: false, contenedorVacio: false, km: 1400, objetivo: 33 });
     expect(a.objetivo?.sinObjetivo).toEqual(['MZA-VALP']);
   });
 });

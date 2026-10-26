@@ -43,7 +43,8 @@ export interface ObjetivoViaje {
   debioL: number | null;
   kmVacioSinRegistrar: number;
   vacioL100km: number | null;
-  tramos: { linea: string | null; operacion: string | null; vacio: boolean; km: number | null; objetivo: number | null }[];
+  contenedorVacioL100km: number | null;
+  tramos: { linea: string | null; operacion: string | null; vacio: boolean; contenedorVacio: boolean; km: number | null; objetivo: number | null }[];
   sinObjetivo: string[];
 }
 
@@ -121,10 +122,12 @@ export function parsearActa(d: unknown): ActaExtra {
           debioL: n(o(x.objetivo).debio_l),
           kmVacioSinRegistrar: n(o(x.objetivo).km_vacio_sin_registrar) ?? 0,
           vacioL100km: n(o(x.objetivo).vacio_l_100km),
+          contenedorVacioL100km: n(o(x.objetivo).contenedor_vacio_l_100km),
           tramos: a(o(x.objetivo).tramos).map((k) => ({
             linea: t(k.linea),
             operacion: k.operacion === null || k.operacion === undefined ? null : String(k.operacion),
             vacio: k.vacio === true,
+            contenedorVacio: k.contenedor_vacio === true,
             km: n(k.km),
             objetivo: n(k.objetivo_l_100km),
           })),

@@ -401,6 +401,11 @@ function FilaItem({ i, puede, editando, onEditar }: { i: ItemViaje; puede: boole
               ))}
             </span>
           )}
+          {i.contenedorVacio && (
+            <span className="mt-1 block">
+              <Chip tono="alerta">{i.motivoAjuste ? 'Contenedor vacío' : 'Contenedor vacío: ajustá el canon'}</Chip>
+            </span>
+          )}
           {i.motivoAjuste && <span className="mt-1 block text-xs text-tinta-suave">Ajustado: {i.motivoAjuste}</span>}
         </td>
         <td className="px-2 py-2 font-mono">{i.linea}</td>

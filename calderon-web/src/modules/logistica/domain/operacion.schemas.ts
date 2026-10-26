@@ -59,6 +59,7 @@ export const operacionSchema = z.object({
   pesoKg: numero('Kilos, número de 0 en adelante.'),
   tipoContenedor: texto(30),
   contenedor: texto(20),
+  contenedorVacio: z.boolean().default(false),
   precinto: texto(60),
   taraMaxDias: entero('Días, entero mayor que cero.'),
   booking: texto(60),

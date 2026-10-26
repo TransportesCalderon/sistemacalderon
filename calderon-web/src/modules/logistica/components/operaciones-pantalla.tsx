@@ -301,6 +301,7 @@ function FilaOperacion({
         <td className={cn(TD, 'font-mono text-xs')}>
           {o.contenedor ?? '—'}
           {o.tipoContenedor && <span className="block font-sans text-tinta-suave">{o.tipoContenedor}</span>}
+          {o.contenedorVacio && <span className="block font-sans text-[#b54708]">Contenedor vacío</span>}
         </td>
         {puede && (
           <td className={cn(TD, 'whitespace-nowrap')}>
@@ -563,6 +564,7 @@ const vacioForm = (zona: string) => ({
   pesoKg: '',
   tipoContenedor: '',
   contenedor: '',
+  contenedorVacio: false,
   precinto: '',
   taraMaxDias: '',
   booking: '',
@@ -623,6 +625,7 @@ function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Operacion; d
       producto: s(base.producto),
       pesoKg: s(base.pesoKg),
       tipoContenedor: s(base.tipoContenedor),
+      contenedorVacio: base.contenedorVacio ?? false,
       contenedor: editar ? s(base.contenedor) : '',
       precinto: editar ? s(base.precinto) : '',
       taraMaxDias: s(base.taraMaxDias),
@@ -759,6 +762,10 @@ function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Operacion; d
         <Campo label="Contenedor" error={campo('tipoContenedor')}>
           <input className="uppercase" maxLength={30} value={f.tipoContenedor} onChange={ev('tipoContenedor')} list="tipos-contenedor" placeholder="40 REEFER…" />
         </Campo>
+        <label className="flex items-center gap-2 self-center text-sm text-tinta">
+          <input type="checkbox" checked={f.contenedorVacio} onChange={(e) => setF((p) => ({ ...p, contenedorVacio: e.target.checked }))} />
+          Va con el contenedor vacío (sin mercadería)
+        </label>
         {!editar ? (
           <>
             <Campo label="Cantidad" error={campo('cantidad')} ayuda="Crea esa cantidad de operaciones iguales (una por contenedor).">
