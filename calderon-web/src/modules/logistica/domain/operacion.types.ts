@@ -216,6 +216,8 @@ export interface Linea {
   /** Migración 46: canon que cobra el chofer por la línea. */
   canonChofer: number | null;
   canonMoneda: string | null;
+  /** Migración 75: consumo objetivo de la línea cargada (L/100 km). */
+  consumoObjetivo: number | null;
   versionFila: number;
 }
 

@@ -229,5 +229,23 @@ describe('acta del cierre (migración 56)', () => {
     expect(a.km).toBeNull();
     expect(a.ralenti.litros).toBeNull();
     expect(a.cargas).toEqual([]);
+    expect(a.objetivo).toBeNull();
+  });
+
+  it('lee el consumo objetivo del viaje (migración 75)', async () => {
+    const { parsearActa } = await import('@/modules/combustible/domain/acta.types');
+    const a = parsearActa({
+      l_100km_motor: 40.12,
+      objetivo: {
+        l_100km: 30.33, debio_l: 910, km: 3000, km_vacio_sin_registrar: 600, vacio_l_100km: 28,
+        tramos: [{ linea: 'SAI-BSAS', operacion: 12, vacio: false, km: 1400, objetivo_l_100km: 33 }],
+        sin_objetivo: ['MZA-VALP'],
+      },
+    });
+    expect(a.l100kmMotor).toBe(40.12);
+    expect(a.objetivo?.debioL).toBe(910);
+    expect(a.objetivo?.kmVacioSinRegistrar).toBe(600);
+    expect(a.objetivo?.tramos[0]).toEqual({ linea: 'SAI-BSAS', operacion: '12', vacio: false, km: 1400, objetivo: 33 });
+    expect(a.objetivo?.sinObjetivo).toEqual(['MZA-VALP']);
   });
 });

@@ -711,6 +711,8 @@ type LineaIns = {
   /** Migración 46: canon del chofer por la línea (con su moneda, o ninguno de los dos). */
   canon_chofer?: number | null;
   canon_moneda?: string | null;
+  /** Migración 75: consumo objetivo (L/100 km). */
+  consumo_objetivo_l_100km?: number | null;
 };
 /** ops.fn_tractores (migración 46). */
 type TractorRow = {

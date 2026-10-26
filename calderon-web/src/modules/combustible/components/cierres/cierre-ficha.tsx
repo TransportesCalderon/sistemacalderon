@@ -174,7 +174,7 @@ const fuente = (f: string | null) => (f ? (FUENTES[f] ?? f) : '—');
 /** La diferencia en palabras (el signo lo da la base; si se descuenta o no lo dice el resultado). */
 function explicacionDiferencia(d: number | null): string {
   if (d === null) return 'Falta el consumo del motor para comparar.';
-  if (d > 0) return `Se cargaron ${formatearNumero(d)} L más de lo que consumió el motor: ese combustible no aparece.`;
+  if (d > 0) return `Se cargaron ${formatearNumero(d)} L más de lo que consumió el motor.`;
   if (d < 0) return `El motor consumió ${formatearNumero(-d)} L más de lo que se cargó.`;
   return 'Lo cargado coincide con lo que consumió el motor.';
 }

@@ -74,11 +74,12 @@ describe('Operaciones (migración 41)', () => {
       distanciaKm: '1500',
       cruzaFrontera: true,
       transitHoras: '',
+      consumoObjetivo: '33,5',
       activa: true,
       canonChofer: '120.000',
       canonMoneda: 'ARS',
     });
-    expect(l).toMatchObject({ codigo: 'SAI-BSAS', lugarAduanaId: null, distanciaKm: 1500, transitHoras: null, canonChofer: 120000, canonMoneda: 'ARS' });
+    expect(l).toMatchObject({ codigo: 'SAI-BSAS', lugarAduanaId: null, distanciaKm: 1500, transitHoras: null, canonChofer: 120000, canonMoneda: 'ARS', consumoObjetivo: 33.5 });
     expect(transportistaSchema.safeParse({ id: null, versionFila: null, razonSocial: '', cuit: '', telefono: '', observaciones: '', activo: true }).success).toBe(false);
   });
 });

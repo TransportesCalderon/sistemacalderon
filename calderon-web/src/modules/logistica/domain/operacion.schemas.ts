@@ -153,6 +153,7 @@ export const lineaSchema = z.object({
   distanciaKm: numero('Kilómetros, número de 0 en adelante.'),
   cruzaFrontera: z.boolean(),
   transitHoras: entero('Horas, entero mayor que cero.'),
+  consumoObjetivo: numero('Litros cada 100 km, por ejemplo 33,5.'),
   activa: z.boolean(),
   canonChofer: numero('Importe, número de 0 en adelante.'),
   canonMoneda: z

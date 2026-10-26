@@ -67,6 +67,7 @@ export function LineasPantalla() {
                 <th className={TH}>Activa</th>
                 <th className={TH}>Frontera</th>
                 <th className={cn(TH, 'text-right')}>Tr. tiempo (h)</th>
+                <th className={cn(TH, 'text-right')}>Objetivo (L/100 km)</th>
                 <th className={cn(TH, 'text-right')}>Canon chofer</th>
                 {puede && <th className={TH} />}
               </tr>
@@ -110,6 +111,7 @@ function FilaLinea({
         <td className={TD}>{l.activa ? 'Sí' : 'No'}</td>
         <td className={TD}>{l.cruzaFrontera ? 'Sí' : 'No'}</td>
         <td className={cn(TD, 'text-right tabular-nums')}>{l.transitHoras ?? '—'}</td>
+        <td className={cn(TD, 'text-right tabular-nums')}>{l.consumoObjetivo === null ? '—' : l.consumoObjetivo.toLocaleString('es-AR')}</td>
         <td className={cn(TD, 'text-right whitespace-nowrap tabular-nums')}>
           {l.canonChofer === null ? '—' : `${l.canonMoneda} ${l.canonChofer.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`}
         </td>
@@ -126,7 +128,7 @@ function FilaLinea({
       </tr>
       {modo && (
         <tr>
-          <td colSpan={10} className="px-3 pb-3">
+          <td colSpan={11} className="px-3 pb-3">
             {modo === 'editar' ? <FormLinea l={l} onCerrar={() => onAbrir(null)} /> : <EliminarLinea l={l} onCerrar={() => onAbrir(null)} />}
           </td>
         </tr>
@@ -148,6 +150,7 @@ function FormLinea({ l, onCerrar }: { l?: Linea; onCerrar: () => void }) {
     lugarAduanaId: s(l?.lugarAduanaId),
     distanciaKm: s(l?.distanciaKm),
     transitHoras: s(l?.transitHoras),
+    consumoObjetivo: l?.consumoObjetivo === null || l?.consumoObjetivo === undefined ? '' : String(l.consumoObjetivo).replace('.', ','),
     cruzaFrontera: l?.cruzaFrontera ?? false,
     activa: l?.activa ?? true,
     canonChofer: s(l?.canonChofer),
@@ -180,6 +183,13 @@ function FormLinea({ l, onCerrar }: { l?: Linea; onCerrar: () => void }) {
       </Campo>
       <Campo label="Tiempo de tránsito (h)" error={campo('transitHoras')}>
         <input inputMode="numeric" value={v.transitHoras} onChange={(e) => set('transitHoras')(e.target.value)} />
+      </Campo>
+      <Campo
+        label="Consumo objetivo (L cada 100 km)"
+        error={campo('consumoObjetivo')}
+        ayuda="La meta de los choferes en esta línea cargada. Con esto el acta calcula cuánto debió consumir. Ej.: 33,5"
+      >
+        <input inputMode="decimal" placeholder="Sin objetivo" value={v.consumoObjetivo} onChange={(e) => set('consumoObjetivo')(e.target.value)} />
       </Campo>
       <Campo label="Canon del chofer" error={campo('canonChofer') ?? campo('canonMoneda')} ayuda="Lo que cobra el chofer por hacer la línea. Se propone en el viaje de chofer.">
         <div className="flex gap-2">

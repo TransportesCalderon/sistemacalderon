@@ -32,6 +32,19 @@ export interface ActaExtra {
   observaciones: string | null;
   ajusteManual: string | null;
   alertas: { tipo: string; cuando: FechaISO; valor: number | null; unidad: string | null; estado: string; resolucion: string | null }[];
+  /** Migración 75: rendimiento real (lo que consumió el motor cada 100 km). */
+  l100kmMotor: number | null;
+  /** Migración 75: consumo objetivo del viaje (promedio de los tramos ponderado por km). */
+  objetivo: ObjetivoViaje | null;
+}
+
+export interface ObjetivoViaje {
+  l100km: number | null;
+  debioL: number | null;
+  kmVacioSinRegistrar: number;
+  vacioL100km: number | null;
+  tramos: { linea: string | null; operacion: string | null; vacio: boolean; km: number | null; objetivo: number | null }[];
+  sinObjetivo: string[];
 }
 
 type J = Record<string, unknown>;
@@ -101,5 +114,22 @@ export function parsearActa(d: unknown): ActaExtra {
       estado: t(y.estado) ?? '',
       resolucion: t(y.resolucion),
     })),
+    l100kmMotor: n(x.l_100km_motor),
+    objetivo: x.objetivo
+      ? {
+          l100km: n(o(x.objetivo).l_100km),
+          debioL: n(o(x.objetivo).debio_l),
+          kmVacioSinRegistrar: n(o(x.objetivo).km_vacio_sin_registrar) ?? 0,
+          vacioL100km: n(o(x.objetivo).vacio_l_100km),
+          tramos: a(o(x.objetivo).tramos).map((k) => ({
+            linea: t(k.linea),
+            operacion: k.operacion === null || k.operacion === undefined ? null : String(k.operacion),
+            vacio: k.vacio === true,
+            km: n(k.km),
+            objetivo: n(k.objetivo_l_100km),
+          })),
+          sinObjetivo: (Array.isArray(o(x.objetivo).sin_objetivo) ? (o(x.objetivo).sin_objetivo as unknown[]) : []).map(String),
+        }
+      : null,
   };
 }

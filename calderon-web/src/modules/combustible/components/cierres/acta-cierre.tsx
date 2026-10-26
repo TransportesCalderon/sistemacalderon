@@ -45,6 +45,10 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
   const anulado = cierre.estado === 'anulado';
   const fecha = (v: string | null) => formatearFechaHora(v, zonaHoraria);
   const dif = x.diferenciaL;
+  const obj = x.objetivo;
+  // Lo consumido contra el objetivo (solo para comparar rendimiento; no se descuenta)
+  const vsObjetivo = obj?.debioL != null && x.consumoMotorL !== null ? x.consumoMotorL - obj.debioL : null;
+  const ajustes = (x.entradasL ?? 0) > 0 || (x.salidasL ?? 0) > 0 || (x.faltanteLlegadaL ?? 0) > 0 || (x.faltanteSalidaL ?? 0) > 0;
 
   return (
     <div className="mx-auto max-w-[190mm] bg-white p-8 text-[12px] leading-snug text-black print:p-0">
@@ -74,9 +78,10 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
       )}
 
       {/* Resumen en una línea, lo primero que lee el chofer */}
-      <section className="mt-4 grid grid-cols-4 gap-2 break-inside-avoid">
+      <section className="mt-4 grid grid-cols-5 gap-2 break-inside-avoid">
         <Cifra etiqueta="Km recorridos" valor={x.km === null ? '—' : `${formatearNumero(x.km, 0)} km`} />
         <Cifra etiqueta="Consumió el motor" valor={L(x.consumoMotorL, 0)} />
+        <Cifra etiqueta="Debió consumir (objetivo)" valor={L(obj?.debioL ?? null, 0)} />
         <Cifra etiqueta="En ralentí" valor={x.ralenti.litros === null ? '—' : `${L(x.ralenti.litros, 0)}`} />
         <Cifra etiqueta="A descontar" valor={L(x.aDescontarL, 1)} fuerte />
       </section>
@@ -185,17 +190,60 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
         {(x.salidasL ?? 0) > 0 && <Fila etiqueta="− Salidas">{L(x.salidasL)}</Fila>}
         {(x.faltanteLlegadaL ?? 0) > 0 && <Fila etiqueta="+ Faltó llenar al llegar">{L(x.faltanteLlegadaL)}</Fila>}
         {(x.faltanteSalidaL ?? 0) > 0 && <Fila etiqueta="− Faltó llenar al salir">{L(x.faltanteSalidaL)}</Fila>}
-        <Fila etiqueta="= Debió consumir" fuerte>
-          {L(x.libroL)} <span className="font-normal text-neutral-600">(lo que hay que reponer para volver a llenar)</span>
-        </Fila>
+        {ajustes && (
+          <Fila etiqueta="= Total cargado" fuerte>
+            {L(x.libroL)} <span className="font-normal text-neutral-600">(lo que hay que reponer para volver a llenar)</span>
+          </Fila>
+        )}
         <Fila etiqueta="Consumió el motor" fuerte>
           {L(x.consumoMotorL)}
           <span className="font-normal text-neutral-600">{fuente(x.fuenteConsumo)}</span>
         </Fila>
-        <Fila etiqueta="Rendimiento">
-          {x.l100km === null ? '—' : `${formatearNumero(x.l100km, 1)} L cada 100 km`}
+        <Fila etiqueta="Debió consumir (objetivo)" fuerte>
+          {obj?.debioL == null ? (
+            <span className="font-normal">Sin objetivo: cargá el consumo objetivo en las líneas</span>
+          ) : (
+            <>
+              {L(obj.debioL)}{' '}
+              <span className="font-normal text-neutral-600">
+                ({formatearNumero(obj.l100km ?? 0, 1)} L cada 100 km × {formatearNumero(x.km ?? 0, 0)} km)
+              </span>
+            </>
+          )}
+        </Fila>
+        {obj && obj.tramos.length + (obj.kmVacioSinRegistrar > 0 ? 1 : 0) > 0 && (
+          <Fila etiqueta="Tramos del objetivo">
+            <span className="text-neutral-700">
+              {[
+                ...obj.tramos.map(
+                  (k) =>
+                    `${k.vacio ? 'Vacío' : (k.linea ?? 'Línea')}${k.vacio && k.linea ? ` ${k.linea}` : ''} ${k.km === null ? '' : `${formatearNumero(k.km, 0)} km`} a ${
+                      k.objetivo === null ? 'sin objetivo' : formatearNumero(k.objetivo, 1)
+                    }`,
+                ),
+                ...(obj.kmVacioSinRegistrar > 0
+                  ? [`Vacío sin registrar ${formatearNumero(obj.kmVacioSinRegistrar, 0)} km a ${formatearNumero(obj.vacioL100km ?? 0, 1)}`]
+                  : []),
+              ].join(' · ')}
+            </span>
+            {obj.sinObjetivo.length > 0 && <span className="block text-neutral-600">Sin objetivo cargado (no cuentan): {obj.sinObjetivo.join(', ')}</span>}
+          </Fila>
+        )}
+        <Fila etiqueta="Rendimiento real">
+          {x.l100kmMotor === null ? '—' : `${formatearNumero(x.l100kmMotor, 1)} L cada 100 km`}
+          {obj?.l100km != null && <span className="text-neutral-600"> · objetivo {formatearNumero(obj.l100km, 1)} L cada 100 km</span>}
           {x.horasMotor !== null && <span className="text-neutral-600"> · {formatearNumero(x.horasMotor, 1)} h de motor</span>}
         </Fila>
+        {vsObjetivo !== null && (
+          <Fila etiqueta="Contra el objetivo">
+            {vsObjetivo > 0
+              ? `Consumió ${L(vsObjetivo)} más que el objetivo`
+              : vsObjetivo < 0
+                ? `Consumió ${L(-vsObjetivo)} menos que el objetivo`
+                : 'Consumió justo el objetivo'}
+            <span className="text-neutral-600"> (solo para comparar; no se descuenta)</span>
+          </Fila>
+        )}
         <Fila etiqueta="Ralentí (parado con motor)">
           {x.ralenti.litros === null && x.ralenti.horas === null
             ? 'Sin dato de la telemetría'
@@ -210,13 +258,13 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
           {dif === null
             ? 'No se pudo comparar: falta el consumo del motor.'
             : dif > 0
-              ? `Se cargaron ${L(dif)} más de lo que consumió el motor: ese combustible no aparece.`
+              ? `Se cargaron ${L(dif)} más de lo que consumió el motor.`
               : dif < 0
                 ? `El motor consumió ${L(-dif)} más de lo que se cargó.`
                 : 'Lo cargado coincide con lo que consumió el motor.'}
         </p>
         <Fila etiqueta="Diferencia">{dif === null ? '—' : `${conSigno(dif)} L`}</Fila>
-        <Fila etiqueta="Tolerancia">± {L(x.toleranciaL)} (hasta acá no se descuenta)</Fila>
+        {(x.toleranciaL ?? 0) > 0 && <Fila etiqueta="Tolerancia">± {L(x.toleranciaL)} (hasta acá no se descuenta)</Fila>}
         {(x.justificadosL ?? 0) > 0 && (
           <Fila etiqueta="Litros justificados">
             {L(x.justificadosL)}
@@ -267,8 +315,9 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
 
       <footer className="mt-4 border-t border-neutral-400 pt-2 text-[10px] text-neutral-600">
         <p>
-          «Debió consumir» sale de los litros cargados con los tanques llenos al salir y al llegar. «Consumió el motor» es lo que mide la
-          computadora del camión. Valores congelados al aprobar el cierre, con la tolerancia vigente en ese momento.
+          «Consumió el motor» es lo que mide la computadora del camión. «Debió consumir» es el consumo objetivo de cada tramo (promedio
+          ponderado por km; los tramos vacíos a {formatearNumero(obj?.vacioL100km ?? 28, 0)} L cada 100 km) por los km del viaje. Se descuenta lo
+          cargado que el motor no consumió. Valores congelados al aprobar el cierre.
         </p>
         {cierre.huella && <p className="mt-1 font-mono break-all">Huella: {cierre.huella}</p>}
       </footer>
