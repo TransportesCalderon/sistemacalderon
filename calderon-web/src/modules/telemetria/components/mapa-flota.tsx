@@ -55,7 +55,7 @@ export function MapaFlota({
   /** Migración 60: celulares de los choferes con carga (sobre todo tractores sin telemetría). */
   celulares?: CelularEnMapa[];
   seleccionado: number | null;
-  onSeleccionar: (id: number) => void;
+  onSeleccionar: (id: number | null) => void;
   minutosEstela: number;
   onMinutosEstela: (m: number) => void;
   zonaHoraria: string;
@@ -85,6 +85,12 @@ export function MapaFlota({
       }).addTo(m);
       mapa.current = m;
       capa.current = L.layerGroup().addTo(m);
+      // Tocar el mapa (fuera de un camión) vuelve a mostrar las estelas de todos
+      m.on('click', () => {
+        centrado.current = null;
+        abierto.current = null;
+        alElegir.current(null);
+      });
       dibujar(L);
     });
     return () => {
@@ -204,11 +210,12 @@ export function MapaFlota({
       const d = porCamion.get(c.camionId);
       const elegido = c.camionId === seleccionado;
 
-      // Estela: de dónde viene (más transparente cuanto más vieja)
-      const tramo: [number, number][] = (d?.estela ?? []).map((p) => [p.lat, p.lng]);
+      // Estela: de dónde viene (más transparente cuanto más vieja). Con un camión elegido, solo la suya
+      const conEstela = seleccionado === null || elegido;
+      const tramo: [number, number][] = conEstela ? (d?.estela ?? []).map((p) => [p.lat, p.lng]) : [];
       const ultimo = tramo[tramo.length - 1];
       if (!ultimo || ultimo[0] !== c.latitud || ultimo[1] !== c.longitud) tramo.push([c.latitud, c.longitud]);
-      for (let i = 1; i < tramo.length; i++) {
+      for (let i = 1; conEstela && i < tramo.length; i++) {
         L.polyline([tramo[i - 1]!, tramo[i]!], {
           color: ESTELA,
           weight: elegido ? 6 : 4,
@@ -275,6 +282,20 @@ export function MapaFlota({
     >
       <div ref={div} className="h-full w-full" aria-label="Mapa de la flota" />
       <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
+        {seleccionado !== null && (
+          <button
+            type="button"
+            className="rounded-md bg-white/95 px-2 py-1 text-xs font-medium text-marca shadow"
+            onClick={() => {
+              centrado.current = null;
+              abierto.current = null;
+              mapa.current?.closePopup();
+              onSeleccionar(null);
+            }}
+          >
+            Ver la estela de todos
+          </button>
+        )}
         <label className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
           Estela
           <select
