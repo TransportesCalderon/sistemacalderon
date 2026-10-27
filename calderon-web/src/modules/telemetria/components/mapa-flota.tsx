@@ -147,9 +147,9 @@ export function MapaFlota({
           ? `<b>≈ ${formatearNumero(d.combustible.litros, 0)} L</b>${d.combustible.pct != null ? ` (${formatearNumero(d.combustible.pct, 0)} %)` : ''}${
               d.combustible.mochilaL ? ` · mochila ${formatearNumero(d.combustible.mochilaL, 0)} L` : ''
             }${c.nivelPct !== null ? `<br><span style="color:#64748b">Sensor tanque principal: ${formatearNumero(c.nivelPct, 0)} %</span>` : ''}`
-          : c.nivelPct === null
-            ? '—'
-            : `Sensor tanque principal: ${formatearNumero(c.nivelPct, 0)} %${c.nivelL !== null ? ` · ≈ ${formatearNumero(c.nivelL, 0)} L` : ''}`,
+          : `${c.nivelPct === null ? '—' : `Sensor tanque principal: ${formatearNumero(c.nivelPct, 0)} %${c.nivelL !== null ? ` · ≈ ${formatearNumero(c.nivelL, 0)} L` : ''}`}${
+              d?.combustible?.motivo ? `<br><span style="color:#b45309">Sin cálculo: ${escapar(d.combustible.motivo)}</span>` : ''
+            }`,
       ),
       fila('Odómetro', c.odometroKm === null ? '—' : `${formatearNumero(c.odometroKm, 0)} km`),
     ];
