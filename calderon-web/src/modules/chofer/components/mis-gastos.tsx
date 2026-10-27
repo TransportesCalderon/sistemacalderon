@@ -223,7 +223,7 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
       <h2 className="font-semibold text-tinta">Nuevo gasto</h2>
       <label className={`${BOTON_SECUNDARIO} w-full cursor-pointer`}>
         <Camera className="size-5" />
-        {archivo ? archivo.name : lector.disponible ? 'Foto del comprobante (la IA completa los datos)' : 'Foto del comprobante'}
+        {archivo ? archivo.name : lector.disponible ? 'Foto del comprobante * (la IA completa los datos)' : 'Foto del comprobante *'}
         <input
           type="file"
           accept="image/*,application/pdf"
@@ -236,6 +236,7 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
           }}
         />
       </label>
+      {!archivo && <p className="text-xs text-tinta-suave">La foto del comprobante es obligatoria.</p>}
       <AvisoIA estado={lector.estado} />
       <Campo label="¿Qué gasto es?" error={campo('categoria')}>
         <select value={v.categoria} onChange={(e) => setV({ ...v, categoria: e.target.value })}>
