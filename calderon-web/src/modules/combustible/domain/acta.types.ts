@@ -45,29 +45,51 @@ export interface ActaExtra {
 export interface EcoScore {
   marca: string | null;
   total: number | null;
+  /** Migración 86: sobre cuánto es el puntaje (Volvo 100, Renault 10). */
+  escala: number | null;
   componentes: Record<string, number>;
+  /** Migración 86: lo que informa la API del período, ya en km, h, L/100 km, % y toneladas. */
+  datos: {
+    km: number | null;
+    horas: number | null;
+    velocidadMediaKmh: number | null;
+    consumoL100km: number | null;
+    utilizacionPct: number | null;
+    co2T: number | null;
+    co2AhorradoT: number | null;
+  };
   motivo: string | null;
   desde: string | null;
   hasta: string | null;
 }
 
-/** Nombres de las partes del Eco Score, en este orden (las que no están acá no se muestran). */
-export const PARTE_ECO: Record<string, string> = {
-  anticipation: 'Anticipación',
-  braking: 'Frenado',
-  anticipationAndBraking: 'Anticipación y frenado',
-  coasting: 'Inercia',
-  engineAndGearUtilization: 'Uso del motor y los cambios',
-  engineAndGearUtilisation: 'Uso del motor y los cambios',
-  withinEconomy: 'En zona económica',
-  speedAdaption: 'Adaptación de la velocidad',
-  speedAdaptation: 'Adaptación de la velocidad',
-  cruiseControl: 'Programador de velocidad',
-  idling: 'Ralentí',
-};
-
-/** La API de Volvo y Renault puntúa de 0 a 10; si algún día llega de 0 a 100, se muestra así. */
-export const escalaEco = (total: number) => (total <= 10 ? 10 : 100);
+/** Partes del Eco Score, agrupadas y en este orden. Las que no estén acá se muestran al final con su nombre en inglés. */
+export const GRUPOS_ECO: { titulo: string; partes: Record<string, string> }[] = [
+  {
+    titulo: 'Anticipación y frenado',
+    partes: { anticipation: 'Anticipación', braking: 'Frenado', anticipationAndBraking: 'Anticipación y frenado', coasting: 'Inercia (rodar sin acelerar)' },
+  },
+  {
+    titulo: 'Motor y caja',
+    partes: {
+      engineAndGearUtilization: 'Uso del motor y los cambios',
+      engineAndGearUtilisation: 'Uso del motor y los cambios',
+      withinEconomy: 'Dentro de la zona económica',
+      aboveEconomy: 'Por encima de la zona económica',
+      engineLoad: 'Carga del motor',
+      topgear: 'Marcha más alta',
+      overrev: 'Sobrerrevoluciones',
+      gearboxInAutoMode: 'Caja en modo automático',
+      gearboxInManualMode: 'Caja en modo manual',
+      gearboxInPowerMode: 'Caja en modo potencia',
+    },
+  },
+  {
+    titulo: 'Velocidad',
+    partes: { cruiseControl: 'Programador de velocidad', speedAdaption: 'Adaptación de la velocidad', speedAdaptation: 'Adaptación de la velocidad' },
+  },
+  { titulo: 'Detenido', partes: { idling: 'Ralentí', standstill: 'Tiempo detenido', abusiveUse: 'Uso indebido' } },
+];
 
 export interface ObjetivoViaje {
   l100km: number | null;
@@ -178,9 +200,19 @@ export function parsearActa(d: unknown): ActaExtra {
       ? {
           marca: t(o(x.eco_score).marca),
           total: n(o(x.eco_score).total),
+          escala: n(o(x.eco_score).escala),
           componentes: Object.fromEntries(
             Object.entries(o(o(x.eco_score).componentes)).filter(([, v]) => typeof v === 'number') as [string, number][],
           ),
+          datos: {
+            km: n(o(o(x.eco_score).datos).km),
+            horas: n(o(o(x.eco_score).datos).horas),
+            velocidadMediaKmh: n(o(o(x.eco_score).datos).velocidad_media_kmh),
+            consumoL100km: n(o(o(x.eco_score).datos).consumo_l_100km),
+            utilizacionPct: n(o(o(x.eco_score).datos).utilizacion_pct),
+            co2T: n(o(o(x.eco_score).datos).co2_t),
+            co2AhorradoT: n(o(o(x.eco_score).datos).co2_ahorrado_t),
+          },
           motivo: t(o(x.eco_score).motivo),
           desde: t(o(x.eco_score).desde),
           hasta: t(o(x.eco_score).hasta),

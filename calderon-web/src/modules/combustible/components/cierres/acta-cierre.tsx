@@ -3,7 +3,7 @@ import { ETIQUETA_ESTADO, ETIQUETA_RESOLUCION, etiquetaUnidad } from '@/modules/
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { conSigno, formatearNumero } from '@/shared/lib/numeros';
-import { escalaEco, PARTE_ECO, type ActaExtra } from '../../domain/acta.types';
+import { GRUPOS_ECO, type ActaExtra, type EcoScore } from '../../domain/acta.types';
 import type { CierreViaje } from '../../domain/cierre.types';
 import { BotonImprimir } from './boton-imprimir';
 
@@ -55,7 +55,6 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
   const vsObjetivo = x.vsObjetivo?.litros ?? null;
   const nivel = x.vsObjetivo?.nivel ?? 'normal';
   const eco = x.ecoScore;
-  const partesEco = eco ? Object.keys(PARTE_ECO).flatMap((k) => (eco.componentes[k] === undefined ? [] : [[k, eco.componentes[k]] as const])) : [];
   const ajustes = (x.entradasL ?? 0) > 0 || (x.salidasL ?? 0) > 0 || (x.faltanteLlegadaL ?? 0) > 0 || (x.faltanteSalidaL ?? 0) > 0;
 
   return (
@@ -115,23 +114,18 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
           {x.km === null ? '—' : `${formatearNumero(x.km, 0)} km`}
           <span className="text-neutral-600">{fuente(x.fuenteKm)}</span>
         </Fila>
-        <Fila etiqueta="Programador de velocidad">{x.programadorPct === null ? '—' : `${formatearNumero(x.programadorPct, 0)} % de los km`}</Fila>
-        <Fila etiqueta={`Eco Score${eco?.marca && MARCA_ECO[eco.marca] ? ` (${MARCA_ECO[eco.marca]})` : ''}`}>
-          {eco?.total == null ? (
-            <span className="text-neutral-600">{eco?.motivo ?? 'Sin dato'}</span>
-          ) : (
-            <>
-              <b>{formatearNumero(eco.total, 1)}</b> de {escalaEco(eco.total)}
-              {partesEco.length > 0 && (
-                <span className="text-neutral-600">
-                  {' · '}
-                  {partesEco.map(([k, v]) => `${PARTE_ECO[k]} ${formatearNumero(v, 1)}`).join(' · ')}
-                </span>
-              )}
-            </>
+        <Fila etiqueta="Programador de velocidad">
+          {x.programadorPct === null ? '—' : `${formatearNumero(x.programadorPct, 0)} % de los km`}
+          {eco?.componentes.cruiseControl !== undefined && eco.escala !== null && (
+            <span className="text-neutral-600">
+              {' '}
+              · puntaje en el Eco Score: {formatearNumero(eco.componentes.cruiseControl, 1)} de {eco.escala}
+            </span>
           )}
         </Fila>
       </Bloque>
+
+      <BloqueEco eco={eco} />
 
       <Bloque titulo="Combustible al salir">
         <p>
@@ -363,6 +357,65 @@ function Cifra({ etiqueta, valor, fuerte, nivel = 'normal', nota }: { etiqueta: 
       <p className={cn('text-base font-bold tabular-nums', COLOR[nivel])}>{valor}</p>
       {nota && <p className={cn('text-[10px] tabular-nums', COLOR[nivel] || 'text-neutral-600')}>{nota}</p>}
     </div>
+  );
+}
+
+/** Migración 86: Eco Score completo (puntaje, datos del período y cada parte), tal como lo informa la API. */
+function BloqueEco({ eco }: { eco: EcoScore | null }) {
+  const titulo = `Eco Score${eco?.marca && MARCA_ECO[eco.marca] ? ` · ${MARCA_ECO[eco.marca]}` : ''}`;
+  if (!eco || eco.total === null) {
+    return (
+      <Bloque titulo={titulo}>
+        <p className="text-neutral-600">{eco?.motivo ?? 'Sin dato.'}</p>
+      </Bloque>
+    );
+  }
+  const d = eco.datos;
+  const conocidas = new Set(GRUPOS_ECO.flatMap((g) => Object.keys(g.partes)));
+  const grupos = [
+    ...GRUPOS_ECO.map((g) => ({
+      titulo: g.titulo,
+      partes: Object.entries(g.partes).flatMap(([k, nombre]) => (eco.componentes[k] === undefined ? [] : [[nombre, eco.componentes[k]] as const])),
+    })),
+    { titulo: 'Otros', partes: Object.entries(eco.componentes).filter(([k]) => !conocidas.has(k)) },
+  ].filter((g) => g.partes.length > 0);
+  const datos = [
+    d.km !== null && `${formatearNumero(d.km, 0)} km`,
+    d.consumoL100km !== null && `${formatearNumero(d.consumoL100km, 1)} L cada 100 km`,
+    d.velocidadMediaKmh !== null && `${formatearNumero(d.velocidadMediaKmh, 1)} km/h de velocidad media`,
+    d.horas !== null && `${formatearNumero(d.horas, 1)} h en uso${d.utilizacionPct !== null ? ` (${formatearNumero(d.utilizacionPct, 1)} % del tiempo)` : ''}`,
+    d.co2T !== null && `${formatearNumero(d.co2T, 2)} t de CO₂`,
+    d.co2AhorradoT ? `${formatearNumero(d.co2AhorradoT, 2)} t de CO₂ ahorradas` : false,
+  ].filter(Boolean);
+
+  return (
+    <Bloque titulo={titulo}>
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <p>
+          <span className="text-xl font-bold tabular-nums">{formatearNumero(eco.total, 1)}</span>
+          <span className="text-neutral-600"> de {eco.escala ?? '—'}</span>
+        </p>
+        {datos.length > 0 && <p className="text-neutral-700">{datos.join(' · ')}</p>}
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2">
+        {grupos.map((g) => (
+          <div key={g.titulo} className="break-inside-avoid">
+            <p className="text-[11px] font-bold text-neutral-700">{g.titulo}</p>
+            {g.partes.map(([nombre, v]) => (
+              <div key={nombre} className="flex justify-between border-b border-neutral-200 py-0.5">
+                <span>{nombre}</span>
+                <span className="tabular-nums">{formatearNumero(v, 1)}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <p className="mt-1 text-[10px] text-neutral-600">
+        Puntajes de 0 a {eco.escala ?? '—'} (más es mejor). Período por días completos
+        {eco.desde && eco.hasta ? `, del ${eco.desde.split('-').reverse().join('/')} al ${eco.hasta.split('-').reverse().join('/')}` : ''}: los km pueden no
+        coincidir con los del cierre.
+      </p>
+    </Bloque>
   );
 }
 
