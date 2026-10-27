@@ -97,6 +97,11 @@ export function FlotaPantalla() {
             seleccionado={elegido}
             onSeleccionar={setElegido}
           />
+          {mapa.isError && (
+            <p className="rounded-md bg-alerta-suave px-3 py-2 text-sm text-alerta">
+              No se pudieron traer el chofer, el combustible y lo del día de los camiones: {mapa.error instanceof Error ? mapa.error.message : 'error de la base'}
+            </p>
+          )}
           <p className="text-xs text-tinta-suave">
             La línea verde muestra por dónde vino cada camión. Tocá un camión para ver el chofer, la operación y el viaje.
           </p>
