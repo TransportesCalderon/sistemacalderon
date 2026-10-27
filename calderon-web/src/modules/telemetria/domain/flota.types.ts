@@ -32,6 +32,36 @@ export interface DetalleMapa {
   operacion: { numero: number; cliente: string; linea: string | null; estado: string; contenedor: string | null; producto: string | null } | null;
   /** Migración 94: combustible que debería tener (último llenado − inyección + cargas), con el sensor del tanque principal. */
   combustible: CombustibleActual | null;
+  /** Migración 96: programador de hoy y Eco Score del día (con el color que decide la base). */
+  hoy: ConduccionHoy | null;
+}
+
+export type NivelHoy = 'verde' | 'naranja' | 'rojo';
+export interface ConduccionHoy {
+  programadorPct: number | null;
+  programadorNivel: NivelHoy | null;
+  eco: { fecha: string; hoy: boolean; total: number; escala: number; marca: string; nivel: NivelHoy | null } | null;
+}
+
+const nivelHoy = (v: unknown): NivelHoy | null => (v === 'verde' || v === 'naranja' || v === 'rojo' ? v : null);
+function parsearHoy(v: unknown): ConduccionHoy | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const h = v as Record<string, unknown>;
+  const e = h.eco && typeof h.eco === 'object' ? (h.eco as Record<string, unknown>) : null;
+  return {
+    programadorPct: h.programador_pct == null ? null : Number(h.programador_pct),
+    programadorNivel: nivelHoy(h.programador_nivel),
+    eco: e
+      ? {
+          fecha: String(e.fecha),
+          hoy: e.hoy === true,
+          total: Number(e.total),
+          escala: Number(e.escala ?? 100),
+          marca: String(e.marca ?? ''),
+          nivel: nivelHoy(e.nivel),
+        }
+      : null,
+  };
 }
 
 export interface CombustibleActual {
@@ -81,6 +111,7 @@ export function parsearMapa(v: unknown): DetalleMapa[] {
         choferFuente: d.chofer_fuente === 'tarjeta' ? 'tarjeta' : 'asignado',
         viaje: viaje ? { id: Number(viaje.id), numero: String(viaje.numero) } : null,
         combustible: parsearCombustible(d.combustible),
+        hoy: parsearHoy(d.hoy),
         operacion: op
           ? {
               numero: Number(op.numero),

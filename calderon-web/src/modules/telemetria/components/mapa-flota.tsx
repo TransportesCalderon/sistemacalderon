@@ -31,6 +31,9 @@ export interface CelularEnMapa {
   longitud: number;
 }
 
+/** Migración 96: color del programador y del Eco Score del día (lo decide la base). */
+const COLOR_NIVEL: Record<string, string> = { verde: '#15803d', naranja: '#ea580c', rojo: '#dc2626' };
+
 /**
  * Mapa de la flota (Leaflet + OpenStreetMap). Cada camión es un punto con su patente y su
  * velocidad; detrás, la estela verde de dónde viene. Al tocarlo se abre su ficha (chofer,
@@ -152,6 +155,21 @@ export function MapaFlota({
             }`,
       ),
       fila('Odómetro', c.odometroKm === null ? '—' : `${formatearNumero(c.odometroKm, 0)} km`),
+      // Migración 96: lo de hoy (el color lo decide la base)
+      fila(
+        'Programador hoy',
+        d?.hoy?.programadorPct != null
+          ? `<b style="color:${COLOR_NIVEL[d.hoy.programadorNivel ?? ''] ?? 'inherit'}">${formatearNumero(d.hoy.programadorPct, 0)} %</b> de los km`
+          : '<span style="color:#64748b">— (menos de 10 km hoy o sin dato)</span>',
+      ),
+      fila(
+        'Eco Score',
+        d?.hoy?.eco
+          ? `<b style="color:${COLOR_NIVEL[d.hoy.eco.nivel ?? ''] ?? 'inherit'}">${formatearNumero(d.hoy.eco.total, 1)}</b> de ${d.hoy.eco.escala}${
+              d.hoy.eco.hoy ? ' <span style="color:#64748b">(hoy)</span>' : ` <span style="color:#64748b">(${escapar(d.hoy.eco.fecha.split('-').reverse().join('/'))}${d.hoy.eco.marca === 'tablero' ? ', foto del tablero' : ', último disponible'})</span>`
+            }`
+          : '<span style="color:#64748b">—</span>',
+      ),
     ];
     if (d?.operacion) {
       const o = d.operacion;
