@@ -40,7 +40,17 @@ export interface ActaExtra {
   vsObjetivo: { litros: number; pct: number; nivel: 'normal' | 'naranja' | 'rojo'; naranjaPct: number; rojoPct: number } | null;
   /** Migración 85: Eco Score de Volvo Connect / Renault Optifleet entre la salida y la llegada. */
   ecoScore: EcoScore | null;
+  /** Migración 87: color de cada dato, decidido por la base. */
+  colores: {
+    objetivo: Nivel | null;
+    programador: Nivel | null;
+    ecoTotal: Nivel | null;
+    ecoPartes: Record<string, Nivel>;
+  };
 }
+
+export type Nivel = 'verde' | 'naranja' | 'rojo';
+const nivel = (v: unknown): Nivel | null => (v === 'verde' || v === 'naranja' || v === 'rojo' ? v : null);
 
 export interface EcoScore {
   marca: string | null;
@@ -196,6 +206,14 @@ export function parsearActa(d: unknown): ActaExtra {
           rojoPct: Number(o(x.vs_objetivo).rojo_pct),
         }
       : null,
+    colores: {
+      objetivo: nivel(o(x.colores).objetivo),
+      programador: nivel(o(x.colores).programador),
+      ecoTotal: nivel(o(x.colores).eco_total),
+      ecoPartes: Object.fromEntries(
+        Object.entries(o(o(x.colores).eco_partes)).flatMap(([k, v]) => (nivel(v) ? [[k, nivel(v) as Nivel]] : [])),
+      ),
+    },
     ecoScore: x.eco_score
       ? {
           marca: t(o(x.eco_score).marca),
