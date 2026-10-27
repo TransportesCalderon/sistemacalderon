@@ -41,6 +41,8 @@ export interface ConduccionHoy {
   programadorPct: number | null;
   programadorNivel: NivelHoy | null;
   eco: { fecha: string; hoy: boolean; total: number; escala: number; marca: string; nivel: NivelHoy | null } | null;
+  /** Migración 100: uso abusivo según el Eco Score de la marca (lo decide la base). */
+  abusivo: { activo: boolean; texto: string; fecha: string; hoy: boolean } | null;
 }
 
 const nivelHoy = (v: unknown): NivelHoy | null => (v === 'verde' || v === 'naranja' || v === 'rojo' ? v : null);
@@ -61,6 +63,13 @@ function parsearHoy(v: unknown): ConduccionHoy | null {
           nivel: nivelHoy(e.nivel),
         }
       : null,
+    abusivo:
+      h.abusivo && typeof h.abusivo === 'object'
+        ? (() => {
+            const x = h.abusivo as Record<string, unknown>;
+            return { activo: x.activo === true, texto: String(x.texto ?? ''), fecha: String(x.fecha ?? ''), hoy: x.hoy === true };
+          })()
+        : null,
   };
 }
 

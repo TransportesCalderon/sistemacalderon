@@ -32,6 +32,7 @@ export interface CelularEnMapa {
 }
 
 /** Migración 96: color del programador y del Eco Score del día (lo decide la base). */
+const ABUSIVO = '#dc2626';
 const COLOR_NIVEL: Record<string, string> = { verde: '#15803d', naranja: '#ea580c', rojo: '#dc2626' };
 
 /**
@@ -176,6 +177,17 @@ export function MapaFlota({
             }`
           : '<span style="color:#64748b">—</span>',
       ),
+      // Migración 100: uso abusivo según la marca
+      ...(d?.hoy?.abusivo
+        ? [
+            fila(
+              'Uso abusivo',
+              `<b style="color:${d.hoy.abusivo.activo ? COLOR_NIVEL.rojo : COLOR_NIVEL.verde}">${escapar(d.hoy.abusivo.texto)}</b>${
+                d.hoy.abusivo.hoy ? '' : ` <span style="color:#64748b">(${escapar(d.hoy.abusivo.fecha.split('-').reverse().join('/'))})</span>`
+              }`,
+            ),
+          ]
+        : []),
     ];
     if (d?.operacion) {
       const o = d.operacion;
@@ -224,7 +236,8 @@ export function MapaFlota({
         }).addTo(g);
       }
 
-      const color = COLOR[senalDe(minutosDesde(c.ts))];
+      // Migración 100: en rojo si la marca informó uso abusivo
+      const color = d?.hoy?.abusivo?.activo ? ABUSIVO : COLOR[senalDe(minutosDesde(c.ts))];
       const anda = (c.velocidadKmh ?? 0) > 2;
       const flecha =
         anda && c.rumbo !== null
