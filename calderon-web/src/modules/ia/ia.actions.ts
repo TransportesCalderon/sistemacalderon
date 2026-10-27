@@ -5,7 +5,7 @@ import { createAction } from '@/server/actions/create-action';
 import { iaRepository } from './ia.repository';
 
 /** Pedir una lectura con IA (migración 64). La base vuelve a controlar quién puede y los topes. */
-const lectura = (tipo: 'ticket_combustible' | 'comprobante_gasto') =>
+const lectura = (tipo: 'ticket_combustible' | 'comprobante_gasto' | 'tablero_camion') =>
   z.object({
     tipo: z.literal(tipo),
     base64: z.string().min(16).max(6_000_000).regex(/^[A-Za-z0-9+/=]+$/, 'No llegó la foto.'),
@@ -21,6 +21,18 @@ export const leerTicketCombustible = createAction({
 export const leerComprobanteGasto = createAction({
   permiso: 'chofer.mis_gastos:editar',
   schema: lectura('comprobante_gasto'),
+  handler: (d, { db }) => iaRepository(db).leer(d.tipo, d.base64, d.mediaType),
+});
+
+/* Migración 88: fotos del tablero del camión (el chofer o quien arma los cierres). */
+export const leerTableroChofer = createAction({
+  permiso: 'chofer.mi_carga:editar',
+  schema: lectura('tablero_camion'),
+  handler: (d, { db }) => iaRepository(db).leer(d.tipo, d.base64, d.mediaType),
+});
+export const leerTableroOficina = createAction({
+  permiso: 'combustible.cierre_viaje:editar',
+  schema: lectura('tablero_camion'),
   handler: (d, { db }) => iaRepository(db).leer(d.tipo, d.base64, d.mediaType),
 });
 

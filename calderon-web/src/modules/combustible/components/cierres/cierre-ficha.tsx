@@ -24,6 +24,7 @@ import {
   useVerificacion,
 } from '../../queries/hooks';
 import { AccionConMotivo, Cargando, Dato, DiferenciaL, ErrorBase, ErrorLectura, Seccion } from '../comun/ui';
+import { TableroCierre } from '@/modules/telemetria/components/tablero-cierre';
 import { BorradorForm } from './borrador-form';
 import { EstadoCierreChip, VerificacionChip } from './estado-cierre';
 
@@ -34,6 +35,7 @@ import { EstadoCierreChip, VerificacionChip } from './estado-cierre';
  */
 export function CierreFicha({ id }: { id: CierreViajeId }) {
   const { data: cierre, isPending, isError, refetch } = useCierre(id);
+  const puedeEditar = useCan('combustible.cierre_viaje:editar');
   const esBorrador = cierre?.estado === 'borrador';
   const vivo = useResultadoCierre(id, esBorrador);
 
@@ -79,6 +81,7 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
         <p className="text-sm text-tinta-suave">El cierre no tiene resultado congelado (se anuló sin haberse aprobado).</p>
       )}
 
+      <TableroCierre camionId={cierre.camionId} desde={cierre.salidaTs} hasta={cierre.llegadaTs} editable={esBorrador && puedeEditar} />
       {cierre.estado === 'aprobado' && <VerificacionCierre id={cierre.id} />}
       {esBorrador && <BorradorForm cierre={cierre} />}
       <Acciones cierre={cierre} onRecargar={() => refetch()} />
@@ -168,6 +171,7 @@ const FUENTES: Record<string, string> = {
   manual: 'cargado a mano',
   cargas: 'odómetro de las cargas',
   tramos: 'tramos operativos',
+  tablero: 'tablero del camión (fotos)',
 };
 const fuente = (f: string | null) => (f ? (FUENTES[f] ?? f) : '—');
 

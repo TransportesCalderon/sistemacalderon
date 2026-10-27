@@ -3,7 +3,7 @@ import { ETIQUETA_ESTADO, ETIQUETA_RESOLUCION, etiquetaUnidad } from '@/modules/
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { conSigno, formatearNumero } from '@/shared/lib/numeros';
-import { GRUPOS_ECO, type ActaExtra, type EcoScore, type Nivel } from '../../domain/acta.types';
+import { GRUPOS_ECO, type ActaExtra, type EcoScore, type Nivel, type PuntajeCalderon } from '../../domain/acta.types';
 import type { CierreViaje } from '../../domain/cierre.types';
 import { BotonImprimir } from './boton-imprimir';
 
@@ -31,7 +31,7 @@ const MOVIMIENTO: Record<string, string> = {
   entrada_motivo: 'Entrada con motivo',
 };
 const ENTRADA = new Set(['recepcion_camion', 'entrada_motivo']);
-const MARCA_ECO: Record<string, string> = { volvo: 'Volvo Connect', renault: 'Renault Optifleet' };
+const MARCA_ECO: Record<string, string> = { volvo: 'Volvo Connect', renault: 'Renault Optifleet', tablero: 'Tablero del camión (foto)' };
 
 // Colores (los decide la base: migraciones 85 y 87)
 const TEXTO: Record<Nivel, string> = { verde: 'text-green-700', naranja: 'text-orange-600', rojo: 'text-red-600' };
@@ -200,6 +200,7 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
               <Renglon etiqueta="Horas de motor">{x.horasMotor === null ? '—' : `${formatearNumero(x.horasMotor, 1)} h`}</Renglon>
             </tbody>
           </table>
+          <BloqueCalderon p={x.puntajeCalderon} />
           <EcoResumen eco={eco} nivel={c.ecoTotal} />
         </Bloque>
       </div>
@@ -250,6 +251,38 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
         </p>
         {cierre.huella && <p className="shrink-0 font-mono">Huella {cierre.huella.slice(0, 12)}</p>}
       </footer>
+    </div>
+  );
+}
+
+/** Migración 90: Puntaje Calderón (0-100, igual para toda la flota) y de dónde salen sus puntos. */
+function BloqueCalderon({ p }: { p: PuntajeCalderon | null }) {
+  if (!p || p.total === null) {
+    return (
+      <p className="mt-2 text-neutral-600">
+        <b className="text-black">Puntaje Calderón:</b> faltan datos del viaje para calcularlo.
+      </p>
+    );
+  }
+  return (
+    <div className={cn('mt-2 flex items-center gap-3 rounded border-l-4 py-1 pl-2', p.nivel ? FONDO[p.nivel] : 'border-neutral-400')}>
+      <div className="w-[22mm] shrink-0 text-center">
+        <p className="text-[9px] leading-tight tracking-wide text-neutral-600 uppercase">Puntaje Calderón</p>
+        <p className={cn('text-2xl leading-none font-bold tabular-nums', p.nivel && TEXTO[p.nivel])}>{formatearNumero(p.total, 0)}</p>
+        <p className="text-[9px] text-neutral-600">de 100</p>
+      </div>
+      <ul className="flex-1 text-[9.5px]">
+        {p.partes.map((q) => (
+          <li key={q.codigo} className="flex justify-between gap-2">
+            <span>
+              {q.nombre} <span className="text-neutral-500">({formatearNumero(q.valor, 1)} {q.unidad})</span>
+            </span>
+            <span className={cn('font-medium tabular-nums', q.nivel && TEXTO[q.nivel])}>
+              {formatearNumero(q.puntos, 0)}/{formatearNumero(q.peso, 0)}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -306,6 +339,8 @@ function EcoPartes({ eco, niveles }: { eco: EcoScore | null; niveles: Record<str
     })),
     { titulo: 'Otros', partes: Object.entries(eco.componentes).flatMap(([k, v]) => (conocidas.has(k) ? [] : [{ k, nombre: k, v }])) },
   ].filter((g) => g.partes.length > 0);
+  // Tablero de otras marcas: sus partes no tienen grupo
+  if (grupos.length === 1 && grupos[0]?.titulo === 'Otros') grupos[0].titulo = 'Partes';
   // Dos columnas parejas: «Motor y caja» (la más larga) a la derecha; el resto a la izquierda
   const derecha = grupos.filter((g) => g.titulo === 'Motor y caja');
   const izquierda = grupos.filter((g) => g.titulo !== 'Motor y caja');

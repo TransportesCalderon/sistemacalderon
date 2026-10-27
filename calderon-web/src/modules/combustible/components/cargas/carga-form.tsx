@@ -7,6 +7,7 @@ import { useForm, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Camera, Gauge, LoaderCircle } from 'lucide-react';
 import { AvisoIA } from '@/modules/ia/aviso-ia';
+import { useLitrosSugeridos } from '@/modules/telemetria/queries/hooks';
 import { useLectorIA } from '@/modules/ia/use-lector-ia';
 import { idAleatorio, prepararArchivo, sha256Hex } from '@/shared/lib/archivo';
 import { browserDb } from '@/shared/supabase/browser';
@@ -123,6 +124,8 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
   const fechaLocal = watch('fechaHoraLocal');
   const fechaIso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(fechaLocal ?? '') ? horaLocalAIso(fechaLocal, zonaHoraria) : null;
   const telemetria = useOdometroTelemetria(camionId, fechaIso);
+  // Migración 89: lo que consumió desde el último llenado de corte (lo calcula la base)
+  const sugerido = useLitrosSugeridos(carga ? null : camionId, fechaIso);
   const [odometroAuto, setOdometroAuto] = useState<string | null>(null);
   const odometro = watch('odometroKm');
   useEffect(() => {
@@ -362,7 +365,13 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
             </button>
           )}
         </div>
-        <Campo label="Litros *" error={e.litros?.message}>
+        <Campo
+          label="Litros *"
+          error={e.litros?.message}
+          {...(sugerido.data?.litros != null
+            ? { ayuda: `Para llenar faltaban ≈ ${formatearNumero(sugerido.data.litros, 0)} L${sugerido.data.texto ? ` (${sugerido.data.texto})` : ''}.` }
+            : {})}
+        >
           <input inputMode="decimal" {...register('litros')} />
         </Campo>
         <Campo

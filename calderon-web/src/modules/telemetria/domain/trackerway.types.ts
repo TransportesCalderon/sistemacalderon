@@ -14,7 +14,19 @@ export interface EquipoTrackerway {
   otraApi: string | null;
   importa: boolean;
   ultimoDato: FechaISO | null;
+  /** Migración 91: qué datos del motor llegan (con el lector CAN); null si no hay lecturas recientes. */
+  motor: Record<string, boolean> | null;
 }
+
+/** Datos del motor que puede mandar el lector, en el orden en que se muestran. */
+export const DATOS_MOTOR: { clave: string; nombre: string }[] = [
+  { clave: 'combustible_total_l', nombre: 'Consumo' },
+  { clave: 'odometro_km', nombre: 'Odómetro' },
+  { clave: 'horas_motor', nombre: 'Horas' },
+  { clave: 'nivel_l', nombre: 'Nivel' },
+  { clave: 'rpm', nombre: 'RPM' },
+  { clave: 'programador', nombre: 'Programador' },
+];
 
 export interface CamionParaEnlazar {
   id: number;
@@ -51,6 +63,7 @@ export function parsearPanelTrackerway(raw: unknown): PanelTrackerway {
       otraApi: txt(e.otra_api),
       importa: e.importa === true,
       ultimoDato: txt(e.ultimo_dato) as FechaISO | null,
+      motor: e.motor && typeof e.motor === 'object' ? (e.motor as Record<string, boolean>) : null,
     })),
     camiones: ((j.camiones as Obj[] | undefined) ?? []).map((c) => ({
       id: Number(c.id),

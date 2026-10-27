@@ -6,6 +6,7 @@ import { browserDb } from '@/shared/supabase/browser';
 import { importarTelemetriaAhora } from '../actions/flota.actions';
 import { buscarEquiposTrackerway, enlazarEquipoTrackerway, importarEquipoTrackerway } from '../actions/trackerway.actions';
 import { conduccionRepository } from '../repositories/conduccion.repository';
+import { tableroRepository } from '../repositories/tablero.repository';
 import { trackerwayRepository } from '../repositories/trackerway.repository';
 import { telemetriaQueries as q } from './keys';
 
@@ -61,3 +62,20 @@ function useCambioTrackerway<A, R>(fn: (a: A) => Promise<R>) {
 export const useBuscarEquiposTrackerway = () => useCambioTrackerway(buscarEquiposTrackerway);
 export const useEnlazarEquipoTrackerway = () => useCambioTrackerway(enlazarEquipoTrackerway);
 export const useImportarEquipoTrackerway = () => useCambioTrackerway(importarEquipoTrackerway);
+
+/** Migración 89: litros que faltaban para llenar el camión a esa fecha y hora (sin fecha, ahora). */
+export const useLitrosSugeridos = (camionId: number | null, fechaHora: string | null) =>
+  useQuery({
+    queryKey: ['telemetria', 'sugeridos', camionId, fechaHora] as const,
+    queryFn: () => tableroRepository(browserDb()).sugeridos(camionId as number, fechaHora),
+    enabled: camionId !== null,
+    staleTime: 60_000,
+  });
+
+/** Migración 89: camiones que llegaron a una estación (últimas horas), para la oficina. */
+export const useAvisosCarga = (horas = 12) =>
+  useQuery({
+    queryKey: ['telemetria', 'avisos-carga', horas] as const,
+    queryFn: () => tableroRepository(browserDb()).avisos(horas),
+    refetchInterval: 120_000,
+  });

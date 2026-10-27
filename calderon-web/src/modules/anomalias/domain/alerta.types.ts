@@ -127,6 +127,10 @@ export const ETIQUETA_DATO: Record<string, string> = {
   pct: 'Porcentaje sobre lo normal',
   km_min: 'Km mínimos por día',
   dias_base: 'Días para calcular lo normal',
+  // Migración 89: carga mayor a lo consumido
+  sugerido_l: 'Faltaba para llenar (L)',
+  como: 'Cómo se calculó',
+  ultimo_llenado_ts: 'Último llenado de corte',
   // Migración 85: programador de velocidad cada 100 km
   odometro_desde_km: 'Desde el km (odómetro)',
   odometro_hasta_km: 'Hasta el km (odómetro)',

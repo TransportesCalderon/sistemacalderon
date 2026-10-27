@@ -11,7 +11,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, CONTROL_FILTRO } from '@/shared/ui/clases';
 import { haceTexto, minutosDesde } from '../domain/flota.types';
-import { estadoEquipo, type CamionParaEnlazar, type EquipoTrackerway, type EstadoEquipo } from '../domain/trackerway.types';
+import { DATOS_MOTOR, estadoEquipo, type CamionParaEnlazar, type EquipoTrackerway, type EstadoEquipo } from '../domain/trackerway.types';
 import { useBuscarEquiposTrackerway, useEnlazarEquipoTrackerway, useImportarEquipoTrackerway, usePanelTrackerway } from '../queries/hooks';
 
 const ESTADO: Record<EstadoEquipo, { texto: string; tono: Tono }> = {
@@ -75,7 +75,7 @@ export function EquiposTrackerwayPantalla() {
           ) : (
             <Seccion titulo={`Equipos (${data.equipos.length})`}>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-sm">
+                <table className="w-full min-w-[960px] text-sm">
                   <thead className="border-y border-borde bg-fondo">
                     <tr>
                       <th className={TH}>Equipo en Trackerway</th>
@@ -83,6 +83,7 @@ export function EquiposTrackerwayPantalla() {
                       <th className={TH}>Estado</th>
                       <th className={TH}>Traer datos</th>
                       <th className={TH}>Último dato</th>
+                      <th className={TH}>Datos del motor</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-borde">
@@ -211,6 +212,24 @@ function FilaEquipo({
       <td className={cn(TD, 'tabular-nums')}>
         {e.ultimoDato ? formatearFechaHora(e.ultimoDato, zonaHoraria) : '—'}
         <span className="block text-xs text-tinta-suave">{e.importa ? haceTexto(min) : ''}</span>
+      </td>
+      <td className={TD}>
+        {e.motor === null ? (
+          <span className="text-xs text-tinta-suave">—</span>
+        ) : DATOS_MOTOR.some((d) => e.motor?.[d.clave]) ? (
+          <span className="flex flex-wrap gap-1">
+            {DATOS_MOTOR.map((d) => (
+              <span
+                key={d.clave}
+                className={cn('rounded px-1.5 py-0.5 text-[11px]', e.motor?.[d.clave] ? 'bg-exito/10 text-exito' : 'bg-hover text-tinta-suave line-through')}
+              >
+                {d.nombre}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className="text-xs text-tinta-suave">Solo GPS (sin lector del motor)</span>
+        )}
       </td>
     </tr>
   );

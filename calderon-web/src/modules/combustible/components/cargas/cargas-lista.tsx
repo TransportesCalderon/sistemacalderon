@@ -16,6 +16,7 @@ import { useCamionesCombustible, useCargas } from '../../queries/hooks';
 import { useFiltrosUrl } from '../comun/filtros';
 import { Cargando, Encabezado, ErrorLectura, Paginador, Vacio } from '../comun/ui';
 import { DestinoCarga, RolViajeChips, SituacionCargaChip } from './chips-carga';
+import { AvisosCargaOficina } from '@/modules/telemetria/components/avisos-carga-oficina';
 
 /** Combustible > Cargas: lista con fronteras, rol en el viaje y situación. */
 export function CargasLista() {
@@ -37,6 +38,8 @@ export function CargasLista() {
           </Link>
         </Can>
       </Encabezado>
+
+      <AvisosCargaOficina />
 
       <section className={cn(TARJETA, 'flex flex-wrap items-center gap-2 p-3')} aria-label="Filtros">
         <select

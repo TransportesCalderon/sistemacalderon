@@ -5,7 +5,7 @@ import type { Json } from '@/shared/types/database.generated';
  * Lectura de tickets y comprobantes con IA (migración 64). La IA solo PROPONE: la base
  * llama a la API (la clave está en Vault), ordena la respuesta y avisa lo que no cierra.
  */
-export type TipoLectura = 'ticket_combustible' | 'comprobante_gasto';
+export type TipoLectura = 'ticket_combustible' | 'comprobante_gasto' | 'tablero_camion';
 
 export interface PropuestaIA {
   fecha?: string;

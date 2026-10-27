@@ -40,6 +40,8 @@ export interface ActaExtra {
   vsObjetivo: { litros: number; pct: number; nivel: 'normal' | 'naranja' | 'rojo'; naranjaPct: number; rojoPct: number } | null;
   /** Migración 85: Eco Score de Volvo Connect / Renault Optifleet entre la salida y la llegada. */
   ecoScore: EcoScore | null;
+  /** Migración 90: Puntaje Calderón del viaje (0-100, igual para toda la flota). */
+  puntajeCalderon: PuntajeCalderon | null;
   /** Migración 87: color de cada dato, decidido por la base. */
   colores: {
     objetivo: Nivel | null;
@@ -50,6 +52,12 @@ export interface ActaExtra {
 }
 
 export type Nivel = 'verde' | 'naranja' | 'rojo';
+
+export interface PuntajeCalderon {
+  total: number | null;
+  nivel: Nivel | null;
+  partes: { codigo: string; nombre: string; valor: number; unidad: string; peso: number; puntos: number; nivel: Nivel | null }[];
+}
 const nivel = (v: unknown): Nivel | null => (v === 'verde' || v === 'naranja' || v === 'rojo' ? v : null);
 
 export interface EcoScore {
@@ -204,6 +212,21 @@ export function parsearActa(d: unknown): ActaExtra {
           nivel: o(x.vs_objetivo).nivel === 'rojo' ? 'rojo' : o(x.vs_objetivo).nivel === 'naranja' ? 'naranja' : 'normal',
           naranjaPct: Number(o(x.vs_objetivo).naranja_pct),
           rojoPct: Number(o(x.vs_objetivo).rojo_pct),
+        }
+      : null,
+    puntajeCalderon: x.puntaje_calderon
+      ? {
+          total: n(o(x.puntaje_calderon).total),
+          nivel: nivel(o(x.puntaje_calderon).nivel),
+          partes: a(o(x.puntaje_calderon).partes).map((p) => ({
+            codigo: t(p.codigo) ?? '',
+            nombre: t(p.nombre) ?? '',
+            valor: Number(p.valor),
+            unidad: t(p.unidad) ?? '',
+            peso: Number(p.peso),
+            puntos: Number(p.puntos),
+            nivel: nivel(p.nivel),
+          })),
         }
       : null,
     colores: {

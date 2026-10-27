@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { FileText, FileUp, MapPin, Navigation, Package, Receipt, Truck } from 'lucide-react';
+import { FileText, FileUp, Gauge, MapPin, Navigation, Package, Receipt, Truck } from 'lucide-react';
 import { Cargando, ErrorLectura } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
@@ -10,6 +10,7 @@ import { formatearFechaHora } from '@/shared/lib/fechas';
 import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { enlaceMapa, type CargaAsignada, type Lugar } from '../domain/chofer.types';
 import { useMisCargas } from '../queries/hooks';
+import { AvisoCargaChofer } from '@/modules/telemetria/components/aviso-carga-chofer';
 import { CompartirUbicacion } from './compartir-ubicacion';
 import { ListaDocumentos, SubirDocumento } from './documentos';
 
@@ -40,6 +41,8 @@ export function MiCarga() {
         {data.chofer && <p className="text-sm text-tinta-suave">{data.chofer}</p>}
       </header>
 
+      <AvisoCargaChofer />
+
       <CompartirUbicacion habilitado={data.compartirUbicacion} intervaloS={data.intervaloS} />
 
       {data.cargas.length === 0 ? (
@@ -53,6 +56,9 @@ export function MiCarga() {
       )}
 
       <div className="grid gap-2 sm:grid-cols-2">
+        <Link href="/chofer/tablero" className={`${BOTON_SECUNDARIO} w-full sm:col-span-2`}>
+          <Gauge className="size-5" /> Fotos del tablero del camión
+        </Link>
         <Link href="/chofer/gastos" className={`${BOTON_SECUNDARIO} w-full`}>
           <Receipt className="size-5" /> Mis gastos y fondo
         </Link>

@@ -1599,6 +1599,17 @@ export type Database = {
       fn_importar_todas: { Args: { p_origen?: string }; Returns: Json };
       /** Migración 84. */
       fn_mapa_flota: { Args: { p_minutos?: number }; Returns: Json };
+      // Migración 88: tablero del camión (fotos leídas por IA)
+      fn_tablero_combinar: { Args: { p_lecturas: number[]; p_camion?: number | null }; Returns: Json };
+      fn_guardar_tablero: {
+        Args: { p_camion: number; p_datos: Json; p_lecturas?: number[]; p_fotos?: Json; p_tomada_en?: string | null };
+        Returns: number;
+      };
+      fn_anular_tablero: { Args: { p_id: number }; Returns: undefined };
+      fn_tableros: { Args: { p_camion?: number | null; p_dias?: number }; Returns: Json };
+      fn_tablero_contexto: { Args: Record<string, never>; Returns: Json };
+      // Migración 91: lector del motor de Trackerway
+      fn_trackerway_datos_motor: { Args: { p_dias?: number }; Returns: Json };
       // Migración 72: equipos GPS de Trackerway
       fn_trackerway_panel: { Args: Record<string, never>; Returns: Json };
       fn_trackerway_buscar: { Args: Record<string, never>; Returns: Json };
@@ -1687,6 +1698,13 @@ export type Database = {
       /** Migración 56: datos del acta del cierre para el chofer. */
       fn_acta_cierre: { Args: { p_cierre: number }; Returns: Json };
       fn_eco_score_cierre: { Args: { p_cierre: number }; Returns: Json };
+      // Migración 89: litros a cargar
+      fn_litros_sugeridos: { Args: { p_camion: number; p_hasta?: string | null }; Returns: Json };
+      fn_mis_avisos_carga: { Args: Record<string, never>; Returns: Json };
+      fn_aviso_carga_visto: { Args: { p_id: number }; Returns: undefined };
+      fn_avisos_carga: { Args: { p_horas?: number }; Returns: Json };
+      // Migración 90: Puntaje Calderón
+      fn_ranking_calderon: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       fn_verificar_cierre: { Args: { p_id: number }; Returns: Json };
       fn_aprobar_cierre: { Args: { p_id: number; p_version: number }; Returns: CierreViajeRow };
       fn_anular_cierre: { Args: { p_id: number; p_version: number; p_motivo: string }; Returns: CierreViajeRow };

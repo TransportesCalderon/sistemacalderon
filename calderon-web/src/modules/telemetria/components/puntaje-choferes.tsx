@@ -11,6 +11,7 @@ import { formatearFechaDia } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import type { PuntajeChofer } from '../domain/conduccion.types';
 import { useDiasChofer, usePuntajesChoferes } from '../queries/hooks';
+import { RankingCalderon } from './ranking-calderon';
 
 const f = (v: number | null, dec = 1, sufijo = '') => (v === null ? '—' : `${formatearNumero(v, dec)}${sufijo}`);
 
@@ -40,6 +41,8 @@ export function PuntajeChoferesPantalla() {
         frenadas fuertes, revoluciones altas y alertas. Con menos de 100 km en el período no hay puntaje.
       </p>
       <FiltroPeriodo p={p} onCambiar={setP} />
+      <RankingCalderon desde={p.desde} hasta={p.hasta} />
+      <h2 className="text-lg font-semibold text-tinta">Conducción según la telemetría</h2>
       {isPending ? (
         <Cargando texto="Calculando…" />
       ) : isError ? (

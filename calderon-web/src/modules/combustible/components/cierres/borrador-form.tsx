@@ -166,6 +166,7 @@ const FUENTE: Record<string, string> = {
   agregado_diario: 'lecturas de la telemetría dentro del viaje, aproximado',
   cargas: 'odómetro de las cargas',
   tramos: 'tramos operativos',
+  tablero: 'tablero del camión, fotos leídas por IA',
 };
 
 /** Migración 53: lo que toma el sistema sin ajuste manual, al lado de cada campo. */
