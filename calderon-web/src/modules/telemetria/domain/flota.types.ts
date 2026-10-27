@@ -30,6 +30,38 @@ export interface DetalleMapa {
   choferFuente: 'tarjeta' | 'asignado';
   viaje: { id: number; numero: string } | null;
   operacion: { numero: number; cliente: string; linea: string | null; estado: string; contenedor: string | null; producto: string | null } | null;
+  /** Migración 94: combustible que debería tener (último llenado − inyección + cargas), con el sensor del tanque principal. */
+  combustible: CombustibleActual | null;
+}
+
+export interface CombustibleActual {
+  litros: number | null;
+  pct: number | null;
+  capacidadL: number | null;
+  mochilaL: number | null;
+  /** 'inyeccion' (contador del motor), 'km' (km × rendimiento) o 'recien_lleno'. */
+  metodo: string | null;
+  desde: string | null;
+  motivo: string | null;
+  sensorPct: number | null;
+  sensorL: number | null;
+}
+
+const numONull = (v: unknown) => (v === null || v === undefined || v === '' ? null : Number(v));
+function parsearCombustible(v: unknown): CombustibleActual | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const c = v as Record<string, unknown>;
+  return {
+    litros: numONull(c.litros),
+    pct: numONull(c.pct),
+    capacidadL: numONull(c.capacidad_l),
+    mochilaL: numONull(c.mochila_l),
+    metodo: typeof c.metodo === 'string' ? c.metodo : null,
+    desde: typeof c.desde === 'string' ? c.desde : null,
+    motivo: typeof c.motivo === 'string' ? c.motivo : null,
+    sensorPct: numONull(c.sensor_pct),
+    sensorL: numONull(c.sensor_l),
+  };
 }
 
 export function parsearMapa(v: unknown): DetalleMapa[] {
@@ -48,6 +80,7 @@ export function parsearMapa(v: unknown): DetalleMapa[] {
         chofer: typeof d.chofer === 'string' ? d.chofer : null,
         choferFuente: d.chofer_fuente === 'tarjeta' ? 'tarjeta' : 'asignado',
         viaje: viaje ? { id: Number(viaje.id), numero: String(viaje.numero) } : null,
+        combustible: parsearCombustible(d.combustible),
         operacion: op
           ? {
               numero: Number(op.numero),

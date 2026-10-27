@@ -12,7 +12,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
-import { enlaceAlta, haceTexto, minutosDesde, senalDe, type Senal } from '../domain/flota.types';
+import { enlaceAlta, haceTexto, minutosDesde, senalDe, type CombustibleActual, type Senal } from '../domain/flota.types';
 import { useCorridasApi, useFlotaEnVivo, useImportarAhora, useMapaFlota, useVehiculosApi } from '../queries/hooks';
 import { MapaFlota } from './mapa-flota';
 import { useCelularesEnVivo } from '@/modules/chofer/queries/hooks';
@@ -36,6 +36,7 @@ export function FlotaPantalla() {
   const mapa = useMapaFlota(minutos);
   const detalles = mapa.data ?? [];
   const choferDe = new Map(detalles.map((d) => [d.camionId, d.chofer]));
+  const combustibleDe = new Map(detalles.map((d) => [d.camionId, d.combustible]));
   // Los equipos de Trackerway se enlazan en Configuración › Equipos GPS (migración 72)
   const sinEnlace = (vehiculos ?? []).filter((v) => v.camionId === null && v.marca !== 'trackerway');
 
@@ -144,8 +145,7 @@ export function FlotaPantalla() {
                           {c.motorEncendido === false && <span className="block text-xs text-tinta-suave">motor apagado</span>}
                         </td>
                         <td className={cn(TD, 'text-right tabular-nums')}>
-                          {c.nivelPct === null ? '—' : `${formatearNumero(c.nivelPct, 1)} %`}
-                          {c.nivelL !== null && <span className="block text-xs text-tinta-suave">≈ {formatearNumero(c.nivelL, 0)} L</span>}
+                          <CeldaCombustible calc={combustibleDe.get(c.camionId) ?? null} sensorPct={c.nivelPct} />
                         </td>
                         <td className={cn(TD, 'text-right tabular-nums')}>
                           {c.odometroKm === null ? '—' : `${formatearNumero(c.odometroKm, 0)} km`}
@@ -158,7 +158,7 @@ export function FlotaPantalla() {
               </table>
             </div>
             <p className="text-xs text-tinta-suave">
-              El nivel en litros se calcula con la capacidad útil de los tanques del camión (Flota &gt; Camiones &gt; Tanques).
+              Combustible: lo que debería tener el camión desde el último llenado a tanque lleno, restando lo que quemaron los inyectores (contador del motor) y sumando lo cargado después. Abajo, lo que marca el sensor, que mide solo el tanque principal.
             </p>
           </Seccion>
         </>
@@ -208,5 +208,28 @@ function Corridas({ zonaHoraria }: { zonaHoraria: string }) {
         ))}
       </ul>
     </Seccion>
+  );
+}
+
+/**
+ * Migración 94: lo que debería tener el camión (último llenado − lo que quemaron los inyectores + cargas)
+ * y, chico, lo que marca el sensor del tanque principal para comparar.
+ */
+function CeldaCombustible({ calc, sensorPct }: { calc: CombustibleActual | null; sensorPct: number | null }) {
+  return (
+    <>
+      {calc?.litros != null ? (
+        <>
+          <span className="font-medium text-tinta">≈ {formatearNumero(calc.litros, 0)} L</span>
+          {calc.pct != null && <span className="text-tinta-suave"> ({formatearNumero(calc.pct, 0)} %)</span>}
+          {calc.mochilaL ? <span className="block text-xs text-tinta-suave">con {formatearNumero(calc.mochilaL, 0)} L de mochila</span> : null}
+        </>
+      ) : (
+        <span className="text-xs text-tinta-suave" title={calc?.motivo ?? undefined}>
+          {calc?.motivo ? 'Sin cálculo' : '—'}
+        </span>
+      )}
+      {sensorPct !== null && <span className="block text-xs text-tinta-suave">sensor principal {formatearNumero(sensorPct, 0)} %</span>}
+    </>
   );
 }

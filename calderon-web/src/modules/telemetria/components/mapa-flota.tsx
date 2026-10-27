@@ -141,7 +141,16 @@ export function MapaFlota({
         c.velocidadKmh === null ? '—' : `<b>${formatearNumero(c.velocidadKmh, 0)} km/h</b>${c.motorEncendido === false ? ' · motor apagado' : ''}`,
       ),
       fila('Última posición', c.ts ? `${escapar(formatearFechaHora(c.ts, zonaHoraria))} <span style="color:#64748b">(${haceTexto(min)})</span>` : '—'),
-      fila('Combustible', c.nivelPct === null ? '—' : `${formatearNumero(c.nivelPct, 0)} %${c.nivelL !== null ? ` · ≈ ${formatearNumero(c.nivelL, 0)} L` : ''}`),
+      fila(
+        'Combustible',
+        d?.combustible?.litros != null
+          ? `<b>≈ ${formatearNumero(d.combustible.litros, 0)} L</b>${d.combustible.pct != null ? ` (${formatearNumero(d.combustible.pct, 0)} %)` : ''}${
+              d.combustible.mochilaL ? ` · mochila ${formatearNumero(d.combustible.mochilaL, 0)} L` : ''
+            }${c.nivelPct !== null ? `<br><span style="color:#64748b">Sensor tanque principal: ${formatearNumero(c.nivelPct, 0)} %</span>` : ''}`
+          : c.nivelPct === null
+            ? '—'
+            : `Sensor tanque principal: ${formatearNumero(c.nivelPct, 0)} %${c.nivelL !== null ? ` · ≈ ${formatearNumero(c.nivelL, 0)} L` : ''}`,
+      ),
       fila('Odómetro', c.odometroKm === null ? '—' : `${formatearNumero(c.odometroKm, 0)} km`),
     ];
     if (d?.operacion) {
