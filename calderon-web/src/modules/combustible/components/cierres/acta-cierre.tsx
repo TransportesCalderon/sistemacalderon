@@ -3,7 +3,7 @@ import { ETIQUETA_ESTADO, ETIQUETA_RESOLUCION, etiquetaUnidad } from '@/modules/
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { conSigno, formatearNumero } from '@/shared/lib/numeros';
-import { PARTE_ECO, type ActaExtra } from '../../domain/acta.types';
+import { escalaEco, PARTE_ECO, type ActaExtra } from '../../domain/acta.types';
 import type { CierreViaje } from '../../domain/cierre.types';
 import { BotonImprimir } from './boton-imprimir';
 
@@ -55,7 +55,7 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
   const vsObjetivo = x.vsObjetivo?.litros ?? null;
   const nivel = x.vsObjetivo?.nivel ?? 'normal';
   const eco = x.ecoScore;
-  const partesEco = eco ? Object.entries(eco.componentes).filter(([k]) => PARTE_ECO[k]) : [];
+  const partesEco = eco ? Object.keys(PARTE_ECO).flatMap((k) => (eco.componentes[k] === undefined ? [] : [[k, eco.componentes[k]] as const])) : [];
   const ajustes = (x.entradasL ?? 0) > 0 || (x.salidasL ?? 0) > 0 || (x.faltanteLlegadaL ?? 0) > 0 || (x.faltanteSalidaL ?? 0) > 0;
 
   return (
@@ -121,11 +121,11 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
             <span className="text-neutral-600">{eco?.motivo ?? 'Sin dato'}</span>
           ) : (
             <>
-              <b>{formatearNumero(eco.total, 1)}</b> de 100
+              <b>{formatearNumero(eco.total, 1)}</b> de {escalaEco(eco.total)}
               {partesEco.length > 0 && (
                 <span className="text-neutral-600">
                   {' · '}
-                  {partesEco.map(([k, v]) => `${PARTE_ECO[k]} ${formatearNumero(v, 0)}`).join(' · ')}
+                  {partesEco.map(([k, v]) => `${PARTE_ECO[k]} ${formatearNumero(v, 1)}`).join(' · ')}
                 </span>
               )}
             </>

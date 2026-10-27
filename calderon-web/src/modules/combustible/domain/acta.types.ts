@@ -51,20 +51,23 @@ export interface EcoScore {
   hasta: string | null;
 }
 
-/** Nombres de las partes del Eco Score (las que no están acá no se muestran). */
+/** Nombres de las partes del Eco Score, en este orden (las que no están acá no se muestran). */
 export const PARTE_ECO: Record<string, string> = {
-  anticipationAndBraking: 'Anticipación y frenado',
   anticipation: 'Anticipación',
   braking: 'Frenado',
+  anticipationAndBraking: 'Anticipación y frenado',
+  coasting: 'Inercia',
   engineAndGearUtilization: 'Uso del motor y los cambios',
   engineAndGearUtilisation: 'Uso del motor y los cambios',
+  withinEconomy: 'En zona económica',
   speedAdaption: 'Adaptación de la velocidad',
   speedAdaptation: 'Adaptación de la velocidad',
-  standstill: 'Detenido (ralentí)',
-  idling: 'Ralentí',
   cruiseControl: 'Programador de velocidad',
-  coasting: 'Rodar en punto muerto',
+  idling: 'Ralentí',
 };
+
+/** La API de Volvo y Renault puntúa de 0 a 10; si algún día llega de 0 a 100, se muestra así. */
+export const escalaEco = (total: number) => (total <= 10 ? 10 : 100);
 
 export interface ObjetivoViaje {
   l100km: number | null;
