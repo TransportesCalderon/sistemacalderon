@@ -17,6 +17,8 @@ export interface ViajePorCerrar {
   dias: number | null;
   etapa: EtapaCierre;
   faltan: string[];
+  /** Migración 82: lo que falta del viaje del chofer (operaciones, canon, km). No frena el cierre de combustible. */
+  faltanViaje: string[];
   operacionesParaAgregar: number;
   cierreId: number | null;
   cierreNumero: string | null;
@@ -47,6 +49,7 @@ export const parsearPorCerrar = (v: Json | unknown): ViajePorCerrar[] =>
       dias: n(o.dias),
       etapa: (s(o.etapa) ?? 'faltan_datos') as EtapaCierre,
       faltan: Array.isArray(o.faltan) ? o.faltan.map(String) : [],
+      faltanViaje: Array.isArray(o.faltan_viaje) ? o.faltan_viaje.map(String) : [],
       operacionesParaAgregar: n(o.operaciones_para_agregar) ?? 0,
       cierreId: n(o.cierre_id),
       cierreNumero: s(o.cierre_numero),
