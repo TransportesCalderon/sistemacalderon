@@ -31,6 +31,8 @@ import {
 import { CostosViaje } from './costos-viaje';
 import { Lista } from './viajes-pantalla';
 import { SelectorItems, SituacionViajeChoferChip, formatoImporte, formatoNumero, type ItemElegido } from './viaje-chofer-comun';
+import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 type Resultado = { ok: true } | { ok: false; error: ErrorAccion };
 
@@ -41,15 +43,18 @@ type Resultado = { ok: true } | { ok: false; error: ErrorAccion };
  */
 export function ViajeChoferFicha({ id }: { id: number }) {
   const { data: v, isPending, isError, refetch } = useViajeChofer(id);
+  useNombreFicha(v ? `${v.numero} · ${v.camion.patente}` : null);
   if (isPending) return <Cargando texto="Cargando el viaje…" />;
   if (isError || !v) return <ErrorLectura texto="No se pudo cargar el viaje." onReintentar={() => refetch()} />;
   const abierto = v.estado === 'abierto';
 
   return (
     <div className="space-y-5">
-      <Link href="/operacion/viajes-chofer" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
-        <ArrowLeft className="size-4" /> Viajes de chofer
-      </Link>
+      <SoloEnPagina>
+        <Link href="/operacion/viajes-chofer" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
+          <ArrowLeft className="size-4" /> Viajes de chofer
+        </Link>
+      </SoloEnPagina>
       <Cabecera v={v} />
       {abierto && v.pendientes.length > 0 && (
         <section role="status" className="space-y-1 rounded-xl border border-alerta/30 bg-alerta-suave p-4 text-sm">
@@ -160,7 +165,7 @@ function Recorrido({ v }: { v: ViajeChofer }) {
         {v.cargas.map((c) => (
           <li key={c.id} className="relative">
             <span className={cn('absolute top-1.5 -left-[27px] size-3 rounded-full border-2 border-panel', c.momento === 'viaje' ? 'bg-borde' : c.momento === 'salida' ? 'bg-marca' : 'bg-exito')} />
-            <Link href={`/combustible/cargas/${c.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-2 py-1 text-sm hover:bg-hover">
+            <NombreEnlazado tipo="carga" id={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-2 py-1 text-sm hover:bg-hover">
               <span className={cn('rounded px-1.5 py-0.5 text-xs font-medium', MOMENTO[c.momento].clase)}>{MOMENTO[c.momento].etiqueta}</span>
               <span className="whitespace-nowrap">{formatearFechaHora(c.fechaHora, zonaHoraria)}</span>
               <span className="text-tinta-suave">{c.estacion ?? 'Sin estación'}</span>
@@ -168,7 +173,7 @@ function Recorrido({ v }: { v: ViajeChofer }) {
               {c.tanqueLleno && <Chip tono="marca">Tanque lleno</Chip>}
               {c.equipoFrio && <Chip tono="neutro">Equipo de frío</Chip>}
               {c.odometroKm !== null && <span className="text-xs text-tinta-suave">{formatoNumero(c.odometroKm)} km</span>}
-            </Link>
+            </NombreEnlazado>
           </li>
         ))}
         {!llegada && v.estado === 'abierto' && (
@@ -248,9 +253,9 @@ function CombustibleCalculado({ cierreId }: { cierreId: CierreViajeId }) {
       titulo="Combustible del viaje"
       acciones={
         cierre && (
-          <Link href={`/combustible/cierres/${cierre.id}`} className="text-sm text-marca hover:underline">
+          <NombreEnlazado tipo="cierre" id={cierre.id} className="text-sm text-marca hover:underline">
             Cierre {cierre.numero} ({cierre.estado === 'aprobado' ? 'aprobado' : cierre.estado === 'borrador' ? 'falta aprobar' : cierre.estado}) →
-          </Link>
+          </NombreEnlazado>
         )
       }
     >
@@ -383,9 +388,14 @@ function FilaItem({ i, puede, editando, onEditar }: { i: ItemViaje; puede: boole
         <td className="px-2 py-2">
           {i.servicioId ? (
             <>
-              <Link href={`/operacion/operaciones?op=${i.numeroOperacion}`} className="font-mono font-semibold text-marca hover:underline">
+              <NombreEnlazado
+                tipo="operacion"
+                id={i.servicioId}
+                alternativa={`/operacion/operaciones?op=${i.numeroOperacion}`}
+                className="font-mono font-semibold text-marca hover:underline"
+              >
                 N° {i.numeroOperacion}
-              </Link>{' '}
+              </NombreEnlazado>{' '}
               · {i.cliente}
               {i.contenedor && <span className="font-mono text-tinta-suave"> · {i.contenedor}</span>}
             </>
@@ -395,11 +405,11 @@ function FilaItem({ i, puede, editando, onEditar }: { i: ItemViaje; puede: boole
           {i.relevo.length > 0 && (
             <span className="mt-1 flex flex-wrap gap-1">
               {i.relevo.map((r) => (
-                <Link key={r.viajeId} href={`/operacion/viajes-chofer/${r.viajeId}`} title="Esta operación está también en otro viaje: revisá que cada chofer tenga su tramo">
+                <NombreEnlazado tipo="viaje" id={r.viajeId} key={r.viajeId} title="Esta operación está también en otro viaje: revisá que cada chofer tenga su tramo">
                   <Chip tono="alerta">
                     Relevo con {r.numero} · {r.chofer}
                   </Chip>
-                </Link>
+                </NombreEnlazado>
               ))}
             </span>
           )}

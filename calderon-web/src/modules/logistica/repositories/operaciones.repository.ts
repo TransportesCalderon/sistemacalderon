@@ -1,5 +1,6 @@
 import { ConflictoVersion, RepoError, type Db } from '@/shared/repository/types';
 import type { FechaDia, FechaISO } from '@/shared/types/dominio';
+import type { OperacionRow } from '@/shared/types/database.generated';
 import type {
   AltaDatos,
   AvanzarDatos,
@@ -42,6 +43,72 @@ const datosOperacion = (d: OperacionDatos) => ({
 });
 
 /** Operaciones de Logística (migraciones 41 y 42). Cada acción es una función de la base; su mensaje se muestra tal cual. */
+/** Fila de ops.fn_operaciones / ops.fn_operacion (mismas columnas) como la usa la web. */
+function aOperacion(o: OperacionRow): Operacion {
+  return {
+    servicioId: o.servicio_id,
+    numero: o.numero_operacion,
+    fecha: o.fecha_operacion as FechaDia,
+    tipo: o.tipo_operacion,
+    estado: o.estado,
+    estadoLogistica: esEstadoLogistica(o.estado_logistica) ? o.estado_logistica : 'programado',
+    clienteId: o.cliente_id,
+    cliente: o.cliente,
+    lineaId: o.linea_id,
+    linea: o.linea,
+    lugarRetiroId: o.lugar_retiro_id,
+    lugarRetiro: o.lugar_retiro,
+    origenId: o.origen_id,
+    origen: o.origen,
+    lugarAduanaId: o.lugar_aduana_id,
+    lugarAduana: o.lugar_aduana,
+    destinoId: o.destino_id,
+    destino: o.destino,
+    fechaPresentacion: o.fecha_presentacion as FechaISO | null,
+    fechaEntrega: o.fecha_entrega as FechaISO | null,
+    inicioReal: o.inicio_real as FechaISO | null,
+    finReal: o.fin_real as FechaISO | null,
+    producto: o.producto,
+    pesoKg: o.peso_kg === null ? null : Number(o.peso_kg),
+    tipoContenedor: o.tipo_contenedor,
+    contenedor: o.contenedor,
+    contenedorVacio: o.contenedor_vacio === true,
+    redline: o.redline ?? null,
+    precinto: o.precinto,
+    taraMaxDias: o.tara_max_dias,
+    booking: o.booking,
+    referenciaCliente: o.referencia_cliente,
+    buque: o.buque,
+    crt: o.crt,
+    mic: o.mic,
+    observacion: o.observacion,
+    motivoCancelacion: o.motivo_cancelacion,
+    transportistaId: o.transportista_id,
+    transportista: o.transportista,
+    terceroChofer: o.tercero_chofer,
+    terceroTractor: o.tercero_tractor,
+    terceroSemi: o.tercero_semi,
+    tramoId: o.tramo_id,
+    tramoEstado: o.tramo_estado,
+    paso: o.paso,
+    semiId: o.semi_id,
+    semi: o.semi,
+    camionId: o.camion_id,
+    tractor: o.tractor,
+    choferId: o.chofer_id,
+    chofer: o.chofer,
+    hitos: (Array.isArray(o.hitos) ? o.hitos : []) as unknown as Hito[],
+    versionFila: o.version_fila,
+    siguiente: o.siguiente && esPasoOperacion(o.siguiente) ? o.siguiente : null,
+    posibles: (o.posibles ?? []).filter(esPasoOperacion),
+    activa: o.activa ?? ['sin_confirmar', 'planificado', 'en_curso'].includes(o.estado),
+    puedeVolver: o.puede_volver === true,
+    gensetId: o.genset_id ?? null,
+    genset: o.genset ?? null,
+    facturacion: parsearFacturacionOp(o.facturacion),
+  };
+}
+
 export const operacionesRepository = (db: Db) => {
   const ops = () => db.schema('ops');
   const mae = () => db.schema('mae');
@@ -55,71 +122,18 @@ export const operacionesRepository = (db: Db) => {
     async listar(desde: FechaDia | null, hasta: FechaDia | null): Promise<Operacion[]> {
       const { data, error } = await ops().rpc('fn_operaciones', { p_desde: desde, p_hasta: hasta });
       if (error) throw new RepoError(error);
-      return (data ?? []).map((o) => ({
-        servicioId: o.servicio_id,
-        numero: o.numero_operacion,
-        fecha: o.fecha_operacion as FechaDia,
-        tipo: o.tipo_operacion,
-        estado: o.estado,
-        estadoLogistica: esEstadoLogistica(o.estado_logistica) ? o.estado_logistica : 'programado',
-        clienteId: o.cliente_id,
-        cliente: o.cliente,
-        lineaId: o.linea_id,
-        linea: o.linea,
-        lugarRetiroId: o.lugar_retiro_id,
-        lugarRetiro: o.lugar_retiro,
-        origenId: o.origen_id,
-        origen: o.origen,
-        lugarAduanaId: o.lugar_aduana_id,
-        lugarAduana: o.lugar_aduana,
-        destinoId: o.destino_id,
-        destino: o.destino,
-        fechaPresentacion: o.fecha_presentacion as FechaISO | null,
-        fechaEntrega: o.fecha_entrega as FechaISO | null,
-        inicioReal: o.inicio_real as FechaISO | null,
-        finReal: o.fin_real as FechaISO | null,
-        producto: o.producto,
-        pesoKg: o.peso_kg === null ? null : Number(o.peso_kg),
-        tipoContenedor: o.tipo_contenedor,
-        contenedor: o.contenedor,
-        contenedorVacio: o.contenedor_vacio === true,
-        redline: o.redline ?? null,
-        precinto: o.precinto,
-        taraMaxDias: o.tara_max_dias,
-        booking: o.booking,
-        referenciaCliente: o.referencia_cliente,
-        buque: o.buque,
-        crt: o.crt,
-        mic: o.mic,
-        observacion: o.observacion,
-        motivoCancelacion: o.motivo_cancelacion,
-        transportistaId: o.transportista_id,
-        transportista: o.transportista,
-        terceroChofer: o.tercero_chofer,
-        terceroTractor: o.tercero_tractor,
-        terceroSemi: o.tercero_semi,
-        tramoId: o.tramo_id,
-        tramoEstado: o.tramo_estado,
-        paso: o.paso,
-        semiId: o.semi_id,
-        semi: o.semi,
-        camionId: o.camion_id,
-        tractor: o.tractor,
-        choferId: o.chofer_id,
-        chofer: o.chofer,
-        hitos: (Array.isArray(o.hitos) ? o.hitos : []) as unknown as Hito[],
-        versionFila: o.version_fila,
-        siguiente: o.siguiente && esPasoOperacion(o.siguiente) ? o.siguiente : null,
-        posibles: (o.posibles ?? []).filter(esPasoOperacion),
-        activa: o.activa ?? ['sin_confirmar', 'planificado', 'en_curso'].includes(o.estado),
-        puedeVolver: o.puede_volver === true,
-        gensetId: o.genset_id ?? null,
-        genset: o.genset ?? null,
-        facturacion: parsearFacturacionOp(o.facturacion),
-      }));
+      return (data ?? []).map(aOperacion);
     },
 
     /** Alta en un paso: varias iguales o una con su equipo. Devuelve los ids. */
+    /** Una operación por su id (migración 114, ficha del panel); null si no existe. */
+    async obtener(servicio: number): Promise<Operacion | null> {
+      const { data, error } = await ops().rpc('fn_operacion', { p_servicio: servicio });
+      if (error) throw new RepoError(error);
+      const fila = (data ?? [])[0];
+      return fila ? aOperacion(fila) : null;
+    },
+
     async alta(d: AltaDatos): Promise<number[]> {
       const { data, error } = await ops().rpc('fn_alta_operaciones', {
         p_cantidad: d.cantidad,

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { Fuel, PlugZap, Pencil, Plus, Trash2, Unplug } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
@@ -15,6 +14,7 @@ import type { GensetCombustible } from '@/modules/combustible/domain/genset.type
 import type { Genset } from '../domain/pizarra.types';
 import { useEliminarGenset, useGensets, useGuardarGenset, useInstalarGenset, useRetirarGenset, useSemis } from '../queries/hooks';
 import { diaHora } from './formato';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 type Modo = 'editar' | 'eliminar' | 'instalar' | 'retirar';
 type Abierto = { modo: 'nuevo' } | { modo: Modo; g: Genset } | null;
@@ -100,9 +100,9 @@ function FilaGenset({
     <>
       <tr>
         <td className={cn(TD, 'font-mono font-semibold')}>
-          <Link href={`/flota/gensets/${g.id}`} className="text-marca hover:underline">
+          <NombreEnlazado tipo="genset" id={g.id} className="text-marca hover:underline">
             {g.codigo}
-          </Link>
+          </NombreEnlazado>
         </td>
         <td className={TD}>{[g.marca, g.modelo].filter(Boolean).join(' ') || '—'}</td>
         <td className={cn(TD, 'font-mono text-xs')}>{g.numeroSerie ?? '—'}</td>
@@ -117,7 +117,7 @@ function FilaGenset({
           )}
         </td>
         <td className={TD}>
-          <Link href={`/flota/gensets/${g.id}`} className="inline-flex flex-wrap items-center gap-1.5 hover:underline">
+          <NombreEnlazado tipo="genset" id={g.id} className="inline-flex flex-wrap items-center gap-1.5 hover:underline">
             <Fuel className="size-3.5 text-tinta-suave" />
             {c?.porCerrar ? <Chip tono="alerta">{c.porCerrar} para cerrar</Chip> : null}
             {c?.vueltaDesde ? (
@@ -128,7 +128,7 @@ function FilaGenset({
             ) : (
               !c?.porCerrar && <span className="text-xs text-tinta-suave">Ver combustible</span>
             )}
-          </Link>
+          </NombreEnlazado>
         </td>
         <td className={TD}>{g.estado === 'activo' ? <Chip tono="exito">Activo</Chip> : <Chip tono="neutro">Baja</Chip>}</td>
         {puede && (

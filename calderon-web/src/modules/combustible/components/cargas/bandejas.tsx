@@ -15,6 +15,7 @@ import { TAMANO_PAGINA_BANDEJA, type CargaEnBandeja } from '../../repositories/d
 import { useBandeja, useValidarCarga } from '../../queries/hooks';
 import { AccionConMotivo, Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Paginador, Vacio } from '../comun/ui';
 import { AdjuntarTicket } from './ticket-carga';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 const TITULO: Record<Bandeja, { titulo: string; vacio: string }> = {
   por_validar: { titulo: 'Cargas por validar', vacio: 'No hay cargas pendientes de validar.' },
@@ -92,9 +93,9 @@ export function BandejaCargas({ tipo }: { tipo: Bandeja }) {
                     <Fragment key={c.id}>
                       <tr>
                         <td className={TD}>
-                          <Link href={`/combustible/cargas/${c.id}`} className="font-medium text-marca hover:underline">
+                          <NombreEnlazado tipo="carga" id={c.id} className="font-medium text-marca hover:underline">
                             #{c.id}
-                          </Link>
+                          </NombreEnlazado>
                         </td>
                         <td className={cn(TD, 'whitespace-nowrap tabular-nums')}>{formatearFechaHora(c.fechaHora, zonaHoraria)}</td>
                         <td className={cn(TD, 'font-mono')}>{c.camionPatente ?? '—'}</td>

@@ -27,6 +27,8 @@ import { AccionConMotivo, Cargando, Dato, DiferenciaL, ErrorBase, ErrorLectura, 
 import { TableroCierre } from '@/modules/telemetria/components/tablero-cierre';
 import { BorradorForm } from './borrador-form';
 import { EstadoCierreChip, VerificacionChip } from './estado-cierre';
+import { SoloEnPagina, useFicha, useNombreFicha } from '@/modules/core/fichas/contexto';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 /**
  * Ficha del cierre de viaje. Todo número sale de la base: en el borrador, de
@@ -35,6 +37,7 @@ import { EstadoCierreChip, VerificacionChip } from './estado-cierre';
  */
 export function CierreFicha({ id }: { id: CierreViajeId }) {
   const { data: cierre, isPending, isError, refetch } = useCierre(id);
+  useNombreFicha(cierre?.numero);
   const puedeEditar = useCan('combustible.cierre_viaje:editar');
   const esBorrador = cierre?.estado === 'borrador';
   const vivo = useResultadoCierre(id, esBorrador);
@@ -46,9 +49,11 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
 
   return (
     <div className="space-y-5">
-      <Link href="/combustible/cierres" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
-        <ArrowLeft className="size-4" /> Cierres de viaje
-      </Link>
+      <SoloEnPagina>
+        <Link href="/combustible/cierres" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
+          <ArrowLeft className="size-4" /> Cierres de viaje
+        </Link>
+      </SoloEnPagina>
       <header className="flex flex-wrap items-center gap-2">
         <h1 className="text-2xl font-semibold text-tinta">Cierre {cierre.numero}</h1>
         <EstadoCierreChip estado={cierre.estado} />
@@ -115,14 +120,14 @@ function Identificacion({ cierre, resultado }: { cierre: CierreViaje; resultado:
         </Dato>
         <Dato etiqueta="Línea">{resultado?.lineaViaje ?? '—'}</Dato>
         <Dato etiqueta="Salida (corte inicial)">
-          <Link href={`/combustible/cargas/${cierre.cargaSalidaId}`} className="text-marca hover:underline">
+          <NombreEnlazado tipo="carga" id={cierre.cargaSalidaId} className="text-marca hover:underline">
             {formatearFechaHora(cierre.salidaTs, zonaHoraria)}
-          </Link>
+          </NombreEnlazado>
         </Dato>
         <Dato etiqueta="Llegada (corte final)">
-          <Link href={`/combustible/cargas/${cierre.cargaLlegadaId}`} className="text-marca hover:underline">
+          <NombreEnlazado tipo="carga" id={cierre.cargaLlegadaId} className="text-marca hover:underline">
             {formatearFechaHora(cierre.llegadaTs, zonaHoraria)}
-          </Link>
+          </NombreEnlazado>
         </Dato>
         <Dato etiqueta="Creado">{formatearFechaHora(cierre.creadoEn, zonaHoraria)}</Dato>
         {cierre.aprobadoEn && (
@@ -346,6 +351,7 @@ function VerificacionCierre({ id }: { id: CierreViajeId }) {
 /** Acciones del ciclo de vida. Quién puede y cuándo lo decide la base; acá solo se muestra su error. */
 function Acciones({ cierre, onRecargar }: { cierre: CierreViaje; onRecargar: () => void }) {
   const router = useRouter();
+  const ficha = useFicha();
   const puedeEditar = useCan('combustible.cierre_viaje:editar');
   const puedeTransicionar = useCan('combustible.cierre_viaje:transicionar');
   const limites = useActualizarLimites();
@@ -415,7 +421,9 @@ function Acciones({ cierre, onRecargar }: { cierre: CierreViaje; onRecargar: () 
         onClick={async () => {
           setError(null);
           const r = await crear.mutateAsync({ camionId: cierre.camionId, cargaSalidaId: cierre.cargaSalidaId });
-          if (r.ok) router.push(`/combustible/cierres/${r.data}`);
+          // En el panel se abre el cierre nuevo en el mismo panel; en la página, su página
+          if (r.ok && ficha) ficha.abrir({ tipo: 'cierre', id: r.data });
+          else if (r.ok) router.push(`/combustible/cierres/${r.data}`);
           else setError(r.error);
         }}
       >

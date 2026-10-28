@@ -20,6 +20,7 @@ import { ETIQUETA_SITUACION_TRACTOR, SITUACIONES_TRACTOR, type SituacionTractor,
 import { useAsignarTractor, useIniciarViajeChofer, useOpcionesViaje, useTractores } from '../queries/hooks';
 import { Lista } from './viajes-pantalla';
 import { SelectorItems, SituacionTractorChip, type ItemElegido } from './viaje-chofer-comun';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 type Abierto = { camionId: number; que: 'iniciar' | 'chofer' } | null;
 
@@ -131,10 +132,10 @@ function TarjetaTractor({ t, abierto, onAbrir }: { t: Tractor; abierto: 'iniciar
       </div>
 
       {t.viajeId ? (
-        <Link href={`/operacion/viajes-chofer/${t.viajeId}`} className="rounded-lg bg-marca-suave px-3 py-2 text-sm text-marca hover:underline">
+        <NombreEnlazado tipo="viaje" id={t.viajeId} className="rounded-lg bg-marca-suave px-3 py-2 text-sm text-marca hover:underline">
           Viaje <span className="font-mono font-semibold">{t.viajeNumero}</span> desde {formatearFechaHora(t.viajeSalida, zonaHoraria)}
           {t.viajeChofer && t.viajeChofer !== t.chofer && <span className="block text-xs">con {t.viajeChofer}</span>}
-        </Link>
+        </NombreEnlazado>
       ) : (
         <p className="flex items-center gap-1.5 text-xs text-tinta-suave">
           <Fuel className="size-3.5" />

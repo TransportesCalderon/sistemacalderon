@@ -13,6 +13,7 @@ import { AYUDA_ESTADO_CLIENTE, textoCondicionPago } from '../../domain/cliente.t
 import { formatearIdentificadorFiscal, nombreIdentificador } from '../../domain/identificador-fiscal';
 import { useCatalogosComercial, useCliente } from '../../queries/hooks';
 import { EstadoClienteChip } from './estado-cliente';
+import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
 
 /** Pestañas de la ficha según la especificación (P-CLI-01). Solo Datos está disponible en esta etapa. */
 const PESTANAS = ['Datos', 'Servicios', 'Ingresos', 'Rentabilidad mensual', 'Auditoría'] as const;
@@ -22,6 +23,7 @@ export function ClienteFicha({ id }: { id: ClienteId }) {
   const { zonaHoraria } = useSesion();
   const { data: cliente, isPending, isError, refetch } = useCliente(id);
   const { data: catalogos } = useCatalogosComercial();
+  useNombreFicha(cliente?.razonSocial);
 
   if (isPending) {
     return (
@@ -40,9 +42,11 @@ export function ClienteFicha({ id }: { id: ClienteId }) {
               Reintentar
             </button>
           )}
-          <Link href="/comercial/clientes" className="text-marca hover:underline">
-            Volver a la lista
-          </Link>
+          <SoloEnPagina>
+            <Link href="/comercial/clientes" className="text-marca hover:underline">
+              Volver a la lista
+            </Link>
+          </SoloEnPagina>
         </div>
       </div>
     );
@@ -55,9 +59,11 @@ export function ClienteFicha({ id }: { id: ClienteId }) {
 
   return (
     <div className="space-y-5">
-      <Link href="/comercial/clientes" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
-        <ArrowLeft className="size-4" /> Clientes
-      </Link>
+      <SoloEnPagina>
+        <Link href="/comercial/clientes" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
+          <ArrowLeft className="size-4" /> Clientes
+        </Link>
+      </SoloEnPagina>
 
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">

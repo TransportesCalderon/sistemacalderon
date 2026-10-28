@@ -17,20 +17,25 @@ import { useCarga, useEliminarCarga, useResolverSolicitud, useRetirarSolicitud, 
 import { AccionConMotivo, Cargando, Chip, Dato, ErrorBase, ErrorLectura, Seccion } from '../comun/ui';
 import { DestinoCarga, RolViajeChips, SituacionCargaChip } from './chips-carga';
 import { TicketCarga } from './ticket-carga';
+import { SoloEnPagina, useFicha, useNombreFicha } from '@/modules/core/fichas/contexto';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 /** Ficha de carga: datos, corte de viaje (con su faltante) y anulación con aprobación de otro usuario. */
 export function CargaFicha({ id }: { id: CargaId }) {
   const { zonaHoraria } = useSesion();
   const puedeEditar = useCan('combustible.cargas:editar');
   const { data: carga, isPending, isError, refetch } = useCarga(id);
+  useNombreFicha(carga ? `#${carga.id}` : null);
   if (isPending) return <Cargando texto="Cargando la carga…" />;
   if (isError || !carga) return <ErrorLectura texto={isError ? 'No se pudo cargar la carga.' : 'La carga no existe.'} onReintentar={() => refetch()} />;
 
   return (
     <div className="space-y-5">
-      <Link href="/combustible/cargas" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
-        <ArrowLeft className="size-4" /> Cargas
-      </Link>
+      <SoloEnPagina>
+        <Link href="/combustible/cargas" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
+          <ArrowLeft className="size-4" /> Cargas
+        </Link>
+      </SoloEnPagina>
       <header className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold text-tinta">Carga #{carga.id}</h1>
@@ -87,9 +92,9 @@ export function CargaFicha({ id }: { id: CargaId }) {
           )}
           {carga.anulaId && (
             <Dato etiqueta="Reemplaza a">
-              <Link href={`/combustible/cargas/${carga.anulaId}`} className="text-marca hover:underline">
+              <NombreEnlazado tipo="carga" id={carga.anulaId} className="text-marca hover:underline">
                 Carga #{carga.anulaId}
-              </Link>
+              </NombreEnlazado>
             </Dato>
           )}
         </dl>
@@ -115,6 +120,7 @@ function Anulacion({ carga, onRecargar }: { carga: Carga; onRecargar: () => void
   const solicitar = useSolicitarAnulacion();
   const eliminar = useEliminarCarga();
   const router = useRouter();
+  const ficha = useFicha();
   const [errorEliminar, setErrorEliminar] = useState<ErrorAccion | null>(null);
   const resolver = useResolverSolicitud();
   const retirar = useRetirarSolicitud();
@@ -136,9 +142,9 @@ function Anulacion({ carga, onRecargar }: { carga: Carga; onRecargar: () => void
         {carga.sustituidaPor ? (
           <p className="text-sm">
             Reemplazada por la{' '}
-            <Link href={`/combustible/cargas/${carga.sustituidaPor}`} className="text-marca hover:underline">
+            <NombreEnlazado tipo="carga" id={carga.sustituidaPor} className="text-marca hover:underline">
               carga #{carga.sustituidaPor}
-            </Link>
+            </NombreEnlazado>
             .
           </p>
         ) : (
@@ -223,7 +229,9 @@ function Anulacion({ carga, onRecargar }: { carga: Carga; onRecargar: () => void
               setErrorEliminar(r.error);
               return false;
             }
-            router.push('/combustible/cargas');
+            // En el panel se cierra la ficha; en la página se vuelve a la lista
+            if (ficha) ficha.cerrar();
+            else router.push('/combustible/cargas');
             return true;
           }}
         />

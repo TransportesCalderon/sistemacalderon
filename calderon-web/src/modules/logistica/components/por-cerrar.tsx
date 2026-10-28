@@ -16,6 +16,7 @@ import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { aprobarVariosCierres, completarOperacionesViaje } from '../actions/por-cerrar.actions';
 import { porCerrarRepository, type EtapaCierre, type ViajePorCerrar } from '../repositories/por-cerrar.repository';
 import { invalidar } from '@/shared/query/invalidar';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 type Grupo = 'aprobar' | 'faltan' | 'viaje';
 const GRUPO_DE: Record<EtapaCierre, Grupo> = { listo: 'aprobar', con_diferencia: 'aprobar', faltan_datos: 'faltan', en_viaje: 'viaje' };
@@ -211,9 +212,9 @@ function Fila({
         </td>
       )}
       <td className={TD}>
-        <Link href={`/operacion/viajes-chofer/${v.viajeId}`} className="font-medium text-marca hover:underline">
+        <NombreEnlazado tipo="viaje" id={v.viajeId} className="font-medium text-marca hover:underline">
           {v.numero}
-        </Link>
+        </NombreEnlazado>
         <span className="block text-xs text-tinta-suave">
           <span className="font-mono">{v.patente}</span>
           {v.chofer && ` · ${v.chofer}`}
@@ -258,9 +259,9 @@ function Fila({
             </Link>
           )}
           {v.etapa !== 'en_viaje' && (
-            <Link href={`/operacion/viajes-chofer/${v.viajeId}`} className="text-marca hover:underline">
+            <NombreEnlazado tipo="viaje" id={v.viajeId} className="text-marca hover:underline">
               Abrir el viaje
-            </Link>
+            </NombreEnlazado>
           )}
         </div>
       </td>

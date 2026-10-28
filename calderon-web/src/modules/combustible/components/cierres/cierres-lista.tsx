@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { ClipboardCheck, LoaderCircle, Route, X } from 'lucide-react';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
@@ -22,10 +22,12 @@ import { useCamionesCombustible, useCierres } from '../../queries/hooks';
 import { useFiltrosUrl } from '../comun/filtros';
 import { Cargando, DiferenciaL, Encabezado, ErrorLectura, Paginador, Vacio } from '../comun/ui';
 import { EstadoCierreChip } from './estado-cierre';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import { useAbrirFicha } from '@/modules/core/fichas/contexto';
 
 /** Combustible > Cierres de viaje. Los cierres se crean desde Viajes. */
 export function CierresLista() {
-  const router = useRouter();
+  const abrirFicha = useAbrirFicha();
   const searchParams = useSearchParams();
   const { zonaHoraria } = useSesion();
   const params = useMemo(() => parsearListaCierres(new URLSearchParams(searchParams.toString())), [searchParams]);
@@ -113,11 +115,11 @@ export function CierresLista() {
               </thead>
               <tbody className={cn('divide-y divide-borde', isFetching && 'opacity-70')}>
                 {data.filas.map((c) => (
-                  <tr key={c.id} className="cursor-pointer hover:bg-hover" onClick={() => router.push(`/combustible/cierres/${c.id}`)}>
+                  <tr key={c.id} className="cursor-pointer hover:bg-hover" onClick={() => abrirFicha('cierre', c.id)}>
                     <td className="px-3 py-2.5 font-mono">
-                      <Link href={`/combustible/cierres/${c.id}`} className="text-marca hover:underline" onClick={(e) => e.stopPropagation()}>
+                      <NombreEnlazado tipo="cierre" id={c.id} className="text-marca hover:underline">
                         {c.numero}
-                      </Link>
+                      </NombreEnlazado>
                     </td>
                     <td className="px-3 py-2.5 font-mono">{c.camionPatente ?? '—'}</td>
                     <td className="px-3 py-2.5">{c.choferNombre ?? '—'}</td>

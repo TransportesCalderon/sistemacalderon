@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useForm, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Calculator, LoaderCircle, Plus, Receipt, Trash2 } from 'lucide-react';
@@ -21,6 +20,7 @@ import type { CostosViaje as Costos, GastoViaje } from '../domain/costos.types';
 import type { ViajeChofer } from '../domain/viaje-chofer.types';
 import { useAgregarGastoViaje, useAnularGastoViaje, useCategoriasGasto, useCostosViaje, useCostosViajes } from '../queries/hooks';
 import { formatoImporte, formatoNumero } from './viaje-chofer-comun';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 type SalidaGasto = ReturnType<typeof gastoViajeFormSchema.parse>;
 
@@ -307,9 +307,9 @@ export function CostosViajesPantalla() {
                   {data.map((f) => (
                     <tr key={f.viajeId}>
                       <td className={TD}>
-                        <Link className="font-mono text-marca hover:underline" href={`/operacion/viajes-chofer/${f.viajeId}`}>
+                        <NombreEnlazado tipo="viaje" id={f.viajeId} className="font-mono text-marca hover:underline">
                           {f.numero}
-                        </Link>
+                        </NombreEnlazado>
                         <span className="block text-xs text-tinta-suave">{formatearFechaHora(f.salida, zonaHoraria)}</span>
                         <span className="mt-0.5 flex gap-1">
                           {f.enCurso && <Chip tono="marca">En curso</Chip>}

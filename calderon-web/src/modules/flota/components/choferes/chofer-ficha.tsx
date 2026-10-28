@@ -16,6 +16,7 @@ import { useBases, useCatalogosFlota, useChofer, useEliminarChofer } from '../..
 import { AccionConMotivo } from '@/modules/combustible/components/comun/ui';
 import { DocumentoChofer } from './documento-chofer';
 import { EstadoChoferChip, LicenciaChip } from './estado-chofer';
+import { SoloEnPagina, useFicha, useNombreFicha } from '@/modules/core/fichas/contexto';
 
 /** Pestañas de la ficha según la especificación (P-MAE-03). Solo Datos está disponible en esta etapa. */
 const PESTANAS = [
@@ -38,6 +39,7 @@ export function ChoferFicha({ id }: { id: ChoferId }) {
   const { data: chofer, isPending, isError, refetch } = useChofer(id);
   const { data: catalogos } = useCatalogosFlota();
   const { data: bases } = useBases();
+  useNombreFicha(chofer ? nombreCompleto(chofer) : null);
 
   if (isPending) {
     return (
@@ -56,9 +58,11 @@ export function ChoferFicha({ id }: { id: ChoferId }) {
               Reintentar
             </button>
           )}
-          <Link href="/flota/choferes" className="text-marca hover:underline">
-            Volver a la lista
-          </Link>
+          <SoloEnPagina>
+            <Link href="/flota/choferes" className="text-marca hover:underline">
+              Volver a la lista
+            </Link>
+          </SoloEnPagina>
         </div>
       </div>
     );
@@ -71,9 +75,11 @@ export function ChoferFicha({ id }: { id: ChoferId }) {
 
   return (
     <div className="space-y-5">
-      <Link href="/flota/choferes" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
-        <ArrowLeft className="size-4" /> Choferes
-      </Link>
+      <SoloEnPagina>
+        <Link href="/flota/choferes" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
+          <ArrowLeft className="size-4" /> Choferes
+        </Link>
+      </SoloEnPagina>
 
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
@@ -200,6 +206,7 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode })
 function EliminarChofer({ id, nombre }: { id: ChoferId; nombre: string }) {
   const eliminar = useEliminarChofer();
   const router = useRouter();
+  const ficha = useFicha();
   const [error, setError] = useState<ErrorAccion | null>(null);
   return (
     <AccionConMotivo
@@ -216,7 +223,9 @@ function EliminarChofer({ id, nombre }: { id: ChoferId; nombre: string }) {
           setError(r.error);
           return false;
         }
-        router.push('/flota/choferes');
+        // En el panel se cierra la ficha; en la página se vuelve a la lista
+        if (ficha) ficha.cerrar();
+        else router.push('/flota/choferes');
         return true;
       }}
     />

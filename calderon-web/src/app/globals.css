@@ -34,3 +34,11 @@ body {
   outline: 2px solid var(--color-marca);
   outline-offset: 2px;
 }
+
+/* Sprint 1 · S1-07: la fila de la lista cuya ficha está abierta en el panel queda resaltada. */
+main tr:has([data-ficha-abierta]),
+main tr[data-ficha-abierta],
+main li:has([data-ficha-abierta]),
+main li[data-ficha-abierta] {
+  background: var(--color-marca-suave);
+}

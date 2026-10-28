@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { BellRing, ChevronDown, ChevronUp, Hand, LoaderCircle, MapPin, MessageSquare, Undo2 } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -25,6 +24,7 @@ import {
   type Vista,
 } from '../domain/alerta.types';
 import { useBandejaAlertas, useComentarAlerta, useDetalleAlerta, useReabrirAlerta, useResolverAlerta, useTomarAlerta } from '../queries/hooks';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 const TONO_SEVERIDAD: Record<string, Tono> = { alta: 'error', media: 'alerta', baja: 'neutro' };
 const TONO_ESTADO: Record<string, Tono> = { nueva: 'marca', en_revision: 'alerta', explicada: 'exito', descartada: 'neutro', confirmada_operativa: 'error' };
@@ -173,9 +173,9 @@ function DetalleFila({ a }: { a: Alerta }) {
         ))}
         {d?.carga && (
           <Dato etiqueta="Carga">
-            <Link className="text-marca hover:underline" href={`/combustible/cargas/${d.carga.id}`}>
+            <NombreEnlazado tipo="carga" id={d.carga.id} className="text-marca hover:underline">
               {formatearNumero(d.carga.litros, 0)} L · {formatearFechaHora(d.carga.fechaHora, zonaHoraria)}
-            </Link>
+            </NombreEnlazado>
             {d.carga.estacion && <span className="block text-xs text-tinta-suave">{d.carga.estacion}</span>}
           </Dato>
         )}

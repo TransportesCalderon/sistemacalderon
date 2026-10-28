@@ -19,6 +19,8 @@ import {
 import { formatearIdentificadorFiscal } from '../../domain/identificador-fiscal';
 import { useCatalogosComercial, useClientes, useSegmentosCliente } from '../../queries/hooks';
 import { EstadoClienteChip } from './estado-cliente';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import { useAbrirFicha } from '@/modules/core/fichas/contexto';
 
 /**
  * P-CLI-01 · Clientes (lista). Filtros, orden y página viven en la URL:
@@ -26,6 +28,7 @@ import { EstadoClienteChip } from './estado-cliente';
  */
 export function ClientesLista() {
   const router = useRouter();
+  const abrirFicha = useAbrirFicha();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const params = useMemo(() => parsearListaClientes(new URLSearchParams(searchParams.toString())), [searchParams]);
@@ -184,11 +187,11 @@ export function ClientesLista() {
               </thead>
               <tbody className={cn('divide-y divide-borde', isFetching && 'opacity-70')}>
                 {data.filas.map((c) => (
-                  <tr key={c.id} className="cursor-pointer hover:bg-hover" onClick={() => router.push(`/comercial/clientes/${c.id}`)}>
+                  <tr key={c.id} className="cursor-pointer hover:bg-hover" onClick={() => abrirFicha('cliente', c.id)}>
                     <td className="px-3 py-2.5 font-medium">
-                      <Link href={`/comercial/clientes/${c.id}`} className="text-marca hover:underline" onClick={(e) => e.stopPropagation()}>
+                      <NombreEnlazado tipo="cliente" id={c.id} className="text-marca hover:underline">
                         {c.codigo}
-                      </Link>
+                      </NombreEnlazado>
                     </td>
                     <td className="px-3 py-2.5 font-medium text-tinta">{c.razonSocial}</td>
                     <td className="px-3 py-2.5 font-mono whitespace-nowrap">{formatearIdentificadorFiscal(c.pais, c.identificadorFiscal)}</td>

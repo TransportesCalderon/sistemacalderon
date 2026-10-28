@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Route } from 'lucide-react';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
@@ -16,12 +15,14 @@ import type { FechaDia } from '@/shared/types/dominio';
 import { ETIQUETA_SITUACION_VIAJE_CHOFER, SITUACIONES_VIAJE_CHOFER, type SituacionViajeChofer } from '../domain/viaje-chofer.types';
 import { useViajesChofer } from '../queries/hooks';
 import { SituacionViajeChoferChip, formatoNumero } from './viaje-chofer-comun';
+import { useAbrirFicha, useFichaDeLaDireccion } from '@/modules/core/fichas/contexto';
 
 const ESTADO_COMBUSTIBLE: Record<string, string> = { borrador: 'Calculado', aprobado: 'Aprobado' };
 
 /** Logística > Tractores y viajes > Viajes de chofer: los abiertos siempre; los cerrados entre las fechas. */
 export function ViajesChoferLista() {
-  const router = useRouter();
+  const abrirFicha = useAbrirFicha();
+  const { ficha: abierta } = useFichaDeLaDireccion();
   const { zonaHoraria } = useSesion();
   const hoy = hoyEnZona(zonaHoraria);
   const hace60 = new Date(Date.parse(`${hoy}T12:00:00Z`) - 60 * 86_400_000).toISOString().slice(0, 10) as FechaDia;
@@ -97,8 +98,9 @@ export function ViajesChoferLista() {
                   key={v.id}
                   tabIndex={0}
                   className="cursor-pointer hover:bg-hover focus:bg-hover focus:outline-none"
-                  onClick={() => router.push(`/operacion/viajes-chofer/${v.id}`)}
-                  onKeyDown={(e) => e.key === 'Enter' && router.push(`/operacion/viajes-chofer/${v.id}`)}
+                  onClick={() => abrirFicha('viaje', v.id)}
+                  onKeyDown={(e) => e.key === 'Enter' && abrirFicha('viaje', v.id)}
+                  data-ficha-abierta={(abierta?.tipo === 'viaje' && abierta.id === v.id) || undefined}
                 >
                   <td className={cn(TD, 'font-mono font-semibold text-marca')}>{v.numero}</td>
                   <td className={cn(TD, 'font-mono')}>{v.patente}</td>

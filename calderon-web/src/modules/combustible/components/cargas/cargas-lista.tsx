@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Flag, Fuel, LoaderCircle, Plus, X } from 'lucide-react';
 import { Can } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -17,10 +17,12 @@ import { useFiltrosUrl } from '../comun/filtros';
 import { Cargando, Encabezado, ErrorLectura, Paginador, Vacio } from '../comun/ui';
 import { DestinoCarga, RolViajeChips, SituacionCargaChip } from './chips-carga';
 import { AvisosCargaOficina } from '@/modules/telemetria/components/avisos-carga-oficina';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import { useAbrirFicha } from '@/modules/core/fichas/contexto';
 
 /** Combustible > Cargas: lista con fronteras, rol en el viaje y situación. */
 export function CargasLista() {
-  const router = useRouter();
+  const abrirFicha = useAbrirFicha();
   const searchParams = useSearchParams();
   const { zonaHoraria } = useSesion();
   const params = useMemo(() => parsearListaCargas(new URLSearchParams(searchParams.toString())), [searchParams]);
@@ -112,11 +114,11 @@ export function CargasLista() {
               </thead>
               <tbody className={cn('divide-y divide-borde', isFetching && 'opacity-70')}>
                 {data.filas.map((c) => (
-                  <tr key={c.id} className="cursor-pointer hover:bg-hover" onClick={() => router.push(`/combustible/cargas/${c.id}`)}>
+                  <tr key={c.id} className="cursor-pointer hover:bg-hover" onClick={() => abrirFicha('carga', c.id)}>
                     <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
-                      <Link href={`/combustible/cargas/${c.id}`} className="text-marca hover:underline" onClick={(e) => e.stopPropagation()}>
+                      <NombreEnlazado tipo="carga" id={c.id} className="text-marca hover:underline">
                         {formatearFechaHora(c.fechaHora, zonaHoraria)}
-                      </Link>
+                      </NombreEnlazado>
                     </td>
                     <td className="px-3 py-2.5 font-mono">{c.camionPatente ?? '—'}</td>
                     <td className="px-3 py-2.5">{c.choferNombre ?? '—'}</td>

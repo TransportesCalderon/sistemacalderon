@@ -15,6 +15,7 @@ import { ETIQUETA_SITUACION_VUELTA, type RegistroGenset, type VueltaGenset } fro
 import { useAnularCierreGenset, useCerrarGenset, useChoferesCombustible, useEliminarRegistroGenset, useFichaGenset, useGensetsCombustible } from '../../queries/hooks';
 import { AccionConMotivo, Cargando, Chip, Dato, DiferenciaL, ErrorBase, ErrorLectura, Seccion, type Tono } from '../comun/ui';
 import { RegistroGensetForm } from './registro-genset-form';
+import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
 
 const TONO_VUELTA: Record<VueltaGenset['situacion'], Tono> = { en_curso: 'marca', por_cerrar: 'alerta', cerrado: 'exito' };
 const L = (v: number | null, dec = 2) => (v === null ? '—' : `${formatearNumero(v, dec)} L`);
@@ -33,12 +34,15 @@ export function GensetFicha({ id }: { id: number }) {
   const [registrar, setRegistrar] = useState<'carga' | 'descarga' | null>(null);
   const g = gensets?.find((x) => x.id === id);
   const c = lista?.find((x) => x.gensetId === id);
+  useNombreFicha(g?.codigo ?? c?.codigo);
 
   return (
     <div className="space-y-5">
-      <Link href="/flota/gensets" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
-        <ArrowLeft className="size-4" /> Gensets
-      </Link>
+      <SoloEnPagina>
+        <Link href="/flota/gensets" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
+          <ArrowLeft className="size-4" /> Gensets
+        </Link>
+      </SoloEnPagina>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm text-tinta-suave">Flota · Genset</p>

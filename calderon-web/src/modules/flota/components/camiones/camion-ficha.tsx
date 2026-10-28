@@ -15,6 +15,7 @@ import { ETIQUETA_PROPIETARIO } from '../../domain/camion.types';
 import { useCamion, useCatalogosFlota, useTanques } from '../../queries/hooks';
 import { EstadoCamionChip } from './estado-camion';
 import { TanquesCamion } from './tanques-camion';
+import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
 
 /** Pestañas de la ficha según la especificación (P-MAE-01). Disponibles: Datos y Tanques (sección de esta misma página). */
 const PESTANAS = [
@@ -37,6 +38,7 @@ export function CamionFicha({ id }: { id: CamionId }) {
   const { data: camion, isPending, isError, refetch } = useCamion(id);
   const { data: catalogos } = useCatalogosFlota();
   const { data: tanques } = useTanques(id);
+  useNombreFicha(camion?.patente);
   // Alta con tanques que la base rechazó: el camión se creó y el mensaje llega por la URL.
   const avisoTanques = useSearchParams().get('tanques');
 
@@ -57,9 +59,11 @@ export function CamionFicha({ id }: { id: CamionId }) {
               Reintentar
             </button>
           )}
-          <Link href="/flota/camiones" className="text-marca hover:underline">
-            Volver a la lista
-          </Link>
+          <SoloEnPagina>
+            <Link href="/flota/camiones" className="text-marca hover:underline">
+              Volver a la lista
+            </Link>
+          </SoloEnPagina>
         </div>
       </div>
     );
@@ -71,9 +75,11 @@ export function CamionFicha({ id }: { id: CamionId }) {
 
   return (
     <div className="space-y-5">
-      <Link href="/flota/camiones" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
-        <ArrowLeft className="size-4" /> Camiones
-      </Link>
+      <SoloEnPagina>
+        <Link href="/flota/camiones" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
+          <ArrowLeft className="size-4" /> Camiones
+        </Link>
+      </SoloEnPagina>
 
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">

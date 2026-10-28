@@ -39,6 +39,8 @@ import {
   useTarifario,
 } from '../queries/hooks';
 import { ChipCotizacion, ChipEtapa, ChipFactura, PAISES } from './comun';
+import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 /** Ventas › ficha de una empresa: datos, contactos, negocios, actividades, cotizaciones y facturas. */
 export function EmpresaFicha({ id }: { id: number }) {
@@ -46,6 +48,7 @@ export function EmpresaFicha({ id }: { id: number }) {
   const puede = useCan('ventas.empresas:editar');
   const puedeCotizar = useCan('ventas.cotizaciones:editar');
   const [editando, setEditando] = useState(false);
+  useNombreFicha(e?.nombre);
 
   if (isLoading) return <Cargando texto="Abriendo la empresa…" />;
   if (isError) return <ErrorLectura texto="No se pudo leer la empresa." onReintentar={() => void refetch()} error={error} />;
@@ -53,9 +56,11 @@ export function EmpresaFicha({ id }: { id: number }) {
 
   return (
     <div className="space-y-4">
-      <Link href="/ventas/empresas" className="inline-flex items-center gap-1 text-sm text-marca hover:underline">
-        <ChevronLeft className="size-4" /> Clientes y prospectos
-      </Link>
+      <SoloEnPagina>
+        <Link href="/ventas/empresas" className="inline-flex items-center gap-1 text-sm text-marca hover:underline">
+          <ChevronLeft className="size-4" /> Clientes y prospectos
+        </Link>
+      </SoloEnPagina>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-tinta">
@@ -126,9 +131,9 @@ export function EmpresaFicha({ id }: { id: number }) {
             <ul className="divide-y divide-borde text-sm">
               {e.facturas.map((f) => (
                 <li key={f.id} className="flex items-center justify-between gap-3 py-1.5">
-                  <Link href={`/ventas/facturacion?factura=${f.id}`} className="text-marca hover:underline">
+                  <NombreEnlazado tipo="factura" id={f.id} className="text-marca hover:underline">
                     {f.numeroFiscal ?? f.numero}
-                  </Link>
+                  </NombreEnlazado>
                   <span className="text-tinta-suave">{f.vence ? `vence ${formatearFechaDia(f.vence)}` : ''}</span>
                   <ChipFactura estado={f.estado} />
                   <span className="tabular-nums">{usd(f.total)}</span>

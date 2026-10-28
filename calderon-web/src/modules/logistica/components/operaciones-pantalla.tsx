@@ -53,8 +53,9 @@ import {
 } from '../queries/hooks';
 import { Lista } from './viajes-pantalla';
 import { SeguimientoOperacion } from '@/modules/chofer/components/seguimiento-operacion';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
-type Abierto =
+export type Abierto =
   | { tipo: 'nueva'; base?: Operacion }
   | { tipo: 'detalle' | 'modificar' | 'equipo' | 'tercero' | 'cancelar'; o: Operacion }
   | { tipo: 'paso'; o: Operacion; paso: PasoOperacion; error?: ErrorAccion | null }
@@ -391,7 +392,8 @@ function Dato({ label, children, mono }: { label: string; children: ReactNode; m
   );
 }
 
-function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: string; puede: boolean; abierto: Abierto; onAbrir: (a: Abierto) => void }) {
+/** Sprint 1: se exporta para la ficha de la operación en el panel (operacion-ficha.tsx). */
+export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: string; puede: boolean; abierto: Abierto; onAbrir: (a: Abierto) => void }) {
   const { hacer, enCurso } = useUnClic(o, onAbrir);
   const anular = useAnularHito();
   const envioAnular = useEnvio();
@@ -424,10 +426,10 @@ function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: str
       [
         'Facturación',
         o.facturacion && (
-          <Link href={`/ventas/facturacion?factura=${o.facturacion.facturaId}`} className="text-marca hover:underline">
+          <NombreEnlazado tipo="factura" id={o.facturacion.facturaId} className="text-marca hover:underline">
             {FACTURACION_OP_INFO[o.facturacion.estado].etiqueta}
             {o.facturacion.conNumero ? ` · ${o.facturacion.numero}` : o.facturacion.estado !== 'prefactura' ? ' · sin número' : ''}
-          </Link>
+          </NombreEnlazado>
         ),
       ],
     ] as [string, ReactNode, boolean?][]
@@ -795,7 +797,7 @@ const MAS_DATOS: (keyof Form)[] = [
  * el resto en «Más datos». Al elegir el cliente se propone lo de su última operación. «Cantidad» crea
  * varias iguales. Sirve también para modificar y duplicar.
  */
-function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Operacion; duplicar?: boolean; zona: string; onCerrar: () => void }) {
+export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Operacion; duplicar?: boolean; zona: string; onCerrar: () => void }) {
   const alta = useAltaOperaciones();
   const guardar = useGuardarOperacion();
   const { data: op } = useOpcionesViaje();
@@ -1202,9 +1204,9 @@ function TramosDeLaOperacion({ servicioId }: { servicioId: number }) {
       <ul className="mt-1 space-y-0.5">
         {data.tramos.map((t) => (
           <li key={`${t.viajeId}-${t.linea}`}>
-            <Link href={`/operacion/viajes-chofer/${t.viajeId}`} className="font-mono text-marca hover:underline">
+            <NombreEnlazado tipo="viaje" id={t.viajeId} className="font-mono text-marca hover:underline">
               {t.viaje}
-            </Link>{' '}
+            </NombreEnlazado>{' '}
             · {t.linea ?? 'sin tramo'}
             {t.km !== null && ` · ${t.km.toLocaleString('es-AR')} km`}
             {t.chofer && ` · ${t.chofer}`}

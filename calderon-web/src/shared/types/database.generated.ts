@@ -753,7 +753,7 @@ type ViajeChoferRow = {
 };
 type TransportistaIns = { razon_social: string; cuit?: string | null; telefono?: string | null; observaciones?: string | null; activo?: boolean };
 /** ops.fn_operaciones (migración 41). */
-type OperacionRow = {
+export type OperacionRow = {
   servicio_id: number;
   numero_operacion: number;
   fecha_operacion: string;
@@ -1173,6 +1173,8 @@ export type Database = {
       };
       fn_anular_gasto_viaje: { Args: { p_gasto: number; p_motivo: string }; Returns: undefined };
       fn_operaciones: { Args: { p_desde?: string | null; p_hasta?: string | null }; Returns: OperacionRow[] };
+      /** Migración 114 (Sprint 1): una operación, mismas columnas. */
+      fn_operacion: { Args: { p_servicio: number }; Returns: OperacionRow[] };
       fn_alta_operaciones: { Args: { p_datos: Json; p_cantidad: number }; Returns: number[] };
       fn_avanzar: {
         Args: { p_servicio: number; p_paso: string; p_ts?: string | null; p_odometro_km?: number | null; p_detalle?: string | null };

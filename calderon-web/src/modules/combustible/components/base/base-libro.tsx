@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { BookOpen, Check, X } from 'lucide-react';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { useCan } from '@/modules/core/permissions/can';
@@ -13,6 +12,7 @@ import { conSigno } from '@/shared/lib/numeros';
 import { ETIQUETA_CATEGORIA_BASE, ETIQUETA_TIPO_MOVIMIENTO_BASE, TAMANO_PAGINA_LIBRO, type MovimientoBase } from '../../domain/base.types';
 import { useLibroBase, useResolverMovimientoBase } from '../../queries/hooks';
 import { AccionConMotivo, Cargando, Chip, ErrorBase, ErrorLectura, Paginador, Seccion, Vacio } from '../comun/ui';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 const ESTADO: Record<'pendiente' | 'aprobado' | 'rechazado', { texto: string; tono: 'alerta' | 'exito' | 'neutro' }> = {
   pendiente: { texto: 'Pendiente de aprobación', tono: 'alerta' },
@@ -64,9 +64,9 @@ export function LibroBase({ depositoId }: { depositoId: number }) {
                     <td className={cn(TD, 'max-w-72')}>
                       {m.camionPatente && <span className="font-mono">{m.camionPatente}</span>}
                       {m.cargaId && (
-                        <Link href={`/combustible/cargas/${m.cargaId}`} className="ml-2 text-xs text-marca hover:underline">
+                        <NombreEnlazado tipo="carga" id={m.cargaId} className="ml-2 text-xs text-marca hover:underline">
                           Carga #{m.cargaId}
-                        </Link>
+                        </NombreEnlazado>
                       )}
                       {m.motivo && <span className="block">{m.motivo}</span>}
                       {m.evidencia && <span className="block text-xs text-tinta-suave">Evidencia: {m.evidencia}</span>}

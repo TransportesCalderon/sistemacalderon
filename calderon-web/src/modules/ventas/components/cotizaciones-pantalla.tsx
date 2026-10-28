@@ -12,6 +12,7 @@ import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { ETIQUETA_ESTADO_COT, usd, type EstadoCotizacion } from '../domain/ventas.types';
 import { useCotizaciones } from '../queries/hooks';
 import { ChipCotizacion } from './comun';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 const FILTROS: (EstadoCotizacion | null)[] = [null, 'borrador', 'enviada', 'vencida', 'aceptada', 'rechazada'];
 
@@ -79,9 +80,9 @@ export function CotizacionesPantalla() {
                     </Link>
                   </td>
                   <td className={TD}>
-                    <Link href={`/ventas/empresas/${c.empresaId}`} className="hover:underline">
+                    <NombreEnlazado tipo="empresa" id={c.empresaId} className="hover:underline">
                       {c.empresa}
-                    </Link>
+                    </NombreEnlazado>
                   </td>
                   <td className={cn(TD, 'max-w-64 text-xs text-tinta-suave')}>{c.rutas}</td>
                   <td className={cn(TD, 'text-xs tabular-nums')}>

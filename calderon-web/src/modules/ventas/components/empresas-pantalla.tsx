@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, Users } from 'lucide-react';
 import { TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
@@ -14,6 +13,7 @@ import { Campo } from '@/shared/ui/campo';
 import { ETIQUETA_ACTIVIDAD, ETIQUETA_ORIGEN, ORIGENES } from '../domain/ventas.types';
 import { useEmpresas, useGuardarEmpresa } from '../queries/hooks';
 import { ChipEtapa, PAISES } from './comun';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 const FILTROS = [
   { id: null, texto: 'Todas' },
@@ -83,9 +83,9 @@ export function EmpresasPantalla() {
               {data.map((e) => (
                 <tr key={e.id} className="hover:bg-hover">
                   <td className={TD}>
-                    <Link href={`/ventas/empresas/${e.id}`} className="font-medium text-marca hover:underline">
+                    <NombreEnlazado tipo="empresa" id={e.id} className="font-medium text-marca hover:underline">
                       {e.nombre}
-                    </Link>
+                    </NombreEnlazado>
                     <span className="ml-2">
                       {e.clienteId ? <Chip tono="exito">Cliente</Chip> : e.descartada ? <Chip tono="neutro">Descartada</Chip> : <Chip tono="marca">Prospecto</Chip>}
                     </span>

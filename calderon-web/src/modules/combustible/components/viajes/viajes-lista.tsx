@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FilePlus2, LoaderCircle, Route, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
@@ -23,6 +22,7 @@ import {
 import { useCamionesCombustible, useCrearBorrador, useViajes } from '../../queries/hooks';
 import { useFiltrosUrl } from '../comun/filtros';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Paginador, Vacio, type Tono } from '../comun/ui';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 const TONO_SITUACION: Record<SituacionViaje, Tono> = {
   en_curso: 'neutro',
@@ -115,15 +115,15 @@ export function ViajesLista() {
                   <tr key={`${v.camionId}-${v.cargaSalidaId}`} className="hover:bg-hover">
                     <td className="px-3 py-2.5 font-mono">{v.patente}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
-                      <Link href={`/combustible/cargas/${v.cargaSalidaId}`} className="text-marca hover:underline">
+                      <NombreEnlazado tipo="carga" id={v.cargaSalidaId} className="text-marca hover:underline">
                         {formatearFechaHora(v.salidaTs, zonaHoraria)}
-                      </Link>
+                      </NombreEnlazado>
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       {v.cargaLlegadaId ? (
-                        <Link href={`/combustible/cargas/${v.cargaLlegadaId}`} className="text-marca hover:underline">
+                        <NombreEnlazado tipo="carga" id={v.cargaLlegadaId} className="text-marca hover:underline">
                           {formatearFechaHora(v.llegadaTs, zonaHoraria)}
-                        </Link>
+                        </NombreEnlazado>
                       ) : (
                         <span className="text-tinta-suave">Todavía no llegó</span>
                       )}
@@ -157,9 +157,9 @@ export function AccionViaje({ viaje }: { viaje: Pick<Viaje, 'camionId' | 'cargaS
 
   if (viaje.cierreId) {
     return (
-      <Link href={`/combustible/cierres/${viaje.cierreId}`} className="text-marca hover:underline">
+      <NombreEnlazado tipo="cierre" id={viaje.cierreId} className="text-marca hover:underline">
         {viaje.cierreNumero ?? `#${viaje.cierreId}`}
-      </Link>
+      </NombreEnlazado>
     );
   }
   if (viaje.situacion !== 'sin_cierre' || !puedeEditar) return <span className="text-tinta-suave">—</span>;

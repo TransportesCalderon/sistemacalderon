@@ -11,6 +11,7 @@ import { formatearFechaDia } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { ETAPAS, ETIQUETA_ACTIVIDAD, ETIQUETA_ETAPA, usd, type Etapa, type NegocioTablero } from '../domain/ventas.types';
 import { useCompletarActividad, useMoverNegocio, useTablero } from '../queries/hooks';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 /** Ventas › Tablero: números del mes, lo que hay que hacer y los negocios por etapa. */
 export function TableroVentas() {
@@ -61,9 +62,9 @@ export function TableroVentas() {
                 <span className="w-20 text-xs text-tinta-suave uppercase">{ETIQUETA_ACTIVIDAD[a.tipo]}</span>
                 <span className="flex-1">
                   {a.titulo} ·{' '}
-                  <Link href={`/ventas/empresas/${a.empresaId}`} className="text-marca hover:underline">
+                  <NombreEnlazado tipo="empresa" id={a.empresaId} className="text-marca hover:underline">
                     {a.empresa}
-                  </Link>
+                  </NombreEnlazado>
                   {!a.mia && a.responsable && <span className="text-tinta-suave"> · {a.responsable}</span>}
                 </span>
                 {puede && (
@@ -128,9 +129,9 @@ function TarjetaNegocio({ n, puede }: { n: NegocioTablero; puede: boolean }) {
   const [motivo, setMotivo] = useState<string | null>(null);
   return (
     <div className={cn(TARJETA, 'space-y-1 p-3 text-sm')}>
-      <Link href={`/ventas/empresas/${n.empresaId}`} className="font-medium text-tinta hover:text-marca">
+      <NombreEnlazado tipo="empresa" id={n.empresaId} className="font-medium text-tinta hover:text-marca">
         {n.empresa}
-      </Link>
+      </NombreEnlazado>
       <p className="text-tinta-suave">{n.titulo}</p>
       <p className="text-xs text-tinta-suave">
         {n.valorMensualUsd ? `${usd(n.valorMensualUsd)}/mes` : ''}

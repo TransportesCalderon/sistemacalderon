@@ -21,6 +21,8 @@ import {
 } from '../../domain/camion.types';
 import { useCamiones, useCapacidades, useCatalogosFlota } from '../../queries/hooks';
 import { EstadoCamionChip } from './estado-camion';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import { useAbrirFicha } from '@/modules/core/fichas/contexto';
 
 /**
  * P-MAE-01 · Camiones (lista). Los filtros, el orden y la página viven en la URL:
@@ -28,6 +30,7 @@ import { EstadoCamionChip } from './estado-camion';
  */
 export function CamionesLista() {
   const router = useRouter();
+  const abrirFicha = useAbrirFicha();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const params = useMemo(() => parsearListaCamiones(new URLSearchParams(searchParams.toString())), [searchParams]);
@@ -199,11 +202,11 @@ export function CamionesLista() {
               </thead>
               <tbody className={cn('divide-y divide-borde', isFetching && 'opacity-70')}>
                 {data.filas.map((c) => (
-                  <tr key={c.id} className="cursor-pointer hover:bg-hover" onClick={() => router.push(`/flota/camiones/${c.id}`)}>
+                  <tr key={c.id} className="cursor-pointer hover:bg-hover" onClick={() => abrirFicha('camion', c.id)}>
                     <td className="px-3 py-2.5 font-medium">
-                      <Link href={`/flota/camiones/${c.id}`} className="text-marca hover:underline" onClick={(e) => e.stopPropagation()}>
+                      <NombreEnlazado tipo="camion" id={c.id} className="text-marca hover:underline">
                         {c.codigoInterno}
-                      </Link>
+                      </NombreEnlazado>
                     </td>
                     <td className="px-3 py-2.5 font-mono whitespace-nowrap">
                       {c.patente} <span className="text-xs text-tinta-suave">{c.paisPatente}</span>

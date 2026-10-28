@@ -334,7 +334,8 @@ interface FilaEdit {
 }
 let k = 0;
 
-function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => void }) {
+/** Sprint 1: se exporta para la ficha de la factura en el panel (factura-ficha.tsx). */
+export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => void }) {
   const { zonaHoraria } = useSesion();
   const { data: f, isLoading } = useFactura(id);
   const puedeEditar = useCan('ventas.facturacion:editar');

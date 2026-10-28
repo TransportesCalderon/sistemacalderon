@@ -20,6 +20,8 @@ import {
 } from '../../domain/chofer.types';
 import { useBases, useCatalogosFlota, useChoferes } from '../../queries/hooks';
 import { EstadoChoferChip, LicenciaChip } from './estado-chofer';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import { useAbrirFicha } from '@/modules/core/fichas/contexto';
 
 /**
  * P-MAE-03 · Choferes (lista). Sin documento visible (especificación §9).
@@ -27,6 +29,7 @@ import { EstadoChoferChip, LicenciaChip } from './estado-chofer';
  */
 export function ChoferesLista() {
   const router = useRouter();
+  const abrirFicha = useAbrirFicha();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const params = useMemo(() => parsearListaChoferes(new URLSearchParams(searchParams.toString())), [searchParams]);
@@ -180,11 +183,11 @@ export function ChoferesLista() {
               </thead>
               <tbody className={cn('divide-y divide-borde', isFetching && 'opacity-70')}>
                 {data.filas.map((c) => (
-                  <tr key={c.id} className="cursor-pointer hover:bg-hover" onClick={() => router.push(`/flota/choferes/${c.id}`)}>
+                  <tr key={c.id} className="cursor-pointer hover:bg-hover" onClick={() => abrirFicha('chofer', c.id)}>
                     <td className="px-3 py-2.5 font-medium">
-                      <Link href={`/flota/choferes/${c.id}`} className="text-marca hover:underline" onClick={(e) => e.stopPropagation()}>
+                      <NombreEnlazado tipo="chofer" id={c.id} className="text-marca hover:underline">
                         {c.legajo}
-                      </Link>
+                      </NombreEnlazado>
                     </td>
                     <td className="px-3 py-2.5">
                       <span className="font-medium text-tinta">{c.apellido}</span>, {c.nombre}

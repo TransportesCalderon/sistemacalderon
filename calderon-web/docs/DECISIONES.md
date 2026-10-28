@@ -41,3 +41,4 @@ anterior. No hay excepciones silenciosas.
 | Fecha | Cambio | Motivo | Aprobó |
 | --- | --- | --- | --- |
 | 28/10/2026 | Congelamiento inicial | Arrancar el Sprint 0 | Gerencia |
+| 28/10/2026 | Sprint 1: el detalle de un camión, chofer, cliente, carga, cierre, viaje, genset, empresa, operación o factura se abre en un panel a la derecha (`?ficha=tipo:id`). Un solo panel a la vez, con rastro navegable arriba y la fila de origen resaltada. Las rutas `/x/[id]` redirigen a su lista con la ficha (temporales hasta el Sprint 8). | Ver un registro sin perder la lista; no crear una nueva forma de perderse al pasar de ficha en ficha | Gerencia |
