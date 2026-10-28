@@ -654,11 +654,25 @@ function GensetOperacion({ o }: { o: Operacion }) {
               <option key={g.id} value={g.id}>
                 {g.codigo}
                 {g.detalle ? ` · ${g.detalle}` : ''}
-                {g.enSemi ? ' (instalado en el semi)' : g.semi ? ` (en el semi ${g.semi})` : ''}
+                {g.enSemi ? ' ★ instalado en el semi de este viaje' : g.semi ? ` (en el semi ${g.semi})` : ''}
                 {g.enOperacion ? ` · en la Op. ${g.enOperacion}` : ''}
               </option>
             ))}
           </select>
+          {/* Migración 106: el del semi del viaje, a un clic (en la lista va en su lugar por código) */}
+          {(gensets ?? [])
+            .filter((g) => g.enSemi && g.id !== o.gensetId)
+            .map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className="inline-flex h-7 items-center rounded-md border border-marca px-2.5 font-medium text-marca hover:bg-marca-suave disabled:opacity-60"
+                disabled={asignar.isPending}
+                onClick={() => guardar(g.id)}
+              >
+                Usar {g.codigo} (está en el semi)
+              </button>
+            ))}
           <button type="button" className="text-tinta-suave hover:underline" onClick={() => setEditando(false)}>
             Cancelar
           </button>
