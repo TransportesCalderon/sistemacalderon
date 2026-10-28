@@ -17,7 +17,8 @@ import { FICHAS } from './tipos';
  *   - un solo panel: abrir otra ficha reemplaza la que está (Atrás vuelve a la anterior);
  *   - rastro arriba: «Camión SXXV17 › Chofer Pérez › Carga #1234», cada paso vuelve;
  *   - la fila de la lista de donde salió queda resaltada (globals.css, data-ficha-abierta).
- * Va en el layout dentro de <Suspense> (usa useSearchParams).
+ * Va en el layout dentro de <Suspense> (usa useSearchParams). Empieza debajo de la barra superior
+ * (Sprint 2), así se puede buscar y abrir otra ficha sin cerrarlo.
  */
 export function PanelFicha() {
   const router = useRouter();
@@ -84,7 +85,7 @@ export function PanelFicha() {
         tabIndex={-1}
         role="dialog"
         aria-label={`Ficha: ${etiqueta(ficha)}`}
-        className="fixed inset-y-0 right-0 z-[1100] flex w-full max-w-[720px] flex-col border-l border-borde bg-panel shadow-2xl outline-none"
+        className="fixed bottom-0 right-0 top-14 z-[1100] flex w-full max-w-[720px] flex-col border-l border-borde bg-panel shadow-2xl outline-none"
         style={{ outline: 'none' }}
       >
         <div className="flex items-center gap-2 border-b border-borde px-4 py-2">

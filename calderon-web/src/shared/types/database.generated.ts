@@ -1304,6 +1304,11 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      /** Migración 115 (Sprint 2): buscador de la barra superior. */
+      fn_buscar: {
+        Args: { p_texto: string };
+        Returns: { tipo: string; id: number; titulo: string; detalle: string | null; pantalla: string }[];
+      };
       // Usuarios y roles (34), solo TI
       fn_usuarios: {
         Args: Record<string, never>;

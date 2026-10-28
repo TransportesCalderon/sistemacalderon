@@ -1,34 +1,61 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { Suspense, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ChevronDown, CircleDollarSign, Clock, LogOut, Menu, UserRound } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { ChevronDown, CircleDollarSign, Clock, LayoutGrid, LogOut, Menu, UserRound } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { useSesion } from '@/modules/core/session/session-provider';
+import { useCan } from '@/modules/core/permissions/can';
 import { ETIQUETA_ROL } from '@/modules/core/permissions/roles';
 import { cambiarZonaHoraria, cerrarSesion } from '@/modules/core/auth/actions';
 import { ZONAS_HORARIAS } from '@/modules/core/auth/zonas';
+import { Buscador } from '@/modules/core/buscador/buscador';
+import { VERSION_BUSCADOR } from '@/modules/core/buscador/resultados';
 
 /**
- * Barra superior (especificación §3): buscador global, zona horaria de visualización,
- * moneda base, notificaciones y menú de usuario.
- * Sin buscador ni notificaciones mientras no hagan algo de verdad (menos botones muertos).
+ * Barra superior (Sprint 2, Plan de migración UX ítems 6 a 8): Pizarra a mano, el buscador
+ * en el centro y el menú del usuario, que ahora también tiene la zona horaria y la moneda base.
+ * «Hoy» se suma en el Sprint 3, cuando exista. El chofer no tiene buscador.
  */
-export function Topbar({ onAbrirMenu }: { onAbrirMenu: () => void }) {
+export function BarraSuperior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
+  const { rolesApp } = useSesion();
+  const hayBuscador = useBaseTiene(VERSION_BUSCADOR) && rolesApp.some((r) => r !== 'chofer');
+  const verPizarra = useCan('flota.pizarra:ver');
+  const pathname = usePathname();
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-borde bg-panel/95 px-4 backdrop-blur">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-borde bg-panel/95 px-4 backdrop-blur sm:gap-3">
       <button type="button" onClick={onAbrirMenu} className="rounded-md p-1.5 text-tinta-suave hover:bg-hover lg:hidden" aria-label="Abrir menú">
         <Menu className="size-5" />
       </button>
-      <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        <SelectorZona />
-        <IndicadorMoneda />
-        <MenuUsuario />
+      {verPizarra && (
+        <Link
+          href="/flota/pizarra"
+          aria-current={pathname.startsWith('/flota/pizarra') ? 'page' : undefined}
+          className={cn(
+            'hidden items-center gap-1.5 rounded-md px-2 py-1.5 text-sm md:flex',
+            pathname.startsWith('/flota/pizarra') ? 'bg-marca-suave font-medium text-marca' : 'text-tinta-suave hover:bg-hover hover:text-tinta',
+          )}
+        >
+          <LayoutGrid className="size-4" />
+          Pizarra
+        </Link>
+      )}
+      <div className="flex min-w-0 flex-1 justify-center">
+        {hayBuscador && (
+          <Suspense fallback={null}>
+            <Buscador />
+          </Suspense>
+        )}
       </div>
+      <MenuUsuario />
     </header>
   );
 }
+
+/** Nombre anterior (se mantiene para no romper importaciones). */
+export const Topbar = BarraSuperior;
 
 function SelectorZona() {
   const { zonaHoraria } = useSesion();
@@ -36,9 +63,9 @@ function SelectorZona() {
   const [pendiente, iniciar] = useTransition();
 
   return (
-    <label className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-tinta-suave hover:bg-hover" title="Zona horaria en la que se muestran las fechas">
-      <Clock className="size-4" />
-      <span className="sr-only">Zona horaria</span>
+    <label className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-tinta-suave hover:bg-hover" title="Zona horaria en la que se muestran las fechas">
+      <Clock className="size-4 shrink-0" />
+      <span className="shrink-0">Horario</span>
       <select
         value={zonaHoraria}
         disabled={pendiente}
@@ -48,7 +75,7 @@ function SelectorZona() {
             router.refresh();
           })
         }
-        className="cursor-pointer bg-transparent text-tinta outline-none"
+        className="min-w-0 flex-1 cursor-pointer bg-transparent text-tinta outline-none"
       >
         {ZONAS_HORARIAS.map((z) => (
           <option key={z.id} value={z.id}>
@@ -63,16 +90,13 @@ function SelectorZona() {
 function IndicadorMoneda() {
   const { monedaBase } = useSesion();
   return (
-    <span
-      className={cn(
-        'hidden items-center gap-1.5 rounded-md px-2 py-1 text-sm sm:flex',
-        monedaBase ? 'text-tinta-suave' : 'bg-alerta-suave text-alerta',
-      )}
+    <p
+      className={cn('flex items-center gap-2 rounded-md px-2 py-1.5 text-sm', monedaBase ? 'text-tinta-suave' : 'bg-alerta-suave text-alerta')}
       title={monedaBase ? 'Moneda base: todos los importes se comparan en esta moneda' : 'Moneda base no definida'}
     >
-      <CircleDollarSign className="size-4" />
-      {monedaBase ?? 'Sin moneda base'}
-    </span>
+      <CircleDollarSign className="size-4 shrink-0" />
+      Moneda base: <span className="font-medium">{monedaBase ?? 'sin definir'}</span>
+    </p>
   );
 }
 
@@ -115,6 +139,11 @@ function MenuUsuario() {
           <div className="border-b border-borde px-2 pb-2">
             <p className="truncate text-sm font-medium text-tinta">{email}</p>
             <p className="mt-1 text-xs text-tinta-suave">{rolesApp.map((r) => ETIQUETA_ROL[r]).join(' · ') || 'Sin roles'}</p>
+          </div>
+          {/* Sprint 2: la zona horaria y la moneda base pasan acá desde la barra */}
+          <div className="mt-2 space-y-1 border-b border-borde pb-2">
+            <SelectorZona />
+            <IndicadorMoneda />
           </div>
           <Link
             href="/perfil"
