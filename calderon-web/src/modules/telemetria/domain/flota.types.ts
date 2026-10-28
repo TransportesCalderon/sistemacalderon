@@ -105,8 +105,10 @@ export interface CombustibleActual {
   pct: number | null;
   capacidadL: number | null;
   mochilaL: number | null;
-  /** 'inyeccion' (contador del motor), 'km' (km × rendimiento) o 'recien_lleno'. */
+  /** 'inyeccion' (contador del motor), 'km' (km × rendimiento), 'recien_lleno' o 'sin_datos' (migración 105). */
   metodo: string | null;
+  /** Migración 105: por ejemplo, el camión no manda datos desde el llenado. */
+  aviso: string | null;
   desde: string | null;
   motivo: string | null;
   sensorPct: number | null;
@@ -123,6 +125,7 @@ function parsearCombustible(v: unknown): CombustibleActual | null {
     capacidadL: numONull(c.capacidad_l),
     mochilaL: numONull(c.mochila_l),
     metodo: typeof c.metodo === 'string' ? c.metodo : null,
+    aviso: typeof c.aviso === 'string' ? c.aviso : null,
     desde: typeof c.desde === 'string' ? c.desde : null,
     motivo: typeof c.motivo === 'string' ? c.motivo : null,
     sensorPct: numONull(c.sensor_pct),

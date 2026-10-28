@@ -231,6 +231,7 @@ function CeldaCombustible({ calc, sensorPct }: { calc: CombustibleActual | null;
           <span className="font-medium text-tinta">≈ {formatearNumero(calc.litros, 0)} L</span>
           {calc.pct != null && <span className="text-tinta-suave"> ({formatearNumero(calc.pct, 0)} %)</span>}
           {calc.mochilaL ? <span className="block text-xs text-tinta-suave">con {formatearNumero(calc.mochilaL, 0)} L de mochila</span> : null}
+          {calc.aviso && <span className="block text-xs text-alerta">{calc.aviso}</span>}
         </>
       ) : (
         <span className="text-xs text-tinta-suave" title={calc?.motivo ?? undefined}>
