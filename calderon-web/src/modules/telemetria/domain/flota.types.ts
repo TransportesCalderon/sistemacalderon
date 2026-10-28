@@ -34,6 +34,26 @@ export interface DetalleMapa {
   combustible: CombustibleActual | null;
   /** Migración 96: programador de hoy y Eco Score del día (con el color que decide la base). */
   hoy: ConduccionHoy | null;
+  /** Migración 103: el chofer del camión y su consumo del mes (motor o cierres de viaje). */
+  choferId: number | null;
+  consumoMes: ConsumoMes | null;
+}
+
+export interface ConsumoMes {
+  l100km: number | null;
+  km: number;
+  /** 'motor', 'cierres' o 'motor_y_cierres'. */
+  fuente: string | null;
+}
+export const FUENTE_CONSUMO_MES: Record<string, string> = {
+  motor: 'medido por el motor',
+  cierres: 'de los cierres de viaje',
+  motor_y_cierres: 'motor y cierres de viaje',
+};
+function parsearConsumoMes(v: unknown): ConsumoMes | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const c = v as Record<string, unknown>;
+  return { l100km: c.l_100km == null ? null : Number(c.l_100km), km: Number(c.km ?? 0), fuente: typeof c.fuente === 'string' ? c.fuente : null };
 }
 
 export type NivelHoy = 'verde' | 'naranja' | 'rojo';
@@ -42,7 +62,7 @@ export interface ConduccionHoy {
   programadorNivel: NivelHoy | null;
   eco: { fecha: string; hoy: boolean; total: number; escala: number; marca: string; nivel: NivelHoy | null } | null;
   /** Migración 100: uso abusivo según el Eco Score de la marca (lo decide la base). */
-  abusivo: { activo: boolean; texto: string; fecha: string; hoy: boolean } | null;
+  abusivo: { activo: boolean; texto: string; fecha: string; hoy: boolean; puntaje: number | null; escala: number } | null;
 }
 
 const nivelHoy = (v: unknown): NivelHoy | null => (v === 'verde' || v === 'naranja' || v === 'rojo' ? v : null);
@@ -67,7 +87,14 @@ function parsearHoy(v: unknown): ConduccionHoy | null {
       h.abusivo && typeof h.abusivo === 'object'
         ? (() => {
             const x = h.abusivo as Record<string, unknown>;
-            return { activo: x.activo === true, texto: String(x.texto ?? ''), fecha: String(x.fecha ?? ''), hoy: x.hoy === true };
+            return {
+              activo: x.activo === true,
+              texto: String(x.texto ?? ''),
+              fecha: String(x.fecha ?? ''),
+              hoy: x.hoy === true,
+              puntaje: x.puntaje == null ? null : Number(x.puntaje),
+              escala: Number(x.escala ?? 100),
+            };
           })()
         : null,
   };
@@ -121,6 +148,8 @@ export function parsearMapa(v: unknown): DetalleMapa[] {
         viaje: viaje ? { id: Number(viaje.id), numero: String(viaje.numero) } : null,
         combustible: parsearCombustible(d.combustible),
         hoy: parsearHoy(d.hoy),
+        choferId: d.chofer_id == null ? null : Number(d.chofer_id),
+        consumoMes: parsearConsumoMes(d.consumo_mes),
         operacion: op
           ? {
               numero: Number(op.numero),

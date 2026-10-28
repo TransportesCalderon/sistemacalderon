@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
-import { haceTexto, minutosDesde, senalDe, type CamionEnVivo, type DetalleMapa, type Senal } from '../domain/flota.types';
+import { FUENTE_CONSUMO_MES, haceTexto, minutosDesde, senalDe, type CamionEnVivo, type DetalleMapa, type Senal } from '../domain/flota.types';
 
 const COLOR: Record<Senal, string> = { vivo: '#16a34a', demorada: '#d97706', sin_senal: '#94a3b8' };
 const ESTELA = '#22c55e';
@@ -177,6 +177,15 @@ export function MapaFlota({
             }`
           : '<span style="color:#64748b">—</span>',
       ),
+      // Migración 103: consumo del mes del chofer
+      fila(
+        'Consumo del chofer (mes)',
+        d?.consumoMes?.l100km != null
+          ? `<b>${formatearNumero(d.consumoMes.l100km, 1)} L/100 km</b> <span style="color:#64748b">(${formatearNumero(d.consumoMes.km, 0)} km${
+              d.consumoMes.fuente ? `, ${escapar(FUENTE_CONSUMO_MES[d.consumoMes.fuente] ?? d.consumoMes.fuente)}` : ''
+            })</span>`
+          : `<span style="color:#64748b">— ${d?.choferId ? '(menos de 100 km este mes)' : '(sin chofer)'}</span>`,
+      ),
       // Migración 100: uso abusivo según la marca
       ...(d?.hoy?.abusivo
         ? [
@@ -243,7 +252,10 @@ export function MapaFlota({
         anda && c.rumbo !== null
           ? `<span style="position:absolute;left:3px;top:-9px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid ${color};transform-origin:5px 17px;transform:rotate(${c.rumbo}deg)"></span>`
           : '';
-      const etiqueta = `${escapar(c.patente)}${d?.chofer ? ` · ${escapar(d.chofer.split(',')[0] ?? d.chofer)}` : ''}${anda ? ` (${formatearNumero(c.velocidadKmh ?? 0, 0)} km/h)` : ''}`;
+      const etiqueta = `${escapar(c.patente)}${d?.chofer ? ` · ${escapar(d.chofer.split(',')[0] ?? d.chofer)}` : ''}${anda ? ` (${formatearNumero(c.velocidadKmh ?? 0, 0)} km/h)` : ''}${
+        // Migración 103: consumo del mes del chofer
+        d?.consumoMes?.l100km != null ? ` · <span style="color:#0f5fa8">${formatearNumero(d.consumoMes.l100km, 1)} L/100</span>` : ''
+      }`;
       const icono = L.divIcon({
         className: '',
         iconSize: [0, 0],

@@ -15,6 +15,7 @@ import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { enlaceAlta, haceTexto, minutosDesde, senalDe, type CombustibleActual, type Senal } from '../domain/flota.types';
 import { useCorridasApi, useFlotaEnVivo, useImportarAhora, useMapaFlota, useVehiculosApi } from '../queries/hooks';
 import { MapaFlota } from './mapa-flota';
+import { RankingMapa } from './ranking-mapa';
 import { useCelularesEnVivo } from '@/modules/chofer/queries/hooks';
 
 const SENAL: Record<Senal, { texto: string; tono: 'exito' | 'alerta' | 'neutro' }> = {
@@ -87,6 +88,8 @@ export function FlotaPantalla() {
         />
       ) : (
         <>
+          {/* Migración 103: ranking de conducción de hoy, desplegable */}
+          <RankingMapa camiones={data} detalles={detalles} onSeleccionar={setElegido} />
           <MapaFlota
             camiones={data}
             celulares={celulares.data ?? []}

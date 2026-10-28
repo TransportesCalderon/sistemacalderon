@@ -104,6 +104,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/operacion/por-cerrar', etiqueta: 'Cierres por hacer', pantalla: 'operacion.tramos' },
       { href: '/flota/pizarra', etiqueta: 'Pizarra Azul', pantalla: 'flota.pizarra' },
       { href: '/telemetria/mapa', etiqueta: 'Mapa de flota', pantalla: 'telemetria.mapa' },
+      // Migración 103: los mejores choferes de cada mes
+      { href: '/telemetria/ranking', etiqueta: 'Ranking de choferes', pantalla: 'telemetria.sesiones' },
       { href: '/operacion/viajes-chofer', etiqueta: 'Viajes de chofer', pantalla: 'operacion.tramos', oculta: true },
       { href: '/operacion/costos', etiqueta: 'Costos de viajes', pantalla: 'finanzas.costos_directos', oculta: true },
       { href: '/operacion/viajes', etiqueta: 'Viajes', pantalla: 'operacion.tramos', oculta: true },

@@ -1717,6 +1717,8 @@ export type Database = {
       fn_avisos_carga: { Args: { p_horas?: number }; Returns: Json };
       // Migración 90: Puntaje Calderón
       fn_ranking_calderon: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
+      /** Migración 103. */
+      fn_ranking_mensual: { Args: { p_mes: string }; Returns: Json };
       fn_verificar_cierre: { Args: { p_id: number }; Returns: Json };
       fn_aprobar_cierre: { Args: { p_id: number; p_version: number }; Returns: CierreViajeRow };
       fn_anular_cierre: { Args: { p_id: number; p_version: number; p_motivo: string }; Returns: CierreViajeRow };
