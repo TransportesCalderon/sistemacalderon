@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Gauge, Hand, OctagonAlert, Timer, Trophy, Zap } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Trophy } from 'lucide-react';
 import { Cargando, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { RepoError } from '@/shared/repository/types';
@@ -11,12 +11,9 @@ import { hoyEnZona } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { browserDb } from '@/shared/supabase/browser';
 import { FUENTE_CONSUMO_MES, type NivelHoy } from '../domain/flota.types';
+import { BARRA, Cambio, Insignia, PartesCalderon, Podio, Subpuntuaciones, nombreCorto, texto, type Sub } from './campeonato-comun';
 
 type J = Record<string, unknown>;
-interface Sub {
-  valor: number;
-  nivel: NivelHoy | null;
-}
 interface ChoferMes {
   choferId: number | null;
   chofer: string;
@@ -80,56 +77,6 @@ async function leer(mes: string) {
   };
 }
 
-/** Colores: los decide la base (verde, naranja o rojo). */
-const TEXTO: Record<NivelHoy, string> = { verde: 'text-exito', naranja: 'text-[#ea580c]', rojo: 'text-error' };
-const BARRA: Record<NivelHoy, string> = { verde: 'bg-exito', naranja: 'bg-[#f59e0b]', rojo: 'bg-error' };
-const PUNTO: Record<NivelHoy, string> = { verde: 'bg-[#6ee7b7]', naranja: 'bg-[#fcd34d]', rojo: 'bg-[#fca5a5]' };
-const texto = (n: NivelHoy | null) => (n ? TEXTO[n] : 'text-tinta');
-
-/** Subpuntuaciones de la marca agrupadas como en Optifleet. Las que no estén acá van a «Otros». */
-const GRUPOS: { titulo: string; icono: typeof Gauge; total?: string; partes: Record<string, string> }[] = [
-  {
-    titulo: 'Anticipación',
-    icono: Hand,
-    partes: {
-      anticipation: 'Anticipación',
-      braking: 'Relación frenado/parada',
-      anticipationAndBraking: 'Anticipación y frenado',
-      coasting: 'En punto muerto',
-    },
-  },
-  {
-    titulo: 'Uso óptimo',
-    icono: Gauge,
-    partes: {
-      gearboxInAutoMode: 'Optidriver A (automático)',
-      withinEconomy: 'En zona verde',
-      engineAndGearUtilization: 'Uso del motor y los cambios',
-      engineAndGearUtilisation: 'Uso del motor y los cambios',
-      topgear: 'Marcha más alta',
-      engineLoad: 'Carga del motor',
-      aboveEconomy: 'Sobre la zona económica',
-    },
-  },
-  { titulo: 'Velocidad', icono: Zap, partes: { cruiseControl: 'Programador', speedAdaption: 'Adaptación de la velocidad', speedAdaptation: 'Adaptación de la velocidad' } },
-  { titulo: 'Parada', icono: Timer, partes: { idling: 'Ralentí', standstill: 'Tiempo detenido' } },
-  {
-    titulo: 'Uso abusivo',
-    icono: OctagonAlert,
-    total: 'abusiveUse',
-    partes: { gearboxInPowerMode: 'Optidriver P (potencia)', overrev: 'Motor sobrerrevolucionado', gearboxInManualMode: 'Caja en manual' },
-  },
-];
-const CONOCIDAS = new Set(GRUPOS.flatMap((g) => [...Object.keys(g.partes), ...(g.total ? [g.total] : [])]));
-
-const PARTES_CALDERON: { codigo: string; nombre: string }[] = [
-  { codigo: 'consumo', nombre: 'Consumo vs. objetivo' },
-  { codigo: 'ralenti', nombre: 'Ralentí' },
-  { codigo: 'programador', nombre: 'Programador' },
-  { codigo: 'velocidad', nombre: 'Velocidad' },
-  { codigo: 'marca', nombre: 'Puntaje de la marca' },
-];
-
 const nombreMes = (mes: string) => {
   const [a, m] = mes.split('-').map(Number);
   return new Date(Date.UTC(a ?? 2026, (m ?? 1) - 1, 15)).toLocaleDateString('es-AR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -139,144 +86,17 @@ const moverMes = (mes: string, n: number) => {
   const d = new Date(Date.UTC(a ?? 2026, (m ?? 1) - 1 + n, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 };
-const iniciales = (n: string) =>
-  n
-    .split(/[ ,]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join('');
-const nombreCorto = (n: string) => {
-  const [ap, no] = n.split(',').map((x) => x.trim());
-  return no ? `${no} ${ap}` : n;
-};
-
-function Cambio({ c }: { c: ChoferMes }) {
-  if (c.posicion === null) return null;
-  if (c.posicionAnterior === null) return <span className="rounded bg-[#dbeafe] px-1.5 py-0.5 text-[10px] font-bold text-[#1d4ed8] uppercase">Nuevo</span>;
-  if (!c.cambio) return <span className="text-xs font-bold text-tinta-suave">=</span>;
-  return c.cambio > 0 ? (
-    <span className="inline-flex items-center text-xs font-bold text-exito">
-      <ChevronUp className="size-4" />
-      {c.cambio}
-    </span>
-  ) : (
-    <span className="inline-flex items-center text-xs font-bold text-error">
-      <ChevronDown className="size-4" />
-      {Math.abs(c.cambio)}
-    </span>
-  );
-}
-
-const MEDALLA = ['bg-gradient-to-b from-[#fde68a] to-[#eab308] text-[#422006]', 'bg-gradient-to-b from-[#f1f5f9] to-[#94a3b8] text-[#0f172a]', 'bg-gradient-to-b from-[#fdba74] to-[#c2410c] text-white'];
-
-function Podio({ top }: { top: ChoferMes[] }) {
-  // 2.º a la izquierda, 1.º al medio (más alto), 3.º a la derecha
-  const orden = [top[1], top[0], top[2]];
-  const alto = ['h-20', 'h-28', 'h-14'];
-  const puesto = [2, 1, 3];
-  return (
-    <div className="grid grid-cols-3 items-end gap-3 sm:gap-6">
-      {orden.map((c, i) => (
-        <div key={puesto[i]} className="flex flex-col items-center">
-          {c ? (
-            <>
-              <div className={cn('mb-2 flex size-14 items-center justify-center rounded-full text-lg font-black shadow-lg ring-4 ring-white/20', MEDALLA[puesto[i]! - 1])}>
-                {iniciales(c.chofer)}
-              </div>
-              <p className="max-w-full truncate text-center text-sm font-bold text-white">{nombreCorto(c.chofer)}</p>
-              <p className="text-3xl font-black text-white tabular-nums">{formatearNumero(c.puntaje ?? 0, 0)}</p>
-              <div className="mb-2 h-5">
-                <Cambio c={c} />
-              </div>
-            </>
-          ) : (
-            <div className="h-24" />
-          )}
-          <div className={cn('flex w-full items-start justify-center rounded-t-lg pt-2 text-2xl font-black', alto[i], MEDALLA[puesto[i]! - 1])}>{puesto[i]}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /** Ficha del chofer: subpuntuaciones del mes como Optifleet y las partes del Puntaje Calderón. */
 function Ficha({ c }: { c: ChoferMes }) {
-  const grupos = GRUPOS.map((g) => {
-    const filas = Object.entries(g.partes).flatMap(([k, etiqueta]) => (c.subpuntajes[k] ? [{ k, etiqueta, ...c.subpuntajes[k] }] : []));
-    const total = g.total && c.subpuntajes[g.total] ? c.subpuntajes[g.total]! : null;
-    const prom = filas.length ? filas.reduce((s, f) => s + f.valor, 0) / filas.length : null;
-    return { ...g, filas, cabecera: total ? total.valor : prom, nivelCabecera: total?.nivel ?? null };
-  }).filter((g) => g.filas.length > 0 || g.cabecera !== null);
-  const otras = Object.entries(c.subpuntajes).filter(([k]) => !CONOCIDAS.has(k));
-
   return (
     <div className="grid gap-4 bg-[#0f172a] p-4 lg:grid-cols-[2fr_1fr]">
       <div>
         <p className="mb-2 text-xs font-semibold tracking-wider text-white/60 uppercase">Subpuntuaciones del mes (marca, 0 a 10)</p>
-        {grupos.length === 0 && otras.length === 0 ? (
-          <p className="text-sm text-white/60">Sin datos de la marca este mes (Scania, Mercedes o sin días con su tarjeta).</p>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {grupos.map((g) => (
-              <div key={g.titulo} className="rounded-lg bg-[#1e293b] p-3">
-                <div className="mb-1 flex items-center gap-2">
-                  <g.icono className="size-5 text-white/60" />
-                  <span className="flex-1 font-semibold text-white">{g.titulo}</span>
-                  {g.cabecera !== null && (
-                    <span
-                      className={cn(
-                        'flex size-10 items-center justify-center rounded-full text-sm font-bold tabular-nums',
-                        g.nivelCabecera ? cn(PUNTO[g.nivelCabecera], 'text-[#0f172a]') : 'bg-white/15 text-white',
-                      )}
-                    >
-                      {formatearNumero(g.cabecera, 1)}
-                    </span>
-                  )}
-                </div>
-                {g.filas.map((f) => (
-                  <div key={f.k} className="flex items-center gap-2 border-t border-white/10 py-1.5 text-sm">
-                    <span className="flex-1 text-white/85">{f.etiqueta}</span>
-                    <span className={cn('size-3 rounded-full', f.nivel ? PUNTO[f.nivel] : 'bg-white/30')} />
-                    <span className="w-9 text-right font-semibold text-white tabular-nums">{formatearNumero(f.valor, 1)}</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-            {otras.length > 0 && (
-              <div className="rounded-lg bg-[#1e293b] p-3">
-                <p className="mb-1 font-semibold text-white">Otros</p>
-                {otras.map(([k, v]) => (
-                  <div key={k} className="flex items-center gap-2 border-t border-white/10 py-1.5 text-sm">
-                    <span className="flex-1 text-white/85">{k}</span>
-                    <span className={cn('size-3 rounded-full', v.nivel ? PUNTO[v.nivel] : 'bg-white/30')} />
-                    <span className="w-9 text-right font-semibold text-white tabular-nums">{formatearNumero(v.valor, 1)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <Subpuntuaciones subpuntajes={c.subpuntajes} />
       </div>
       <div>
         <p className="mb-2 text-xs font-semibold tracking-wider text-white/60 uppercase">Puntaje Calderón por parte</p>
-        <div className="space-y-2 rounded-lg bg-[#1e293b] p-3">
-          {PARTES_CALDERON.map((p) => {
-            const v = c.partes[p.codigo];
-            return (
-              <div key={p.codigo}>
-                <div className="flex justify-between text-xs text-white/80">
-                  <span>{p.nombre}</span>
-                  <span className="font-semibold tabular-nums">{v === undefined ? '—' : `${formatearNumero(v, 0)} %`}</span>
-                </div>
-                <div className="mt-1 h-1.5 rounded-full bg-white/10">
-                  {v !== undefined && <div className="h-1.5 rounded-full bg-[#38bdf8]" style={{ width: `${Math.max(0, Math.min(100, v))}%` }} />}
-                </div>
-              </div>
-            );
-          })}
-          <p className="pt-1 text-[11px] text-white/50">100 % = todos los puntos de esa parte en los viajes aprobados del mes.</p>
-        </div>
+        <PartesCalderon partes={c.partes} />
       </div>
     </div>
   );
@@ -337,7 +157,7 @@ export function RankingMensualPantalla() {
         </p>
         {conPuesto.length > 0 && (
           <div className="mx-auto mt-6 max-w-2xl">
-            <Podio top={conPuesto.slice(0, 3)} />
+            <Podio top={conPuesto.slice(0, 3).map((c, i) => ({ ...c, clave: c.choferId ?? i, nombre: c.chofer }))} />
           </div>
         )}
       </section>
@@ -385,18 +205,7 @@ export function RankingMensualPantalla() {
                         onClick={() => setAbierto(abiertoAqui ? null : clave)}
                       >
                         <td className="px-3 py-2.5">
-                          {p !== null ? (
-                            <span
-                              className={cn(
-                                'inline-flex size-8 items-center justify-center rounded-lg text-sm font-black tabular-nums',
-                                p <= 3 ? MEDALLA[p - 1] : 'bg-[#0f172a] text-white',
-                              )}
-                            >
-                              {p}
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-tinta-suave">s/puesto</span>
-                          )}
+                          <Insignia posicion={p} />
                         </td>
                         <td className="px-2 py-2.5">
                           <Cambio c={c} />

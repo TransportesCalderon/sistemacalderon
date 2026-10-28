@@ -1638,6 +1638,8 @@ export type Database = {
       };
       fn_programador_pct: { Args: { p_camion: number; p_desde: string; p_hasta: string }; Returns: number | null };
       fn_puntaje_choferes: { Args: { p_desde: string; p_hasta: string }; Returns: PuntajeChoferRow[] };
+      /** Migración 108. */
+      fn_campeonato_choferes: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       fn_conduccion_chofer: { Args: { p_chofer: number; p_desde: string; p_hasta: string }; Returns: ConduccionDiariaRow[] };
     };
     Enums: { [_ in never]: never };
