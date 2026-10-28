@@ -11,7 +11,7 @@ import type {
   TerceroDatos,
   TransportistaDatos,
 } from '../domain/operacion.schemas';
-import { esEstadoLogistica, esPasoOperacion, type Hito, type SugerenciaCliente, type Linea, type Operacion, type TramosOperacion, type Transportista } from '../domain/operacion.types';
+import { esEstadoLogistica, esPasoOperacion, parsearFacturacionOp, type GensetOpcion, type Hito, type SugerenciaCliente, type Linea, type Operacion, type TramosOperacion, type Transportista } from '../domain/operacion.types';
 
 /** Datos de la operación como los recibe la base (ops.fn_guardar_operacion / fn_alta_operaciones). */
 const datosOperacion = (d: OperacionDatos) => ({
@@ -111,6 +111,11 @@ export const operacionesRepository = (db: Db) => {
         versionFila: o.version_fila,
         siguiente: o.siguiente && esPasoOperacion(o.siguiente) ? o.siguiente : null,
         posibles: (o.posibles ?? []).filter(esPasoOperacion),
+        activa: o.activa ?? ['sin_confirmar', 'planificado', 'en_curso'].includes(o.estado),
+        puedeVolver: o.puede_volver === true,
+        gensetId: o.genset_id ?? null,
+        genset: o.genset ?? null,
+        facturacion: parsearFacturacionOp(o.facturacion),
       }));
     },
 
@@ -226,6 +231,26 @@ export const operacionesRepository = (db: Db) => {
     terminarDemora: (servicio: number, hasta: string | null) =>
       llamar(ops().rpc('fn_terminar_demora', { p_servicio: servicio, p_hasta: hasta })),
     anularHito: (hito: number) => llamar(ops().rpc('fn_anular_hito', { p_hito: hito })),
+    /** Migración 101: deshace el último paso; devuelve cuál. */
+    async volverPaso(servicio: number): Promise<string> {
+      const { data, error } = await ops().rpc('fn_volver_paso', { p_servicio: servicio });
+      if (error) throw new RepoError(error);
+      return data;
+    },
+    asignarGenset: (servicio: number, genset: number | null) =>
+      llamar(ops().rpc('fn_asignar_genset', { p_servicio: servicio, p_genset: genset })),
+    async gensets(servicio: number): Promise<GensetOpcion[]> {
+      const { data, error } = await ops().rpc('fn_gensets_operacion', { p_servicio: servicio });
+      if (error) throw new RepoError(error);
+      return (Array.isArray(data) ? (data as Record<string, unknown>[]) : []).map((g) => ({
+        id: Number(g.id),
+        codigo: String(g.codigo),
+        detalle: [g.marca, g.modelo].filter(Boolean).join(' ') || null,
+        enSemi: g.en_semi === true,
+        semi: (g.semi as string | null) ?? null,
+        enOperacion: g.en_operacion == null ? null : Number(g.en_operacion),
+      }));
+    },
     cancelar: (servicio: number, motivo: string) => llamar(ops().rpc('fn_cancelar_operacion', { p_servicio: servicio, p_motivo: motivo })),
 
     // ---------------------------------------------------------------- líneas

@@ -19,6 +19,7 @@ import {
   anularHito,
   avanzarOperacion,
   asignarEquipo,
+  asignarGenset,
   asignarTercero,
   cancelarOperacion,
   confirmarOperacion,
@@ -30,7 +31,9 @@ import {
   quitarEquipo,
   registrarHito,
   terminarDemora,
+  volverPaso,
 } from '../actions/operaciones.actions';
+import { operacionesRepository } from '../repositories/operaciones.repository';
 import {
   agregarItemViaje,
   ajustarItemViaje,
@@ -92,6 +95,16 @@ export const useRegistrarHito = () => useEscritura(registrarHito);
 export const useTerminarDemora = () => useEscritura(terminarDemora);
 export const useAnularHito = () => useEscritura(anularHito);
 export const useCancelarOperacion = () => useEscritura(cancelarOperacion);
+// Migración 101
+export const useVolverPaso = () => useEscritura(volverPaso);
+export const useAsignarGenset = () => useEscritura(asignarGenset);
+export const useGensetsOperacion = (servicio: number, enabled = true) =>
+  useQuery({
+    queryKey: ['logistica', 'gensets', servicio] as const,
+    queryFn: () => operacionesRepository(browserDb()).gensets(servicio),
+    enabled,
+    staleTime: 60_000,
+  });
 export const useGuardarLinea = () => useEscritura(guardarLinea);
 export const useEliminarLinea = () => useEscritura(eliminarLinea);
 export const useGuardarTransportista = () => useEscritura(guardarTransportista);

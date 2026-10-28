@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight, ClipboardList, Copy, LoaderCircle, Plus, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, ClipboardList, Copy, LoaderCircle, Plus, Search, Snowflake, Undo2, X } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Encabezado, ErrorBase, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
@@ -18,6 +18,7 @@ import type { FechaDia } from '@/shared/types/dominio';
 import type { AltaEntrada } from '../domain/operacion.schemas';
 import {
   ESTADO_INFO,
+  FACTURACION_OP_INFO,
   GRUPOS_FILTRO,
   HITO_ETIQUETA,
   PASOS_CON_ODOMETRO,
@@ -34,9 +35,11 @@ import {
   useAltaOperaciones,
   useAnularHito,
   useAsignarEquipo,
+  useAsignarGenset,
   useAsignarTercero,
   useAvanzarOperacion,
   useCancelarOperacion,
+  useGensetsOperacion,
   useGuardarOperacion,
   useLineas,
   useOperaciones,
@@ -46,6 +49,7 @@ import {
   useTramosOperacion,
   useTransportistas,
   useViajesEnVivo,
+  useVolverPaso,
 } from '../queries/hooks';
 import { Lista } from './viajes-pantalla';
 import { SeguimientoOperacion } from '@/modules/chofer/components/seguimiento-operacion';
@@ -74,6 +78,8 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
   const [hasta, setHasta] = useState<string>(hoy);
   const [texto, setTexto] = useState(opInicial ? String(opInicial) : '');
   const [grupo, setGrupo] = useState<GrupoFiltro>('todos');
+  // Migración 101: de entrada solo las activas; las entregadas y canceladas quedan en «Históricas».
+  const [vista, setVista] = useState<'activas' | 'historicas'>('activas');
   const [abierto, setAbiertoEstado] = useState<Abierto>(nueva && puede ? { tipo: 'nueva' } : null);
   // ?op=<nro>: la ficha de esa operación se abre sola hasta que se toque otra cosa.
   const [auto, setAuto] = useState(!!opInicial);
@@ -87,15 +93,22 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
     const t = normalizar(texto);
     return (data ?? []).filter(
       (o) =>
-        !t ||
+        o.activa === (vista === 'activas') &&
+        (!t ||
         [String(o.numero), o.redline ? String(o.redline.numero) : null, o.cliente, o.linea, o.contenedor, o.chofer, o.tractor, o.semi, o.booking, o.crt, o.mic, o.transportista].some(
           (c) => normalizar(c).includes(t),
-        ),
+        )),
     );
-  }, [data, texto]);
+  }, [data, texto, vista]);
+  const totalActivas = (data ?? []).filter((o) => o.activa).length;
+  const grupos = GRUPOS_FILTRO.filter((g) => g.id === 'todos' || (vista === 'historicas') === (g.id === 'entregado' || g.id === 'cancelado'));
+  const cambiarVista = (v: 'activas' | 'historicas') => {
+    setVista(v);
+    setGrupo('todos');
+  };
   const cuenta = (g: (typeof GRUPOS_FILTRO)[number]) =>
     g.estados === null ? buscadas.length : buscadas.filter((o) => (g.estados as readonly string[]).includes(o.estadoLogistica)).length;
-  const actual = GRUPOS_FILTRO.find((g) => g.id === grupo) ?? GRUPOS_FILTRO[0];
+  const actual = grupos.find((g) => g.id === grupo) ?? GRUPOS_FILTRO[0];
   const filas = actual.estados === null ? buscadas : buscadas.filter((o) => (actual.estados as readonly string[]).includes(o.estadoLogistica));
   const abrirDe = (o: Operacion): Abierto => {
     if (abierto && 'o' in abierto && abierto.o.servicioId === o.servicioId) return { ...abierto, o } as Abierto;
@@ -121,6 +134,26 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
 
       {abierto?.tipo === 'nueva' && <FormOperacion base={abierto.base} duplicar zona={zonaHoraria} onCerrar={() => setAbierto(null)} />}
 
+      <div className="flex gap-1 border-b border-borde" role="tablist" aria-label="Activas o históricas">
+        {(
+          [
+            ['activas', `Activas (${totalActivas})`],
+            ['historicas', 'Históricas'],
+          ] as const
+        ).map(([id, t]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={vista === id}
+            onClick={() => cambiarVista(id)}
+            className={cn('-mb-px border-b-2 px-3 py-2 text-sm', vista === id ? 'border-marca font-medium text-marca' : 'border-transparent text-tinta-suave hover:text-tinta')}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
       <section className="flex flex-wrap items-center gap-2">
         <label className="relative block w-full max-w-xs">
           <span className="sr-only">Buscar</span>
@@ -134,7 +167,7 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
           />
         </label>
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por estado">
-          {GRUPOS_FILTRO.map((g) => (
+          {grupos.map((g) => (
             <button
               key={g.id}
               type="button"
@@ -150,15 +183,14 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
             </button>
           ))}
         </div>
-        <details className="ml-auto text-xs text-tinta-suave">
-          <summary className="cursor-pointer select-none">Terminadas entre…</summary>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+        {vista === 'historicas' && (
+          <div className="ml-auto flex flex-wrap items-center gap-2 text-xs text-tinta-suave">
+            Fecha de la operación entre
             <input type="date" aria-label="Desde" className={CONTROL_FILTRO} value={desde} onChange={(e) => setDesde(e.target.value)} />
             <span>y</span>
             <input type="date" aria-label="Hasta" className={CONTROL_FILTRO} value={hasta} onChange={(e) => setHasta(e.target.value)} />
           </div>
-          <p className="mt-1 max-w-xs">Las abiertas se ven siempre; las fechas solo filtran las entregadas y canceladas.</p>
-        </details>
+        )}
       </section>
 
       <div className={cn(TARJETA, 'overflow-x-auto')}>
@@ -169,7 +201,13 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
         ) : filas.length === 0 ? (
           <Vacio
             icono={<ClipboardList className="size-5" />}
-            texto={(data ?? []).length === 0 ? 'No hay operaciones abiertas ni terminadas en esas fechas.' : 'Ninguna operación coincide con el filtro.'}
+            texto={
+              buscadas.length > 0 || texto
+                ? 'Ninguna operación coincide con el filtro.'
+                : vista === 'activas'
+                  ? 'No hay operaciones activas.'
+                  : 'No hay operaciones entregadas ni canceladas en esas fechas.'
+            }
           />
         ) : (
           <table className="w-full text-sm">
@@ -195,6 +233,16 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
       </div>
     </div>
   );
+}
+
+/** Migración 101: facturada o cobrada (aparte del estado del viaje). Las entregadas sin facturar lo dicen. */
+function FacturacionMarca({ o }: { o: Operacion }) {
+  if (o.facturacion) {
+    const f = FACTURACION_OP_INFO[o.facturacion.estado];
+    return <span className={cn('mt-0.5 block text-[11px] font-medium whitespace-nowrap', f.clase)}>{f.etiqueta}</span>;
+  }
+  if (o.estado === 'entregado') return <span className="mt-0.5 block text-[11px] font-medium whitespace-nowrap text-[#b54708]">Sin facturar</span>;
+  return null;
 }
 
 function EstadoChip({ o }: { o: Operacion }) {
@@ -286,6 +334,7 @@ function FilaOperacion({
         <td className={cn(TD, 'whitespace-nowrap')}>{diaHora(o.fechaPresentacion, zona)}</td>
         <td className={TD}>
           <EstadoChip o={o} />
+          <FacturacionMarca o={o} />
         </td>
         <td className={cn(TD, 'text-xs')}>
           {sinEquipo ? (
@@ -298,6 +347,11 @@ function FilaOperacion({
                 {o.transportista && <span className="font-sans"> · {o.transportista}</span>}
               </span>
             </>
+          )}
+          {o.genset && (
+            <span className="mt-0.5 flex items-center gap-1 font-mono text-[#0b4a85]">
+              <Snowflake className="size-3" /> {o.genset}
+            </span>
           )}
         </td>
         <td className={cn(TD, 'font-mono text-xs')}>
@@ -367,6 +421,15 @@ function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: str
       ['MIC', o.mic, true],
       ['Transportista', o.transportista],
       ['Fecha de la operación', formatearFechaDia(o.fecha)],
+      [
+        'Facturación',
+        o.facturacion && (
+          <Link href={`/ventas/facturacion?factura=${o.facturacion.facturaId}`} className="text-marca hover:underline">
+            {FACTURACION_OP_INFO[o.facturacion.estado].etiqueta}
+            {o.facturacion.conNumero ? ` · ${o.facturacion.numero}` : o.facturacion.estado !== 'prefactura' ? ' · sin número' : ''}
+          </Link>
+        ),
+      ],
     ] as [string, ReactNode, boolean?][]
   ).filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== false);
 
@@ -450,6 +513,9 @@ function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: str
         </div>
       )}
 
+      {puede && (o.estado !== 'cancelado' || o.gensetId) && <GensetOperacion o={o} />}
+      {puede && o.puedeVolver && <VolverPaso o={o} />}
+
       {tipo === 'paso' && abierto?.tipo === 'paso' && <PanelPaso o={o} paso={abierto.paso} errorInicial={abierto.error ?? null} zona={zona} onCerrar={cerrar} />}
       {tipo === 'modificar' && <FormOperacion base={o} zona={zona} onCerrar={cerrar} />}
       {tipo === 'equipo' && <PanelEquipo o={o} onCerrar={cerrar} />}
@@ -495,6 +561,110 @@ function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: str
       {!o.transportistaId && o.estado !== 'sin_confirmar' && (
         <SeguimientoOperacion servicioId={o.servicioId} abierta={['planificado', 'en_curso'].includes(o.estado)} />
       )}
+    </div>
+  );
+}
+
+/** Migración 101: deshace el último paso (cuál, lo decide la base). Pide confirmar con un segundo clic. */
+function VolverPaso({ o }: { o: Operacion }) {
+  const volver = useVolverPaso();
+  const envio = useEnvio();
+  const [seguro, setSeguro] = useState(false);
+  const [hecho, setHecho] = useState<string | null>(null);
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      {!seguro ? (
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 font-medium text-tinta-suave hover:text-tinta hover:underline"
+          onClick={() => {
+            setHecho(null);
+            envio.setError(null);
+            setSeguro(true);
+          }}
+        >
+          <Undo2 className="size-3.5" /> Volver al paso anterior
+        </button>
+      ) : (
+        <>
+          <span className="text-tinta">¿Deshacer el último paso de la operación {o.numero}?</span>
+          <button
+            type="button"
+            className="inline-flex h-7 items-center gap-1 rounded-md bg-marca px-2.5 font-semibold text-white disabled:opacity-60"
+            disabled={volver.isPending}
+            onClick={async () => {
+              const r = await volver.mutateAsync({ servicioId: o.servicioId });
+              setSeguro(false);
+              if (!r.ok) return envio.setError(r.error);
+              setHecho(r.data);
+            }}
+          >
+            {volver.isPending && <LoaderCircle className="size-3.5 animate-spin" />} Sí, volver
+          </button>
+          <button type="button" className="text-tinta-suave hover:underline" onClick={() => setSeguro(false)}>
+            No
+          </button>
+        </>
+      )}
+      {hecho && <span className="text-exito">Se deshizo «{hecho}».</span>}
+      <ErrorBase error={envio.error} />
+    </div>
+  );
+}
+
+/** Migración 101: genset de las operaciones con frío (no todas lo llevan). */
+function GensetOperacion({ o }: { o: Operacion }) {
+  const [editando, setEditando] = useState(false);
+  const { data: gensets, isLoading } = useGensetsOperacion(o.servicioId, editando);
+  const asignar = useAsignarGenset();
+  const envio = useEnvio();
+  const guardar = (id: number | null) =>
+    void envio.enviar(asignar.mutateAsync({ servicioId: o.servicioId, gensetId: id }), () => setEditando(false));
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <Snowflake className="size-3.5 text-[#0b4a85]" />
+      <span className="text-tinta-suave">Genset:</span>
+      {!editando ? (
+        <>
+          <span className="font-mono font-medium text-tinta">{o.genset ?? 'sin genset'}</span>
+          {o.estado !== 'cancelado' && (
+            <button type="button" className="font-medium text-marca hover:underline" onClick={() => setEditando(true)}>
+              {o.genset ? 'Cambiar' : 'Agregar genset'}
+            </button>
+          )}
+          {o.genset && (
+            <button type="button" className="text-tinta-suave hover:text-error hover:underline" disabled={asignar.isPending} onClick={() => guardar(null)}>
+              Quitar
+            </button>
+          )}
+        </>
+      ) : isLoading ? (
+        <LoaderCircle className="size-3.5 animate-spin text-tinta-suave" />
+      ) : (
+        <>
+          <select
+            aria-label="Genset"
+            className={CONTROL_FILTRO}
+            defaultValue={o.gensetId ?? ''}
+            disabled={asignar.isPending}
+            onChange={(e) => e.target.value && guardar(Number(e.target.value))}
+          >
+            <option value="">Elegí el genset…</option>
+            {(gensets ?? []).map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.codigo}
+                {g.detalle ? ` · ${g.detalle}` : ''}
+                {g.enSemi ? ' (instalado en el semi)' : g.semi ? ` (en el semi ${g.semi})` : ''}
+                {g.enOperacion ? ` · en la Op. ${g.enOperacion}` : ''}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="text-tinta-suave hover:underline" onClick={() => setEditando(false)}>
+            Cancelar
+          </button>
+        </>
+      )}
+      <ErrorBase error={envio.error} />
     </div>
   );
 }

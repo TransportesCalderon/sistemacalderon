@@ -584,7 +584,38 @@ export interface PorFacturar {
   pesoKg: number | null;
   referenciaCliente: string | null;
   precio: { unidad: string | null; cantidad: number | null; precio: number | null; importe: number | null; falta: string | null };
+  /** Migración 101: también se facturan antes de entregarse (programadas o en curso). */
+  estado: string;
+  entregada: boolean;
 }
+
+/** Migración 101: los números del módulo de Finanzas › Facturación y cobranzas. */
+export interface ResumenFacturacion {
+  porFacturarEntregadas: number;
+  porFacturarEnCurso: number;
+  prefacturas: number;
+  porCobrar: number;
+  porCobrarUsd: number;
+  vencidas: number;
+  vencidasUsd: number;
+  sinNumero: number;
+  cobradoMesUsd: number;
+}
+export const parsearResumenFacturacion = (v: Json | unknown): ResumenFacturacion => {
+  const x = o(v);
+  return {
+    porFacturarEntregadas: n0(x.por_facturar_entregadas),
+    porFacturarEnCurso: n0(x.por_facturar_en_curso),
+    prefacturas: n0(x.prefacturas),
+    porCobrar: n0(x.por_cobrar),
+    porCobrarUsd: n0(x.por_cobrar_usd),
+    vencidas: n0(x.vencidas),
+    vencidasUsd: n0(x.vencidas_usd),
+    sinNumero: n0(x.sin_numero),
+    cobradoMesUsd: n0(x.cobrado_mes_usd),
+  };
+};
+export const ESTADO_OPERACION_FAC: Record<string, string> = { planificado: 'Programada', en_curso: 'En curso', entregado: 'Entregada' };
 export const parsearPorFacturar = (v: Json | unknown): PorFacturar[] =>
   arr(v).map((a) => {
     const y = o(a);
@@ -601,6 +632,8 @@ export const parsearPorFacturar = (v: Json | unknown): PorFacturar[] =>
       pesoKg: n(y.peso_kg),
       referenciaCliente: s(y.referencia_cliente),
       precio: { unidad: s(p.unidad), cantidad: n(p.cantidad), precio: n(p.precio), importe: n(p.importe), falta: s(p.falta) },
+      estado: s(y.estado) ?? 'entregado',
+      entregada: y.entregada === undefined ? true : y.entregada === true,
     };
   });
 

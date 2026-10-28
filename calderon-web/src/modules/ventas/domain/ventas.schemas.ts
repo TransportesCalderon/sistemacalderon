@@ -159,3 +159,5 @@ export const guardarFacturaSchema = z.object({
 export type GuardarFacturaEntrada = z.infer<typeof guardarFacturaSchema>;
 export const emitirSchema = z.object({ id, version: z.number().int().positive(), numeroFiscal: z.string().trim().max(40), fecha });
 export const cobrarSchema = z.object({ id, fecha, cuentaId: id.nullable().optional() });
+/** Migración 101: el N° de factura se carga después de emitirla. */
+export const numeroFacturaSchema = z.object({ id, numeroFiscal: z.string().trim().min(1, 'Escribí el número de la factura.').max(40) });

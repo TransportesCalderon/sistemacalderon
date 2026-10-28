@@ -11,26 +11,50 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { ETIQUETA_ESTADO_FAC, ETIQUETA_UNIDAD, usd, type EstadoFactura, type PorFacturar } from '../domain/ventas.types';
+import { ESTADO_OPERACION_FAC, ETIQUETA_ESTADO_FAC, ETIQUETA_UNIDAD, usd, type EstadoFactura, type PorFacturar } from '../domain/ventas.types';
 import { useCuentasParaElegir } from '@/modules/finanzas/queries/hooks';
-import { useAnularFactura, useCobrarFactura, useCrearFactura, useEmitirFactura, useFactura, useFacturas, useGuardarFactura, usePorFacturar } from '../queries/hooks';
+import {
+  useAnularFactura,
+  useCobrarFactura,
+  useCrearFactura,
+  useEmitirFactura,
+  useFactura,
+  useFacturas,
+  useGuardarFactura,
+  useNumeroFactura,
+  usePorFacturar,
+  useResumenFacturacion,
+} from '../queries/hooks';
 import { ChipFactura } from './comun';
 
-const FILTROS: (EstadoFactura | null)[] = ['borrador', 'emitida', 'vencida', 'cobrada', 'anulada', null];
+/** Migración 101: «por cobrar» = emitidas sin cobrar (con las vencidas). */
+type FiltroFactura = EstadoFactura | 'por_cobrar' | null;
+const FILTROS: FiltroFactura[] = ['borrador', 'por_cobrar', 'vencida', 'cobrada', 'anulada', null];
+const ETIQUETA_FILTRO = (f: FiltroFactura) =>
+  f === null ? 'Todas' : f === 'borrador' ? 'Prefacturas' : f === 'por_cobrar' ? 'Por cobrar' : `${ETIQUETA_ESTADO_FAC[f]}s`;
 
-/** Ventas › Facturación: lo entregado sin facturar, las prefacturas, lo emitido y lo cobrado. */
+/**
+ * Finanzas › Facturación y cobranzas (migración 101; antes Ventas › Facturación): lo que falta facturar
+ * (también lo que todavía no se entregó), las prefacturas, lo facturado sin cobrar y lo cobrado.
+ */
 export function FacturacionPantalla() {
   const params = useSearchParams();
   const inicial = Number(params.get('factura')) || null;
   const [vista, setVista] = useState<'por_facturar' | 'facturas'>(inicial ? 'facturas' : 'por_facturar');
   const [abierta, setAbierta] = useState<number | null>(inicial);
+  const [estado, setEstado] = useState<FiltroFactura>(inicial ? null : 'borrador');
+  const verFacturas = (f: FiltroFactura) => {
+    setEstado(f);
+    setVista('facturas');
+  };
   return (
     <div className="space-y-4">
-      <Encabezado titulo="Facturación" subtitulo="Ventas" />
+      <Encabezado titulo="Facturación y cobranzas" subtitulo="Finanzas" />
       <p className="text-sm text-tinta-suave">
-        El sistema arma la prefactura con lo entregado y el precio de la tarifa. La factura electrónica se hace en el sistema de facturación de siempre;
-        acá se anota su número, el vencimiento y el cobro.
+        El sistema arma la prefactura con las operaciones y el precio de la tarifa. La factura electrónica se hace en el sistema de facturación de siempre;
+        acá se marca emitida (el número se puede cargar después) y se registra el cobro.
       </p>
+      <ResumenFacturacion onPorFacturar={() => setVista('por_facturar')} onFacturas={verFacturas} />
       <div className="flex gap-1 border-b border-borde">
         {(
           [
@@ -56,7 +80,52 @@ export function FacturacionPantalla() {
           }}
         />
       ) : (
-        <FacturasVista abierta={abierta} onAbrir={setAbierta} />
+        <FacturasVista abierta={abierta} onAbrir={setAbierta} estado={estado} onEstado={setEstado} />
+      )}
+    </div>
+  );
+}
+
+const facturas = (n: number) => `${n} ${n === 1 ? 'factura' : 'facturas'}`;
+
+/** Los números de arriba: tocar uno abre esa lista. */
+function ResumenFacturacion({ onPorFacturar, onFacturas }: { onPorFacturar: () => void; onFacturas: (f: FiltroFactura) => void }) {
+  const { data: r } = useResumenFacturacion();
+  if (!r) return null;
+  const tarjetas: { titulo: string; valor: string; detalle?: string; tono?: string; onClick: () => void }[] = [
+    {
+      titulo: 'Para facturar',
+      valor: String(r.porFacturarEntregadas),
+      detalle: r.porFacturarEnCurso ? `entregadas · y ${r.porFacturarEnCurso} sin entregar` : 'entregadas',
+      tono: r.porFacturarEntregadas ? 'text-[#b54708]' : undefined,
+      onClick: onPorFacturar,
+    },
+    { titulo: 'Prefacturas', valor: String(r.prefacturas), detalle: 'por emitir', onClick: () => onFacturas('borrador') },
+    { titulo: 'Por cobrar', valor: usd(r.porCobrarUsd), detalle: facturas(r.porCobrar), onClick: () => onFacturas('por_cobrar') },
+    {
+      titulo: 'Vencidas',
+      valor: usd(r.vencidasUsd),
+      detalle: facturas(r.vencidas),
+      tono: r.vencidas ? 'text-error' : undefined,
+      onClick: () => onFacturas('vencida'),
+    },
+    { titulo: 'Cobrado este mes', valor: usd(r.cobradoMesUsd), onClick: () => onFacturas('cobrada') },
+  ];
+  return (
+    <div className="space-y-2">
+      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {tarjetas.map((t) => (
+          <button key={t.titulo} type="button" onClick={t.onClick} className={cn(TARJETA, 'p-3 text-left hover:bg-hover')}>
+            <span className="block text-xs text-tinta-suave">{t.titulo}</span>
+            <span className={cn('block text-xl font-semibold tabular-nums', t.tono ?? 'text-tinta')}>{t.valor}</span>
+            {t.detalle && <span className="block text-xs text-tinta-suave">{t.detalle}</span>}
+          </button>
+        ))}
+      </div>
+      {r.sinNumero > 0 && (
+        <p className="text-sm text-[#b54708]">
+          {r.sinNumero === 1 ? 'Hay 1 factura emitida' : `Hay ${r.sinNumero} facturas emitidas`} sin el número de la factura electrónica: abrila para cargarlo.
+        </p>
       )}
     </div>
   );
@@ -77,11 +146,12 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
     }
     return [...m.entries()];
   }, [data]);
-  useEffect(() => setMarcadas(new Set((data ?? []).map((o) => o.servicioId))), [data]);
+  // Vienen marcadas las entregadas; las que todavía no se entregaron se marcan a mano (se facturan antes solo algunas)
+  useEffect(() => setMarcadas(new Set((data ?? []).filter((o) => o.entregada).map((o) => o.servicioId))), [data]);
 
-  if (isLoading) return <Cargando texto="Buscando lo entregado sin facturar…" />;
+  if (isLoading) return <Cargando texto="Buscando lo que falta facturar…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudo leer lo pendiente de facturar." onReintentar={() => void refetch()} error={error} />;
-  if (data.length === 0) return <Vacio icono={<Receipt className="size-6" />} texto="No hay operaciones entregadas sin facturar." />;
+  if (data.length === 0) return <Vacio icono={<Receipt className="size-6" />} texto="No hay operaciones sin facturar." />;
   const alternar = (id: number) =>
     setMarcadas((m) => {
       const n = new Set(m);
@@ -124,7 +194,7 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
                   <tr className="border-b border-borde">
                     <th className={cn(TH, 'w-8')} />
                     <th className={TH}>Operación</th>
-                    <th className={TH}>Entregada</th>
+                    <th className={TH}>Estado · fecha</th>
                     <th className={TH}>Ruta</th>
                     <th className={cn(TH, 'text-right')}>Precio</th>
                   </tr>
@@ -145,7 +215,12 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
                         N° {o.numeroOperacion}
                         <span className="block text-xs text-tinta-suave">{[o.contenedor, o.referenciaCliente && `ref. ${o.referenciaCliente}`].filter(Boolean).join(' · ')}</span>
                       </td>
-                      <td className={cn(TD, 'tabular-nums')}>{formatearFechaDia(o.fecha)}</td>
+                      <td className={cn(TD, 'tabular-nums')}>
+                        <span className={cn('block text-xs font-medium', o.entregada ? 'text-exito' : 'text-tinta-suave')}>
+                          {ESTADO_OPERACION_FAC[o.estado] ?? o.estado}
+                        </span>
+                        {formatearFechaDia(o.fecha)}
+                      </td>
                       <td className={TD}>{o.linea ?? '—'}</td>
                       <td className={cn(TD, 'text-right tabular-nums')}>
                         {o.precio.importe !== null ? (
@@ -173,8 +248,17 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
   );
 }
 
-function FacturasVista({ abierta, onAbrir }: { abierta: number | null; onAbrir: (id: number | null) => void }) {
-  const [estado, setEstado] = useState<EstadoFactura | null>('borrador');
+function FacturasVista({
+  abierta,
+  onAbrir,
+  estado,
+  onEstado,
+}: {
+  abierta: number | null;
+  onAbrir: (id: number | null) => void;
+  estado: FiltroFactura;
+  onEstado: (f: FiltroFactura) => void;
+}) {
   const { data, isLoading, isError, error, refetch } = useFacturas(estado);
   return (
     <div className="space-y-4">
@@ -184,13 +268,13 @@ function FacturasVista({ abierta, onAbrir }: { abierta: number | null; onAbrir: 
           <button
             key={f ?? 'todas'}
             type="button"
-            onClick={() => setEstado(f)}
+            onClick={() => onEstado(f)}
             className={cn(
               'rounded-full border px-3 py-1.5 text-sm',
               estado === f ? 'border-marca bg-marca-suave font-medium text-marca' : 'border-borde text-tinta-suave hover:bg-hover',
             )}
           >
-            {f ? (f === 'borrador' ? 'Prefacturas' : ETIQUETA_ESTADO_FAC[f] + 's') : 'Todas'}
+            {ETIQUETA_FILTRO(f)}
           </button>
         ))}
       </div>
@@ -218,6 +302,9 @@ function FacturasVista({ abierta, onAbrir }: { abierta: number | null; onAbrir: 
                   <td className={TD}>
                     <span className="font-medium text-marca">{f.numeroFiscal ?? f.numero}</span>
                     {f.numeroFiscal && <span className="block text-xs text-tinta-suave">{f.numero}</span>}
+                    {!f.numeroFiscal && f.estado !== 'borrador' && f.estado !== 'anulada' && (
+                      <span className="block text-xs text-[#b54708]">sin N° de factura</span>
+                    )}
                   </td>
                   <td className={TD}>{f.cliente}</td>
                   <td className={cn(TD, 'text-xs tabular-nums')}>
@@ -256,6 +343,8 @@ function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => void }) {
   const emitir = useEmitirFactura();
   const cobrar = useCobrarFactura();
   const anular = useAnularFactura();
+  const numero = useNumeroFactura();
+  const [numeroDespues, setNumeroDespues] = useState('');
   const envio = useEnvio();
   const [filas, setFilas] = useState<FilaEdit[]>([]);
   const [obs, setObs] = useState('');
@@ -280,7 +369,8 @@ function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => void }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-tinta">
-            {f.numeroFiscal ? `Factura ${f.numeroFiscal}` : `Prefactura ${f.numero}`} <ChipFactura estado={f.estado} />
+            {f.numeroFiscal ? `Factura ${f.numeroFiscal}` : f.estado === 'borrador' || f.estado === 'anulada' ? `Prefactura ${f.numero}` : `Factura ${f.numero} (sin N°)`}{' '}
+            <ChipFactura estado={f.estado} />
           </h2>
           <p className="text-sm text-tinta-suave">
             {f.cliente}
@@ -385,8 +475,8 @@ function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => void }) {
       <div className="flex flex-wrap items-end gap-3 border-t border-borde pt-3">
         {f.estado === 'borrador' && puedeEstado && (
           <>
-            <Campo label="N° de la factura electrónica">
-              <input value={emision.numero} placeholder="0001-00000123" onChange={(e) => setEmision({ ...emision, numero: e.target.value })} />
+            <Campo label="N° de la factura electrónica (si ya lo tenés)">
+              <input value={emision.numero} placeholder="Se puede cargar después" onChange={(e) => setEmision({ ...emision, numero: e.target.value })} />
             </Campo>
             <Campo label="Fecha de la factura">
               <input type="date" value={emision.fecha} onChange={(e) => setEmision({ ...emision, fecha: e.target.value })} />
@@ -398,6 +488,22 @@ function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => void }) {
               onClick={() => void envio.enviar(emitir.mutateAsync({ id: f.id, version: f.version, numeroFiscal: emision.numero, fecha: emision.fecha }), () => undefined)}
             >
               <Receipt className="size-4" /> Marcar como emitida
+            </button>
+          </>
+        )}
+        {/* Migración 101: el N° se carga cuando se tenga */}
+        {!f.numeroFiscal && (f.estado === 'emitida' || f.estado === 'vencida' || f.estado === 'cobrada') && puedeEstado && (
+          <>
+            <Campo label="N° de la factura electrónica">
+              <input value={numeroDespues} placeholder="0001-00000123" onChange={(e) => setNumeroDespues(e.target.value)} />
+            </Campo>
+            <button
+              type="button"
+              className={BOTON_SECUNDARIO}
+              disabled={numero.isPending}
+              onClick={() => void envio.enviar(numero.mutateAsync({ id: f.id, numeroFiscal: numeroDespues }), () => setNumeroDespues(''))}
+            >
+              <Save className="size-4" /> Guardar el número
             </button>
           </>
         )}

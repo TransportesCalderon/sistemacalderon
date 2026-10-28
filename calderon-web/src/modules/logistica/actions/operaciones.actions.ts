@@ -8,6 +8,7 @@ import {
   cancelarOperacionSchema,
   eliminarSchema,
   equipoSchema,
+  gensetOperacionSchema,
   hitoSchema,
   lineaSchema,
   operacionSchema,
@@ -95,6 +96,21 @@ export const anularHito = createAction({
   permiso: PERMISO,
   schema: anularHitoSchema,
   handler: (d, { db }) => operacionesRepository(db).anularHito(d.hitoId),
+  invalida: rutas,
+});
+
+/** Migración 101: deshace el último paso (la base decide cuál y quién puede). */
+export const volverPaso = createAction({
+  permiso: PERMISO,
+  schema: servicioSchema,
+  handler: (d, { db }) => operacionesRepository(db).volverPaso(d.servicioId),
+  invalida: rutas,
+});
+
+export const asignarGenset = createAction({
+  permiso: PERMISO,
+  schema: gensetOperacionSchema,
+  handler: (d, { db }) => operacionesRepository(db).asignarGenset(d.servicioId, d.gensetId),
   invalida: rutas,
 });
 

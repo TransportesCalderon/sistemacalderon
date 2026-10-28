@@ -15,6 +15,7 @@ import {
   hacerClienteSchema,
   idSchema,
   motivoSchema,
+  numeroFacturaSchema,
   moverSchema,
   negocioSchema,
   parametrosSchema,
@@ -28,7 +29,7 @@ import { ventasRepository } from '../repositories/ventas.repository';
  * Escrituras de Ventas (migración 67). El permiso de la pantalla es el primer filtro;
  * la base vuelve a exigir el rol (Ventas o TI; la facturación, Finanzas o TI).
  */
-const rutas = () => ({ paths: ['/ventas'] });
+const rutas = () => ({ paths: ['/ventas', '/operacion/operaciones'] });
 const repo = ventasRepository;
 
 // Seguimiento
@@ -99,6 +100,12 @@ export const cobrarFactura = createAction({
   permiso: 'ventas.facturacion:transicionar',
   schema: cobrarSchema,
   handler: (d, { db }) => repo(db).cobrarFactura(d.id, d.fecha, d.cuentaId ?? null),
+  invalida: rutas,
+});
+export const numeroFactura = createAction({
+  permiso: 'ventas.facturacion:transicionar',
+  schema: numeroFacturaSchema,
+  handler: (d, { db }) => repo(db).numeroFactura(d.id, d.numeroFiscal),
   invalida: rutas,
 });
 export const anularFactura = createAction({

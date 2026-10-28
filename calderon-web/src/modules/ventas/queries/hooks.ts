@@ -18,6 +18,7 @@ import {
   guardarCotizacion,
   guardarEmpresa,
   guardarFactura,
+  numeroFactura,
   guardarNegocio,
   guardarParametros,
   guardarTarifa,
@@ -52,6 +53,9 @@ export const useCotizacion = (id: number | null) => useQuery({ queryKey: [...CLA
 export const usePorFacturar = () => useQuery({ queryKey: [...CLAVE, 'por-facturar'], queryFn: () => repo().porFacturar() });
 export const useFacturas = (estado: string | null) =>
   useQuery({ queryKey: [...CLAVE, 'facturas', estado], queryFn: () => repo().facturas(estado), placeholderData: keepPreviousData });
+// Migración 101
+export const useResumenFacturacion = () => useQuery({ queryKey: [...CLAVE, 'resumen-facturacion'], queryFn: () => repo().resumenFacturacion(), refetchInterval: 120_000 });
+export const useNumeroFactura = () => useEscritura(numeroFactura);
 export const useFactura = (id: number | null) => useQuery({ queryKey: [...CLAVE, 'factura', id], queryFn: () => repo().factura(id!), enabled: !!id });
 
 function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
@@ -59,7 +63,7 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
   return useMutation({
     mutationFn: accion,
     // Migración 73: emitir o cobrar cambia también Finanzas
-    onSuccess: (r) => (r.ok ? Promise.all([qc.invalidateQueries({ queryKey: CLAVE }), qc.invalidateQueries({ queryKey: ['finanzas'] })]) : undefined),
+    onSuccess: (r) => (r.ok ? Promise.all([qc.invalidateQueries({ queryKey: CLAVE }), qc.invalidateQueries({ queryKey: ['finanzas'] }), qc.invalidateQueries({ queryKey: ['logistica'] })]) : undefined),
   });
 }
 export const useGuardarEmpresa = () => useEscritura(guardarEmpresa);

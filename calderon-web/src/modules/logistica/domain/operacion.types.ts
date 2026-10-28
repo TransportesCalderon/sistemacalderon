@@ -189,6 +189,46 @@ export interface Operacion {
   versionFila: number;
   siguiente: PasoOperacion | null;
   posibles: PasoOperacion[];
+  /** Migración 101: sin terminar (sin confirmar, programada o en curso). Las demás son históricas. */
+  activa: boolean;
+  /** Migración 101: tiene un paso para deshacer (lo decide la base). */
+  puedeVolver: boolean;
+  /** Migración 101: genset de las operaciones con frío. */
+  gensetId: number | null;
+  genset: string | null;
+  facturacion: FacturacionOperacion | null;
+}
+
+/** Migración 101: cómo está la facturación de la operación (aparte del viaje). */
+export type EstadoFacturacionOp = 'prefactura' | 'facturada' | 'vencida' | 'cobrada';
+export interface FacturacionOperacion {
+  estado: EstadoFacturacionOp;
+  facturaId: number;
+  numero: string;
+  conNumero: boolean;
+}
+export const FACTURACION_OP_INFO: Record<EstadoFacturacionOp, { etiqueta: string; clase: string }> = {
+  prefactura: { etiqueta: 'Prefactura', clase: 'text-tinta-suave' },
+  facturada: { etiqueta: 'Facturada', clase: 'text-[#0b4a85]' },
+  vencida: { etiqueta: 'Facturada · vencida', clase: 'text-error' },
+  cobrada: { etiqueta: 'Cobrada', clase: 'text-exito' },
+};
+export const parsearFacturacionOp = (v: unknown): FacturacionOperacion | null => {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const f = v as Record<string, unknown>;
+  const e = f.estado;
+  if (e !== 'prefactura' && e !== 'facturada' && e !== 'vencida' && e !== 'cobrada') return null;
+  return { estado: e, facturaId: Number(f.factura_id), numero: String(f.numero ?? ''), conNumero: f.con_numero === true };
+};
+
+/** Migración 101: genset para elegir en la operación (primero el instalado en el semi del viaje). */
+export interface GensetOpcion {
+  id: number;
+  codigo: string;
+  detalle: string | null;
+  enSemi: boolean;
+  semi: string | null;
+  enOperacion: number | null;
 }
 
 /** Lo que se propone al elegir el cliente (su última operación). */

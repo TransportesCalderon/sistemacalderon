@@ -8,6 +8,7 @@ import {
   parsearFactura,
   parsearFacturas,
   parsearPorFacturar,
+  parsearResumenFacturacion,
   parsearSugerencia,
   parsearTablero,
   parsearTarifario,
@@ -254,6 +255,13 @@ export const ventasRepository = (db: Db) => {
     },
     async emitirFactura(id: number, version: number, numeroFiscal: string, fecha: string) {
       await leer(ven().rpc('fn_ven_emitir_factura', { p_id: id, p_version: version, p_numero_fiscal: numeroFiscal, p_fecha: fecha }));
+    },
+    /** Migración 101: N° de factura cargado después de emitirla. */
+    async numeroFactura(id: number, numeroFiscal: string) {
+      await leer(ven().rpc('fn_ven_numero_factura', { p_id: id, p_numero_fiscal: numeroFiscal }));
+    },
+    async resumenFacturacion() {
+      return parsearResumenFacturacion(await leer(ven().rpc('fn_ven_resumen_facturacion')));
     },
     async cobrarFactura(id: number, fecha: string, cuentaId: number | null = null) {
       // Migración 73: el cobro entra a un banco o caja de Finanzas (y se contabiliza)

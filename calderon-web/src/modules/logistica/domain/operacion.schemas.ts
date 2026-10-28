@@ -141,6 +141,8 @@ export type HitoDatos = z.output<typeof hitoSchema>;
 
 export const terminarDemoraSchema = z.object({ servicioId: servicio, hasta: instante });
 export const anularHitoSchema = z.object({ hitoId: z.number().int().positive() });
+/** Migración 101: genset de la operación (null = sin genset). */
+export const gensetOperacionSchema = z.object({ servicioId: servicio, gensetId: z.number().int().positive().nullable() });
 export const quitarEquipoSchema = z.object({ servicioId: servicio, motivo: texto(500) });
 export const cancelarOperacionSchema = z.object({ servicioId: servicio, motivo: z.string().trim().min(1, 'Indicá el motivo.').max(500) });
 

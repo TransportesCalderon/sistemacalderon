@@ -813,6 +813,12 @@ type OperacionRow = {
   /** Migración 42: paso sugerido y pasos posibles (ops.fn_pasos). */
   siguiente: string | null;
   posibles: string[];
+  /** Migración 101. */
+  activa?: boolean | null;
+  puede_volver?: boolean | null;
+  genset_id?: number | null;
+  genset?: string | null;
+  facturacion?: Json | null;
 };
 /** ops.fn_pizarra (migración 39). */
 type PizarraRow = {
@@ -1185,6 +1191,12 @@ export type Database = {
       fn_registrar_hito: { Args: { p_servicio: number; p_tipo: string; p_ts?: string | null; p_detalle?: string | null }; Returns: number };
       fn_terminar_demora: { Args: { p_servicio: number; p_hasta?: string | null }; Returns: undefined };
       fn_anular_hito: { Args: { p_hito: number }; Returns: undefined };
+      /** Migración 101. */
+      fn_volver_paso: { Args: { p_servicio: number }; Returns: string };
+      fn_asignar_genset: { Args: { p_servicio: number; p_genset: number | null }; Returns: undefined };
+      fn_gensets_operacion: { Args: { p_servicio: number }; Returns: Json };
+      fn_ven_numero_factura: { Args: { p_id: number; p_numero_fiscal: string }; Returns: undefined };
+      fn_ven_resumen_facturacion: { Args: Record<string, never>; Returns: Json };
       fn_cancelar_operacion: { Args: { p_servicio: number; p_motivo: string }; Returns: undefined };
       fn_pizarra_totales: {
         Args: Record<string, never>;

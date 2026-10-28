@@ -86,7 +86,6 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/ventas/empresas', etiqueta: 'Clientes y prospectos', pantalla: 'ventas.empresas' },
       { href: '/ventas/cotizaciones', etiqueta: 'Cotizaciones', pantalla: 'ventas.cotizaciones' },
       { href: '/ventas/tarifas', etiqueta: 'Tarifas y costos', pantalla: 'ventas.tarifas' },
-      { href: '/ventas/facturacion', etiqueta: 'Facturación', pantalla: 'ventas.facturacion' },
     ],
   },
   {
@@ -171,6 +170,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     id: 'finanzas',
     etiqueta: 'Finanzas',
     entradas: [
+      // Migración 101: el módulo de la encargada de finanzas (antes Ventas › Facturación; la ruta no cambia)
+      { href: '/ventas/facturacion', etiqueta: 'Facturación y cobranzas', pantalla: 'ventas.facturacion' },
       { href: '/finanzas', etiqueta: 'Resumen', pantalla: 'finanzas.resumen' },
       { href: '/finanzas/gastos', etiqueta: 'Gastos', pantalla: 'finanzas.gastos', incluye: ['/finanzas/gastos-fijos'] },
       { href: '/finanzas/cobros-pagos', etiqueta: 'Cobros y pagos', pantalla: 'finanzas.cobros_pagos' },
