@@ -7,6 +7,7 @@ import { Maximize2, Minimize2 } from 'lucide-react';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { FUENTE_CONSUMO_MES, haceTexto, minutosDesde, senalDe, type CamionEnVivo, type DetalleMapa, type Senal } from '../domain/flota.types';
+import { RankingMapa } from './ranking-mapa';
 
 const COLOR: Record<Senal, string> = { vivo: '#16a34a', demorada: '#d97706', sin_senal: '#94a3b8' };
 const ESTELA = '#22c55e';
@@ -306,6 +307,8 @@ export function MapaFlota({
       className={completa ? 'fixed inset-0 z-[1000] bg-white' : 'relative h-[460px] w-full overflow-hidden rounded-lg border border-borde'}
     >
       <div ref={div} className="h-full w-full" aria-label="Mapa de la flota" />
+      {/* Migración 103: ranking de hoy, dentro del mapa (también en pantalla completa) */}
+      <RankingMapa camiones={camiones} detalles={detalles} onSeleccionar={onSeleccionar} />
       <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
         {seleccionado !== null && (
           <button

@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Trophy } from 'lucide-react';
-import { TD, TH } from '@/modules/catalogos/components/comun';
 import { cn } from '@/shared/lib/cn';
 import { formatearNumero } from '@/shared/lib/numeros';
 import type { CamionEnVivo, DetalleMapa, NivelHoy } from '../domain/flota.types';
@@ -11,8 +10,8 @@ import type { CamionEnVivo, DetalleMapa, NivelHoy } from '../domain/flota.types'
 const TONO: Record<NivelHoy, string> = { verde: 'text-exito', naranja: 'text-[#ea580c]', rojo: 'text-error' };
 
 const ORDENES = [
-  { id: 'eco', texto: 'Eco Score' },
-  { id: 'programador', texto: '% de programador' },
+  { id: 'eco', texto: 'Calificación (Eco Score)' },
+  { id: 'programador', texto: 'Programador' },
   { id: 'abusivo', texto: 'Uso abusivo' },
   { id: 'consumo', texto: 'Consumo del mes' },
 ] as const;
@@ -53,9 +52,36 @@ function ordenar(filas: Fila[], orden: Orden): Fila[] {
   });
 }
 
+/** Lo que se ve al lado de cada chofer según el orden elegido. */
+function Valor({ f, orden }: { f: Fila; orden: Orden }) {
+  const vacio = <span className="text-tinta-suave">—</span>;
+  switch (orden) {
+    case 'eco':
+      return f.eco ? (
+        <span className="tabular-nums">
+          <b className={f.eco.nivel ? TONO[f.eco.nivel] : undefined}>{formatearNumero(f.eco.total, 1)}</b>
+          <span className="text-[11px] text-tinta-suave">/{f.eco.escala}</span>
+        </span>
+      ) : (
+        vacio
+      );
+    case 'programador':
+      return f.programador ? <b className={cn('tabular-nums', f.programador.nivel ? TONO[f.programador.nivel] : undefined)}>{formatearNumero(f.programador.pct, 0)} %</b> : vacio;
+    case 'abusivo':
+      return f.abusivo && f.abusivo.puntaje !== null ? (
+        <b className={f.abusivo.activo ? 'text-error' : 'text-exito'}>{f.abusivo.activo ? 'Sí' : 'No'}</b>
+      ) : (
+        vacio
+      );
+    case 'consumo':
+      return f.consumo !== null ? <span className="tabular-nums">{formatearNumero(f.consumo, 1)} L/100</span> : vacio;
+  }
+}
+
 /**
- * Migración 103: ranking de conducción de hoy, desplegable sobre el mapa. Un renglón por chofer (el de cada
- * camión): Eco Score y programador de hoy, uso abusivo de hoy y consumo del mes. Tocar un renglón elige el camión.
+ * Migraciones 103 y 107: botón dentro del mapa (abajo a la izquierda, también en pantalla completa) que despliega
+ * la posición de cada chofer en el ranking de HOY, ordenado por calificación (Eco Score del día). Se puede ordenar
+ * también por programador, uso abusivo o consumo del mes. Tocar un chofer lleva a su camión.
  */
 export function RankingMapa({
   camiones,
@@ -86,91 +112,56 @@ export function RankingMapa({
   }, [camiones, detalles, orden]);
 
   return (
-    <div className="rounded-lg border border-borde bg-panel">
+    <div className="absolute bottom-6 left-3 z-[1000] flex flex-col-reverse items-start gap-2">
       <button
         type="button"
         aria-expanded={abierto}
         onClick={() => setAbierto(!abierto)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-tinta hover:bg-hover"
+        className="inline-flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-1.5 text-sm font-semibold text-tinta shadow hover:bg-white"
       >
-        <Trophy className="size-4 text-marca" /> Ranking de conducción de hoy
-        <span className="text-xs font-normal text-tinta-suave">({filas.length} choferes)</span>
-        <span className="flex-1" />
-        {abierto ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+        <Trophy className="size-4 text-marca" /> Ranking {abierto ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
       </button>
       {abierto && (
-        <div className="space-y-2 border-t border-borde p-3">
-          <label className="flex items-center gap-2 text-xs text-tinta-suave">
-            Ordenar por
-            <select value={orden} onChange={(e) => setOrden(e.target.value as Orden)} className="h-8 rounded-md border border-borde bg-panel px-2 text-sm text-tinta">
+        <div className="w-[300px] max-w-[calc(100vw-1.5rem)] rounded-lg bg-white/95 p-2 shadow-lg">
+          <div className="flex items-center justify-between gap-2 px-1 pb-1.5">
+            <span className="text-xs font-semibold text-tinta">Hoy</span>
+            <select
+              aria-label="Ordenar por"
+              value={orden}
+              onChange={(e) => setOrden(e.target.value as Orden)}
+              className="h-7 rounded border border-borde bg-panel px-1 text-xs text-tinta"
+            >
               {ORDENES.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.texto}
                 </option>
               ))}
             </select>
-          </label>
+          </div>
           {filas.length === 0 ? (
-            <p className="text-sm text-tinta-suave">No hay camiones con chofer en el mapa.</p>
+            <p className="px-1 py-2 text-xs text-tinta-suave">No hay camiones con chofer en el mapa.</p>
           ) : (
-            <div className="max-h-80 overflow-auto">
-              <table className="w-full min-w-[640px] text-sm">
-                <thead className="sticky top-0 border-b border-borde bg-fondo">
-                  <tr>
-                    <th className={TH}>#</th>
-                    <th className={TH}>Chofer</th>
-                    <th className={cn(TH, 'text-right')}>Eco Score</th>
-                    <th className={cn(TH, 'text-right')}>Programador</th>
-                    <th className={cn(TH, 'text-right')}>Uso abusivo</th>
-                    <th className={cn(TH, 'text-right')}>Consumo del mes</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-borde">
-                  {filas.map((f, i) => (
-                    <tr key={f.camionId} className="cursor-pointer hover:bg-hover" onClick={() => onSeleccionar(f.camionId)}>
-                      <td className={cn(TD, 'text-tinta-suave')}>{i + 1}</td>
-                      <td className={TD}>
-                        <span className="font-medium text-tinta">{f.chofer}</span>
-                        <span className="block font-mono text-xs text-tinta-suave">{f.patente}</span>
-                      </td>
-                      <td className={cn(TD, 'text-right tabular-nums')}>
-                        {f.eco ? (
-                          <>
-                            <b className={f.eco.nivel ? TONO[f.eco.nivel] : undefined}>{formatearNumero(f.eco.total, 1)}</b>
-                            <span className="text-xs text-tinta-suave"> de {f.eco.escala}</span>
-                          </>
-                        ) : (
-                          <span className="text-tinta-suave">—</span>
-                        )}
-                      </td>
-                      <td className={cn(TD, 'text-right tabular-nums')}>
-                        {f.programador ? (
-                          <b className={f.programador.nivel ? TONO[f.programador.nivel] : undefined}>{formatearNumero(f.programador.pct, 0)} %</b>
-                        ) : (
-                          <span className="text-tinta-suave">—</span>
-                        )}
-                      </td>
-                      <td className={cn(TD, 'text-right tabular-nums')}>
-                        {f.abusivo && f.abusivo.puntaje !== null ? (
-                          <b className={f.abusivo.activo ? 'text-error' : 'text-exito'}>
-                            {f.abusivo.activo ? 'Sí' : 'No'} <span className="text-xs font-normal">({formatearNumero(f.abusivo.puntaje, 1)} de {f.abusivo.escala})</span>
-                          </b>
-                        ) : (
-                          <span className="text-tinta-suave">—</span>
-                        )}
-                      </td>
-                      <td className={cn(TD, 'text-right tabular-nums')}>
-                        {f.consumo !== null ? `${formatearNumero(f.consumo, 1)} L/100 km` : <span className="text-tinta-suave">—</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ol className="max-h-[50vh] overflow-auto">
+              {filas.map((f, i) => (
+                <li key={f.camionId}>
+                  <button
+                    type="button"
+                    onClick={() => onSeleccionar(f.camionId)}
+                    className="flex w-full items-center gap-2 rounded px-1 py-1 text-left text-sm hover:bg-hover"
+                  >
+                    <span className="w-5 shrink-0 text-right text-xs font-semibold text-tinta-suave tabular-nums">{i + 1}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="font-medium text-tinta">{f.chofer.split(',')[0]}</span>
+                      <span className="ml-1 font-mono text-[11px] text-tinta-suave">{f.patente}</span>
+                    </span>
+                    <Valor f={f} orden={orden} />
+                  </button>
+                </li>
+              ))}
+            </ol>
           )}
-          <p className="text-xs text-tinta-suave">
-            Eco Score, programador y uso abusivo son de hoy (la marca manda el Eco Score cada 30 minutos). El consumo es el promedio del mes del chofer. Tocá
-            un chofer para verlo en el mapa.
+          <p className="px-1 pt-1.5 text-[11px] leading-snug text-tinta-suave">
+            Calificación: Eco Score de hoy de la marca. Sin dato de hoy, va al final.
           </p>
         </div>
       )}
