@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Search, Truck, X } from 'lucide-react';
+import { Maximize2, Minimize2, Search, Truck, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { Cargando, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
@@ -48,6 +48,7 @@ export function PizarraPantalla() {
   const [ahora, setAhora] = useState(() => Date.now());
   const buscador = useRef<HTMLInputElement>(null);
   const recientes = useRecientes(data);
+  const { completa, marco, cambiar: alternarCompleta } = usePantallaCompleta();
 
   useEffect(() => {
     const t = setInterval(() => setAhora(Date.now()), 15_000);
@@ -76,7 +77,13 @@ export function PizarraPantalla() {
   const set = <K extends keyof FiltrosPizarra>(k: K, v: FiltrosPizarra[K]) => setF((x) => ({ ...x, [k]: v }));
 
   return (
-    <div className="-mx-4 -mt-6 flex min-h-[calc(100vh-4rem)] flex-col sm:-mx-6 lg:-mx-8">
+    <div
+      ref={marco}
+      className={cn(
+        'flex flex-col',
+        completa ? 'fixed inset-0 z-[1000] overflow-auto bg-fondo' : '-mx-4 -mt-6 min-h-[calc(100vh-4rem)] sm:-mx-6 lg:-mx-8',
+      )}
+    >
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-[#1f3a5f] px-4 py-2 text-white sm:px-6 lg:px-8 lg:px-8">
         <div className="flex items-baseline gap-2">
           <span className="text-xs text-[#a9bdd6]">Flota ›</span>
@@ -104,6 +111,15 @@ export function PizarraPantalla() {
         <Interruptor activo={grande} onCambiar={setGrande}>
           Letra grande
         </Interruptor>
+        <button
+          type="button"
+          onClick={() => void alternarCompleta()}
+          aria-label={completa ? 'Salir de pantalla completa' : 'Ver la pizarra en pantalla completa'}
+          className="inline-flex h-7 items-center gap-1 rounded border border-[#3c5a80] bg-[#2b4b74] px-2.5 text-xs text-white hover:bg-[#355a88]"
+        >
+          {completa ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+          {completa ? 'Salir' : 'Pantalla completa'}
+        </button>
       </header>
 
       {viejos && (
@@ -213,7 +229,13 @@ export function PizarraPantalla() {
       </section>
 
       <main className="flex-1 px-4 pt-0 pb-4 sm:px-6 lg:px-8 lg:px-8">
-        <div className={cn(TARJETA, 'max-h-[calc(100vh-15rem)] overflow-auto rounded-t-none border-t-0')}>
+        <div
+          className={cn(
+            TARJETA,
+            completa ? 'max-h-[calc(100vh-11rem)]' : 'max-h-[calc(100vh-15rem)]',
+            'overflow-auto rounded-t-none border-t-0',
+          )}
+        >
           {isPending ? (
             <Cargando texto="Cargando la pizarra…" />
           ) : isError && !data ? (
@@ -254,6 +276,40 @@ export function PizarraPantalla() {
 const SELECT = 'h-7 max-w-[160px] rounded border border-[#c9d1dc] bg-panel px-1.5 text-xs text-tinta';
 
 const alternar = (xs: EstadoUnidad[], e: EstadoUnidad) => (xs.includes(e) ? xs.filter((x) => x !== e) : [...xs, e]);
+
+/**
+ * Pantalla completa: la del navegador si se puede (oculta también las barras del navegador);
+ * si no (algunos celulares), la pizarra ocupa toda la ventana. Esc o «Salir» vuelven.
+ */
+function usePantallaCompleta() {
+  const marco = useRef<HTMLDivElement>(null);
+  const [completa, setCompleta] = useState(false);
+  useEffect(() => {
+    const alCambiar = () => {
+      if (!document.fullscreenElement) setCompleta(false);
+    };
+    const tecla = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key === 'Escape' && !(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT'))) setCompleta(false);
+    };
+    document.addEventListener('fullscreenchange', alCambiar);
+    document.addEventListener('keydown', tecla);
+    return () => {
+      document.removeEventListener('fullscreenchange', alCambiar);
+      document.removeEventListener('keydown', tecla);
+    };
+  }, []);
+  const cambiar = async () => {
+    if (completa) {
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => undefined);
+      setCompleta(false);
+      return;
+    }
+    setCompleta(true);
+    await marco.current?.requestFullscreen?.().catch(() => undefined);
+  };
+  return { completa, marco, cambiar };
+}
 
 /** Semis cuyos datos cambiaron en los últimos 10 s (no cuenta la primera carga ni la ubicación). */
 function useRecientes(filas: FilaPizarra[] | undefined): Set<number> {
