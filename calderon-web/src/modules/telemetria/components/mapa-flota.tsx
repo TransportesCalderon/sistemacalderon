@@ -75,6 +75,8 @@ export function MapaFlota({
   const alElegir = useRef(onSeleccionar);
   alElegir.current = onSeleccionar;
   const [completa, setCompleta] = useState(false);
+  const [rankingAbierto, setRankingAbierto] = useState(false);
+  const alternarRanking = () => setRankingAbierto((a) => !a);
 
   // Crea el mapa una sola vez
   useEffect(() => {
@@ -318,13 +320,14 @@ export function MapaFlota({
   }
 
   return (
+    <>
     <div
       ref={marco}
       className={completa ? 'fixed inset-0 z-[1000] bg-white' : 'relative h-[460px] w-full overflow-hidden rounded-lg border border-borde'}
     >
       <div ref={div} className="h-full w-full" aria-label="Mapa de la flota" />
-      {/* Migración 103: ranking de hoy, dentro del mapa (también en pantalla completa) */}
-      <RankingMapa camiones={camiones} detalles={detalles} onSeleccionar={onSeleccionar} />
+      {/* Migración 103: ranking de hoy. En pantalla completa flota sobre el mapa; si no, va debajo */}
+      {completa && <RankingMapa camiones={camiones} detalles={detalles} onSeleccionar={onSeleccionar} abierto={rankingAbierto} onAlternar={alternarRanking} />}
       <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
         {seleccionado !== null && (
           <button
@@ -366,5 +369,20 @@ export function MapaFlota({
         </button>
       </div>
     </div>
+    {!completa && (
+      <RankingMapa
+        camiones={camiones}
+        detalles={detalles}
+        onSeleccionar={(id) => {
+          // La lista está debajo: subir hasta el mapa para ver el camión elegido
+          onSeleccionar(id);
+          marco.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }}
+        abierto={rankingAbierto}
+        onAlternar={alternarRanking}
+        debajo
+      />
+    )}
+    </>
   );
 }

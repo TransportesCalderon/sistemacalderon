@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ChevronDown, ChevronUp, Trophy } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { formatearNumero } from '@/shared/lib/numeros';
@@ -44,12 +44,18 @@ export function RankingMapa({
   camiones,
   detalles,
   onSeleccionar,
+  abierto,
+  onAlternar,
+  debajo = false,
 }: {
   camiones: CamionEnVivo[];
   detalles: DetalleMapa[];
   onSeleccionar: (camionId: number) => void;
+  abierto: boolean;
+  onAlternar: () => void;
+  /** Fuera de la pantalla completa va debajo del mapa (flotando tapaba el mapa y la ficha del camión). */
+  debajo?: boolean;
 }) {
-  const [abierto, setAbierto] = useState(false);
   const filas = useMemo(() => {
     const patente = new Map(camiones.map((c) => [c.camionId, c.patente]));
     return ordenar(
@@ -71,21 +77,21 @@ export function RankingMapa({
   }, [camiones, detalles]);
 
   return (
-    <div className="absolute bottom-6 left-3 z-[1000] flex flex-col-reverse items-start gap-2">
+    <div className={debajo ? 'mt-3 flex flex-col items-start gap-2' : 'absolute bottom-6 left-3 z-[1000] flex flex-col-reverse items-start gap-2'}>
       <button
         type="button"
         aria-expanded={abierto}
-        onClick={() => setAbierto(!abierto)}
+        onClick={onAlternar}
         className="inline-flex items-center gap-1.5 rounded-md bg-[#0f172a] px-3 py-1.5 text-sm font-bold text-white shadow-lg hover:bg-[#1e293b]"
       >
-        <Trophy className="size-4 text-[#facc15]" /> Ranking de hoy {abierto ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+        <Trophy className="size-4 text-[#facc15]" /> Ranking de hoy {abierto === debajo ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
       </button>
       {abierto && (
-        <div className="max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg bg-white/95 shadow-xl">
+        <div className={debajo ? 'max-w-full overflow-hidden rounded-lg border border-borde bg-white' : 'max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg bg-white/95 shadow-xl'}>
           {filas.length === 0 ? (
             <p className="px-3 py-2 text-xs text-tinta-suave">No hay camiones con chofer en el mapa.</p>
           ) : (
-            <div className="max-h-[55vh] overflow-auto">
+            <div className={debajo ? 'overflow-x-auto' : 'max-h-[55vh] overflow-auto'}>
               <table className="text-xs">
                 <thead className="sticky top-0 bg-[#0f172a] text-[10px] tracking-wide text-white/80 uppercase">
                   <tr>
