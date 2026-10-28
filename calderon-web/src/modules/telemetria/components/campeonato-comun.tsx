@@ -112,6 +112,18 @@ export function Podio({ top }: { top: EnPodio[] }) {
   );
 }
 
+/** Migración 111: el chofer no compite porque su camión no manda datos del motor (lo decide la base). */
+export function NoCompite() {
+  return (
+    <span
+      className="inline-block rounded bg-fondo px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap text-tinta-suave uppercase"
+      title="Su camión solo manda la posición, sin los datos del motor: hasta tenerlos no compite en el ranking"
+    >
+      No compite
+    </span>
+  );
+}
+
 /** Insignia del puesto: oro, plata, bronce o oscura. */
 export function Insignia({ posicion }: { posicion: number | null }) {
   if (posicion === null) return <span className="text-[11px] text-tinta-suave">s/puesto</span>;

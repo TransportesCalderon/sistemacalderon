@@ -11,12 +11,14 @@ import { hoyEnZona } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { browserDb } from '@/shared/supabase/browser';
 import { FUENTE_CONSUMO_MES, type NivelHoy } from '../domain/flota.types';
-import { BARRA, Cambio, Insignia, PartesCalderon, Podio, Subpuntuaciones, nombreCorto, texto, type Sub } from './campeonato-comun';
+import { BARRA, Cambio, Insignia, NoCompite, PartesCalderon, Podio, Subpuntuaciones, nombreCorto, texto, type Sub } from './campeonato-comun';
 
 type J = Record<string, unknown>;
 interface ChoferMes {
   choferId: number | null;
   chofer: string;
+  /** Migración 111: compite en el ranking (su camión manda datos del motor). */
+  compite: boolean;
   posicion: number | null;
   posicionAnterior: number | null;
   cambio: number | null;
@@ -53,6 +55,7 @@ async function leer(mes: string) {
       return {
         choferId: num(c.chofer_id),
         chofer: String(c.chofer ?? ''),
+        compite: c.compite !== false,
         posicion: num(c.posicion),
         posicionAnterior: num(c.posicion_anterior),
         cambio: num(c.cambio),
@@ -210,7 +213,14 @@ export function RankingMensualPantalla() {
                         <td className="px-2 py-2.5">
                           <Cambio c={c} />
                         </td>
-                        <td className="px-3 py-2.5 font-semibold text-tinta">{nombreCorto(c.chofer)}</td>
+                        <td className="px-3 py-2.5">
+                          <span className="font-semibold text-tinta">{nombreCorto(c.chofer)}</span>
+                          {!c.compite && (
+                            <span className="block">
+                              <NoCompite />
+                            </span>
+                          )}
+                        </td>
                         <td className="px-3 py-2.5">
                           {c.puntaje !== null ? (
                             <div className="flex items-center gap-2">
@@ -261,7 +271,7 @@ export function RankingMensualPantalla() {
           </div>
           <p className="border-t border-borde px-4 py-2.5 text-xs text-tinta-suave">
             Puesto: Puntaje Calderón (0 a 100) de los viajes cerrados y aprobados del mes, ponderado por km. Consumo: medido por el motor o, en los camiones
-            sin esos datos, de los cierres de viaje. Eco y subpuntuaciones: los de la marca de los días que manejó cada chofer, ponderados por km.
+            sin esos datos, de los cierres de viaje. Eco y subpuntuaciones: los de la marca de los días que manejó cada chofer, ponderados por km. «No compite»: su camión solo manda la posición, sin los datos del motor; aparece sin puesto hasta tenerlos.
           </p>
         </section>
       )}

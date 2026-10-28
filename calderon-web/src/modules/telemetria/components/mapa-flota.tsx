@@ -6,10 +6,11 @@ import 'leaflet/dist/leaflet.css';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
-import { FUENTE_CONSUMO_MES, haceTexto, minutosDesde, senalDe, type CamionEnVivo, type DetalleMapa, type Senal } from '../domain/flota.types';
+import { FUENTE_CONSUMO_MES, haceTexto, minutosDesde, senalDe, type CamionEnVivo, type DetalleMapa, type EstadoMotor } from '../domain/flota.types';
 import { RankingMapa } from './ranking-mapa';
 
-const COLOR: Record<Senal, string> = { vivo: '#16a34a', demorada: '#d97706', sin_senal: '#94a3b8' };
+/** Migración 112: verde en marcha, rojo apagado, gris sin señal o sin dato del motor (el estado lo decide la base). */
+const COLOR: Record<EstadoMotor, string> = { en_marcha: '#16a34a', apagado: '#dc2626', sin_senal: '#94a3b8', sin_dato: '#94a3b8' };
 const ESTELA = '#22c55e';
 
 const escapar = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -152,7 +153,9 @@ export function MapaFlota({
       fila('Chofer', d?.chofer ? `${escapar(d.chofer)}${d.choferFuente === 'asignado' ? ' <span style="color:#64748b">(asignado)</span>' : ''}` : '—'),
       fila(
         'Velocidad',
-        c.velocidadKmh === null ? '—' : `<b>${formatearNumero(c.velocidadKmh, 0)} km/h</b>${c.motorEncendido === false ? ' · motor apagado' : ''}`,
+        `${c.velocidadKmh === null ? '—' : `<b>${formatearNumero(c.velocidadKmh, 0)} km/h</b>`}${
+          d?.estadoMotor ? ` · <span style="color:${COLOR[d.estadoMotor.estado]};font-weight:600">${escapar(d.estadoMotor.texto)}</span>` : ''
+        }`,
       ),
       fila('Última posición', c.ts ? `${escapar(formatearFechaHora(c.ts, zonaHoraria))} <span style="color:#64748b">(${haceTexto(min)})</span>` : '—'),
       fila(
@@ -264,8 +267,11 @@ export function MapaFlota({
         }).addTo(g);
       }
 
-      // Migración 100: en rojo si la marca informó uso abusivo
-      const color = d?.hoy?.abusivo?.activo ? ABUSIVO : COLOR[senalDe(minutosDesde(c.ts))];
+      // Migración 112: el color dice el motor; el uso abusivo se marca con «!»
+      const color = COLOR[d?.estadoMotor?.estado ?? 'sin_dato'];
+      const abusivo = d?.hoy?.abusivo?.activo
+        ? `<span title="Uso abusivo" style="position:absolute;left:-9px;top:-10px;width:14px;height:14px;border-radius:9999px;background:${ABUSIVO};color:#fff;font:800 10px/14px system-ui;text-align:center;border:1.5px solid #fff">!</span>`
+        : '';
       const anda = (c.velocidadKmh ?? 0) > 2;
       const flecha =
         anda && c.rumbo !== null
@@ -279,7 +285,7 @@ export function MapaFlota({
         className: '',
         iconSize: [0, 0],
         html: `<div style="transform:translate(-8px,-8px);display:flex;align-items:center;gap:4px;white-space:nowrap">
-                 <span style="position:relative;flex:none;display:inline-block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 ${elegido ? 3 : 1}px ${elegido ? '#0f5fa8' : 'rgba(0,0,0,.3)'}">${flecha}</span>
+                 <span style="position:relative;flex:none;display:inline-block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 ${elegido ? 3 : 1}px ${elegido ? '#0f5fa8' : 'rgba(0,0,0,.3)'}">${flecha}${abusivo}</span>
                  <span style="font:600 11px/1 system-ui;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${etiqueta}</span>
                </div>`,
       });

@@ -20,6 +20,7 @@ import {
   CHIP,
   Cambio,
   Insignia,
+  NoCompite,
   PartesCalderon,
   Podio,
   Subpuntuaciones,
@@ -42,6 +43,8 @@ interface Corredor {
   dias: number;
   camiones: string | null;
   conAcumulados: boolean;
+  /** Migración 111: compite en el ranking (su camión manda datos del motor). */
+  compite: boolean;
   puntaje: number | null;
   nivel: NivelHoy | null;
   km: number;
@@ -86,6 +89,7 @@ async function leer(desde: string, hasta: string) {
         dias: Number(c.dias ?? 0),
         camiones: typeof c.camiones === 'string' ? c.camiones : null,
         conAcumulados: c.con_acumulados === true,
+        compite: c.compite !== false,
         puntaje: numDe(c.puntaje),
         nivel: nivelDe(c.nivel),
         km: Number(c.km ?? 0),
@@ -259,8 +263,9 @@ export function PuntajeChoferesPantalla() {
                           <span className="block text-[11px] text-tinta-suave">
                             {c.dias} {c.dias === 1 ? 'día' : 'días'}
                             {c.camiones && ` · ${c.camiones}`}
-                            {!c.conAcumulados && ' · solo posición'}
+                            {c.compite && !c.conAcumulados && ' · solo posición'}
                           </span>
+                          {!c.compite && <NoCompite />}
                         </td>
                         <td className="px-3 py-2.5">
                           {c.puntaje !== null ? (
@@ -328,7 +333,7 @@ export function PuntajeChoferesPantalla() {
         <Info className="mt-0.5 size-4 shrink-0" />
         Solo informativo. El puntaje de manejo arranca en 100 y resta por poco uso del programador, ralentí, minutos por encima de la velocidad máxima,
         frenadas fuertes, revoluciones altas y alertas; con menos de 100 km no hay puntaje. El color de cada parte muestra cuánto le resta. Calderón: el
-        puntaje de sus viajes aprobados. Eco y subpuntuaciones: los de la marca de los días que manejó, ponderados por km.
+        puntaje de sus viajes aprobados. Eco y subpuntuaciones: los de la marca de los días que manejó, ponderados por km. «No compite»: su camión solo manda la posición, sin los datos del motor; aparece sin puesto hasta tenerlos.
       </p>
     </div>
   );

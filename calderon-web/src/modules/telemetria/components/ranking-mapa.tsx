@@ -15,6 +15,7 @@ interface Fila {
   camionId: number;
   patente: string;
   chofer: string;
+  compite: boolean;
   puntaje: { total: number; nivel: NivelHoy | null } | null;
   eco: { total: number; escala: number; nivel: NivelHoy | null } | null;
   programador: { pct: number; nivel: NivelHoy | null } | null;
@@ -23,13 +24,13 @@ interface Fila {
   consumo: number | null;
 }
 
-/** Puntaje general del día (lo calcula la base); sin puntaje, al final por Eco Score. */
+/** Puntaje general del día (lo calcula la base); sin puntaje, al final por Eco Score. Los que no compiten (sin datos del motor), al final. */
 function ordenar(filas: Fila[]): Fila[] {
   const clave = (f: Fila) => [f.puntaje?.total ?? -1, f.eco ? f.eco.total / f.eco.escala : -1] as const;
   return [...filas].sort((a, b) => {
     const [pa, ea] = clave(a);
     const [pb, eb] = clave(b);
-    return pb - pa || eb - ea || a.chofer.localeCompare(b.chofer);
+    return Number(b.compite) - Number(a.compite) || pb - pa || eb - ea || a.chofer.localeCompare(b.chofer);
   });
 }
 
@@ -65,6 +66,7 @@ export function RankingMapa({
           camionId: d.camionId,
           patente: patente.get(d.camionId) ?? '',
           chofer: d.chofer ?? '',
+          compite: d.hoy?.compite === true,
           puntaje: d.hoy?.puntaje ?? null,
           // Solo lo de hoy (si la marca todavía no mandó el de hoy, queda vacío)
           eco: d.hoy?.eco && d.hoy.eco.hoy ? { total: d.hoy.eco.total, escala: d.hoy.eco.escala, nivel: d.hoy.eco.nivel } : null,
@@ -116,15 +118,22 @@ export function RankingMapa({
                         <span
                           className={cn(
                             'inline-flex size-5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums',
-                            f.puntaje && i === 0 ? 'bg-[#facc15] text-[#422006]' : f.puntaje && i === 1 ? 'bg-[#cbd5e1] text-[#0f172a]' : f.puntaje && i === 2 ? 'bg-[#d97706] text-white' : 'bg-fondo text-tinta-suave',
+                            f.compite && f.puntaje && i === 0
+                              ? 'bg-[#facc15] text-[#422006]'
+                              : f.compite && f.puntaje && i === 1
+                                ? 'bg-[#cbd5e1] text-[#0f172a]'
+                                : f.compite && f.puntaje && i === 2
+                                  ? 'bg-[#d97706] text-white'
+                                  : 'bg-fondo text-tinta-suave',
                           )}
                         >
-                          {i + 1}
+                          {f.compite ? i + 1 : '—'}
                         </span>
                       </td>
                       <td className="max-w-[150px] truncate px-2 py-1">
                         <span className="font-semibold text-tinta">{f.chofer.split(',')[0]}</span>
                         <span className="ml-1 font-mono text-[10px] text-tinta-suave">{f.patente}</span>
+                        {!f.compite && <span className="ml-1 text-[10px] font-bold text-tinta-suave uppercase">no compite</span>}
                       </td>
                       <td className="px-2 py-1 text-right">
                         {f.puntaje ? (
@@ -151,7 +160,7 @@ export function RankingMapa({
             </div>
           )}
           <p className="w-0 min-w-full border-t border-borde px-3 py-1.5 text-[10px] leading-snug text-tinta-suave">
-            Puntaje del día (0 a 100): ralentí, programador, velocidad y Eco Score de hoy. Eco: Eco Score de hoy de la marca. El consumo es del mes.
+            Puntaje del día (0 a 100): ralentí, programador, velocidad y Eco Score de hoy. Eco: Eco Score de hoy de la marca. El consumo es del mes. «No compite»: el camión no mandó hoy datos del motor.
           </p>
         </div>
       )}

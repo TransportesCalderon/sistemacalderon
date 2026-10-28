@@ -37,6 +37,7 @@ export function FlotaPantalla() {
   const detalles = mapa.data ?? [];
   const choferDe = new Map(detalles.map((d) => [d.camionId, d.chofer]));
   const combustibleDe = new Map(detalles.map((d) => [d.camionId, d.combustible]));
+  const estadoDe = new Map(detalles.map((d) => [d.camionId, d.estadoMotor?.texto ?? null]));
   // Los equipos de Trackerway se enlazan en Configuración › Equipos GPS (migración 72)
   const sinEnlace = (vehiculos ?? []).filter((v) => v.camionId === null && v.marca !== 'trackerway');
 
@@ -105,6 +106,21 @@ export function FlotaPantalla() {
           <p className="text-xs text-tinta-suave">
             La línea verde muestra por dónde vino cada camión. Tocá un camión para ver el chofer, la operación y el viaje.
           </p>
+          {/* Migración 112: qué quiere decir el color de cada camión */}
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-tinta-suave">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-3 rounded-full bg-[#16a34a]" /> Motor en marcha
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-3 rounded-full bg-[#dc2626]" /> Motor apagado
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-3 rounded-full bg-[#94a3b8]" /> Sin señal del satelital
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex size-3.5 items-center justify-center rounded-full bg-[#dc2626] text-[9px] font-extrabold text-white">!</span> Uso abusivo
+            </span>
+          </p>
           {(celulares.data?.length ?? 0) > 0 && (
             <p className="text-xs text-tinta-suave">Los cuadrados violetas son el celular de los choferes con carga (comparten la ubicación con la aplicación abierta).</p>
           )}
@@ -147,7 +163,7 @@ export function FlotaPantalla() {
                         </td>
                         <td className={cn(TD, 'text-right tabular-nums')}>
                           {c.velocidadKmh === null ? '—' : `${formatearNumero(c.velocidadKmh, 0)} km/h`}
-                          {c.motorEncendido === false && <span className="block text-xs text-tinta-suave">motor apagado</span>}
+                          {estadoDe.get(c.camionId) && <span className="block text-xs text-tinta-suave">{estadoDe.get(c.camionId)}</span>}
                         </td>
                         <td className={cn(TD, 'text-right tabular-nums')}>
                           <CeldaCombustible calc={combustibleDe.get(c.camionId) ?? null} sensorPct={c.nivelPct} />

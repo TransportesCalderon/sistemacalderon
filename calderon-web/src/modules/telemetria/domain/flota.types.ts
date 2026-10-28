@@ -22,8 +22,13 @@ export interface CamionEnVivo {
 }
 
 /** Migración 84: lo que el mapa agrega de cada camión (estela, chofer, viaje y operación). */
+/** Migración 112: estado del camión en el mapa (lo decide la base). */
+export type EstadoMotor = 'en_marcha' | 'apagado' | 'sin_senal' | 'sin_dato';
+
 export interface DetalleMapa {
   camionId: number;
+  /** Migración 112: motor en marcha, apagado o sin señal, con su texto. */
+  estadoMotor: { estado: EstadoMotor; texto: string } | null;
   /** Posiciones de la más vieja a la más nueva: latitud, longitud, velocidad, hora. */
   estela: { lat: number; lng: number; vel: number | null; ts: string }[];
   chofer: string | null;
@@ -66,6 +71,8 @@ export interface ConduccionHoy {
   /** Migración 107: ralentí de hoy (% del tiempo de motor) y Puntaje Calderón del día (0 a 100). */
   ralenti: { pct: number; horas: number | null; nivel: NivelHoy | null } | null;
   puntaje: { total: number; nivel: NivelHoy | null } | null;
+  /** Migración 111: compite en el ranking de hoy (lo manejado hoy tiene datos del motor; lo decide la base). */
+  compite: boolean;
 }
 
 const nivelHoy = (v: unknown): NivelHoy | null => (v === 'verde' || v === 'naranja' || v === 'rojo' ? v : null);
@@ -74,6 +81,7 @@ function parsearHoy(v: unknown): ConduccionHoy | null {
   const h = v as Record<string, unknown>;
   const e = h.eco && typeof h.eco === 'object' ? (h.eco as Record<string, unknown>) : null;
   return {
+    compite: h.compite === true,
     programadorPct: h.programador_pct == null ? null : Number(h.programador_pct),
     programadorNivel: nivelHoy(h.programador_nivel),
     eco: e
@@ -160,6 +168,13 @@ export function parsearMapa(v: unknown): DetalleMapa[] {
     return [
       {
         camionId: Number(d.camion_id),
+        estadoMotor: (() => {
+          const e = o(d.estado_motor);
+          const est = e?.estado;
+          return e && (est === 'en_marcha' || est === 'apagado' || est === 'sin_senal' || est === 'sin_dato')
+            ? { estado: est, texto: String(e.texto ?? '') }
+            : null;
+        })(),
         estela: (Array.isArray(d.estela) ? (d.estela as unknown[][]) : [])
           .filter((p) => Array.isArray(p) && p[0] != null && p[1] != null)
           .map((p) => ({ lat: Number(p[0]), lng: Number(p[1]), vel: p[2] == null ? null : Number(p[2]), ts: String(p[3]) })),
