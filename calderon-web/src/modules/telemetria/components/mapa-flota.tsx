@@ -178,6 +178,21 @@ export function MapaFlota({
             }`
           : '<span style="color:#64748b">—</span>',
       ),
+      // Migración 107: ralentí y puntaje del día
+      fila(
+        'Ralentí hoy',
+        d?.hoy?.ralenti
+          ? `<b style="color:${COLOR_NIVEL[d.hoy.ralenti.nivel ?? ''] ?? 'inherit'}">${formatearNumero(d.hoy.ralenti.pct, 0)} %</b> del tiempo de motor${
+              d.hoy.ralenti.horas != null ? ` <span style="color:#64748b">(${formatearNumero(d.hoy.ralenti.horas, 1)} h)</span>` : ''
+            }`
+          : '<span style="color:#64748b">—</span>',
+      ),
+      fila(
+        'Puntaje del día',
+        d?.hoy?.puntaje
+          ? `<b style="color:${COLOR_NIVEL[d.hoy.puntaje.nivel ?? ''] ?? 'inherit'}">${formatearNumero(d.hoy.puntaje.total, 0)}</b> de 100`
+          : '<span style="color:#64748b">— (todavía sin datos de hoy)</span>',
+      ),
       // Migración 103: consumo del mes del chofer
       fila(
         'Consumo del chofer (mes)',

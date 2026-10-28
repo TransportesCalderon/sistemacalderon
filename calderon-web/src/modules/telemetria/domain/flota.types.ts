@@ -63,6 +63,9 @@ export interface ConduccionHoy {
   eco: { fecha: string; hoy: boolean; total: number; escala: number; marca: string; nivel: NivelHoy | null } | null;
   /** Migración 100: uso abusivo según el Eco Score de la marca (lo decide la base). */
   abusivo: { activo: boolean; texto: string; fecha: string; hoy: boolean; puntaje: number | null; escala: number } | null;
+  /** Migración 107: ralentí de hoy (% del tiempo de motor) y Puntaje Calderón del día (0 a 100). */
+  ralenti: { pct: number; horas: number | null; nivel: NivelHoy | null } | null;
+  puntaje: { total: number; nivel: NivelHoy | null } | null;
 }
 
 const nivelHoy = (v: unknown): NivelHoy | null => (v === 'verde' || v === 'naranja' || v === 'rojo' ? v : null);
@@ -83,6 +86,20 @@ function parsearHoy(v: unknown): ConduccionHoy | null {
           nivel: nivelHoy(e.nivel),
         }
       : null,
+    ralenti:
+      h.ralenti && typeof h.ralenti === 'object'
+        ? (() => {
+            const x = h.ralenti as Record<string, unknown>;
+            return { pct: Number(x.pct), horas: x.horas == null ? null : Number(x.horas), nivel: nivelHoy(x.nivel) };
+          })()
+        : null,
+    puntaje:
+      h.puntaje && typeof h.puntaje === 'object'
+        ? (() => {
+            const x = h.puntaje as Record<string, unknown>;
+            return { total: Number(x.total), nivel: nivelHoy(x.nivel) };
+          })()
+        : null,
     abusivo:
       h.abusivo && typeof h.abusivo === 'object'
         ? (() => {
