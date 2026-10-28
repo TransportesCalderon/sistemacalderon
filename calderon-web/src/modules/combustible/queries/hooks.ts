@@ -38,6 +38,7 @@ import { gensetRepository } from '../repositories/genset.repository';
 import { ralentiRepository } from '../repositories/ralenti.repository';
 import { anularCierreRalenti, cerrarRalenti } from '../actions/ralenti.actions';
 import { anularCierreGenset, cerrarGenset, eliminarRegistroGenset, registrarGenset } from '../actions/genset.actions';
+import { invalidar } from '@/shared/query/invalidar';
 
 /* ----------------------------------------------------------------------------
  * Lecturas
@@ -90,7 +91,7 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: accion,
-    onSuccess: (r) => (r.ok ? qc.invalidateQueries({ queryKey: q.todo() }) : undefined),
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'combustible') : undefined),
   });
 }
 

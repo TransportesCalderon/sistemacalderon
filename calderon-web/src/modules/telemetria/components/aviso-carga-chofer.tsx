@@ -7,6 +7,7 @@ import { formatearNumero } from '@/shared/lib/numeros';
 import { browserDb } from '@/shared/supabase/browser';
 import { avisoCargaVisto } from '../actions/tablero.actions';
 import { tableroRepository } from '../repositories/tablero.repository';
+import { invalidar } from '@/shared/query/invalidar';
 
 /**
  * Migración 89: cuando el camión llega a una estación, cuántos litros cargar para llenar
@@ -39,7 +40,7 @@ export function AvisoCargaChofer() {
           className="rounded-md p-1 text-tinta-suave hover:bg-hover"
           onClick={async () => {
             await avisoCargaVisto({ id: a.id });
-            void qc.invalidateQueries({ queryKey: ['tablero', 'mis-avisos'] });
+            void invalidar(qc, 'aviso_carga');
           }}
         >
           <X className="size-5" />

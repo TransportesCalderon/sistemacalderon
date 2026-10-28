@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parsearPorCerrar } from '@/modules/logistica/repositories/por-cerrar.repository';
-import { pantallaDeRuta } from '@/modules/core/navigation/navigation';
+import { pantallaDeRuta } from '@/modules/core/navigation/rutas';
 
 describe('cierres por hacer (migración 63)', () => {
   it('lee la etapa y lo que falta tal como lo arma la base', () => {

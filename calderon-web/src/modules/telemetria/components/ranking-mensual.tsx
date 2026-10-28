@@ -9,6 +9,7 @@ import { RepoError } from '@/shared/repository/types';
 import { cn } from '@/shared/lib/cn';
 import { hoyEnZona } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
+import { nivelDe } from '@/shared/ui/niveles';
 import { browserDb } from '@/shared/supabase/browser';
 import { FUENTE_CONSUMO_MES, type NivelHoy } from '../domain/flota.types';
 import { BARRA, Cambio, Insignia, NoCompite, PartesCalderon, Podio, Subpuntuaciones, nombreCorto, texto, type Sub } from './campeonato-comun';
@@ -40,7 +41,7 @@ interface ChoferMes {
   subpuntajes: Record<string, Sub>;
 }
 
-const nivel = (v: unknown): NivelHoy | null => (v === 'verde' || v === 'naranja' || v === 'rojo' ? v : null);
+const nivel = nivelDe; // Sprint 0 · T04: shared/ui/niveles.ts
 const num = (v: unknown) => (v == null ? null : Number(v));
 
 async function leer(mes: string) {

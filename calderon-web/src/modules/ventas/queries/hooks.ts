@@ -31,6 +31,7 @@ import {
   responderCotizacion,
 } from '../actions/ventas.actions';
 import { ventasRepository } from '../repositories/ventas.repository';
+import { invalidar } from '@/shared/query/invalidar';
 
 const CLAVE = ['ventas'] as const;
 const repo = () => ventasRepository(browserDb());
@@ -63,7 +64,7 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
   return useMutation({
     mutationFn: accion,
     // Migración 73: emitir o cobrar cambia también Finanzas
-    onSuccess: (r) => (r.ok ? Promise.all([qc.invalidateQueries({ queryKey: CLAVE }), qc.invalidateQueries({ queryKey: ['finanzas'] }), qc.invalidateQueries({ queryKey: ['logistica'] })]) : undefined),
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'venta') : undefined),
   });
 }
 export const useGuardarEmpresa = () => useEscritura(guardarEmpresa);

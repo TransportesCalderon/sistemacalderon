@@ -15,6 +15,7 @@ import { Campo } from '@/shared/ui/campo';
 import { useChoferesCombustible } from '@/modules/combustible/queries/hooks';
 import { guardarUsuario } from '../usuarios.actions';
 import { usuariosRepository, type Usuario } from '../usuarios.repository';
+import { invalidar } from '@/shared/query/invalidar';
 
 /** Roles que se asignan desde acá. Migración 60: el chofer entra al celular (Mi carga, Mis gastos), vinculado a su ficha. */
 const ROLES_ASIGNABLES = ROLES_APP;
@@ -153,7 +154,7 @@ function FormUsuario({ email, usuario, onCerrar }: { email: string; usuario?: Us
   const qc = useQueryClient();
   const guardar = useMutation({
     mutationFn: guardarUsuario,
-    onSuccess: (r) => (r.ok ? qc.invalidateQueries({ queryKey: ['usuarios'] }) : undefined),
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'usuario') : undefined),
   });
   const { error, enviar, campo } = useEnvio();
   const [nombre, setNombre] = useState(usuario?.nombre ?? '');

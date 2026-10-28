@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/lib/cn';
-import { pantallaDeRuta } from '@/modules/core/navigation/navigation';
+import { pantallaDeRuta } from '@/modules/core/navigation/rutas';
 import { can } from '@/modules/core/permissions/resolver';
 import { useSesion } from '@/modules/core/session/session-provider';
 

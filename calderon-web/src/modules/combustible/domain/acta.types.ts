@@ -1,4 +1,5 @@
 import type { FechaISO } from '@/shared/types/dominio';
+import type { Nivel } from '@/shared/ui/niveles';
 
 /** Datos del acta del cierre (migración 56, fue.fn_acta_cierre). Lo calcula la base; acá solo se convierte. */
 export interface ActaExtra {
@@ -51,7 +52,8 @@ export interface ActaExtra {
   };
 }
 
-export type Nivel = 'verde' | 'naranja' | 'rojo';
+/** Sprint 0 · T04: el mismo semáforo de shared/ui/niveles.ts. */
+export type { Nivel };
 
 export interface PuntajeCalderon {
   total: number | null;

@@ -23,6 +23,7 @@ import {
   registrarMovimiento,
 } from '../actions/finanzas.actions';
 import { finanzasRepository, type FiltroGastos } from '../repositories/finanzas.repository';
+import { invalidar } from '@/shared/query/invalidar';
 
 const CLAVE = ['finanzas'] as const;
 const repo = () => finanzasRepository(browserDb());
@@ -72,7 +73,7 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
   return useMutation({
     mutationFn: accion,
     // Un cobro cambia también Ventas › Facturación
-    onSuccess: (r) => (r.ok ? Promise.all([qc.invalidateQueries({ queryKey: CLAVE }), qc.invalidateQueries({ queryKey: ['ventas'] })]) : undefined),
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'finanzas') : undefined),
   });
 }
 export const useGuardarCuentaContable = () => useEscritura(guardarCuentaContable);

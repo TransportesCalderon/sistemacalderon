@@ -15,6 +15,7 @@ import {
   retirarGenset,
 } from '../actions/pizarra.actions';
 import { pizarraQueries as q } from './keys';
+import { invalidar } from '@/shared/query/invalidar';
 
 /** Respaldo por si el tiempo real se corta: la Pizarra se vuelve a leer igual cada 60 s. */
 const RESPALDO_MS = 60_000;
@@ -34,18 +35,15 @@ export type EstadoVivo = 'conectando' | 'en_vivo' | 'reconectando';
  * Tiempo real (Supabase Realtime, canal «pizarra»): la base avisa «cambió la pizarra» sin datos
  * y acá se vuelve a leer todo por la vía normal, con los permisos del usuario.
  */
-export function usePizarraEnVivo(extra: string[] = []): EstadoVivo {
+export function usePizarraEnVivo(objeto: 'pizarra_en_vivo' | 'viajes_en_vivo' = 'pizarra_en_vivo'): EstadoVivo {
   const qc = useQueryClient();
   const [estado, setEstado] = useState<EstadoVivo>('conectando');
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const otras = extra.join('|'); // otras listas que dependen de lo mismo (por ejemplo, los viajes de Logística)
 
   useEffect(() => {
     const db = browserDb();
-    const refrescar = () => {
-      void qc.invalidateQueries({ queryKey: q.todo() });
-      for (const k of otras ? otras.split('|') : []) void qc.invalidateQueries({ queryKey: [k] });
-    };
+    // viajes_en_vivo: también la lista de Logística, que depende de lo mismo (shared/query/invalidar.ts)
+    const refrescar = () => void invalidar(qc, objeto);
     const canal = db
       .channel('pizarra')
       .on('broadcast', { event: 'cambio' }, () => {
@@ -64,7 +62,7 @@ export function usePizarraEnVivo(extra: string[] = []): EstadoVivo {
       if (espera.current) clearTimeout(espera.current);
       void db.removeChannel(canal);
     };
-  }, [qc, otras]);
+  }, [qc, objeto]);
 
   return estado;
 }
@@ -75,13 +73,8 @@ function useEscritura<I, R extends { ok: boolean }>(accion: (input: I) => Promis
     mutationFn: accion,
     onSuccess: async (r) => {
       if (!r.ok) return;
-      // Los gensets también se eligen en Combustible y en Operaciones: que esas listas se actualicen enseguida
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: q.todo() }),
-        qc.invalidateQueries({ queryKey: ['flota'] }),
-        qc.invalidateQueries({ queryKey: ['combustible', 'gensets'] }),
-        qc.invalidateQueries({ queryKey: ['logistica', 'gensets'] }),
-      ]);
+      // Los gensets también se eligen en Combustible y en Operaciones (shared/query/invalidar.ts)
+      await invalidar(qc, 'pizarra');
     },
   });
 }

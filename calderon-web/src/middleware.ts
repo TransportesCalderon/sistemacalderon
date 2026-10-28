@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { actualizarSesion } from '@/server/supabase/middleware';
 import { decodificarClaims, identidadDesdeClaims } from '@/modules/core/auth/claims';
-import { esRutaPublica, esRutaSinPantalla, pantallaDeRuta } from '@/modules/core/navigation/navigation';
+import { esRutaPublica, esRutaSinPantalla, pantallaDeRuta } from '@/modules/core/navigation/rutas';
 import { can, permisosDe } from '@/modules/core/permissions/resolver';
 
 /**

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { ORDEN_COLUMNAS, PANTALLAS } from '@/modules/core/permissions/matriz';
 import { alcanceDe, can, permisosDe } from '@/modules/core/permissions/resolver';
-import { menuVisible, rutaInicial } from '@/modules/core/navigation/filtrar';
-import { NAVEGACION, entradaActual, pantallaDeRuta } from '@/modules/core/navigation/navigation';
+import { menuVisible, pantallaDeEntrada, rutaInicial } from '@/modules/core/navigation/filtrar';
+import { NAVEGACION, entradaActual } from '@/modules/core/navigation/navigation';
+import { RUTAS, pantallaDeRuta } from '@/modules/core/navigation/rutas';
 import { decodificarClaims, identidadDesdeClaims } from '@/modules/core/auth/claims';
 
 const agregado = { gerenciaDetalleAlertas: 'agregado' as const };
@@ -91,14 +92,15 @@ describe('navegación (especificación §3)', () => {
     expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'chofer', 'cargar', 'pendientes', 'ventas', 'logistica', 'combustible', 'flota', 'rrhh', 'finanzas', 'datos', 'configuracion']);
     const entradas = NAVEGACION.flatMap((g) => g.entradas);
     // 46: la migración 103 agregó «Ranking de choferes»; 47: la 109, «Choferes de los tractores»
-    expect(entradas.filter((e) => !e.oculta).length).toBe(47);
+    // (Sprint 0: las rutas que no están en el menú viven solo en rutas.ts)
+    expect(entradas.length).toBe(47);
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
-    // Toda ruta incluida como pestaña sigue protegida por una entrada oculta o visible
+    // Toda ruta incluida como pestaña sigue protegida por su fila en rutas.ts
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
   });
 
   it('marca una sola entrada: la de la coincidencia más larga, contando las pestañas', () => {
-    const visibles = NAVEGACION.flatMap((g) => g.entradas).filter((e) => !e.oculta);
+    const visibles = NAVEGACION.flatMap((g) => g.entradas);
     expect(entradaActual('/combustible/cargas/nueva', visibles)).toBe('/combustible/cargas/nueva');
     expect(entradaActual('/combustible/cargas/12', visibles)).toBe('/combustible/cargas');
     expect(entradaActual('/combustible/cierres/5', visibles)).toBe('/operacion/tractores');
@@ -106,8 +108,13 @@ describe('navegación (especificación §3)', () => {
     expect(entradaActual('/operacion/operaciones', visibles)).toBe('/operacion/operaciones');
   });
 
-  it('todas las entradas apuntan a pantallas de la matriz', () => {
-    for (const e of NAVEGACION.flatMap((g) => g.entradas)) expect(PANTALLAS[e.pantalla], e.href).toBeDefined();
+  it('todas las rutas apuntan a pantallas de la matriz', () => {
+    for (const r of RUTAS) expect(PANTALLAS[r.pantalla], r.prefijo).toBeDefined();
+  });
+
+  it('toda entrada del menú tiene su fila en rutas.ts, y no hay prefijos repetidos (Sprint 0 · T01)', () => {
+    for (const e of NAVEGACION.flatMap((g) => g.entradas)) expect(pantallaDeEntrada(e), e.href).not.toBeNull();
+    expect(new Set(RUTAS.map((r) => r.prefijo)).size).toBe(RUTAS.length);
   });
 
   it('resuelve la pantalla por prefijo, incluidas sub-rutas', () => {
@@ -115,7 +122,7 @@ describe('navegación (especificación §3)', () => {
     expect(pantallaDeRuta('/otra-cosa')).toBeNull();
   });
 
-  it('el menú no muestra entradas ocultas; TI ve 11 grupos (no el del chofer)', () => {
+  it('el menú no muestra las rutas de pestañas; TI ve 11 grupos (no el del chofer)', () => {
     const ti = menuVisible(permisosDe(['ti'], agregado)).flatMap((g) => g.entradas.map((e) => e.href));
     expect(ti).not.toContain('/combustible/cierres');
     expect(ti).not.toContain('/combustible/viajes');

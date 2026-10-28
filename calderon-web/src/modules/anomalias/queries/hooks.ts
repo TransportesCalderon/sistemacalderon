@@ -6,6 +6,7 @@ import { browserDb } from '@/shared/supabase/browser';
 import { cambiarUmbrales, comentarAlerta, reabrirAlerta, resolverAlerta, tomarAlerta } from '../actions/alerta.actions';
 import type { Vista } from '../domain/alerta.types';
 import { alertaRepository } from '../repositories/alerta.repository';
+import { invalidar } from '@/shared/query/invalidar';
 
 /** Alertas (migración 49). Después de cada acción se vuelve a leer la bandeja y Mis pendientes. */
 export const useBandejaAlertas = (vista: Vista, desde: string | null, hasta: string | null) =>
@@ -33,8 +34,7 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
     mutationFn: accion,
     onSuccess: (r) => {
       if (!r.ok) return;
-      void qc.invalidateQueries({ queryKey: ['anomalias'] });
-      void qc.invalidateQueries({ queryKey: ['pendientes'] });
+      void invalidar(qc, 'alerta');
     },
   });
 }

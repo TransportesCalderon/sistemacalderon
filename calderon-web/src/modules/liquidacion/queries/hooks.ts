@@ -22,6 +22,7 @@ import {
   reabrirLiquidacion,
 } from '../actions/liquidacion.actions';
 import { liquidacionRepository } from '../repositories/liquidacion.repository';
+import { invalidar } from '@/shared/query/invalidar';
 
 const CLAVE = ['liquidacion'] as const;
 const repo = () => liquidacionRepository(browserDb());
@@ -45,7 +46,7 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: accion,
-    onSuccess: (r) => (r.ok ? qc.invalidateQueries({ queryKey: CLAVE }) : undefined),
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'liquidacion') : undefined),
   });
 }
 export const useGuardarTarifa = () => useEscritura(guardarTarifa);

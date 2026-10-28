@@ -11,6 +11,7 @@ import type { Camion, CamionListaParams } from '../domain/camion.types';
 import type { ChoferEdicionInput, ChoferFormInput } from '../domain/chofer.schemas';
 import type { Chofer, ChoferListaParams } from '../domain/chofer.types';
 import { basesQueries, camionesQueries, catalogosFlotaQueries, choferesQueries } from './keys';
+import { invalidar } from '@/shared/query/invalidar';
 
 /** Lista paginada; conserva la página anterior mientras carga la nueva (sin parpadeo). */
 export function useCamiones(p: CamionListaParams) {
@@ -33,7 +34,7 @@ function useAlGuardarCamion() {
   const qc = useQueryClient();
   return (camion: Camion) => {
     qc.setQueryData(camionesQueries.detalle(browserDb(), camion.id).queryKey, camion);
-    return qc.invalidateQueries({ queryKey: camionesQueries.listas() });
+    return invalidar(qc, 'camion');
   };
 }
 
@@ -70,8 +71,7 @@ function useMutacionTanque<I extends { camionId: number }, R extends { ok: boole
   const qc = useQueryClient();
   return useMutation({
     mutationFn: accion,
-    onSuccess: (r, input) =>
-      r.ok ? qc.invalidateQueries({ queryKey: camionesQueries.tanques(browserDb(), input.camionId as CamionId).queryKey }) : undefined,
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'tanque') : undefined),
   });
 }
 
@@ -102,7 +102,7 @@ function useAlGuardarChofer() {
   const qc = useQueryClient();
   return (chofer: Chofer) => {
     qc.setQueryData(choferesQueries.detalle(browserDb(), chofer.id).queryKey, chofer);
-    return qc.invalidateQueries({ queryKey: choferesQueries.listas() });
+    return invalidar(qc, 'chofer');
   };
 }
 
@@ -135,6 +135,6 @@ export function useEliminarChofer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: { id: number; motivo: string }) => eliminarChofer(input),
-    onSuccess: (r) => (r.ok ? qc.invalidateQueries({ queryKey: choferesQueries.listas() }) : undefined),
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'chofer') : undefined),
   });
 }

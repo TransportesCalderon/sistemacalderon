@@ -9,6 +9,7 @@ import type { ClienteEdicionInput, ClienteFormInput } from '../domain/cliente.sc
 import type { Cliente, ClienteListaParams } from '../domain/cliente.types';
 import { palabrasSignificativas } from '../repositories/cliente.repository';
 import { catalogosComercialQueries, clientesQueries } from './keys';
+import { invalidar } from '@/shared/query/invalidar';
 
 /** Lista paginada; conserva la página anterior mientras carga la nueva (sin parpadeo). */
 export function useClientes(p: ClienteListaParams) {
@@ -54,11 +55,7 @@ function useAlGuardarCliente() {
   const qc = useQueryClient();
   return (cliente: Cliente) => {
     qc.setQueryData(clientesQueries.detalle(browserDb(), cliente.id).queryKey, cliente);
-    return Promise.all([
-      qc.invalidateQueries({ queryKey: clientesQueries.listas() }),
-      qc.invalidateQueries({ queryKey: [...clientesQueries.todas(), 'parecidos'] }),
-      qc.invalidateQueries({ queryKey: clientesQueries.segmentos(browserDb()).queryKey }),
-    ]);
+    return invalidar(qc, 'cliente');
   };
 }
 

@@ -3,7 +3,10 @@
 import { ChevronDown, ChevronUp, Gauge, Hand, OctagonAlert, Timer, Zap } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { formatearNumero } from '@/shared/lib/numeros';
+import { NIVEL_PUNTO, nivelDe } from '@/shared/ui/niveles';
 import type { NivelHoy } from '../domain/flota.types';
+
+export { nivelDe };
 
 /**
  * Piezas de la vista de campeonato (migraciones 107 y 108): podio, puestos ganados o perdidos, medallas y la ficha
@@ -14,7 +17,6 @@ export interface Sub {
   nivel: NivelHoy | null;
 }
 
-export const nivelDe = (v: unknown): NivelHoy | null => (v === 'verde' || v === 'naranja' || v === 'rojo' ? v : null);
 export const numDe = (v: unknown) => (v == null ? null : Number(v));
 export function parsearSubpuntajes(v: unknown): Record<string, Sub> {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
@@ -23,16 +25,9 @@ export function parsearSubpuntajes(v: unknown): Record<string, Sub> {
   );
 }
 
-export const TEXTO: Record<NivelHoy, string> = { verde: 'text-exito', naranja: 'text-[#ca8a04]', rojo: 'text-error' };
-export const BARRA: Record<NivelHoy, string> = { verde: 'bg-exito', naranja: 'bg-[#eab308]', rojo: 'bg-error' };
-export const PUNTO: Record<NivelHoy, string> = { verde: 'bg-[#6ee7b7]', naranja: 'bg-[#fde047]', rojo: 'bg-[#fca5a5]' };
-/** Chip de color para las celdas de la tabla. */
-export const CHIP: Record<NivelHoy, string> = {
-  verde: 'bg-[#dcfce7] text-[#166534]',
-  naranja: 'bg-[#fef9c3] text-[#854d0e]',
-  rojo: 'bg-[#fee2e2] text-[#991b1b]',
-};
-export const texto = (n: NivelHoy | null) => (n ? TEXTO[n] : 'text-tinta');
+// Sprint 0 · T04: los colores del semáforo están en shared/ui/niveles.ts; se re-exportan con los nombres de siempre.
+export { NIVEL_TEXTO as TEXTO, NIVEL_BARRA as BARRA, NIVEL_CHIP as CHIP, textoNivel as texto } from '@/shared/ui/niveles';
+export const PUNTO = NIVEL_PUNTO;
 
 export const MEDALLA = [
   'bg-gradient-to-b from-[#fde68a] to-[#eab308] text-[#422006]',

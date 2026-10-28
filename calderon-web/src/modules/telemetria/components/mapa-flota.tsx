@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
+import { NIVEL_HEX } from '@/shared/ui/niveles';
 import { FUENTE_CONSUMO_MES, haceTexto, minutosDesde, senalDe, type CamionEnVivo, type DetalleMapa, type EstadoMotor } from '../domain/flota.types';
 import { RankingMapa } from './ranking-mapa';
 
@@ -36,7 +37,7 @@ export interface CelularEnMapa {
 /** Migración 96: color del programador y del Eco Score del día (lo decide la base). */
 const ABUSIVO = '#dc2626';
 // Migración 109: verde desde 90, amarillo desde 80 (la base devuelve «naranja» para el amarillo)
-const COLOR_NIVEL: Record<string, string> = { verde: '#15803d', naranja: '#ca8a04', rojo: '#dc2626' };
+const COLOR_NIVEL: Record<string, string> = NIVEL_HEX; // Sprint 0 · T04: shared/ui/niveles.ts
 
 /**
  * Mapa de la flota (Leaflet + OpenStreetMap). Cada camión es un punto con su patente y su

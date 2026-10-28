@@ -909,6 +909,8 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       fn_moneda_base: { Args: Record<string, never>; Returns: string | null };
+      /** Migración 113 (Sprint 0 · T05): última migración aplicada. */
+      fn_version_base: { Args: Record<string, never>; Returns: number };
       fn_definir_moneda_base: { Args: { p_codigo: string }; Returns: string };
     };
     Enums: { [_ in never]: never };

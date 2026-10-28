@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { ChevronLeft, ChevronRight, CircleAlert, LoaderCircle, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
 import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
 import { conSigno } from '@/shared/lib/numeros';
 import { BOTON_ICONO, BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
+
+// Sprint 0 · T04: se mudaron a shared/ui/errores.tsx; se re-exportan para no tocar sus 79 importadores.
+import { ErrorBase, ErrorLectura } from '@/shared/ui/errores';
+export { ErrorBase, ErrorLectura };
 
 /**
  * Piezas visuales del módulo Combustible.
@@ -43,23 +47,7 @@ export function DiferenciaL({ litros, toleranciaL }: { litros: number | null; to
   );
 }
 
-/** Error devuelto por una server action: mensaje de la base sin cambios. */
-export function ErrorBase({ error, onRecargar }: { error: ErrorAccion | null; onRecargar?: () => void }) {
-  if (!error) return null;
-  return (
-    <div role="alert" className="flex flex-wrap items-start gap-2 rounded-lg border border-error/30 bg-error-suave p-3 text-sm text-error">
-      <CircleAlert className="mt-0.5 size-4 shrink-0" />
-      <span className="min-w-0 flex-1 whitespace-pre-line">{error.mensaje}</span>
-      {error.codigo === 'conflicto_version' && onRecargar && (
-        <button type="button" onClick={onRecargar} className="inline-flex items-center gap-1 font-medium underline">
-          <RefreshCw className="size-3.5" /> Recargar
-        </button>
-      )}
-    </div>
-  );
-}
-
-/** Estados de una lectura: cargando, error con reintento. */
+/** Estado de una lectura: cargando (el error con reintento es ErrorLectura, en shared/ui/errores.tsx). */
 export function Cargando({ texto }: { texto: string }) {
   return (
     <div className="flex items-center gap-2 p-6 text-sm text-tinta-suave">
@@ -68,19 +56,6 @@ export function Cargando({ texto }: { texto: string }) {
   );
 }
 
-export function ErrorLectura({ texto, onReintentar, error }: { texto: string; onReintentar: () => void; error?: unknown }) {
-  // El mensaje de la base (o de la API) tal cual, para saber qué pasó
-  const detalle = error instanceof Error ? error.message : null;
-  return (
-    <div className="space-y-3 p-6 text-sm">
-      <p className="text-error">{texto}</p>
-      {detalle && <p className="text-xs text-tinta-suave">{detalle}</p>}
-      <button type="button" onClick={onReintentar} className="text-marca hover:underline">
-        Reintentar
-      </button>
-    </div>
-  );
-}
 
 export function Vacio({ icono, texto, children }: { icono: ReactNode; texto: string; children?: ReactNode }) {
   return (

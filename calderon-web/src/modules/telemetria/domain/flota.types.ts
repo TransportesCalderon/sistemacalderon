@@ -1,4 +1,5 @@
 import type { FechaISO } from '@/shared/types/dominio';
+import type { Nivel } from '@/shared/ui/niveles';
 
 /**
  * Telemetría (migraciones 31 y 32): la base trae cada 10 minutos el último estado de cada
@@ -61,7 +62,8 @@ function parsearConsumoMes(v: unknown): ConsumoMes | null {
   return { l100km: c.l_100km == null ? null : Number(c.l_100km), km: Number(c.km ?? 0), fuente: typeof c.fuente === 'string' ? c.fuente : null };
 }
 
-export type NivelHoy = 'verde' | 'naranja' | 'rojo';
+/** Sprint 0 · T04: el mismo semáforo de shared/ui/niveles.ts. */
+export type NivelHoy = Nivel;
 export interface ConduccionHoy {
   programadorPct: number | null;
   programadorNivel: NivelHoy | null;

@@ -9,6 +9,7 @@ import { conduccionRepository } from '../repositories/conduccion.repository';
 import { tableroRepository } from '../repositories/tablero.repository';
 import { trackerwayRepository } from '../repositories/trackerway.repository';
 import { telemetriaQueries as q } from './keys';
+import { invalidar } from '@/shared/query/invalidar';
 
 export const useFlotaEnVivo = () => useQuery({ ...q.enVivo(browserDb()), staleTime: REFRESCO.mapa, refetchInterval: REFRESCO.mapa });
 /** Migración 84: estela y ficha de cada camión (cada 30 segundos). */
@@ -21,7 +22,7 @@ export function useImportarAhora() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: importarTelemetriaAhora,
-    onSuccess: () => qc.invalidateQueries({ queryKey: q.todo() }),
+    onSuccess: () => invalidar(qc, 'telemetria'),
   });
 }
 
@@ -57,7 +58,7 @@ export const usePanelTrackerway = () =>
 
 function useCambioTrackerway<A, R>(fn: (a: A) => Promise<R>) {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: fn, onSuccess: () => qc.invalidateQueries({ queryKey: q.todo() }) });
+  return useMutation({ mutationFn: fn, onSuccess: () => invalidar(qc, 'telemetria') });
 }
 export const useBuscarEquiposTrackerway = () => useCambioTrackerway(buscarEquiposTrackerway);
 export const useEnlazarEquipoTrackerway = () => useCambioTrackerway(enlazarEquipoTrackerway);

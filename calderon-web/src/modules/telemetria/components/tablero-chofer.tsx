@@ -15,6 +15,7 @@ import { anularTableroChofer } from '../actions/tablero.actions';
 import { horasATexto, type Tablero } from '../domain/tablero.types';
 import { tableroRepository } from '../repositories/tablero.repository';
 import { SubirTablero } from './subir-tablero';
+import { invalidar } from '@/shared/query/invalidar';
 
 /** Pantalla del chofer: elegir el camión, sacar las fotos del tablero y ver lo que ya cargó. */
 export function TableroChofer() {
@@ -28,7 +29,7 @@ export function TableroChofer() {
   if (ctx.isError || !ctx.data) return <ErrorLectura texto="No se pudo leer tu camión." onReintentar={() => void ctx.refetch()} />;
   const camiones = ctx.data.camiones;
   const camionId = elegido ?? (camiones.length === 1 ? camiones[0]!.id : null);
-  const refrescar = () => void qc.invalidateQueries({ queryKey: ['tablero'] });
+  const refrescar = () => void invalidar(qc, 'tablero');
 
   return (
     <div className="mx-auto max-w-xl space-y-4">

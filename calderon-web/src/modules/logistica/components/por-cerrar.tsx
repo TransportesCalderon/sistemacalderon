@@ -15,6 +15,7 @@ import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { aprobarVariosCierres, completarOperacionesViaje } from '../actions/por-cerrar.actions';
 import { porCerrarRepository, type EtapaCierre, type ViajePorCerrar } from '../repositories/por-cerrar.repository';
+import { invalidar } from '@/shared/query/invalidar';
 
 type Grupo = 'aprobar' | 'faltan' | 'viaje';
 const GRUPO_DE: Record<EtapaCierre, Grupo> = { listo: 'aprobar', con_diferencia: 'aprobar', faltan_datos: 'faltan', en_viaje: 'viaje' };
@@ -43,8 +44,8 @@ export function PorCerrarPantalla() {
     queryFn: () => porCerrarRepository(browserDb()).lista(120),
     refetchInterval: 120_000,
   });
-  const aprobar = useMutation({ mutationFn: aprobarVariosCierres, onSuccess: () => qc.invalidateQueries() });
-  const completar = useMutation({ mutationFn: completarOperacionesViaje, onSuccess: () => qc.invalidateQueries() });
+  const aprobar = useMutation({ mutationFn: aprobarVariosCierres, onSuccess: () => invalidar(qc, 'cierre') });
+  const completar = useMutation({ mutationFn: completarOperacionesViaje, onSuccess: () => invalidar(qc, 'cierre') });
   const [grupo, setGrupo] = useState<Grupo | null>(null);
   const [marcados, setMarcados] = useState<Set<number>>(new Set());
   const [error, setError] = useState<ErrorAccion | null>(null);
@@ -239,6 +240,11 @@ function Fila({
               <li key={f}>• {f}</li>
             ))}
           </ul>
+        )}
+        {v.faltanViaje.length > 0 && (
+          <p className="mt-1 text-xs text-tinta-suave" title="No frena el cierre de combustible: lo completan Logística y RR.HH. en el viaje del chofer">
+            Viaje del chofer (no frena el cierre): {v.faltanViaje.join(' · ')}
+          </p>
         )}
         <div className="mt-1 flex flex-wrap gap-3 text-xs">
           {v.operacionesParaAgregar > 0 && puedeCompletar && (

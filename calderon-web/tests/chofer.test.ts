@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { subirGastoSchema } from '@/modules/chofer/domain/chofer.schemas';
 import { nombrePeriodo, parsearMisCargas, parsearResumen, parsearSeguimiento } from '@/modules/chofer/domain/chofer.types';
-import { pantallaDeRuta } from '@/modules/core/navigation/navigation';
+import { pantallaDeRuta } from '@/modules/core/navigation/rutas';
 
 describe('módulo del chofer (migraciones 60 y 61)', () => {
   it('lee Mi carga tal como la arma la base', () => {

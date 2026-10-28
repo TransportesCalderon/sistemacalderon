@@ -16,6 +16,7 @@ import {
   guardarUbicacion,
 } from '../actions/catalogos.actions';
 import { catalogosQueries } from './keys';
+import { invalidar } from '@/shared/query/invalidar';
 
 export const usePaises = () => useQuery(catalogosQueries.paises(browserDb()));
 export const useMonedas = () => useQuery(catalogosQueries.monedas(browserDb()));
@@ -36,12 +37,7 @@ function useEscritura<I, R extends { ok: boolean }>(accion: (input: I) => Promis
     mutationFn: accion,
     onSuccess: async (r) => {
       if (!r.ok) return;
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: catalogosQueries.todo() }),
-        qc.invalidateQueries({ queryKey: ['combustible'] }),
-        qc.invalidateQueries({ queryKey: ['flota'] }),
-        qc.invalidateQueries({ queryKey: ['pizarra'] }),
-      ]);
+      await invalidar(qc, 'catalogo');
     },
   });
 }

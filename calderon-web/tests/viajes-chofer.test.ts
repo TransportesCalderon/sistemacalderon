@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ajustarItemSchema, asignarTractorSchema, iniciarViajeSchema } from '@/modules/logistica/domain/viaje-chofer.schemas';
 import { parsearViajeChofer } from '@/modules/logistica/domain/viaje-chofer.types';
-import { NAVEGACION, pantallaDeRuta } from '@/modules/core/navigation/navigation';
+import { NAVEGACION } from '@/modules/core/navigation/navigation';
+import { pantallaDeRuta } from '@/modules/core/navigation/rutas';
 
 describe('Tractores y viajes de chofer (migración 46)', () => {
   it('formularios: solo forma', () => {
@@ -31,7 +32,7 @@ describe('Tractores y viajes de chofer (migración 46)', () => {
 
   it('menú: Tractores y viajes en Logística; la lista y la ficha usan el mismo permiso', () => {
     const logistica = NAVEGACION.find((g) => g.id === 'logistica');
-    expect(logistica?.entradas.some((e) => e.href === '/operacion/tractores' && !e.oculta)).toBe(true);
+    expect(logistica?.entradas.some((e) => e.href === '/operacion/tractores')).toBe(true);
     expect(pantallaDeRuta('/operacion/viajes-chofer/12')).toBe('operacion.tramos');
     expect(pantallaDeRuta('/operacion/tractores')).toBe('operacion.tramos');
   });

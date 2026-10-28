@@ -19,6 +19,7 @@ import {
   subirGasto,
 } from '../actions/chofer.actions';
 import { choferRepository } from '../repositories/chofer.repository';
+import { invalidar } from '@/shared/query/invalidar';
 
 const CLAVE = ['chofer'] as const;
 const repo = () => choferRepository(browserDb());
@@ -52,7 +53,7 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: accion,
-    onSuccess: (r) => (r.ok ? qc.invalidateQueries({ queryKey: CLAVE }) : undefined),
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'chofer_portal') : undefined),
   });
 }
 export const useSubirDocumentoChofer = () => useEscritura(subirDocumentoChofer);

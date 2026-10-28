@@ -13,6 +13,7 @@ import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { horasATexto } from '../domain/tablero.types';
 import { tableroRepository } from '../repositories/tablero.repository';
 import { SubirTablero } from './subir-tablero';
+import { invalidar } from '@/shared/query/invalidar';
 
 /**
  * Migración 88: fotos del tablero del camión de este viaje. Sin telemetría del motor, el cierre toma de
@@ -89,7 +90,7 @@ export function TableroCierre({ camionId, desde, hasta, editable }: { camionId: 
             carpeta="oficina/tablero"
             onGuardado={() => {
               setSubir(false);
-              void qc.invalidateQueries();
+              void invalidar(qc, 'cierre');
             }}
           />
         </div>

@@ -4,12 +4,12 @@ import { useMemo } from 'react';
 import { ChevronDown, ChevronUp, Trophy } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { formatearNumero } from '@/shared/lib/numeros';
+import { NIVEL_BARRA, textoNivel } from '@/shared/ui/niveles';
 import type { CamionEnVivo, DetalleMapa, NivelHoy } from '../domain/flota.types';
 
-/** El color lo decide la base (nivel verde, naranja o rojo); acá solo se pinta. */
-const TONO: Record<NivelHoy, string> = { verde: 'text-exito', naranja: 'text-[#ca8a04]', rojo: 'text-error' };
-const FONDO: Record<NivelHoy, string> = { verde: 'bg-exito', naranja: 'bg-[#eab308]', rojo: 'bg-error' };
-const tono = (n: NivelHoy | null | undefined) => (n ? TONO[n] : 'text-tinta');
+/** El color lo decide la base (nivel verde, naranja o rojo); acá solo se pinta (shared/ui/niveles.ts). */
+const FONDO = NIVEL_BARRA;
+const tono = textoNivel;
 
 interface Fila {
   camionId: number;

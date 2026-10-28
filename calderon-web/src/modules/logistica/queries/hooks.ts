@@ -50,6 +50,7 @@ import {
 } from '../actions/viajes-chofer.actions';
 import type { FechaDia } from '@/shared/types/dominio';
 import { logisticaQueries as q } from './keys';
+import { invalidar } from '@/shared/query/invalidar';
 
 export const useViajesAbiertos = () => useQuery({ ...q.abiertos(browserDb()), refetchInterval: 60_000 });
 export const useOpcionesViaje = () => useQuery(q.opciones(browserDb()));
@@ -62,7 +63,7 @@ export const useTramosOperacion = (servicio: number) => useQuery(q.tramos(browse
 export const useTransportistas = () => useQuery(q.transportistas(browserDb()));
 
 /** El mismo aviso de tiempo real de la Pizarra («cambió la pizarra») refresca también la lista de Logística. */
-export const useViajesEnVivo = () => usePizarraEnVivo(['logistica']);
+export const useViajesEnVivo = () => usePizarraEnVivo('viajes_en_vivo');
 
 function useEscritura<I, R extends { ok: boolean }>(accion: (input: I) => Promise<R>) {
   const qc = useQueryClient();
@@ -70,11 +71,7 @@ function useEscritura<I, R extends { ok: boolean }>(accion: (input: I) => Promis
     mutationFn: accion,
     onSuccess: async (r) => {
       if (!r.ok) return;
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: q.todo() }),
-        qc.invalidateQueries({ queryKey: ['pizarra'] }),
-        qc.invalidateQueries({ queryKey: ['combustible'] }),
-      ]);
+      await invalidar(qc, 'operacion');
     },
   });
 }
