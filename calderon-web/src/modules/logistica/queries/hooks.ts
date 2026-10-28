@@ -42,6 +42,7 @@ import {
   cambiarChoferViaje,
   cerrarViajeChofer,
   cerrarYAprobarViaje,
+  continuarOperacionViaje,
   iniciarViajeChofer,
   prepararCierreCombustible,
   quitarItemViaje,
@@ -121,6 +122,7 @@ export const useIniciarViajeChofer = () => useEscritura(iniciarViajeChofer);
 export const useAgregarItemViaje = () => useEscritura(agregarItemViaje);
 export const useAjustarItemViaje = () => useEscritura(ajustarItemViaje);
 export const useQuitarItemViaje = () => useEscritura(quitarItemViaje);
+export const useContinuarOperacionViaje = () => useEscritura(continuarOperacionViaje);
 export const useCambiarChoferViaje = () => useEscritura(cambiarChoferViaje);
 export const usePrepararCierreCombustible = () => useEscritura(prepararCierreCombustible);
 export const useCerrarViajeChofer = () => useEscritura(cerrarViajeChofer);

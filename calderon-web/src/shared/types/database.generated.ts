@@ -1123,6 +1123,8 @@ export type Database = {
         Returns: undefined;
       };
       fn_quitar_item_viaje: { Args: { p_item: number }; Returns: undefined };
+      /** Migración 109. */
+      fn_continuar_operacion: { Args: { p_item: number }; Returns: number };
       fn_preparar_cierre_combustible: { Args: { p_viaje: number }; Returns: number };
       fn_cerrar_viaje_chofer: { Args: { p_viaje: number; p_version: number }; Returns: undefined };
       fn_reabrir_viaje_chofer: { Args: { p_viaje: number; p_motivo: string }; Returns: undefined };

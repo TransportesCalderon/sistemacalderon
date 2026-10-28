@@ -91,6 +91,8 @@ export interface ItemViaje {
   kmLinea: number | null;
   motivoAjuste: string | null;
   relevo: { viajeId: number; numero: string; chofer: string }[];
+  /** Migración 109: el tramo que falta hasta el destino de la operación («Continúa a …»). */
+  siguiente: { desde: string; hasta: string; lineaId: number | null; linea: string | null } | null;
 }
 
 export interface ViajeChofer {
@@ -168,6 +170,13 @@ export function parsearViajeChofer(d: J): ViajeChofer {
       kmLinea: n(i.km_linea),
       motivoAjuste: t(i.motivo_ajuste),
       relevo: ((i.relevo ?? []) as J[]).map((r) => ({ viajeId: Number(r.viaje_id), numero: String(r.numero), chofer: String(r.chofer ?? '') })),
+      siguiente:
+        i.siguiente && typeof i.siguiente === 'object'
+          ? (() => {
+              const s = i.siguiente as J;
+              return { desde: String(s.desde ?? ''), hasta: String(s.hasta ?? ''), lineaId: n(s.linea_id), linea: t(s.linea) };
+            })()
+          : null,
     })),
     canonTotal: ((d.canon_total ?? []) as J[]).map((c) => ({ moneda: String(c.moneda).trim(), total: Number(c.total) })),
     kmTotal: n(d.km_total),

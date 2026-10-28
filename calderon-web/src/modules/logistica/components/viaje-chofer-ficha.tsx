@@ -16,6 +16,7 @@ import type { CierreViajeId } from '@/shared/types/dominio';
 import type { CargaDelViaje, ItemViaje, ViajeChofer } from '../domain/viaje-chofer.types';
 import {
   useAgregarItemViaje,
+  useContinuarOperacionViaje,
   useAjustarItemViaje,
   useAnularViajeChofer,
   useCambiarChoferViaje,
@@ -374,6 +375,7 @@ function Operaciones({ v }: { v: ViajeChofer }) {
 
 function FilaItem({ i, puede, editando, onEditar }: { i: ItemViaje; puede: boolean; editando: boolean; onEditar: (e: boolean) => void }) {
   const quitar = useQuitarItemViaje();
+  const continuar = useContinuarOperacionViaje();
   const [error, setError] = useState<ErrorAccion | null>(null);
   return (
     <>
@@ -407,6 +409,24 @@ function FilaItem({ i, puede, editando, onEditar }: { i: ItemViaje; puede: boole
             </span>
           )}
           {i.motivoAjuste && <span className="mt-1 block text-xs text-tinta-suave">Ajustado: {i.motivoAjuste}</span>}
+          {/* Migración 109: la misma operación sigue con este chofer hasta su destino */}
+          {puede && i.siguiente && (
+            <button
+              type="button"
+              disabled={continuar.isPending}
+              title={i.siguiente.linea ? `Agrega el tramo ${i.siguiente.linea} a la misma operación` : `Falta la línea de ${i.siguiente.desde} a ${i.siguiente.hasta}`}
+              onClick={async () => {
+                setError(null);
+                const r = await continuar.mutateAsync({ itemId: i.id });
+                if (!r.ok) setError(r.error);
+              }}
+              className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-marca px-2 py-0.5 text-xs font-medium text-marca hover:bg-marca-suave disabled:opacity-60"
+            >
+              {continuar.isPending ? <LoaderCircle className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
+              Continúa a {i.siguiente.hasta}
+              {i.siguiente.linea && <span className="font-mono text-tinta-suave">({i.siguiente.linea})</span>}
+            </button>
+          )}
         </td>
         <td className="px-2 py-2 font-mono">{i.linea}</td>
         <td className={cn('px-2 py-2 text-right whitespace-nowrap tabular-nums', i.canon === null && 'text-alerta')}>
@@ -510,10 +530,14 @@ function Agregar({ v, onCerrar }: { v: ViajeChofer; onCerrar: () => void }) {
   const agregar = useAgregarItemViaje();
   const [items, setItems] = useState<ItemElegido[]>([]);
   const [error, setError] = useState<ErrorAccion | null>(null);
-  const yaEstan = v.items.flatMap((i) => (i.servicioId ? [i.servicioId] : []));
+  // Migración 109: una operación que ya está se puede volver a agregar con otro tramo (otra línea)
   return (
     <div className="space-y-3 rounded-lg border border-borde bg-fondo/40 p-4">
-      <SelectorItems camionId={v.camion.id} elegidos={items} onCambiar={setItems} excluir={yaEstan} />
+      <p className="text-xs text-tinta-suave">
+        Para agregar otro tramo de una operación que ya está en el viaje, elegila de nuevo y marcá el tramo (por ejemplo MZA-BSAS). O usá «Continúa a…» en
+        la operación.
+      </p>
+      <SelectorItems camionId={v.camion.id} elegidos={items} onCambiar={setItems} />
       <ErrorBase error={error} />
       <div className="flex gap-2">
         <button
@@ -552,6 +576,9 @@ function Acciones({ v }: { v: ViajeChofer }) {
   const puedeAprobar = useCan('combustible.cierre_viaje:transicionar');
   const cerrarYAprobar = useCerrarYAprobarViaje();
   const combustiblePorAprobar = v.cierre !== null && v.cierre.estado === 'borrador';
+  // Migración 82: si al viaje del chofer le faltan operaciones, canon o km, el combustible se aprueba igual y el viaje queda abierto
+  const faltaViaje = v.estado === 'abierto' && v.pendientes.some((p) => !p.startsWith('Falta la carga a tanque lleno'));
+  const cierraViaje = v.estado === 'abierto' && !faltaViaje;
   const cerrar = useCerrarViajeChofer();
   const reabrir = useReabrirViajeChofer();
   const anular = useAnularViajeChofer();
@@ -577,13 +604,17 @@ function Acciones({ v }: { v: ViajeChofer }) {
       )}
       <ErrorBase error={error} />
       <div className="flex flex-wrap gap-3">
-        {puedeAprobar && combustiblePorAprobar && (v.estado === 'abierto' ? puede : true) && (
+        {puedeAprobar && combustiblePorAprobar && (cierraViaje ? puede : true) && (
           <AccionConMotivo
-            etiqueta={v.estado === 'abierto' ? 'Cerrar y aprobar' : 'Aprobar el combustible'}
+            etiqueta={cierraViaje ? 'Cerrar y aprobar' : 'Aprobar el combustible'}
             icono={<Stamp className="size-4" />}
             primario
-            titulo={v.estado === 'abierto' ? `Cerrar el viaje ${v.numero} y aprobar su combustible` : `Aprobar el combustible del viaje ${v.numero}`}
-            explicacion={`Chofer ${v.chofer.nombre}: ${v.canonTotal.map((c) => formatoImporte(c.moneda, c.total)).join(' + ') || 'sin canon'} y ${formatoNumero(v.kmTotal)} km. El combustible queda congelado como está ahora.`}
+            titulo={cierraViaje ? `Cerrar el viaje ${v.numero} y aprobar su combustible` : `Aprobar el combustible del viaje ${v.numero}`}
+            explicacion={
+              faltaViaje
+                ? 'Se aprueba solo el combustible: queda congelado como está ahora. El viaje del chofer queda abierto para cargarle las operaciones, el canon y los km.'
+                : `Chofer ${v.chofer.nombre}: ${v.canonTotal.map((c) => formatoImporte(c.moneda, c.total)).join(' + ') || 'sin canon'} y ${formatoNumero(v.kmTotal)} km. El combustible queda congelado como está ahora.`
+            }
             pideMotivo={false}
             ocupado={cerrarYAprobar.isPending}
             error={null}

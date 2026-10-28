@@ -50,8 +50,8 @@ async function leer(desde: string, hasta: string) {
   };
 }
 
-/** Color del texto: lo mismo que el acta (verde desde 80, naranja desde 60). */
-const tono = (v: number | null | undefined) => (v == null ? 'text-tinta-suave' : v >= 80 ? 'text-exito' : v >= 60 ? 'text-alerta' : 'text-error');
+/** Color del texto: lo mismo que el acta (migración 109: verde desde 90, amarillo desde 80). */
+const tono = (v: number | null | undefined) => (v == null ? 'text-tinta-suave' : v >= 90 ? 'text-exito' : v >= 80 ? 'text-[#ca8a04]' : 'text-error');
 
 /**
  * Migración 90: Puntaje Calderón por chofer (viajes aprobados del período, ponderado por km). Igual para

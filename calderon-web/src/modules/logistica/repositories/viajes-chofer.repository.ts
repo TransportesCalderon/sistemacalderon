@@ -88,6 +88,8 @@ export const viajesChoferRepository = (db: Db) => {
     ajustarItem: (d: AjustarItemDatos) =>
       llamar(ops().rpc('fn_ajustar_item_viaje', { p_item: d.itemId, p_canon: d.canon, p_moneda: d.moneda, p_km: d.km, p_motivo: d.motivo })),
     quitarItem: (item: number) => llamar(ops().rpc('fn_quitar_item_viaje', { p_item: item })),
+    /** Migración 109: agrega el tramo que sigue de la misma operación hasta su destino. */
+    continuarOperacion: (item: number) => llamar(ops().rpc('fn_continuar_operacion', { p_item: item })),
     cambiarChofer: (viaje: number, chofer: number) => llamar(ops().rpc('fn_cambiar_chofer_viaje', { p_viaje: viaje, p_chofer: chofer })),
 
     async prepararCierre(viaje: number): Promise<number> {

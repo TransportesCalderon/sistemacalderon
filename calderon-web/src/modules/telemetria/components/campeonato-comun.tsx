@@ -23,13 +23,13 @@ export function parsearSubpuntajes(v: unknown): Record<string, Sub> {
   );
 }
 
-export const TEXTO: Record<NivelHoy, string> = { verde: 'text-exito', naranja: 'text-[#ea580c]', rojo: 'text-error' };
-export const BARRA: Record<NivelHoy, string> = { verde: 'bg-exito', naranja: 'bg-[#f59e0b]', rojo: 'bg-error' };
-export const PUNTO: Record<NivelHoy, string> = { verde: 'bg-[#6ee7b7]', naranja: 'bg-[#fcd34d]', rojo: 'bg-[#fca5a5]' };
+export const TEXTO: Record<NivelHoy, string> = { verde: 'text-exito', naranja: 'text-[#ca8a04]', rojo: 'text-error' };
+export const BARRA: Record<NivelHoy, string> = { verde: 'bg-exito', naranja: 'bg-[#eab308]', rojo: 'bg-error' };
+export const PUNTO: Record<NivelHoy, string> = { verde: 'bg-[#6ee7b7]', naranja: 'bg-[#fde047]', rojo: 'bg-[#fca5a5]' };
 /** Chip de color para las celdas de la tabla. */
 export const CHIP: Record<NivelHoy, string> = {
   verde: 'bg-[#dcfce7] text-[#166534]',
-  naranja: 'bg-[#ffedd5] text-[#9a3412]',
+  naranja: 'bg-[#fef9c3] text-[#854d0e]',
   rojo: 'bg-[#fee2e2] text-[#991b1b]',
 };
 export const texto = (n: NivelHoy | null) => (n ? TEXTO[n] : 'text-tinta');

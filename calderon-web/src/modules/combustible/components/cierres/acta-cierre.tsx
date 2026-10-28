@@ -34,9 +34,9 @@ const ENTRADA = new Set(['recepcion_camion', 'entrada_motivo']);
 const MARCA_ECO: Record<string, string> = { volvo: 'Volvo Connect', renault: 'Renault Optifleet', tablero: 'Tablero del camión (foto)' };
 
 // Colores (los decide la base: migraciones 85 y 87)
-const TEXTO: Record<Nivel, string> = { verde: 'text-green-700', naranja: 'text-orange-600', rojo: 'text-red-600' };
-const FONDO: Record<Nivel, string> = { verde: 'border-green-600 bg-green-50', naranja: 'border-orange-500 bg-orange-50', rojo: 'border-red-600 bg-red-50' };
-const BARRA: Record<Nivel, string> = { verde: 'bg-green-600', naranja: 'bg-orange-500', rojo: 'bg-red-600' };
+const TEXTO: Record<Nivel, string> = { verde: 'text-green-700', naranja: 'text-yellow-600', rojo: 'text-red-600' };
+const FONDO: Record<Nivel, string> = { verde: 'border-green-600 bg-green-50', naranja: 'border-yellow-500 bg-yellow-50', rojo: 'border-red-600 bg-red-50' };
+const BARRA: Record<Nivel, string> = { verde: 'bg-green-600', naranja: 'bg-yellow-500', rojo: 'bg-red-600' };
 
 export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHoraria }: DatosActa) {
   const anulado = cierre.estado === 'anulado';

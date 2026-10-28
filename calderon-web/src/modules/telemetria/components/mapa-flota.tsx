@@ -34,7 +34,8 @@ export interface CelularEnMapa {
 
 /** Migración 96: color del programador y del Eco Score del día (lo decide la base). */
 const ABUSIVO = '#dc2626';
-const COLOR_NIVEL: Record<string, string> = { verde: '#15803d', naranja: '#ea580c', rojo: '#dc2626' };
+// Migración 109: verde desde 90, amarillo desde 80 (la base devuelve «naranja» para el amarillo)
+const COLOR_NIVEL: Record<string, string> = { verde: '#15803d', naranja: '#ca8a04', rojo: '#dc2626' };
 
 /**
  * Mapa de la flota (Leaflet + OpenStreetMap). Cada camión es un punto con su patente y su

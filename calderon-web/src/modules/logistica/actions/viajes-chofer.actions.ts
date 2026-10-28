@@ -50,6 +50,14 @@ export const ajustarItemViaje = createAction({
   invalida: rutas,
 });
 
+/** Migración 109: «Continúa a …»: el tramo que sigue de la misma operación. */
+export const continuarOperacionViaje = createAction({
+  permiso: 'operacion.tramos:editar',
+  schema: itemIdSchema,
+  handler: (d, { db }) => viajesChoferRepository(db).continuarOperacion(d.itemId),
+  invalida: rutas,
+});
+
 export const quitarItemViaje = createAction({
   permiso: 'operacion.tramos:editar',
   schema: itemIdSchema,

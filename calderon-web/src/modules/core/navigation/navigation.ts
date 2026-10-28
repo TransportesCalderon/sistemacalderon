@@ -148,6 +148,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
         incluye: ['/flota/semirremolques', '/flota/gensets', '/flota/accesorios'],
       },
       { href: '/flota/choferes', etiqueta: 'Choferes', pantalla: 'flota.choferes', incluye: ['/telemetria/choferes'] },
+      // Migración 109: el chofer fijo de cada tractor, en una sola lista
+      { href: '/flota/asignaciones', etiqueta: 'Choferes de los tractores', pantalla: 'flota.asignaciones' },
       { href: '/flota/semirremolques', etiqueta: 'Semirremolques', pantalla: 'flota.camiones', oculta: true },
       { href: '/flota/gensets', etiqueta: 'Gensets', pantalla: 'flota.pizarra', oculta: true },
       { href: '/flota/accesorios', etiqueta: 'Accesorios', pantalla: 'flota.pizarra', oculta: true },

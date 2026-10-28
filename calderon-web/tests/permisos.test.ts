@@ -90,8 +90,8 @@ describe('navegación (especificación §3)', () => {
   it('menú corto: «Cargar nuevo», lo del chofer aparte y las pantallas hermanas como pestañas', () => {
     expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'chofer', 'cargar', 'pendientes', 'ventas', 'logistica', 'combustible', 'flota', 'rrhh', 'finanzas', 'datos', 'configuracion']);
     const entradas = NAVEGACION.flatMap((g) => g.entradas);
-    // 46: la migración 103 agregó «Ranking de choferes»
-    expect(entradas.filter((e) => !e.oculta).length).toBe(46);
+    // 46: la migración 103 agregó «Ranking de choferes»; 47: la 109, «Choferes de los tractores»
+    expect(entradas.filter((e) => !e.oculta).length).toBe(47);
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     // Toda ruta incluida como pestaña sigue protegida por una entrada oculta o visible
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
