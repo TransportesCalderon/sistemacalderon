@@ -75,7 +75,13 @@ function useEscritura<I, R extends { ok: boolean }>(accion: (input: I) => Promis
     mutationFn: accion,
     onSuccess: async (r) => {
       if (!r.ok) return;
-      await Promise.all([qc.invalidateQueries({ queryKey: q.todo() }), qc.invalidateQueries({ queryKey: ['flota'] })]);
+      // Los gensets también se eligen en Combustible y en Operaciones: que esas listas se actualicen enseguida
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: q.todo() }),
+        qc.invalidateQueries({ queryKey: ['flota'] }),
+        qc.invalidateQueries({ queryKey: ['combustible', 'gensets'] }),
+        qc.invalidateQueries({ queryKey: ['logistica', 'gensets'] }),
+      ]);
     },
   });
 }

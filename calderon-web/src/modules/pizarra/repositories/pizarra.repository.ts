@@ -254,7 +254,9 @@ export const pizarraRepository = (db: Db) => {
       for (const r of [g, i, s]) if (r.error) throw new RepoError(r.error);
       const patente = new Map((s.data ?? []).map((x) => [x.id, x.patente]));
       const inst = new Map((i.data ?? []).map((x) => [x.genset_id, x]));
-      return (g.data ?? []).map((x) => {
+      // Orden natural: GS9, GS82, GS84, GS100 (no GS100 antes que GS82)
+      const ordenados = [...(g.data ?? [])].sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true, sensitivity: 'base' }));
+      return ordenados.map((x) => {
         const v = inst.get(x.id);
         return {
           id: x.id,

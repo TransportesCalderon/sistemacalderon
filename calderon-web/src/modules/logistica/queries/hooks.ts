@@ -103,7 +103,7 @@ export const useGensetsOperacion = (servicio: number, enabled = true) =>
     queryKey: ['logistica', 'gensets', servicio] as const,
     queryFn: () => operacionesRepository(browserDb()).gensets(servicio),
     enabled,
-    staleTime: 60_000,
+    staleTime: 0,
   });
 export const useGuardarLinea = () => useEscritura(guardarLinea);
 export const useEliminarLinea = () => useEscritura(eliminarLinea);

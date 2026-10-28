@@ -36,6 +36,7 @@ export const pizarraQueries = {
     queryOptions({
       queryKey: ['pizarra', 'gensets'] as const,
       queryFn: () => pizarraRepository(db).gensets(),
-      staleTime: FRESCURA.maestro,
+      // Siempre al día al abrir una lista: un genset recién cargado (o cargado por otro usuario) tiene que aparecer
+      staleTime: 0,
     }),
 };

@@ -145,7 +145,7 @@ export const useAnularCierre = () => useEscritura(anularCierre);
 
 // Migración 48: combustible de los gensets
 export const useGensetsCombustible = () =>
-  useQuery({ queryKey: ['combustible', 'gensets'] as const, queryFn: () => gensetRepository(browserDb()).lista(), staleTime: 30_000 });
+  useQuery({ queryKey: ['combustible', 'gensets'] as const, queryFn: () => gensetRepository(browserDb()).lista(), staleTime: 0 });
 export const useFichaGenset = (gensetId: number) =>
   useQuery({ queryKey: ['combustible', 'gensets', gensetId] as const, queryFn: () => gensetRepository(browserDb()).ficha(gensetId), staleTime: 15_000 });
 export const useRegistrarGenset = () => useEscritura(registrarGenset);
