@@ -158,10 +158,10 @@ function NosDeben() {
           <p className="text-sm text-tinta-suave">
             Son las facturas emitidas en{" "}
             <Link
-              href="/ventas/facturacion"
+              href="/analisis/facturacion"
               className="font-medium text-marca underline"
             >
-              Ventas › Facturación
+              Más › Análisis › Facturación
             </Link>
             . Un cobro puede ser parcial; cuando se completa, la factura queda
             cobrada.

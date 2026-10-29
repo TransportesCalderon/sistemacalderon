@@ -64,8 +64,8 @@ export function FlotaPantalla({ enPizarra = false }: { enPizarra?: boolean } = {
           </p>
           <p className="mt-1">
             Cargá el VIN en{' '}
-            <Link href="/flota/camiones" className="font-medium underline">
-              Flota &gt; Camiones
+            <Link href="/ajustes/flota" className="font-medium underline">
+              Más › Ajustes › Flota
             </Link>{' '}
             (o que la patente coincida con el principio del nombre en Optifleet o Volvo Connect). Si el camión todavía no está en el
             sistema, «Dar de alta» abre el formulario con la patente, el VIN, la marca y el modelo:

@@ -13,7 +13,8 @@ export interface Ruta {
   titulo: string;
 }
 
-export const RUTAS: readonly Ruta[] = [
+/** Las rutas de las páginas (las de antes del Sprint 8 siguen acá: son las que se dibujan por dentro). */
+const PAGINAS: readonly Ruta[] = [
   // Inicio
   { prefijo: '/inicio', pantalla: 'inicio.dashboard', titulo: 'Inicio' },
   // Sprint 3: «Hoy» reemplaza a Inicio y Mis pendientes
@@ -117,8 +118,81 @@ export const RUTAS: readonly Ruta[] = [
 ];
 
 /**
+ * Sprint 8 · Análisis y Ajustes (Plan de migración UX, ítems 30 y 31). Cada dirección nueva muestra
+ * la página de siempre (next.config.ts la reescribe por dentro) y la dirección vieja lleva a la nueva.
+ * La pantalla que la protege es la de la página vieja: los permisos no cambian.
+ * Las altas, ediciones, fichas e impresiones (/nuevo, /[id], /editar, /imprimir) no se mudan.
+ */
+export const RUTAS_NUEVAS: readonly { nueva: string; vieja: string; titulo: string }[] = [
+  // Análisis
+  { nueva: '/analisis/consumo', vieja: '/combustible/costo-medio', titulo: 'Consumo por camión' },
+  { nueva: '/analisis/consumo/cargado-vs-motor', vieja: '/combustible/conciliacion', titulo: 'Cargado vs. motor' },
+  { nueva: '/analisis/consumo/ralenti', vieja: '/combustible/ralenti', titulo: 'Ralentí del mes' },
+  { nueva: '/analisis/ranking', vieja: '/telemetria/ranking', titulo: 'Ranking de choferes' },
+  { nueva: '/analisis/ranking/periodo', vieja: '/telemetria/choferes', titulo: 'Puntaje de manejo' },
+  { nueva: '/analisis/cargas', vieja: '/combustible/cargas', titulo: 'Cargas' },
+  { nueva: '/analisis/cargas/por-validar', vieja: '/combustible/observadas', titulo: 'Por validar' },
+  { nueva: '/analisis/cargas/sin-ticket', vieja: '/combustible/sin-documento', titulo: 'Sin ticket' },
+  { nueva: '/analisis/movimientos', vieja: '/combustible/movimientos', titulo: 'Movimientos del camión' },
+  { nueva: '/analisis/cierres', vieja: '/combustible/cierres', titulo: 'Cierres de combustible' },
+  { nueva: '/analisis/cierres/por-hacer', vieja: '/operacion/por-cerrar', titulo: 'Cierres por hacer' },
+  { nueva: '/analisis/cierres/viajes', vieja: '/combustible/viajes', titulo: 'Viajes y cierres' },
+  { nueva: '/analisis/viajes', vieja: '/operacion/viajes-chofer', titulo: 'Viajes de chofer' },
+  { nueva: '/analisis/operaciones', vieja: '/operacion/operaciones', titulo: 'Operaciones' },
+  { nueva: '/analisis/costos', vieja: '/operacion/costos', titulo: 'Costos de viajes' },
+  { nueva: '/analisis/alertas', vieja: '/anomalias/alertas', titulo: 'Alertas de la telemetría' },
+  { nueva: '/analisis/tanque', vieja: '/combustible/base', titulo: 'Tanque de Base Mendoza' },
+  { nueva: '/analisis/gastos', vieja: '/finanzas/gastos', titulo: 'Gastos' },
+  { nueva: '/analisis/gastos/combustible', vieja: '/finanzas/combustible', titulo: 'Combustible' },
+  { nueva: '/analisis/cobros-pagos', vieja: '/finanzas/cobros-pagos', titulo: 'Cobros y pagos' },
+  { nueva: '/analisis/facturacion', vieja: '/ventas/facturacion', titulo: 'Facturación y cobranzas' },
+  { nueva: '/analisis/informes', vieja: '/finanzas/informes', titulo: 'Informes' },
+  { nueva: '/analisis/resultados', vieja: '/finanzas', titulo: 'Resumen financiero' },
+  { nueva: '/analisis/ventas', vieja: '/ventas', titulo: 'Tablero de ventas' },
+  // Ajustes
+  { nueva: '/ajustes/usuarios', vieja: '/configuracion/usuarios', titulo: 'Usuarios' },
+  { nueva: '/ajustes/parametros', vieja: '/configuracion/parametros', titulo: 'Parámetros' },
+  { nueva: '/ajustes/parametros/catalogos', vieja: '/configuracion/catalogos', titulo: 'Catálogos' },
+  { nueva: '/ajustes/monedas', vieja: '/configuracion/monedas', titulo: 'Monedas' },
+  { nueva: '/ajustes/monedas/tipos-cambio', vieja: '/finanzas/tipos-cambio', titulo: 'Tipos de cambio' },
+  { nueva: '/ajustes/plan-cuentas', vieja: '/finanzas/plan-cuentas', titulo: 'Plan de cuentas' },
+  { nueva: '/ajustes/gastos-fijos', vieja: '/finanzas/gastos-fijos', titulo: 'Gastos fijos' },
+  { nueva: '/ajustes/lugares', vieja: '/comercial/ubicaciones', titulo: 'Lugares' },
+  { nueva: '/ajustes/lineas', vieja: '/operacion/lineas', titulo: 'Líneas' },
+  { nueva: '/ajustes/proveedores', vieja: '/comercial/proveedores', titulo: 'Proveedores' },
+  { nueva: '/ajustes/proveedores/estaciones', vieja: '/comercial/estaciones', titulo: 'Estaciones de servicio' },
+  { nueva: '/ajustes/transportistas', vieja: '/operacion/transportistas', titulo: 'Transportistas externos' },
+  { nueva: '/ajustes/flota', vieja: '/flota/camiones', titulo: 'Camiones' },
+  { nueva: '/ajustes/flota/semirremolques', vieja: '/flota/semirremolques', titulo: 'Semirremolques' },
+  { nueva: '/ajustes/flota/gensets', vieja: '/flota/gensets', titulo: 'Gensets' },
+  { nueva: '/ajustes/flota/accesorios', vieja: '/flota/accesorios', titulo: 'Tipos de accesorio' },
+  { nueva: '/ajustes/flota/choferes', vieja: '/flota/choferes', titulo: 'Choferes' },
+  { nueva: '/ajustes/liquidacion', vieja: '/rrhh/tarifas', titulo: 'Tarifas y conceptos' },
+  { nueva: '/ajustes/liquidacion/datos-legales', vieja: '/rrhh/datos-legales', titulo: 'Datos legales' },
+  { nueva: '/ajustes/integraciones', vieja: '/telemetria/datos', titulo: 'Datos de los camiones' },
+  { nueva: '/ajustes/integraciones/equipos', vieja: '/telemetria/equipos', titulo: 'Equipos GPS' },
+  // Decisión del 29/10/2026: quedan en Ajustes hasta que la Pizarra haga lo mismo (no se borran)
+  { nueva: '/ajustes/viajes', vieja: '/operacion/viajes', titulo: 'Asignar viajes' },
+  { nueva: '/ajustes/choferes-tractores', vieja: '/flota/asignaciones', titulo: 'Choferes de los tractores' },
+];
+
+function filaDe(rutas: readonly Ruta[], pathname: string): Ruta | null {
+  return [...rutas].sort((a, b) => b.prefijo.length - a.prefijo.length).find((r) => coincide(pathname, r.prefijo)) ?? null;
+}
+
+export const RUTAS: readonly Ruta[] = [
+  ...PAGINAS,
+  ...RUTAS_NUEVAS.map(({ nueva, vieja, titulo }) => {
+    const fila = filaDe(PAGINAS, vieja);
+    if (!fila) throw new Error(`rutas.ts: ${vieja} no tiene pantalla`);
+    return { prefijo: nueva, pantalla: fila.pantalla, titulo };
+  }),
+];
+
+/**
  * Rutas que se mudaron (Plan de migración UX). La dirección vieja redirige a la nueva
- * (next.config.ts, temporal hasta el Sprint 8): los enlaces guardados siguen funcionando.
+ * (next.config.ts). Sprint 8: las redirecciones son permanentes y se mantienen 6 meses,
+ * hasta el 29/04/2027; después se pueden sacar junto con las páginas viejas.
  */
 export const RUTAS_MOVIDAS: readonly { desde: string; hasta: string }[] = [
   { desde: '/flota/pizarra', hasta: '/pizarra' },

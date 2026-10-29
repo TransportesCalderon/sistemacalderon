@@ -371,7 +371,7 @@ function Operaciones({ v }: { v: ViajeChofer }) {
         </div>
       )}
       <p className="text-xs text-tinta-suave">
-        El canon y los km salen de la línea (Datos › Líneas). Al cerrar el viaje quedan fijos para la liquidación; el precio por km lo aplica la
+        El canon y los km salen de la línea (Más › Ajustes › Líneas). Al cerrar el viaje quedan fijos para la liquidación; el precio por km lo aplica la
         liquidación.
       </p>
     </Seccion>

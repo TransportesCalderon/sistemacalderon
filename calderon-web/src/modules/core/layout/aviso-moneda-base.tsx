@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { TriangleAlert } from 'lucide-react';
 
 /** Aviso global de la especificación §12: sin moneda base no se pueden registrar importes. */
@@ -7,7 +8,18 @@ export function AvisoMonedaBase({ puedeConfigurar }: { puedeConfigurar: boolean 
       <TriangleAlert className="mt-0.5 size-4 shrink-0" />
       <p>
         <strong>Moneda base no definida:</strong> no se pueden registrar importes (decisión pendiente 1).
-        {puedeConfigurar ? ' Definila en Configuración → Monedas y moneda base.' : ' Pedile a un administrador que la defina.'}
+        {puedeConfigurar ? (
+          <>
+            {' '}
+            Definila en{' '}
+            <Link href="/ajustes/monedas" className="font-medium underline">
+              Más › Ajustes › Monedas
+            </Link>
+            .
+          </>
+        ) : (
+          ' Pedile a un administrador que la defina.'
+        )}
       </p>
     </div>
   );

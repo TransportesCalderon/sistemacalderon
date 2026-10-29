@@ -4,7 +4,7 @@ import { pathToRegexp } from 'next/dist/compiled/path-to-regexp';
 import nextConfig from '../next.config';
 import { leerFicha } from '@/modules/core/fichas/ficha-url';
 import { DETALLES_VIEJOS, FICHAS } from '@/modules/core/fichas/tipos';
-import { RUTAS_MOVIDAS, pantallaDeRuta } from '@/modules/core/navigation/rutas';
+import { RUTAS_MOVIDAS, RUTAS_NUEVAS, pantallaDeRuta } from '@/modules/core/navigation/rutas';
 import { ORDEN_COLUMNAS } from '@/modules/core/permissions/matriz';
 import { can, permisosDe } from '@/modules/core/permissions/resolver';
 
@@ -18,9 +18,22 @@ const SIN_LA_NUEVA = [{ desde: '/operacion/tractores', rol: 'rrhh' as const, sig
 describe('redirecciones de detalle (Sprint 1 · S1-06)', async () => {
   const reglas = (await nextConfig.redirects?.()) ?? [];
 
-  it('hay una regla por cada página de detalle vieja y por cada ruta movida, todas temporales', () => {
-    expect(reglas).toHaveLength(DETALLES_VIEJOS.length + RUTAS_MOVIDAS.length);
-    for (const r of reglas) expect(r.permanent, r.source).toBe(false);
+  it('hay una regla por cada página de detalle vieja y por cada ruta movida, todas permanentes (Sprint 8)', () => {
+    expect(reglas).toHaveLength(DETALLES_VIEJOS.length + RUTAS_MOVIDAS.length + RUTAS_NUEVAS.length);
+    for (const r of reglas) expect(r.permanent, r.source).toBe(true);
+  });
+
+  it('Sprint 8: cada dirección de Análisis y Ajustes muestra por dentro su página de antes', async () => {
+    const r = await nextConfig.rewrites?.();
+    const reescrituras = (r && !Array.isArray(r) ? r.beforeFiles : undefined) ?? [];
+    expect(reescrituras).toHaveLength(RUTAS_NUEVAS.length);
+    for (const { nueva, vieja } of RUTAS_NUEVAS) {
+      expect(reescrituras.find((x) => x.source === nueva)?.destination).toBe(vieja);
+      // y la vieja exacta lleva a la nueva (las altas y fichas de abajo no)
+      const regla = reglas.find((x) => x.source === vieja);
+      expect(regla?.destination).toBe(nueva);
+      expect(pathToRegexp(regla!.source).test(`${vieja}/nuevo`)).toBe(false);
+    }
   });
 
   for (const { ruta, tipo } of DETALLES_VIEJOS) {
@@ -73,7 +86,7 @@ describe('redirecciones de detalle (Sprint 1 · S1-06)', async () => {
 describe('rutas movidas con número (Sprint 7)', async () => {
   const reglas = (await nextConfig.redirects?.()) ?? [];
   const destino = (ruta: string) => {
-    for (const r of reglas) {
+    for (const r of reglas.filter((x) => !RUTAS_NUEVAS.some((n) => n.vieja === x.source))) {
       const m = pathToRegexp(r.source).exec(ruta);
       if (m) return r.destination.replace(':id', m[1] ?? '');
     }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { LocateFixed, LocateOff, MapPinned } from 'lucide-react';
-import { leerLocal, guardarLocal } from '@/modules/core/layout/sidebar';
+import { leerLocal, guardarLocal } from '@/shared/lib/local';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { useEnviarPosicion } from '../queries/hooks';

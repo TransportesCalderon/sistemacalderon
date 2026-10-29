@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ajustarItemSchema, asignarTractorSchema, iniciarViajeSchema } from '@/modules/logistica/domain/viaje-chofer.schemas';
 import { parsearViajeChofer } from '@/modules/logistica/domain/viaje-chofer.types';
-import { NAVEGACION } from '@/modules/core/navigation/navigation';
 import { pantallaDeRuta } from '@/modules/core/navigation/rutas';
 
 describe('Tractores y viajes de chofer (migración 46)', () => {
@@ -30,10 +29,8 @@ describe('Tractores y viajes de chofer (migración 46)', () => {
     expect(v.pendientes).toEqual(['Falta x']);
   });
 
-  it('menú: Viajes de chofer en Logística (Sprint 6: Tractores pasó a la Pizarra); la lista y la ficha usan el mismo permiso', () => {
-    const logistica = NAVEGACION.find((g) => g.id === 'logistica');
-    expect(logistica?.entradas.some((e) => e.href === '/operacion/viajes-chofer')).toBe(true);
-    expect(logistica?.entradas.some((e) => e.href === '/operacion/tractores')).toBe(false);
+  it('Sprint 8: los viajes de chofer están en Análisis; la lista y la ficha usan el mismo permiso', () => {
+    expect(pantallaDeRuta('/analisis/viajes')).toBe('operacion.tramos');
     expect(pantallaDeRuta('/operacion/viajes-chofer/12')).toBe('operacion.tramos');
     expect(pantallaDeRuta('/operacion/tractores')).toBe('operacion.tramos');
   });

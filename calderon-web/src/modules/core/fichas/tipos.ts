@@ -16,16 +16,16 @@ export interface DefFicha {
 }
 
 export const FICHAS: Record<TipoFicha, DefFicha> = {
-  camion: { titulo: 'Camión', pantalla: 'flota.camiones', lista: '/flota/camiones' },
-  chofer: { titulo: 'Chofer', pantalla: 'flota.choferes', lista: '/flota/choferes' },
+  camion: { titulo: 'Camión', pantalla: 'flota.camiones', lista: '/ajustes/flota' },
+  chofer: { titulo: 'Chofer', pantalla: 'flota.choferes', lista: '/ajustes/flota/choferes' },
   cliente: { titulo: 'Cliente', pantalla: 'comercial.clientes', lista: '/cotizaciones/datos-clientes' },
-  carga: { titulo: 'Carga', pantalla: 'combustible.cargas', lista: '/combustible/cargas' },
-  cierre: { titulo: 'Cierre', pantalla: 'combustible.cierre_viaje', lista: '/combustible/cierres' },
-  viaje: { titulo: 'Viaje', pantalla: 'operacion.tramos', lista: '/operacion/viajes-chofer' },
-  genset: { titulo: 'Genset', pantalla: 'flota.pizarra', lista: '/flota/gensets' },
+  carga: { titulo: 'Carga', pantalla: 'combustible.cargas', lista: '/analisis/cargas' },
+  cierre: { titulo: 'Cierre', pantalla: 'combustible.cierre_viaje', lista: '/analisis/cierres' },
+  viaje: { titulo: 'Viaje', pantalla: 'operacion.tramos', lista: '/analisis/viajes' },
+  genset: { titulo: 'Genset', pantalla: 'flota.pizarra', lista: '/ajustes/flota/gensets' },
   empresa: { titulo: 'Empresa', pantalla: 'ventas.empresas', lista: '/cotizaciones/clientes' },
-  operacion: { titulo: 'Operación', pantalla: 'operacion.servicios', lista: '/operacion/operaciones', version: 114 },
-  factura: { titulo: 'Factura', pantalla: 'ventas.facturacion', lista: '/ventas/facturacion' },
+  operacion: { titulo: 'Operación', pantalla: 'operacion.servicios', lista: '/analisis/operaciones', version: 114 },
+  factura: { titulo: 'Factura', pantalla: 'ventas.facturacion', lista: '/analisis/facturacion' },
 };
 
 /** Las rutas de detalle viejas (/x/[id]) y el tipo de ficha que las reemplaza (S1-06). */
