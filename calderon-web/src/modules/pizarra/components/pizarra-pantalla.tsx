@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Maximize2, Minimize2, Search, Truck, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
@@ -44,7 +44,7 @@ const firma = (f: FilaPizarra) => JSON.stringify({ ...f, ubicacion: null, ubicac
  * Flota > Pizarra Azul. Reemplaza la planilla PIZARRA SEMI GENSET: una fila por semi, en el orden
  * fijo de la patente, con lo que asignó Logística. Se actualiza sola (Supabase Realtime).
  */
-export function PizarraPantalla() {
+export function PizarraPantalla({ vista: pedida = 'tabla' }: { vista?: 'tabla' | 'mapa' } = {}) {
   const { zonaHoraria } = useSesion();
   const puedeEditar = useCan('flota.pizarra:editar');
   const vivo = usePizarraEnVivo();
@@ -54,19 +54,11 @@ export function PizarraPantalla() {
   // Sprint 6: «lo que sigue» de cada fila (migración 118)
   const conSigue = useBaseTiene(VERSION_SIGUE);
   const { data: sigue } = usePizarraSigue(conSigue);
-  // Sprint 6: ?vista=mapa muestra el mapa de la flota (quien puede verlo)
+  // Mapa de flota: /pizarra/mapa, con la misma importancia que la tabla (pedido de Gerencia, 29/10/2026)
   const verMapa = useCan('telemetria.mapa:ver');
   const router = useRouter();
-  const pathname = usePathname();
-  const params = useSearchParams();
-  const vista: 'tabla' | 'mapa' = verMapa && params.get('vista') === 'mapa' ? 'mapa' : 'tabla';
-  const cambiarVista = (v: 'tabla' | 'mapa') => {
-    const p = new URLSearchParams(params.toString());
-    if (v === 'mapa') p.set('vista', 'mapa');
-    else p.delete('vista');
-    const q = p.toString();
-    router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
-  };
+  const vista: 'tabla' | 'mapa' = verMapa && pedida === 'mapa' ? 'mapa' : 'tabla';
+  const cambiarVista = (v: 'tabla' | 'mapa') => router.push(v === 'mapa' ? '/pizarra/mapa' : '/pizarra', { scroll: false });
   const [f, setF] = useState<FiltrosPizarra>(FILTROS_VACIOS);
   const [abierto, setAbierto] = useState<number | null>(null);
   const [grande, setGrande] = useState(false);
@@ -113,7 +105,7 @@ export function PizarraPantalla() {
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-[#1f3a5f] px-4 py-2 text-white sm:px-6 lg:px-8 lg:px-8">
         <div className="flex items-baseline gap-2">
           <span className="text-xs text-[#a9bdd6]">Flota ›</span>
-          <h1 className="text-lg font-bold">Pizarra Azul</h1>
+          <h1 className="text-lg font-bold">{vista === 'mapa' ? 'Mapa de flota' : 'Pizarra Azul'}</h1>
         </div>
         <span className="flex items-center gap-1.5 text-xs text-[#d5e2f1]">
           <span className={cn('size-2 rounded-full', vivo === 'en_vivo' ? 'bg-[#4ade80]' : 'bg-[#fdb022]')} />

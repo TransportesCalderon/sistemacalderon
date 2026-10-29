@@ -97,5 +97,6 @@
   "/liquidaciones/resumen": "liquidacion.liquidaciones",
   "/liquidaciones/fondos": "rrhh.fondos",
   "/conciliacion": "finanzas.bancos",
-  "/conciliacion/_": "finanzas.bancos"
+  "/conciliacion/_": "finanzas.bancos",
+  "/pizarra/mapa": "telemetria.mapa"
 }

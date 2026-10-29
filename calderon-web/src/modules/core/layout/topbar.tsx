@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ChevronDown, CircleDollarSign, Clock, House, LayoutGrid, LogOut, Menu, UserRound } from 'lucide-react';
+import { ChevronDown, CircleDollarSign, Clock, House, LayoutGrid, LogOut, MapPin, Menu, UserRound } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -26,7 +26,10 @@ export function BarraSuperior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
   const hayBuscador = useBaseTiene(VERSION_BUSCADOR) && rolesApp.some((r) => r !== 'chofer');
   const verPizarra = useCan('flota.pizarra:ver');
   const verHoy = useCan('inicio.hoy:ver');
+  const verMapa = useCan('telemetria.mapa:ver');
   const pathname = usePathname();
+  const enMapa = pathname === '/pizarra/mapa';
+  const enPizarra = pathname.startsWith('/pizarra') && !enMapa;
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-borde bg-panel/95 px-4 backdrop-blur sm:gap-3">
       <button type="button" onClick={onAbrirMenu} className="rounded-md p-1.5 text-tinta-suave hover:bg-hover lg:hidden" aria-label="Abrir menú">
@@ -36,14 +39,28 @@ export function BarraSuperior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
       {verPizarra && (
         <Link
           href="/pizarra"
-          aria-current={pathname.startsWith('/pizarra') ? 'page' : undefined}
+          aria-current={enPizarra ? 'page' : undefined}
           className={cn(
             'hidden items-center gap-1.5 rounded-md px-2 py-1.5 text-sm md:flex',
-            pathname.startsWith('/pizarra') ? 'bg-marca-suave font-medium text-marca' : 'text-tinta-suave hover:bg-hover hover:text-tinta',
+            enPizarra ? 'bg-marca-suave font-medium text-marca' : 'text-tinta-suave hover:bg-hover hover:text-tinta',
           )}
         >
           <LayoutGrid className="size-4" />
           Pizarra
+        </Link>
+      )}
+      {/* El mapa de flota, a mano igual que la Pizarra */}
+      {verMapa && (
+        <Link
+          href="/pizarra/mapa"
+          aria-current={enMapa ? 'page' : undefined}
+          className={cn(
+            'hidden items-center gap-1.5 rounded-md px-2 py-1.5 text-sm md:flex',
+            enMapa ? 'bg-marca-suave font-medium text-marca' : 'text-tinta-suave hover:bg-hover hover:text-tinta',
+          )}
+        >
+          <MapPin className="size-4" />
+          Mapa
         </Link>
       )}
       <div className="flex min-w-0 flex-1 justify-center">

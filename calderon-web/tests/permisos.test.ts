@@ -96,7 +96,8 @@ describe('navegación (especificación §3)', () => {
     // 46: el Sprint 3 sacó «Mis pendientes», que ahora está dentro de «Hoy»
     // 45: el Sprint 6 sacó «Mapa de flota», que ahora es la vista Mapa de la Pizarra
     // 41: el Sprint 7 juntó lo del chofer en «Mi viaje» (3 → 1) y Ventas en «Cotizaciones» con pestañas (3 → 1)
-    expect(entradas.length).toBe(41);
+    // 42: «Mapa de flota» vuelve al menú con su propia dirección (/pizarra/mapa), a pedido de Gerencia
+    expect(entradas.length).toBe(42);
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     // Toda ruta incluida como pestaña sigue protegida por su fila en rutas.ts
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();

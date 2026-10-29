@@ -94,6 +94,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       // Migración 63: todos los cierres pendientes en un lugar, con lo que falta y aprobar varios
       { href: '/operacion/por-cerrar', etiqueta: 'Cierres por hacer' },
       { href: '/pizarra', etiqueta: 'Pizarra Azul' },
+      // El mapa de flota con la misma importancia que la Pizarra (es su vista Mapa)
+      { href: '/pizarra/mapa', etiqueta: 'Mapa de flota' },
       // Migración 103: los mejores choferes de cada mes
       { href: '/telemetria/ranking', etiqueta: 'Ranking de choferes' },
     ],

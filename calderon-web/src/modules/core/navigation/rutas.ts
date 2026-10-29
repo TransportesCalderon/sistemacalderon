@@ -56,6 +56,8 @@ export const RUTAS: readonly Ruta[] = [
   { prefijo: '/flota/pizarra', pantalla: 'flota.pizarra', titulo: 'Pizarra Azul' },
   // Sprint 5: la Pizarra pasa a /pizarra (centro operativo); /flota/pizarra redirige
   { prefijo: '/pizarra', pantalla: 'flota.pizarra', titulo: 'Pizarra Azul' },
+  // El mapa de flota, con su propia entrada (vista Mapa de la Pizarra)
+  { prefijo: '/pizarra/mapa', pantalla: 'telemetria.mapa', titulo: 'Mapa de flota' },
   { prefijo: '/telemetria/mapa', pantalla: 'telemetria.mapa', titulo: 'Mapa de flota' },
   { prefijo: '/telemetria/ranking', pantalla: 'telemetria.sesiones', titulo: 'Ranking de choferes' },
   { prefijo: '/operacion/viajes-chofer', pantalla: 'operacion.tramos', titulo: 'Viajes de chofer' },
@@ -121,7 +123,7 @@ export const RUTAS: readonly Ruta[] = [
 export const RUTAS_MOVIDAS: readonly { desde: string; hasta: string }[] = [
   { desde: '/flota/pizarra', hasta: '/pizarra' },
   // Sprint 6: el mapa es la vista Mapa de la Pizarra; los tractores, sus filas (y la ficha del camión)
-  { desde: '/telemetria/mapa', hasta: '/pizarra?vista=mapa' },
+  { desde: '/telemetria/mapa', hasta: '/pizarra/mapa' },
   { desde: '/operacion/tractores', hasta: '/pizarra' },
   // Sprint 7: el chofer tiene una sola pantalla
   { desde: '/chofer', hasta: '/mi-viaje' },
