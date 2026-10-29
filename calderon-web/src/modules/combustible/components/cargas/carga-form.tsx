@@ -51,6 +51,9 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
   const { zonaHoraria, monedaBase } = useSesion();
   const crear = useCrearCarga();
   const editar = useEditarCarga();
+  // Hasta que la página terminó de cargar no se puede enviar (si no, el navegador recarga en blanco sin guardar).
+  const [montado, setMontado] = useState(false);
+  useEffect(() => setMontado(true), []);
   const txt = (v: number | null | undefined) => (v === null || v === undefined ? '' : String(v).replace('.', ','));
   const [error, setError] = useState<ErrorAccion | null>(null);
   const { data: camiones } = useCamionesCombustible();
@@ -462,7 +465,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
       </section>
 
       <div className="flex flex-wrap gap-3">
-        <button type="submit" className={BOTON_PRIMARIO} disabled={crear.isPending || editar.isPending}>
+        <button type="submit" className={BOTON_PRIMARIO} disabled={!montado || crear.isPending || editar.isPending}>
           {(crear.isPending || editar.isPending) && <LoaderCircle className="size-4 animate-spin" />} {carga ? 'Guardar cambios' : 'Registrar carga'}
         </button>
         <Link href={carga ? `/combustible/cargas/${carga.id}` : '/combustible/cargas'} className={BOTON_SECUNDARIO}>

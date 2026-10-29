@@ -10,6 +10,7 @@ import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
 import { horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
+import { borrarBorrador, guardarBorrador, leerBorrador } from '@/shared/lib/local';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
@@ -67,12 +68,30 @@ export function RegistroGensetForm({
     mode: 'onTouched',
   });
   const { register, handleSubmit, watch, formState } = form;
-  // Cuando llegan las listas se vuelven a poner los valores iniciales (sin pisar lo que ya se escribió).
+  // Lo escrito se guarda en la pestaña mientras se completa: si la página se recarga sola, no se pierde.
+  const claveBorrador = `borrador-genset-${tipoInicial}-${gensetInicial ?? 'nuevo'}`;
+  const [recuperado, setRecuperado] = useState(false);
+  // Hasta que la página no terminó de cargar, el botón no se puede apretar: si no, el navegador manda el
+  // formulario por su cuenta, recarga la página en blanco y no guarda nada.
+  const [montado, setMontado] = useState(false);
+  useEffect(() => setMontado(true), []);
+  // Cuando llegan las listas se vuelven a poner los valores iniciales (sin pisar lo que ya se escribió),
+  // o lo que había quedado a medio cargar.
   const listas = Boolean(gensets && monedas && choferes);
   useEffect(() => {
-    if (listas) form.reset(form.formState.defaultValues as RegistroGensetFormEntrada, { keepDirtyValues: true });
+    if (!listas) return;
+    const borrador = leerBorrador<RegistroGensetFormEntrada>(claveBorrador);
+    if (borrador && (borrador.litros || borrador.horometroH)) {
+      form.reset({ ...(form.formState.defaultValues as RegistroGensetFormEntrada), ...borrador });
+      setRecuperado(true);
+    } else form.reset(form.formState.defaultValues as RegistroGensetFormEntrada, { keepDirtyValues: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando terminan de llegar las listas
   }, [listas]);
+  useEffect(() => {
+    if (!listas) return;
+    const sub = form.watch((v) => guardarBorrador(claveBorrador, v));
+    return () => sub.unsubscribe();
+  }, [listas, form, claveBorrador]);
   const e = formState.errors;
   const tipo = watch('tipo');
   const carga = tipo === 'carga';
@@ -91,7 +110,9 @@ export function RegistroGensetForm({
       setError({ codigo: 'validacion', mensaje: 'Revisá la fecha y la hora.' });
       return;
     }
-    const r = await registrar.mutateAsync({
+    let r: Awaited<ReturnType<typeof registrar.mutateAsync>>;
+    try {
+      r = await registrar.mutateAsync({
       gensetId: d.gensetId,
       tipo: d.tipo,
       fechaHora,
@@ -107,18 +128,29 @@ export function RegistroGensetForm({
       ticketNumero: d.ticketNumero,
       depositoId: d.depositoId,
       observacion: d.observacion,
-    });
+      });
+    } catch {
+      // Se cortó la conexión o el sistema se actualizó: lo escrito queda en pantalla para reintentar.
+      setError({ codigo: 'desconocido', mensaje: 'No se pudo guardar: se cortó la conexión con el sistema. Tus datos siguen acá; volvé a apretar «Registrar». Si se repite, recargá la página (los datos se recuperan).' });
+      return;
+    }
     if (!r.ok) {
       setError(r.error);
       for (const [campo, mensaje] of Object.entries(r.error.campos ?? {})) form.setError(campo as Path<RegistroGensetFormEntrada>, { type: 'server', message: mensaje });
       return;
     }
+    borrarBorrador(claveBorrador);
     if (onListo) onListo(d.gensetId);
     else router.push(`/flota/gensets/${d.gensetId}`);
   });
 
   return (
     <form onSubmit={enviar} noValidate className="space-y-4">
+      {recuperado && (
+        <p className="rounded-lg bg-marca-suave p-3 text-sm text-marca">
+          Recuperamos lo que estabas cargando (la página se había recargado). Revisalo y apretá «Registrar».
+        </p>
+      )}
       <ErrorBase error={error} />
       <div className="inline-flex rounded-lg border border-borde bg-panel p-1" role="radiogroup" aria-label="Qué se registra">
         {(['carga', 'descarga'] as const).map((t) => (
@@ -246,7 +278,7 @@ export function RegistroGensetForm({
       </section>
 
       <div className="flex flex-wrap gap-3">
-        <button type="submit" className={BOTON_PRIMARIO} disabled={registrar.isPending}>
+        <button type="submit" className={BOTON_PRIMARIO} disabled={!montado || !listas || registrar.isPending}>
           {registrar.isPending && <LoaderCircle className="size-4 animate-spin" />} {carga ? 'Registrar carga' : 'Registrar descarga'}
         </button>
         {onCancelar && (
