@@ -94,7 +94,8 @@ describe('navegación (especificación §3)', () => {
     // 46: la migración 103 agregó «Ranking de choferes»; 47: la 109, «Choferes de los tractores»
     // (Sprint 0: las rutas que no están en el menú viven solo en rutas.ts)
     // 46: el Sprint 3 sacó «Mis pendientes», que ahora está dentro de «Hoy»
-    expect(entradas.length).toBe(46);
+    // 45: el Sprint 6 sacó «Mapa de flota», que ahora es la vista Mapa de la Pizarra
+    expect(entradas.length).toBe(45);
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     // Toda ruta incluida como pestaña sigue protegida por su fila en rutas.ts
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
@@ -104,7 +105,7 @@ describe('navegación (especificación §3)', () => {
     const visibles = NAVEGACION.flatMap((g) => g.entradas);
     expect(entradaActual('/combustible/cargas/nueva', visibles)).toBe('/combustible/cargas/nueva');
     expect(entradaActual('/combustible/cargas/12', visibles)).toBe('/combustible/cargas');
-    expect(entradaActual('/combustible/cierres/5', visibles)).toBe('/operacion/tractores');
+    expect(entradaActual('/combustible/cierres/5', visibles)).toBe('/operacion/viajes-chofer');
     expect(entradaActual('/flota/gensets', visibles)).toBe('/flota/camiones');
     expect(entradaActual('/operacion/operaciones', visibles)).toBe('/operacion/operaciones');
   });
@@ -127,7 +128,7 @@ describe('navegación (especificación §3)', () => {
     const ti = menuVisible(permisosDe(['ti'], agregado)).flatMap((g) => g.entradas.map((e) => e.href));
     expect(ti).not.toContain('/combustible/cierres');
     expect(ti).not.toContain('/combustible/viajes');
-    expect(ti).toContain('/operacion/tractores');
+    expect(ti).toContain('/operacion/viajes-chofer');
     expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(11);
     expect(pantallaDeRuta('/combustible/cierres/5')).toBe('combustible.cierre_viaje');
   });

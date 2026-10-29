@@ -21,6 +21,7 @@ import {
   type TipoAccesorio,
   type TipoSemi,
 } from '../domain/pizarra.types';
+import { parsearSigue, type SigueFila } from '../domain/pizarra.sigue';
 
 function accesorios(j: Json): Record<number, number> {
   const r: Record<number, number> = {};
@@ -62,6 +63,12 @@ export const pizarraRepository = (db: Db) => {
 
   return {
     // ------------------------------------------------------------- pizarra
+    /** Sprint 6 (migración 118): «lo que sigue» de cada fila, por semi. */
+    async sigue(): Promise<Map<number, SigueFila>> {
+      const { data, error } = await db.schema('ops').rpc('fn_pizarra_sigue');
+      if (error) throw new RepoError(error);
+      return parsearSigue(data);
+    },
     async filas(): Promise<FilaPizarra[]> {
       const { data, error } = await db.schema('ops').rpc('fn_pizarra');
       if (error) throw new RepoError(error);

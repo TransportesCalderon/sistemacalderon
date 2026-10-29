@@ -20,7 +20,7 @@ import { viajesChoferRepository } from '../repositories/viajes-chofer.repository
  *  - operacion.tramos:editar → iniciar el viaje y cargar lo que llevó.
  *  - operacion.tramos:transicionar → cerrar, reabrir y anular.
  */
-const rutas = () => ({ paths: ['/operacion/tractores', '/operacion/viajes-chofer'] });
+const rutas = () => ({ paths: ['/pizarra', '/operacion/viajes-chofer'] });
 
 export const asignarTractor = createAction({
   permiso: 'flota.asignaciones:editar',
@@ -83,7 +83,7 @@ export const cerrarViajeChofer = createAction({
   permiso: 'operacion.tramos:transicionar',
   schema: cerrarViajeSchema,
   handler: (d, { db }) => viajesChoferRepository(db).cerrar(d.viajeId, d.versionFila),
-  invalida: () => ({ paths: ['/operacion/tractores', '/operacion/viajes-chofer', '/combustible/viajes', '/combustible/cierres'] }),
+  invalida: () => ({ paths: ['/pizarra', '/operacion/viajes-chofer', '/combustible/viajes', '/combustible/cierres'] }),
 });
 
 export const reabrirViajeChofer = createAction({
@@ -105,5 +105,5 @@ export const cerrarYAprobarViaje = createAction({
   permiso: 'combustible.cierre_viaje:transicionar',
   schema: cerrarViajeSchema,
   handler: (d, { db }) => viajesChoferRepository(db).cerrarYAprobar(d.viajeId, d.versionFila),
-  invalida: () => ({ paths: ['/operacion/tractores', '/operacion/viajes-chofer', '/combustible/viajes', '/combustible/cierres', '/pendientes'] }),
+  invalida: () => ({ paths: ['/pizarra', '/operacion/viajes-chofer', '/combustible/viajes', '/combustible/cierres', '/pendientes'] }),
 });

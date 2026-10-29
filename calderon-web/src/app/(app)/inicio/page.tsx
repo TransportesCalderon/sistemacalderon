@@ -24,13 +24,13 @@ interface Tarea {
 const TAREAS: readonly Tarea[] = [
   { href: '/operacion/operaciones?nueva=1', titulo: 'Nueva operación', detalle: 'Cargar un pedido de un cliente', icono: Plus, permiso: 'operacion.servicios:editar', principal: true },
   { href: '/operacion/operaciones', titulo: 'Operaciones', detalle: 'Ver y avanzar los viajes de Logística', icono: ClipboardList, permiso: 'operacion.servicios:ver' },
-  { href: '/operacion/tractores', titulo: 'Tractores y viajes', detalle: 'Iniciar y cerrar los viajes de los choferes', icono: Truck, permiso: 'operacion.tramos:ver' },
+  { href: '/operacion/viajes-chofer', titulo: 'Viajes de chofer', detalle: 'Los viajes de los choferes y sus cierres', icono: Truck, permiso: 'operacion.tramos:ver' },
   { href: '/operacion/por-cerrar', titulo: 'Cierres por hacer', detalle: 'Qué falta en cada viaje y aprobar varios juntos', icono: ClipboardCheck, permiso: 'operacion.tramos:ver' },
   { href: '/pizarra', titulo: 'Pizarra Azul', detalle: 'Dónde está cada semi y qué hace', icono: LayoutGrid, permiso: 'flota.pizarra:ver' },
   { href: '/combustible/cargas/nueva', titulo: 'Registrar carga', detalle: 'Una carga de combustible con su ticket', icono: Fuel, permiso: 'combustible.cargas:editar', principal: true },
   { href: '/pendientes', titulo: 'Mis pendientes', detalle: 'Lo que espera una acción tuya', icono: ClipboardCheck, permiso: 'inicio.pendientes:ver' },
   { href: '/anomalias/alertas', titulo: 'Alertas', detalle: 'Lo que detectó la telemetría para revisar', icono: BellRing, permiso: 'anomalias.alertas:ver' },
-  { href: '/telemetria/mapa', titulo: 'Mapa de flota', detalle: 'Los tractores en el mapa, en vivo', icono: MapPin, permiso: 'telemetria.mapa:ver' },
+  { href: '/pizarra?vista=mapa', titulo: 'Mapa de flota', detalle: 'Los tractores en el mapa, en vivo', icono: MapPin, permiso: 'telemetria.mapa:ver' },
   { href: '/rrhh/fondos', titulo: 'Fondos de choferes', detalle: 'Entregar dinero y revisar los gastos que suben', icono: Wallet, permiso: 'rrhh.fondos:ver' },
   { href: '/flota/choferes', titulo: 'Choferes', detalle: 'Datos, licencia y visa', icono: UsersRound, permiso: 'flota.choferes:ver' },
 ];

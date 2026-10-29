@@ -23,6 +23,8 @@ const RESPALDO_MS = 60_000;
 const JUNTAR_MS = 1_000;
 
 export const usePizarra = () => useQuery({ ...q.filas(browserDb()), refetchInterval: RESPALDO_MS });
+/** Sprint 6: solo con la base en la migración 118 (antes la función no existe). */
+export const usePizarraSigue = (enabled: boolean) => useQuery({ ...q.sigue(browserDb()), enabled, refetchInterval: RESPALDO_MS });
 export const useColumnasAccesorio = () => useQuery({ ...q.columnas(browserDb()), refetchInterval: RESPALDO_MS });
 export const useLugares = () => useQuery(q.lugares(browserDb()));
 export const useSemis = () => useQuery(q.semis(browserDb()));

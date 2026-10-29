@@ -30,9 +30,10 @@ describe('Tractores y viajes de chofer (migración 46)', () => {
     expect(v.pendientes).toEqual(['Falta x']);
   });
 
-  it('menú: Tractores y viajes en Logística; la lista y la ficha usan el mismo permiso', () => {
+  it('menú: Viajes de chofer en Logística (Sprint 6: Tractores pasó a la Pizarra); la lista y la ficha usan el mismo permiso', () => {
     const logistica = NAVEGACION.find((g) => g.id === 'logistica');
-    expect(logistica?.entradas.some((e) => e.href === '/operacion/tractores')).toBe(true);
+    expect(logistica?.entradas.some((e) => e.href === '/operacion/viajes-chofer')).toBe(true);
+    expect(logistica?.entradas.some((e) => e.href === '/operacion/tractores')).toBe(false);
     expect(pantallaDeRuta('/operacion/viajes-chofer/12')).toBe('operacion.tramos');
     expect(pantallaDeRuta('/operacion/tractores')).toBe('operacion.tramos');
   });

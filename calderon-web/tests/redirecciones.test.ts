@@ -5,6 +5,14 @@ import nextConfig from '../next.config';
 import { leerFicha } from '@/modules/core/fichas/ficha-url';
 import { DETALLES_VIEJOS, FICHAS } from '@/modules/core/fichas/tipos';
 import { RUTAS_MOVIDAS, pantallaDeRuta } from '@/modules/core/navigation/rutas';
+import { ORDEN_COLUMNAS } from '@/modules/core/permissions/matriz';
+import { can, permisosDe } from '@/modules/core/permissions/resolver';
+
+/**
+ * Sprint 6: RRHH veía «Tractores y viajes» (solo lectura) pero no la Pizarra. Lo que miraba ahí
+ * sigue en «Viajes de chofer» (los viajes) y en «Choferes de los tractores» (el chofer fijo).
+ */
+const SIN_LA_NUEVA = [{ desde: '/operacion/tractores', rol: 'rrhh' as const, sigueEn: ['/operacion/viajes-chofer', '/flota/asignaciones'] }];
 
 /** Sprint 1 · S1-06: las rutas de detalle viejas abren su lista con la ficha en el panel. */
 describe('redirecciones de detalle (Sprint 1 · S1-06)', async () => {
@@ -37,9 +45,26 @@ describe('redirecciones de detalle (Sprint 1 · S1-06)', async () => {
     it(`${desde} → ${hasta}`, () => {
       const regla = reglas.find((r) => r.source === desde);
       expect(regla?.destination).toBe(hasta);
-      // La ruta nueva la protege la misma pantalla que la vieja
-      expect(pantallaDeRuta(hasta)).toBe(pantallaDeRuta(desde));
       expect(pathToRegexp(regla!.source).test(`${desde}/algo`)).toBe(false);
+      // Quien veía la ruta vieja ve la nueva (salvo las excepciones anotadas abajo)
+      const vieja = pantallaDeRuta(desde)!;
+      const nueva = pantallaDeRuta(hasta.split('?')[0]!)!;
+      expect(nueva).not.toBeNull();
+      for (const rol of ORDEN_COLUMNAS) {
+        const p = permisosDe([rol], { gerenciaDetalleAlertas: 'agregado' });
+        if (!can(p, `${vieja}:ver`) || SIN_LA_NUEVA.some((x) => x.desde === desde && x.rol === rol)) continue;
+        expect(can(p, `${nueva}:ver`), `${rol} veía ${desde}`).toBe(true);
+      }
     });
   }
+
+  it('las excepciones siguen siendo excepciones (si la matriz cambia, se borran)', () => {
+    for (const x of SIN_LA_NUEVA) {
+      const p = permisosDe([x.rol], { gerenciaDetalleAlertas: 'agregado' });
+      const hasta = RUTAS_MOVIDAS.find((r) => r.desde === x.desde)!.hasta.split('?')[0]!;
+      expect(can(p, `${pantallaDeRuta(x.desde)!}:ver`)).toBe(true);
+      expect(can(p, `${pantallaDeRuta(hasta)!}:ver`)).toBe(false);
+      for (const r of x.sigueEn) expect(can(p, `${pantallaDeRuta(r)!}:ver`), r).toBe(true);
+    }
+  });
 });

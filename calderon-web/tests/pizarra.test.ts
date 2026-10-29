@@ -150,3 +150,37 @@ describe('pizarra: formularios (solo forma)', () => {
     ).toBe(false);
   });
 });
+
+describe('«Lo que sigue» de la fila (Sprint 6 · migración 118)', async () => {
+  const { parsearSigue, botonesPaso, puedeIniciarViaje } = await import('@/modules/pizarra/domain/pizarra.sigue');
+  const base = {
+    semi_id: 1, servicio_id: 10, numero_operacion: 6234, siguiente: 'cargo', posibles: ['retiro', 'cargando', 'cargo', 'demora', 'otro'],
+    puede_volver: true, camion_id: 5, situacion_tractor: 'disponible', chofer_fijo: 'Uno Prueba', viaje_id: null, viaje_numero: null,
+    carga_salida_ts: '2026-10-29T10:00:00Z', item_id: null, continua: null,
+  };
+
+  it('lee lo que manda la base y descarta lo que no conoce', () => {
+    const m = parsearSigue([base, { ...base, semi_id: 2, servicio_id: null, siguiente: null, posibles: null, camion_id: null, situacion_tractor: null, puede_volver: null }]);
+    expect(m.get(1)).toMatchObject({ servicioId: 10, siguiente: 'cargo', posibles: ['retiro', 'cargando', 'cargo', 'demora'], situacionTractor: 'disponible' });
+    expect(m.get(2)).toMatchObject({ servicioId: null, siguiente: null, posibles: [], puedeVolver: false });
+    expect(parsearSigue(null).size).toBe(0);
+  });
+
+  it('el botón principal es el que dijo la base; los otros van en «Más»; equipo y confirmar quedan en Operaciones', () => {
+    const s = parsearSigue([base]).get(1)!;
+    expect(botonesPaso(s)).toEqual({ principal: 'cargo', otros: ['retiro', 'cargando', 'demora'] });
+    const sinEquipo = parsearSigue([{ ...base, siguiente: 'equipo', posibles: ['equipo'] }]).get(1)!;
+    expect(botonesPaso(sinEquipo)).toEqual({ principal: null, otros: [] });
+    expect(botonesPaso(parsearSigue([{ ...base, servicio_id: null }]).get(1)!)).toEqual({ principal: null, otros: [] });
+  });
+
+  it('«Continúa a…» solo con el tramo que falta; iniciar viaje si el tractor no está en viaje ni en taller', () => {
+    const c = parsearSigue([{ ...base, item_id: 7, viaje_id: 3, situacion_tractor: 'en_viaje', continua: { desde: 'Mendoza', hasta: 'Buenos Aires', linea: 'MZA-BSAS', linea_id: 4 } }]).get(1)!;
+    expect(c.continua).toEqual({ hasta: 'Buenos Aires', linea: 'MZA-BSAS' });
+    expect(puedeIniciarViaje(c)).toBe(false);
+    expect(puedeIniciarViaje(parsearSigue([base]).get(1)!)).toBe(true);
+    expect(puedeIniciarViaje(parsearSigue([{ ...base, situacion_tractor: 'taller' }]).get(1)!)).toBe(false);
+    expect(puedeIniciarViaje(parsearSigue([{ ...base, camion_id: null }]).get(1)!)).toBe(false);
+    expect(parsearSigue([{ ...base, continua: { hasta: 'X' } }]).get(1)!.continua).toBeNull(); // sin ítem no hay «Continúa»
+  });
+});

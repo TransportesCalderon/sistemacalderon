@@ -24,7 +24,7 @@ const SENAL: Record<Senal, { texto: string; tono: 'exito' | 'alerta' | 'neutro' 
 };
 
 /** Telemetría > Mapa de flota: última posición, velocidad y combustible de cada camión con la estela de por dónde viene y el chofer. */
-export function FlotaPantalla() {
+export function FlotaPantalla({ enPizarra = false }: { enPizarra?: boolean } = {}) {
   const { zonaHoraria } = useSesion();
   const esTi = useCan('configuracion.catalogos:editar');
   const puedeAltaCamion = useCan('flota.camiones:editar');
@@ -43,9 +43,18 @@ export function FlotaPantalla() {
 
   return (
     <div className="space-y-5">
-      <Encabezado titulo="Mapa de flota" subtitulo="Telemetría">
-        {esTi && <ImportarAhora />}
-      </Encabezado>
+      {/* Sprint 6: dentro de la Pizarra (vista Mapa) el título ya está arriba */}
+      {enPizarra ? (
+        esTi && (
+          <div className="flex justify-end">
+            <ImportarAhora />
+          </div>
+        )
+      ) : (
+        <Encabezado titulo="Mapa de flota" subtitulo="Telemetría">
+          {esTi && <ImportarAhora />}
+        </Encabezado>
+      )}
 
       {sinEnlace.length > 0 && (
         <div className="rounded-lg border border-alerta/30 bg-alerta-suave p-3 text-sm text-alerta">

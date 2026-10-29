@@ -84,11 +84,11 @@ export function AsignacionesPantalla() {
         )}
       </div>
       <p className="text-xs text-tinta-suave">
-        También se puede cambiar desde{' '}
-        <Link href="/operacion/tractores" className="text-marca hover:underline">
-          Viajes › Tractores y viajes
+        También se puede cambiar desde la ficha de cada camión (clic en la patente en la{' '}
+        <Link href="/pizarra" className="text-marca hover:underline">
+          Pizarra
         </Link>
-        .
+        ).
       </p>
     </div>
   );

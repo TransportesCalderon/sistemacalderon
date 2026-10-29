@@ -821,6 +821,22 @@ export type OperacionRow = {
   facturacion?: Json | null;
 };
 /** ops.fn_pizarra (migración 39). */
+type PizarraSigueRow = {
+  semi_id: number;
+  servicio_id: number | null;
+  numero_operacion: number | null;
+  siguiente: string | null;
+  posibles: string[] | null;
+  puede_volver: boolean;
+  camion_id: number | null;
+  situacion_tractor: string | null;
+  chofer_fijo: string | null;
+  viaje_id: number | null;
+  viaje_numero: string | null;
+  carga_salida_ts: string | null;
+  item_id: number | null;
+  continua: Json | null;
+};
 type PizarraRow = {
   semi_id: number;
   patente: string;
@@ -1110,6 +1126,8 @@ export type Database = {
       fn_ven_cobrar_factura: { Args: { p_id: number; p_fecha: string; p_cuenta?: number | null }; Returns: undefined };
       fn_ven_anular_factura: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_pizarra: { Args: Record<string, never>; Returns: PizarraRow[] };
+      // Migración 118: «lo que sigue» de cada fila de la Pizarra
+      fn_pizarra_sigue: { Args: Record<string, never>; Returns: PizarraSigueRow[] };
       // Migración 46: viajes de chofer
       fn_tractores: { Args: Record<string, never>; Returns: TractorRow[] };
       fn_viajes_chofer: { Args: { p_desde?: string | null; p_hasta?: string | null }; Returns: ViajeChoferRow[] };

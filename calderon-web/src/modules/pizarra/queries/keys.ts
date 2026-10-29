@@ -12,6 +12,13 @@ export const pizarraQueries = {
       queryFn: () => pizarraRepository(db).filas(),
       staleTime: FRESCURA.transaccional,
     }),
+  /** Sprint 6: «lo que sigue» de cada fila (cuelga de ['pizarra']: se refresca con el resto). */
+  sigue: (db: Db) =>
+    queryOptions({
+      queryKey: ['pizarra', 'sigue'] as const,
+      queryFn: () => pizarraRepository(db).sigue(),
+      staleTime: FRESCURA.transaccional,
+    }),
   columnas: (db: Db) =>
     queryOptions({
       queryKey: ['pizarra', 'columnas'] as const,

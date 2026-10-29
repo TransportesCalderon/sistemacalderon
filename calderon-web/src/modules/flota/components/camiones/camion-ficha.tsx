@@ -16,6 +16,7 @@ import { useCamion, useCatalogosFlota, useTanques } from '../../queries/hooks';
 import { EstadoCamionChip } from './estado-camion';
 import { TanquesCamion } from './tanques-camion';
 import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
+import { TractorEnFicha } from '@/modules/logistica/components/tractores-pantalla';
 
 /** Pestañas de la ficha según la especificación (P-MAE-01). Disponibles: Datos y Tanques (sección de esta misma página). */
 const PESTANAS = [
@@ -194,6 +195,13 @@ export function CamionFicha({ id }: { id: CamionId }) {
           <Dato etiqueta="Versión">{camion.versionFila}</Dato>
         </Seccion>
       </div>
+
+      {/* Sprint 6: lo de «Tractores y viajes» para este tractor (iniciar viaje, chofer fijo) */}
+      {!eliminado && (
+        <Can permiso="operacion.tramos:ver">
+          <TractorEnFicha camionId={camion.id} />
+        </Can>
+      )}
 
       <TanquesCamion camion={camion} />
 

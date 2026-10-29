@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Maximize2, Minimize2, Search, Truck, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { Cargando, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { cn } from '@/shared/lib/cn';
@@ -19,8 +22,15 @@ import {
   type FiltrosPizarra,
 } from '../domain/pizarra.filtros';
 import { ESTADO_INFO, ESTADOS_UNIDAD, type EstadoUnidad, type FilaPizarra } from '../domain/pizarra.types';
-import { useColumnasAccesorio, useLugares, usePizarra, usePizarraEnVivo } from '../queries/hooks';
+import { VERSION_SIGUE } from '../domain/pizarra.sigue';
+import { useColumnasAccesorio, useLugares, usePizarra, usePizarraEnVivo, usePizarraSigue } from '../queries/hooks';
 import { TablaPizarra } from './tabla-pizarra';
+
+/** Sprint 6: el mapa de la flota (con el ranking de hoy debajo) es otra vista de la misma Pizarra. Se carga solo al pedirlo. */
+const PizarraMapa = dynamic(() => import('@/modules/telemetria/components/flota-pantalla').then((m) => m.FlotaPantalla), {
+  ssr: false,
+  loading: () => <Cargando texto="Cargando el mapa…" />,
+});
 
 /** Si no llegan datos nuevos en este tiempo, la pantalla avisa que lo que muestra es viejo. */
 const DATOS_VIEJOS_MS = 2 * 60_000;
@@ -41,6 +51,22 @@ export function PizarraPantalla() {
   const { data, isPending, isError, refetch, dataUpdatedAt } = usePizarra();
   const { data: columnas } = useColumnasAccesorio();
   const { data: lugares } = useLugares();
+  // Sprint 6: «lo que sigue» de cada fila (migración 118)
+  const conSigue = useBaseTiene(VERSION_SIGUE);
+  const { data: sigue } = usePizarraSigue(conSigue);
+  // Sprint 6: ?vista=mapa muestra el mapa de la flota (quien puede verlo)
+  const verMapa = useCan('telemetria.mapa:ver');
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const vista: 'tabla' | 'mapa' = verMapa && params.get('vista') === 'mapa' ? 'mapa' : 'tabla';
+  const cambiarVista = (v: 'tabla' | 'mapa') => {
+    const p = new URLSearchParams(params.toString());
+    if (v === 'mapa') p.set('vista', 'mapa');
+    else p.delete('vista');
+    const q = p.toString();
+    router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+  };
   const [f, setF] = useState<FiltrosPizarra>(FILTROS_VACIOS);
   const [abierto, setAbierto] = useState<number | null>(null);
   const [grande, setGrande] = useState(false);
@@ -59,7 +85,7 @@ export function PizarraPantalla() {
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (e.key === '/' && !(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT'))) {
+      if (e.key === '/' && buscador.current && !(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT'))) {
         e.preventDefault();
         buscador.current?.focus();
       }
@@ -93,6 +119,22 @@ export function PizarraPantalla() {
           <span className={cn('size-2 rounded-full', vivo === 'en_vivo' ? 'bg-[#4ade80]' : 'bg-[#fdb022]')} />
           {vivo === 'en_vivo' ? 'En vivo' : vivo === 'conectando' ? 'Conectando…' : 'Reconectando… (se actualiza cada minuto)'}
         </span>
+        {verMapa && (
+          <div role="tablist" aria-label="Vista" className="flex overflow-hidden rounded border border-[#3c5a80] text-xs">
+            {(['tabla', 'mapa'] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                aria-selected={vista === v}
+                onClick={() => cambiarVista(v)}
+                className={cn('h-7 px-3', vista === v ? 'bg-white font-semibold text-[#1f3a5f]' : 'bg-[#2b4b74] text-white hover:bg-[#355a88]')}
+              >
+                {v === 'tabla' ? 'Tabla' : 'Mapa'}
+              </button>
+            ))}
+          </div>
+        )}
         <span className="flex-1" />
         <nav className="flex flex-wrap gap-3 text-xs text-[#d5e2f1]">
           <Link href="/flota/semirremolques" className="hover:text-white hover:underline">
@@ -105,12 +147,16 @@ export function PizarraPantalla() {
             Tipos de accesorio
           </Link>
         </nav>
-        <Interruptor activo={verAccesorios} onCambiar={setVerAccesorios}>
-          Accesorios
-        </Interruptor>
-        <Interruptor activo={grande} onCambiar={setGrande}>
-          Letra grande
-        </Interruptor>
+        {vista === 'tabla' && (
+          <>
+            <Interruptor activo={verAccesorios} onCambiar={setVerAccesorios}>
+              Accesorios
+            </Interruptor>
+            <Interruptor activo={grande} onCambiar={setGrande}>
+              Letra grande
+            </Interruptor>
+          </>
+        )}
         <button
           type="button"
           onClick={() => void alternarCompleta()}
@@ -121,6 +167,13 @@ export function PizarraPantalla() {
           {completa ? 'Salir' : 'Pantalla completa'}
         </button>
       </header>
+
+      {vista === 'mapa' ? (
+        <main className="flex-1 px-4 py-4 sm:px-6 lg:px-8">
+          <PizarraMapa enPizarra />
+        </main>
+      ) : (
+        <>
 
       {viejos && (
         <div role="alert" className="bg-error px-4 py-2 text-center text-sm font-bold text-white">
@@ -265,12 +318,15 @@ export function PizarraPantalla() {
               abierto={abierto}
               recientes={recientes}
               lugares={lugares ?? []}
+              sigue={conSigue ? (sigue ?? new Map()) : null}
               onAbrir={setAbierto}
             />
           )}
         </div>
         <Leyenda />
       </main>
+        </>
+      )}
     </div>
   );
 }

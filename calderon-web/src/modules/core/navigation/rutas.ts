@@ -105,7 +105,12 @@ export const RUTAS: readonly Ruta[] = [
  * Rutas que se mudaron (Plan de migración UX). La dirección vieja redirige a la nueva
  * (next.config.ts, temporal hasta el Sprint 8): los enlaces guardados siguen funcionando.
  */
-export const RUTAS_MOVIDAS: readonly { desde: string; hasta: string }[] = [{ desde: '/flota/pizarra', hasta: '/pizarra' }];
+export const RUTAS_MOVIDAS: readonly { desde: string; hasta: string }[] = [
+  { desde: '/flota/pizarra', hasta: '/pizarra' },
+  // Sprint 6: el mapa es la vista Mapa de la Pizarra; los tractores, sus filas (y la ficha del camión)
+  { desde: '/telemetria/mapa', hasta: '/pizarra?vista=mapa' },
+  { desde: '/operacion/tractores', hasta: '/pizarra' },
+];
 
 /** Rutas que no requieren sesión. */
 export const RUTAS_PUBLICAS = ['/login', '/recuperar', '/auth/callback', '/api/health', '/api/publico'] as const;

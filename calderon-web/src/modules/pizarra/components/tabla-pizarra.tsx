@@ -13,6 +13,9 @@ import { ESTADO_INFO, type ColumnaAccesorio, type FilaPizarra, type Lugar } from
 import { useGensets, useGuardarEdicionPizarra, useInstalarGenset, useRetirarGenset } from '../queries/hooks';
 import { useAsignarEquipo, useOpcionesViaje } from '@/modules/logistica/queries/hooks';
 import { CeldaEditable, type OpcionCelda } from './celda-editable';
+import { LoQueSigue } from './lo-que-sigue';
+import type { SigueFila } from '../domain/pizarra.sigue';
+import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { alertaDe, claseAlerta, diaCorto, diaDeFecha, diaHora, hace } from './formato';
 
 /**
@@ -23,6 +26,8 @@ import { alertaDe, claseAlerta, diaCorto, diaDeFecha, diaHora, hace } from './fo
 interface Edicion {
   equipo: boolean;
   genset: boolean;
+  /** Sprint 6: iniciar el viaje del chofer y «Continúa a…» (la acción de Tractores y viajes). */
+  viajes: boolean;
   tractores: OpcionCelda[] | undefined;
   choferes: OpcionCelda[] | undefined;
   gensets: { id: number; nombre: string; semiId: number | null; semiPatente: string | null }[] | undefined;
@@ -34,6 +39,7 @@ interface Edicion {
 function useEdicion(): Edicion {
   const equipo = useCan('operacion.servicios:editar');
   const genset = useCan('flota.pizarra:editar');
+  const viajes = useCan('operacion.tramos:editar');
   const { data: op } = useOpcionesViaje();
   const { data: gs } = useGensets();
   const asignar = useAsignarEquipo();
@@ -43,6 +49,7 @@ function useEdicion(): Edicion {
     () => ({
       equipo,
       genset,
+      viajes,
       tractores: op?.tractores,
       choferes: op?.choferes,
       gensets: gs?.filter((g) => g.estado === 'activo').map((g) => ({ id: g.id, nombre: g.codigo, semiId: g.semiId, semiPatente: g.semiPatente })),
@@ -59,7 +66,7 @@ function useEdicion(): Edicion {
     }),
     // mutateAsync es estable; solo cambian los permisos y las listas
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [equipo, genset, op, gs],
+    [equipo, genset, viajes, op, gs],
   );
 }
 
@@ -80,6 +87,7 @@ export function TablaPizarra({
   abierto,
   recientes,
   lugares,
+  sigue,
   onAbrir,
 }: {
   filas: FilaPizarra[];
@@ -91,10 +99,12 @@ export function TablaPizarra({
   abierto: number | null;
   recientes: Set<number>;
   lugares: Lugar[];
+  /** Sprint 6: «lo que sigue» por semi. null = la base todavía no tiene la migración 118 (sin la columna). */
+  sigue: Map<number, SigueFila> | null;
   onAbrir: (id: number | null) => void;
 }) {
   const acc = verAccesorios ? columnas : [];
-  const total = 15 + acc.length;
+  const total = 15 + acc.length + (sigue ? 1 : 0);
   const edicion = useEdicion();
   return (
     <table className={cn('w-full border-separate border-spacing-0', grande ? 'text-[17px]' : 'text-[13px]')}>
@@ -112,6 +122,7 @@ export function TablaPizarra({
           ))}
           <th className={TH}>Genset</th>
           <th className={TH}>Estado</th>
+          {sigue && <th className={TH}>Lo que sigue</th>}
           <th className={TH}>Tractor</th>
           <th className={TH}>Chofer</th>
           <th className={TH}>Cliente</th>
@@ -136,6 +147,8 @@ export function TablaPizarra({
               reciente={recientes.has(f.semiId)}
               onAbrir={onAbrir}
               edicion={edicion}
+              conSigue={sigue !== null}
+              sigue={sigue?.get(f.semiId)}
             />
             {abierto === f.semiId && (
               <tr>
@@ -165,7 +178,7 @@ export function TablaPizarra({
                 {c.total}
               </td>
             ))}
-            <td colSpan={12} />
+            <td colSpan={sigue ? 13 : 12} />
           </tr>
         </tfoot>
       )}
@@ -182,6 +195,8 @@ const Fila = memo(function Fila({
   reciente,
   onAbrir,
   edicion,
+  conSigue,
+  sigue,
 }: {
   f: FilaPizarra;
   acc: ColumnaAccesorio[];
@@ -191,6 +206,8 @@ const Fila = memo(function Fila({
   reciente: boolean;
   onAbrir: (id: number | null) => void;
   edicion: Edicion;
+  conSigue: boolean;
+  sigue: SigueFila | undefined;
 }) {
   const nivel = nivelFila(f);
   const info = ESTADO_INFO[f.estado];
@@ -272,6 +289,11 @@ const Fila = memo(function Fila({
           {info.etiqueta}
         </span>
       </td>
+      {conSigue && (
+        <td className="px-2 py-1 whitespace-nowrap">
+          <LoQueSigue f={f} s={sigue} permisos={{ pasos: edicion.equipo, viajes: edicion.viajes }} />
+        </td>
+      )}
       <td className={cn(TD, 'font-mono', claseAlerta(aTractor))} title={aTractor?.texto}>
         {/* Se cambia cuando el semi tiene un viaje con operación: la misma acción que «Asignar equipo» en Operaciones */}
         <CeldaEditable
@@ -527,10 +549,17 @@ function EnlacesLogistica({ f }: { f: FilaPizarra }) {
   const clase = 'text-xs font-medium text-marca hover:underline';
   return (
     <p className="flex flex-wrap gap-3 pt-1" onClick={(e) => e.stopPropagation()}>
-      {f.tramoId && (
-        <Link href={`/operacion/viajes?tramo=${f.tramoId}`} className={clase}>
-          Ver el viaje en Logística
-        </Link>
+      {/* Sprint 6: la operación se abre en el panel; un tramo sin operación (vuelta vacía), en Logística */}
+      {f.servicioId ? (
+        <NombreEnlazado tipo="operacion" id={f.servicioId} alternativa={`/operacion/viajes?tramo=${f.tramoId ?? ''}`} className={clase}>
+          Ver la operación {f.numeroServicio}
+        </NombreEnlazado>
+      ) : (
+        f.tramoId && (
+          <Link href={`/operacion/viajes?tramo=${f.tramoId}`} className={clase}>
+            Ver el viaje en Logística
+          </Link>
+        )
       )}
       {asignar && f.estado !== 'taller' && f.estado !== 'fuera_servicio' && (
         <Link href={`/operacion/viajes?semi=${f.semiId}`} className={clase}>

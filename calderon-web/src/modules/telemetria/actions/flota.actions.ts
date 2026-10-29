@@ -9,5 +9,5 @@ export const importarTelemetriaAhora = createAction({
   permiso: 'configuracion.catalogos:editar',
   schema: z.object({}),
   handler: (_d, { db }) => flotaRepository(db).importarAhora(),
-  invalida: () => ({ paths: ['/telemetria/mapa'] }),
+  invalida: () => ({ paths: ['/pizarra'] }),
 });

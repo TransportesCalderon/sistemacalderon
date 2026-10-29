@@ -87,15 +87,15 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     etiqueta: 'Viajes',
     entradas: [
       { href: '/operacion/operaciones', etiqueta: 'Operaciones' },
+      // Sprint 6: «Tractores» pasó a la Pizarra; la entrada abre los viajes de chofer
       {
-        href: '/operacion/tractores',
-        etiqueta: 'Tractores y viajes',
-        incluye: ['/operacion/viajes-chofer', '/combustible/cierres', '/operacion/costos', '/combustible/viajes', '/operacion/viajes'],
+        href: '/operacion/viajes-chofer',
+        etiqueta: 'Viajes de chofer',
+        incluye: ['/combustible/cierres', '/operacion/costos', '/combustible/viajes', '/operacion/viajes'],
       },
       // Migración 63: todos los cierres pendientes en un lugar, con lo que falta y aprobar varios
       { href: '/operacion/por-cerrar', etiqueta: 'Cierres por hacer' },
       { href: '/pizarra', etiqueta: 'Pizarra Azul' },
-      { href: '/telemetria/mapa', etiqueta: 'Mapa de flota' },
       // Migración 103: los mejores choferes de cada mes
       { href: '/telemetria/ranking', etiqueta: 'Ranking de choferes' },
     ],

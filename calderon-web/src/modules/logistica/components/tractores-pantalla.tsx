@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useAbrirFicha } from '@/modules/core/fichas/contexto';
 import { Fuel, LoaderCircle, Play, Truck, UserRoundPen } from 'lucide-react';
 import { Cargando, Encabezado, ErrorBase, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { LicenciaChip } from '@/modules/flota/components/choferes/estado-chofer';
@@ -87,6 +87,26 @@ export function TractoresPantalla() {
         </ul>
       )}
     </div>
+  );
+}
+
+/**
+ * Sprint 6: «Tractores y viajes» pasa a la Pizarra (/operacion/tractores redirige). Para un tractor que
+ * no está en ninguna fila de la Pizarra (sin semi), su ficha muestra la misma tarjeta: chofer fijo,
+ * viaje actual, iniciar viaje y cambiar chofer.
+ */
+export function TractorEnFicha({ camionId }: { camionId: number }) {
+  const { data, isPending } = useTractores();
+  const [abierto, setAbierto] = useState<'iniciar' | 'chofer' | null>(null);
+  const t = data?.find((x) => x.camionId === camionId);
+  if (isPending || !t) return null;
+  return (
+    <section className="space-y-2">
+      <h2 className="text-sm font-semibold text-tinta">Viaje del chofer</h2>
+      <ul className="grid">
+        <TarjetaTractor t={t} abierto={abierto} onAbrir={setAbierto} />
+      </ul>
+    </section>
   );
 }
 
@@ -204,7 +224,7 @@ function CambiarChofer({ t, onCerrar }: { t: Tractor; onCerrar: () => void }) {
 }
 
 function IniciarViaje({ t, onCerrar }: { t: Tractor; onCerrar: () => void }) {
-  const router = useRouter();
+  const abrirFicha = useAbrirFicha();
   const { zonaHoraria } = useSesion();
   const iniciar = useIniciarViajeChofer();
   const { data: op } = useOpcionesViaje();
@@ -220,7 +240,11 @@ function IniciarViaje({ t, onCerrar }: { t: Tractor; onCerrar: () => void }) {
         e.preventDefault();
         setError(null);
         const r = await iniciar.mutateAsync({ camionId: t.camionId, choferId: chofer, items, observacion });
-        if (r.ok) router.push(`/operacion/viajes-chofer/${r.data}`);
+        // Sprint 6: el viaje nuevo se abre en el panel
+        if (r.ok) {
+          onCerrar();
+          abrirFicha('viaje', r.data);
+        }
         else setError(r.error);
       }}
     >
