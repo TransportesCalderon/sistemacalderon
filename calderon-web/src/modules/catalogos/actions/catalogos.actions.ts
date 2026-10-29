@@ -45,7 +45,7 @@ export const eliminarEstacion = createAction({
 });
 
 /** Ubicaciones (puertos, base, clientes): comercial.ubicaciones. La Pizarra Azul las usa como «Dónde». */
-const ubicaciones = () => ({ paths: ['/comercial/ubicaciones', '/flota/pizarra'] });
+const ubicaciones = () => ({ paths: ['/comercial/ubicaciones', '/flota/pizarra', '/pizarra'] });
 
 export const guardarUbicacion = createAction({
   permiso: 'comercial.ubicaciones:editar',

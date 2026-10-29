@@ -41,6 +41,8 @@ export const RUTAS: readonly Ruta[] = [
   { prefijo: '/operacion/tractores', pantalla: 'operacion.tramos', titulo: 'Tractores y viajes' },
   { prefijo: '/operacion/por-cerrar', pantalla: 'operacion.tramos', titulo: 'Cierres por hacer' },
   { prefijo: '/flota/pizarra', pantalla: 'flota.pizarra', titulo: 'Pizarra Azul' },
+  // Sprint 5: la Pizarra pasa a /pizarra (centro operativo); /flota/pizarra redirige
+  { prefijo: '/pizarra', pantalla: 'flota.pizarra', titulo: 'Pizarra Azul' },
   { prefijo: '/telemetria/mapa', pantalla: 'telemetria.mapa', titulo: 'Mapa de flota' },
   { prefijo: '/telemetria/ranking', pantalla: 'telemetria.sesiones', titulo: 'Ranking de choferes' },
   { prefijo: '/operacion/viajes-chofer', pantalla: 'operacion.tramos', titulo: 'Viajes de chofer' },
@@ -98,6 +100,12 @@ export const RUTAS: readonly Ruta[] = [
   { prefijo: '/configuracion/monedas', pantalla: 'configuracion.catalogos', titulo: 'Monedas' },
   { prefijo: '/configuracion/catalogos', pantalla: 'configuracion.catalogos', titulo: 'Catálogos' },
 ];
+
+/**
+ * Rutas que se mudaron (Plan de migración UX). La dirección vieja redirige a la nueva
+ * (next.config.ts, temporal hasta el Sprint 8): los enlaces guardados siguen funcionando.
+ */
+export const RUTAS_MOVIDAS: readonly { desde: string; hasta: string }[] = [{ desde: '/flota/pizarra', hasta: '/pizarra' }];
 
 /** Rutas que no requieren sesión. */
 export const RUTAS_PUBLICAS = ['/login', '/recuperar', '/auth/callback', '/api/health', '/api/publico'] as const;

@@ -69,6 +69,7 @@
   "/operacion/viajes-chofer/_": "operacion.tramos",
   "/pendientes": "inicio.pendientes",
   "/perfil": null,
+  "/pizarra": "flota.pizarra",
   "/rrhh/datos-legales": "liquidacion.reglas",
   "/rrhh/fondos": "rrhh.fondos",
   "/rrhh/liquidacion": "liquidacion.liquidaciones",

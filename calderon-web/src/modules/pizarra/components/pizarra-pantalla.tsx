@@ -194,6 +194,8 @@ export function PizarraPantalla() {
               if (e.key === 'Enter' && visibles.length === 1) setAbierto(visibles[0]!.semiId);
             }}
             placeholder="Patente, chofer, contenedor o cliente   ( / )"
+            // Sprint 5: en la Pizarra, «/» es de esta búsqueda; el buscador general sigue con Ctrl+K
+            data-busqueda-local=""
             className="h-8 w-full rounded border border-[#8aa3c2] bg-panel pr-2 pl-8 text-sm outline-none focus:border-marca"
           />
         </label>

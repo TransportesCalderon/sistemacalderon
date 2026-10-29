@@ -77,6 +77,11 @@ export const pizarraRepository = (db: Db) => {
         gensetCodigo: f.genset_codigo,
         gensetDesde: f.genset_desde as FechaISO | null,
         tramoId: f.tramo_id,
+        // Sprint 5: los ids para editar tractor, chofer y genset desde la fila
+        gensetId: f.genset_id,
+        camionId: f.camion_id,
+        choferId: f.chofer_id,
+        servicioId: f.servicio_id,
         tractor: f.tractor_patente,
         chofer: f.chofer_nombre,
         numeroServicio: f.numero_servicio,

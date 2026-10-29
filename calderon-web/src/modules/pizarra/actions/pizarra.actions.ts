@@ -18,7 +18,7 @@ import { pizarraRepository } from '../repositories/pizarra.repository';
  *  - Semirremolques: flota.camiones (la misma fila que camiones en la especificación).
  * La base vuelve a controlar con el rol tc_* del usuario.
  */
-const rutas = () => ({ paths: ['/flota/pizarra', '/flota/semirremolques', '/flota/gensets', '/flota/accesorios'] });
+const rutas = () => ({ paths: ['/flota/pizarra', '/pizarra', '/flota/semirremolques', '/flota/gensets', '/flota/accesorios'] });
 
 export const guardarEdicionPizarra = createAction({
   permiso: 'flota.pizarra:editar',

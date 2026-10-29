@@ -62,7 +62,8 @@ export function Buscador() {
         e.preventDefault();
         input.current?.focus();
         input.current?.select();
-      } else if (e.key === '/' && !escribiendo && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      } else if (e.key === '/' && !escribiendo && !e.ctrlKey && !e.metaKey && !e.altKey && !document.querySelector('[data-busqueda-local]')) {
+        // Si la pantalla tiene su propia búsqueda con «/» (la Pizarra), «/» es de esa búsqueda
         e.preventDefault();
         input.current?.focus();
       }

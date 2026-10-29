@@ -123,7 +123,7 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
           <span className={cn('size-2 rounded-full', vivo === 'en_vivo' ? 'bg-exito' : 'bg-[#fdb022]')} />
           {vivo === 'en_vivo' ? 'En vivo' : 'Actualiza cada minuto'}
         </span>
-        <Link href="/flota/pizarra" className={BOTON_SECUNDARIO}>
+        <Link href="/pizarra" className={BOTON_SECUNDARIO}>
           Pizarra Azul
         </Link>
         {puede && (

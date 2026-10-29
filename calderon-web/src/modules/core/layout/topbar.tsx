@@ -35,11 +35,11 @@ export function BarraSuperior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
       {verHoy && <BotonHoy actual={pathname === '/hoy'} />}
       {verPizarra && (
         <Link
-          href="/flota/pizarra"
-          aria-current={pathname.startsWith('/flota/pizarra') ? 'page' : undefined}
+          href="/pizarra"
+          aria-current={pathname.startsWith('/pizarra') ? 'page' : undefined}
           className={cn(
             'hidden items-center gap-1.5 rounded-md px-2 py-1.5 text-sm md:flex',
-            pathname.startsWith('/flota/pizarra') ? 'bg-marca-suave font-medium text-marca' : 'text-tinta-suave hover:bg-hover hover:text-tinta',
+            pathname.startsWith('/pizarra') ? 'bg-marca-suave font-medium text-marca' : 'text-tinta-suave hover:bg-hover hover:text-tinta',
           )}
         >
           <LayoutGrid className="size-4" />

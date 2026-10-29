@@ -25,7 +25,7 @@ import { operacionesRepository } from '../repositories/operaciones.repository';
  * los catálogos de líneas y transportistas. La base vuelve a controlar todo con el rol tc_* del usuario.
  */
 const PERMISO = 'operacion.servicios:editar' as const;
-const rutas = () => ({ paths: ['/operacion/operaciones', '/operacion/viajes', '/flota/pizarra'] });
+const rutas = () => ({ paths: ['/operacion/operaciones', '/operacion/viajes', '/flota/pizarra', '/pizarra'] });
 const catalogos = () => ({ paths: ['/operacion/lineas', '/operacion/transportistas', '/operacion/operaciones'] });
 
 export const guardarOperacion = createAction({

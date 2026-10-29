@@ -18,7 +18,7 @@ import { viajesRepository } from '../repositories/viajes.repository';
  *  - transicionar: los pasos del viaje (salir, cargar, descargar, terminar).
  * La base vuelve a controlar todo con el rol tc_* del usuario.
  */
-const rutas = () => ({ paths: ['/operacion/viajes', '/flota/pizarra'] });
+const rutas = () => ({ paths: ['/operacion/viajes', '/flota/pizarra', '/pizarra'] });
 
 export const asignarViaje = createAction({
   permiso: 'operacion.tramos:editar',

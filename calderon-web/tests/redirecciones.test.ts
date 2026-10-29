@@ -4,14 +4,14 @@ import { pathToRegexp } from 'next/dist/compiled/path-to-regexp';
 import nextConfig from '../next.config';
 import { leerFicha } from '@/modules/core/fichas/ficha-url';
 import { DETALLES_VIEJOS, FICHAS } from '@/modules/core/fichas/tipos';
-import { pantallaDeRuta } from '@/modules/core/navigation/rutas';
+import { RUTAS_MOVIDAS, pantallaDeRuta } from '@/modules/core/navigation/rutas';
 
 /** Sprint 1 · S1-06: las rutas de detalle viejas abren su lista con la ficha en el panel. */
 describe('redirecciones de detalle (Sprint 1 · S1-06)', async () => {
   const reglas = (await nextConfig.redirects?.()) ?? [];
 
-  it('hay una regla por cada página de detalle vieja, todas temporales', () => {
-    expect(reglas).toHaveLength(DETALLES_VIEJOS.length);
+  it('hay una regla por cada página de detalle vieja y por cada ruta movida, todas temporales', () => {
+    expect(reglas).toHaveLength(DETALLES_VIEJOS.length + RUTAS_MOVIDAS.length);
     for (const r of reglas) expect(r.permanent, r.source).toBe(false);
   });
 
@@ -30,6 +30,16 @@ describe('redirecciones de detalle (Sprint 1 · S1-06)', async () => {
       expect(lista).toBe(FICHAS[tipo].lista);
       expect(pantallaDeRuta(lista!)).toBe(FICHAS[tipo].pantalla);
       expect(leerFicha(new URLSearchParams(query).get('ficha')?.replace(':id', '12'))).toEqual({ tipo, id: 12 });
+    });
+  }
+
+  for (const { desde, hasta } of RUTAS_MOVIDAS) {
+    it(`${desde} → ${hasta}`, () => {
+      const regla = reglas.find((r) => r.source === desde);
+      expect(regla?.destination).toBe(hasta);
+      // La ruta nueva la protege la misma pantalla que la vieja
+      expect(pantallaDeRuta(hasta)).toBe(pantallaDeRuta(desde));
+      expect(pathToRegexp(regla!.source).test(`${desde}/algo`)).toBe(false);
     });
   }
 });

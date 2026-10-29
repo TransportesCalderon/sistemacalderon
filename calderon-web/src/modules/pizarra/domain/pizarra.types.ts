@@ -54,6 +54,12 @@ export interface FilaPizarra {
   gensetCodigo: string | null;
   gensetDesde: FechaISO | null;
   tramoId: number | null;
+  /** Sprint 5: ids para las celdas editables (vienen de ops.fn_pizarra). */
+  gensetId: number | null;
+  camionId: number | null;
+  choferId: number | null;
+  /** La operación del viaje: con ella se cambia el tractor o el chofer (la misma acción de Operaciones). */
+  servicioId: number | null;
   tractor: string | null;
   chofer: string | null;
   numeroServicio: string | null;

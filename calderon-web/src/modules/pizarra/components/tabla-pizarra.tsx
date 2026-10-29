@@ -1,16 +1,67 @@
 'use client';
 
-import { Fragment, memo, useState } from 'react';
+import { Fragment, memo, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { StickyNote } from 'lucide-react';
 import { Panel, useEnvio } from '@/modules/catalogos/components/comun';
 import { useCan } from '@/modules/core/permissions/can';
+import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
 import { Campo } from '@/shared/ui/campo';
 import { nivelFila } from '../domain/pizarra.filtros';
 import { ESTADO_INFO, type ColumnaAccesorio, type FilaPizarra, type Lugar } from '../domain/pizarra.types';
-import { useGuardarEdicionPizarra } from '../queries/hooks';
+import { useGensets, useGuardarEdicionPizarra, useInstalarGenset, useRetirarGenset } from '../queries/hooks';
+import { useAsignarEquipo, useOpcionesViaje } from '@/modules/logistica/queries/hooks';
+import { CeldaEditable, type OpcionCelda } from './celda-editable';
 import { alertaDe, claseAlerta, diaCorto, diaDeFecha, diaHora, hace } from './formato';
+
+/**
+ * Sprint 5: lo que hace falta para cambiar tractor, chofer y genset desde la fila. Se arma una
+ * vez para toda la tabla. Tractor y chofer usan la misma acción de Operaciones (asignar equipo a
+ * la operación del viaje); el genset, la de instalar o retirar de la Pizarra.
+ */
+interface Edicion {
+  equipo: boolean;
+  genset: boolean;
+  tractores: OpcionCelda[] | undefined;
+  choferes: OpcionCelda[] | undefined;
+  gensets: { id: number; nombre: string; semiId: number | null; semiPatente: string | null }[] | undefined;
+  asignar: (d: { servicioId: number; semiId: number; camionId: number | null; choferId: number | null }) => Promise<{ ok: boolean; error?: ErrorAccion }>;
+  instalar: (gensetId: number, semiId: number) => Promise<{ ok: boolean; error?: ErrorAccion }>;
+  retirar: (semiId: number) => Promise<{ ok: boolean; error?: ErrorAccion }>;
+}
+
+function useEdicion(): Edicion {
+  const equipo = useCan('operacion.servicios:editar');
+  const genset = useCan('flota.pizarra:editar');
+  const { data: op } = useOpcionesViaje();
+  const { data: gs } = useGensets();
+  const asignar = useAsignarEquipo();
+  const instalar = useInstalarGenset();
+  const retirar = useRetirarGenset();
+  return useMemo(
+    () => ({
+      equipo,
+      genset,
+      tractores: op?.tractores,
+      choferes: op?.choferes,
+      gensets: gs?.filter((g) => g.estado === 'activo').map((g) => ({ id: g.id, nombre: g.codigo, semiId: g.semiId, semiPatente: g.semiPatente })),
+      asignar: (d) =>
+        asignar.mutateAsync({
+          servicioId: d.servicioId,
+          semiId: d.semiId,
+          camionId: d.camionId === null ? '' : String(d.camionId),
+          choferId: d.choferId === null ? '' : String(d.choferId),
+          observacion: '',
+        } as never),
+      instalar: (gensetId, semiId) => instalar.mutateAsync({ gensetId, semiId } as never),
+      retirar: (semiId) => retirar.mutateAsync({ semiId } as never),
+    }),
+    // mutateAsync es estable; solo cambian los permisos y las listas
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [equipo, genset, op, gs],
+  );
+}
 
 const TH =
   'sticky top-0 z-10 border-b border-[#c9d1dc] bg-[#f2f4f7] px-2 py-1.5 text-left text-[11px] font-semibold tracking-wide text-tinta-suave uppercase whitespace-nowrap';
@@ -44,6 +95,7 @@ export function TablaPizarra({
 }) {
   const acc = verAccesorios ? columnas : [];
   const total = 15 + acc.length;
+  const edicion = useEdicion();
   return (
     <table className={cn('w-full border-separate border-spacing-0', grande ? 'text-[17px]' : 'text-[13px]')}>
       <thead>
@@ -83,6 +135,7 @@ export function TablaPizarra({
               abierta={abierto === f.semiId}
               reciente={recientes.has(f.semiId)}
               onAbrir={onAbrir}
+              edicion={edicion}
             />
             {abierto === f.semiId && (
               <tr>
@@ -128,6 +181,7 @@ const Fila = memo(function Fila({
   abierta,
   reciente,
   onAbrir,
+  edicion,
 }: {
   f: FilaPizarra;
   acc: ColumnaAccesorio[];
@@ -136,6 +190,7 @@ const Fila = memo(function Fila({
   abierta: boolean;
   reciente: boolean;
   onAbrir: (id: number | null) => void;
+  edicion: Edicion;
 }) {
   const nivel = nivelFila(f);
   const info = ESTADO_INFO[f.estado];
@@ -190,7 +245,21 @@ const Fila = memo(function Fila({
           </td>
         );
       })}
-      <td className={cn(TD, 'font-mono text-xs')}>{f.gensetCodigo ?? '—'}</td>
+      <td className={cn(TD, 'font-mono text-xs')}>
+        <CeldaEditable
+          texto={f.gensetCodigo ?? '—'}
+          valor={f.gensetId}
+          etiqueta={`Genset de ${f.patente}`}
+          vacio="Sin genset"
+          editable={edicion.genset && f.estado !== 'fuera_servicio'}
+          opciones={edicion.gensets?.map((g) => ({
+            id: g.id,
+            nombre: g.nombre,
+            noDisponible: g.semiId !== null && g.semiId !== f.semiId ? `en ${g.semiPatente ?? 'otro semi'}` : undefined,
+          }))}
+          onElegir={(id) => (id === null ? edicion.retirar(f.semiId) : edicion.instalar(id, f.semiId))}
+        />
+      </td>
       <td className={TD} title={aEstado?.texto}>
         <span
           className={cn(
@@ -204,12 +273,43 @@ const Fila = memo(function Fila({
         </span>
       </td>
       <td className={cn(TD, 'font-mono', claseAlerta(aTractor))} title={aTractor?.texto}>
-        {f.tractor ?? '—'}
-        {aTractor?.codigo === 'tractor_duplicado' && ' ×2'}
+        {/* Se cambia cuando el semi tiene un viaje con operación: la misma acción que «Asignar equipo» en Operaciones */}
+        <CeldaEditable
+          texto={
+            <>
+              {f.tractor ?? '—'}
+              {aTractor?.codigo === 'tractor_duplicado' && ' ×2'}
+            </>
+          }
+          valor={f.camionId}
+          etiqueta={`Tractor de ${f.patente}`}
+          editable={edicion.equipo && f.servicioId !== null}
+          opciones={edicion.tractores}
+          onElegir={(id) =>
+            id === null || f.servicioId === null
+              ? Promise.resolve({ ok: true })
+              : edicion.asignar({ servicioId: f.servicioId, semiId: f.semiId, camionId: id, choferId: f.choferId })
+          }
+        />
       </td>
       <td className={cn(TD, claseAlerta(aChofer))} title={aChofer?.texto}>
-        {f.chofer ?? '—'}
-        {aChofer?.codigo === 'chofer_duplicado' && ' ×2'}
+        <CeldaEditable
+          texto={
+            <>
+              {f.chofer ?? '—'}
+              {aChofer?.codigo === 'chofer_duplicado' && ' ×2'}
+            </>
+          }
+          valor={f.choferId}
+          etiqueta={`Chofer de ${f.patente}`}
+          editable={edicion.equipo && f.servicioId !== null}
+          opciones={edicion.choferes}
+          onElegir={(id) =>
+            id === null || f.servicioId === null
+              ? Promise.resolve({ ok: true })
+              : edicion.asignar({ servicioId: f.servicioId, semiId: f.semiId, camionId: f.camionId, choferId: id })
+          }
+        />
       </td>
       <td className={cn(TD, 'font-semibold')}>{f.cliente ?? '—'}</td>
       <td className={TD}>{f.producto ?? '—'}</td>
