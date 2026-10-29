@@ -1304,6 +1304,22 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      /** Migración 116 (Sprint 3): la lista de «Hoy». */
+      fn_lo_mio_de_hoy: {
+        Args: Record<string, never>;
+        Returns: {
+          grupo: string;
+          tipo: string;
+          objeto_tipo: string | null;
+          objeto_id: number | null;
+          fecha: string | null;
+          titulo: string;
+          detalle: string | null;
+          ruta: string | null;
+          pantalla: string | null;
+          cantidad: number;
+        }[];
+      };
       /** Migración 115 (Sprint 2): buscador de la barra superior. */
       fn_buscar: {
         Args: { p_texto: string };

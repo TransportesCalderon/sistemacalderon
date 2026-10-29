@@ -46,6 +46,8 @@ export const PANTALLAS = {
   //                                         Ger   Ope    BMz  Cho  AdC    Ana    RH     Fin    TI     Aud
   'inicio.dashboard':        { etiqueta: 'Dashboard', fila: ['L', 'L', '—', '—', 'L', 'L', 'L', 'L', 'E A', 'L', 'L'] },
   'inicio.pendientes':       { etiqueta: 'Mis pendientes', fila: ['—', 'L', 'L', '—', 'L', 'L', 'L', 'L', 'E A', '—', '—'] },
+  // Sprint 3 (migración 116): «Hoy», la lista de lo que le toca a cada uno. Todos menos el chofer, que tiene su pantalla.
+  'inicio.hoy':              { etiqueta: 'Hoy', fila: ['L', 'L', 'L', '—', 'L', 'L', 'L', 'L', 'E A', 'L', 'L'] },
   'combustible.cargas':      { etiqueta: 'Cargas y ficha de carga', fila: ['L', 'L', 'E', '—', 'E A', 'L', '—', 'L', 'E A', 'L', '—'] },
   'combustible.documentos':  { etiqueta: 'Documentos de carga', fila: ['—', 'L', 'E', '—', 'E', 'L', '—', 'L', 'E A', 'L', '—'] },
   'combustible.bandejas':    { etiqueta: 'Bandejas de cargas', fila: ['—', '—', '—', '—', 'A', 'L', '—', '—', 'E A', 'L', '—'] },

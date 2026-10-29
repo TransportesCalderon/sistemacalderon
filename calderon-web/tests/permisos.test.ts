@@ -93,7 +93,8 @@ describe('navegación (especificación §3)', () => {
     const entradas = NAVEGACION.flatMap((g) => g.entradas);
     // 46: la migración 103 agregó «Ranking de choferes»; 47: la 109, «Choferes de los tractores»
     // (Sprint 0: las rutas que no están en el menú viven solo en rutas.ts)
-    expect(entradas.length).toBe(47);
+    // 46: el Sprint 3 sacó «Mis pendientes», que ahora está dentro de «Hoy»
+    expect(entradas.length).toBe(46);
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     // Toda ruta incluida como pestaña sigue protegida por su fila en rutas.ts
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
@@ -131,8 +132,10 @@ describe('navegación (especificación §3)', () => {
     expect(pantallaDeRuta('/combustible/cierres/5')).toBe('combustible.cierre_viaje');
   });
 
-  it('la ruta inicial de gerencia es el dashboard y la del chofer, Mi carga', () => {
-    expect(rutaInicial(permisosDe(['gerencia'], agregado))).toBe('/inicio');
+  it('la ruta inicial de todos es «Hoy» (Sprint 3) y la del chofer, Mi carga', () => {
+    for (const rol of ['gerencia', 'operaciones', 'base_mendoza', 'adm_combustible', 'finanzas', 'comercial'] as const) {
+      expect(rutaInicial(permisosDe([rol], agregado)), rol).toBe('/hoy');
+    }
     expect(rutaInicial(permisosDe(['chofer'], agregado))).toBe('/chofer');
     expect(menuVisible(permisosDe(['chofer'], agregado)).map((g) => g.id)).toEqual(['chofer']);
   });

@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BellRing, ClipboardCheck, ClipboardList, Fuel, LayoutGrid, MapPin, Plus, Truck, UsersRound, Wallet, type LucideIcon } from 'lucide-react';
+import { redirect } from 'next/navigation';
 import { requirePermiso } from '@/modules/core/auth/guards';
+import { VERSION_HOY } from '@/modules/hoy/hoy';
+import { baseTiene } from '@/shared/lib/version-base';
 import { can } from '@/modules/core/permissions/resolver';
 import type { Permiso } from '@/modules/core/permissions/types';
 import { TARJETA } from '@/shared/ui/clases';
@@ -35,6 +38,8 @@ const TAREAS: readonly Tarea[] = [
 /** Inicio: accesos directos a las tareas del día según el rol. */
 export default async function InicioPage() {
   const ctx = await requirePermiso('inicio.dashboard:ver');
+  // Sprint 3: con la migración 116, Inicio es «Hoy»
+  if (baseTiene(ctx.versionBase, VERSION_HOY)) redirect('/hoy');
   const tareas = TAREAS.filter((t) => can(ctx.permisos, t.permiso));
   return (
     <div className="space-y-6">

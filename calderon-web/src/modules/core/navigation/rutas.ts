@@ -16,6 +16,8 @@ export interface Ruta {
 export const RUTAS: readonly Ruta[] = [
   // Inicio
   { prefijo: '/inicio', pantalla: 'inicio.dashboard', titulo: 'Inicio' },
+  // Sprint 3: «Hoy» reemplaza a Inicio y Mis pendientes
+  { prefijo: '/hoy', pantalla: 'inicio.hoy', titulo: 'Hoy' },
   // Mi trabajo
   { prefijo: '/chofer', pantalla: 'chofer.mi_carga', titulo: 'Mi carga' },
   { prefijo: '/chofer/gastos', pantalla: 'chofer.mis_gastos', titulo: 'Mis gastos' },

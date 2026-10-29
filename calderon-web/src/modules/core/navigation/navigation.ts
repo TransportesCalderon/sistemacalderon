@@ -39,8 +39,9 @@ export interface GrupoMenu {
 export const NAVEGACION: readonly GrupoMenu[] = [
   {
     id: 'inicio',
-    etiqueta: 'Inicio',
-    entradas: [{ href: '/inicio', etiqueta: 'Inicio' }],
+    etiqueta: 'Hoy',
+    // Sprint 3: «Hoy» (lo que le toca a cada uno) reemplaza a Inicio y a Mis pendientes
+    entradas: [{ href: '/hoy', etiqueta: 'Hoy' }],
   },
   {
     // Migración 60: lo único que ve el chofer (en el celular).
@@ -66,11 +67,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
   },
   {
     id: 'pendientes',
-    etiqueta: 'Pendientes y alertas',
-    entradas: [
-      { href: '/pendientes', etiqueta: 'Mis pendientes' },
-      { href: '/anomalias/alertas', etiqueta: 'Alertas de la telemetría' },
-    ],
+    etiqueta: 'Alertas',
+    entradas: [{ href: '/anomalias/alertas', etiqueta: 'Alertas de la telemetría' }],
   },
   {
     // Migración 67: seguimiento de clientes, cotizador, tarifas y facturación

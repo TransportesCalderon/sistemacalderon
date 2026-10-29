@@ -53,8 +53,8 @@ export const OBJETOS = {
   ],
   /** Catálogos y parámetros: también los formularios de Combustible, Flota y Pizarra que los usan. */
   catalogo: [['catalogos'], ['combustible'], ['flota'], ['pizarra']],
-  /** Cualquier escritura de Combustible. */
-  combustible: [['combustible']],
+  /** Cualquier escritura de Combustible (también «Hoy», desde el Sprint 3). */
+  combustible: [['combustible'], ['pendientes']],
   /** Pizarra, semis, accesorios y gensets: los gensets también se eligen en Combustible y en Operaciones. */
   pizarra: [['pizarra'], ['flota'], ['combustible', 'gensets'], ['logistica', 'gensets']],
   /** Aviso en tiempo real «cambió la pizarra». */
@@ -62,7 +62,7 @@ export const OBJETOS = {
   /** El mismo aviso, en las pantallas de viajes y operaciones. */
   viajes_en_vivo: [['pizarra'], ['logistica']],
   /** Operaciones, tramos y viajes: también la Pizarra y el combustible del viaje. */
-  operacion: [['logistica'], ['pizarra'], ['combustible']],
+  operacion: [['logistica'], ['pizarra'], ['combustible'], ['pendientes']],
   /** Ventas: emitir o cobrar cambia también Finanzas y los viajes. */
   venta: [['ventas'], ['finanzas'], ['logistica']],
   /** Finanzas: un cobro cambia también Ventas › Facturación. */

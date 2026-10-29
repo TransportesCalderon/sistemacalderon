@@ -56,6 +56,7 @@
   "/flota/gensets/_": "flota.pizarra",
   "/flota/pizarra": "flota.pizarra",
   "/flota/semirremolques": "flota.camiones",
+  "/hoy": "inicio.hoy",
   "/inicio": "inicio.dashboard",
   "/operacion/costos": "finanzas.costos_directos",
   "/operacion/lineas": "operacion.servicios",

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ChevronDown, CircleDollarSign, Clock, LayoutGrid, LogOut, Menu, UserRound } from 'lucide-react';
+import { ChevronDown, CircleDollarSign, Clock, House, LayoutGrid, LogOut, Menu, UserRound } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -13,22 +13,26 @@ import { cambiarZonaHoraria, cerrarSesion } from '@/modules/core/auth/actions';
 import { ZONAS_HORARIAS } from '@/modules/core/auth/zonas';
 import { Buscador } from '@/modules/core/buscador/buscador';
 import { VERSION_BUSCADOR } from '@/modules/core/buscador/resultados';
+import { contarPendientes } from '@/modules/hoy/hoy';
+import { useHoy } from '@/modules/hoy/use-hoy';
 
 /**
  * Barra superior (Sprint 2, Plan de migración UX ítems 6 a 8): Pizarra a mano, el buscador
  * en el centro y el menú del usuario, que ahora también tiene la zona horaria y la moneda base.
- * «Hoy» se suma en el Sprint 3, cuando exista. El chofer no tiene buscador.
+ * Sprint 3: «Hoy» con el contador de lo que espera una acción tuya. El chofer no tiene buscador.
  */
 export function BarraSuperior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
   const { rolesApp } = useSesion();
   const hayBuscador = useBaseTiene(VERSION_BUSCADOR) && rolesApp.some((r) => r !== 'chofer');
   const verPizarra = useCan('flota.pizarra:ver');
+  const verHoy = useCan('inicio.hoy:ver');
   const pathname = usePathname();
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-borde bg-panel/95 px-4 backdrop-blur sm:gap-3">
       <button type="button" onClick={onAbrirMenu} className="rounded-md p-1.5 text-tinta-suave hover:bg-hover lg:hidden" aria-label="Abrir menú">
         <Menu className="size-5" />
       </button>
+      {verHoy && <BotonHoy actual={pathname === '/hoy'} />}
       {verPizarra && (
         <Link
           href="/flota/pizarra"
@@ -51,6 +55,27 @@ export function BarraSuperior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
       </div>
       <MenuUsuario />
     </header>
+  );
+}
+
+/** «Hoy» con el número de cosas que esperan una acción tuya (la misma consulta que la pantalla). */
+function BotonHoy({ actual }: { actual: boolean }) {
+  const { data, activo } = useHoy();
+  const n = activo ? contarPendientes(data ?? []) : 0;
+  return (
+    <Link
+      href="/hoy"
+      aria-current={actual ? 'page' : undefined}
+      title={n > 0 ? `${n} cosa(s) esperan una acción tuya` : 'Lo que te toca hoy'}
+      className={cn(
+        'hidden items-center gap-1.5 rounded-md px-2 py-1.5 text-sm md:flex',
+        actual ? 'bg-marca-suave font-medium text-marca' : 'text-tinta-suave hover:bg-hover hover:text-tinta',
+      )}
+    >
+      <House className="size-4" />
+      Hoy
+      {n > 0 && <span className="rounded-full bg-marca px-1.5 text-xs font-semibold leading-5 text-white tabular-nums">{n > 99 ? '99+' : n}</span>}
+    </Link>
   );
 }
 
