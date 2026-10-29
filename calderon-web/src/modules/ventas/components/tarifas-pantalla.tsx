@@ -10,6 +10,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, formatearFechaHora, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
+import { SelectTipoCarga } from '@/modules/catalogos/components/tipos-carga';
 import { ETIQUETA_UNIDAD, usd, type Adicional, type Tarifario } from '../domain/ventas.types';
 import {
   useEmpresas,
@@ -181,7 +182,7 @@ function Tarifas({ t }: { t: Tarifario }) {
                 <tr key={x.id} className={cn(!x.vigente && 'text-tinta-suave')}>
                   <td className={TD}>
                     {x.linea}
-                    {x.tipoContenedor && <span className="block text-xs text-tinta-suave">Contenedor {x.tipoContenedor}</span>}
+                    {x.tipoContenedor && <span className="block text-xs text-tinta-suave">{x.tipoContenedor}</span>}
                   </td>
                   <td className={TD}>{x.cliente ?? <span className="text-tinta-suave">General</span>}</td>
                   <td className={cn(TD, 'font-medium tabular-nums')}>
@@ -255,8 +256,8 @@ function FormTarifa({ t, onListo }: { t: Tarifario; onListo: () => void }) {
       <Campo label="Precio (USD)" error={envio.campo('precioUsd')}>
         <input inputMode="decimal" value={v.precioUsd} onChange={(e) => setV({ ...v, precioUsd: e.target.value })} />
       </Campo>
-      <Campo label="Contenedor (opcional)">
-        <input value={v.tipoContenedor} placeholder="Vacío = todos" onChange={(e) => setV({ ...v, tipoContenedor: e.target.value })} />
+      <Campo label="Tipo de carga" ayuda="Sin elegir, vale para todos los tipos.">
+        <SelectTipoCarga value={v.tipoContenedor} vacio="Todos" onValor={(t) => setV({ ...v, tipoContenedor: t })} />
       </Campo>
       <Campo label="Rige desde" error={envio.campo('desde')}>
         <input type="date" value={v.desde} onChange={(e) => setV({ ...v, desde: e.target.value })} />

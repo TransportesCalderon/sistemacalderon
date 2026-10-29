@@ -12,6 +12,7 @@ import {
   eliminarUbicacion,
   guardarEstacion,
   guardarParametro,
+  guardarTipoCarga,
   guardarProveedor,
   guardarUbicacion,
 } from '../actions/catalogos.actions';
@@ -26,6 +27,8 @@ export const useTiposCambio = (moneda?: string) => useQuery({ ...catalogosQuerie
 export const useParametros = () => useQuery(catalogosQueries.parametros(browserDb()));
 export const useUbicaciones = () => useQuery(catalogosQueries.ubicaciones(browserDb()));
 export const useImportaciones = () => useQuery(catalogosQueries.importaciones(browserDb()));
+/** Migración 121: solo se pide si la base ya tiene la lista de tipos de carga. */
+export const useTiposCarga = (activo = true) => useQuery({ ...catalogosQueries.tiposCarga(browserDb()), enabled: activo });
 
 /**
  * Toda escritura de catálogos vuelve a leer los catálogos y también Combustible y Flota,
@@ -53,3 +56,4 @@ export const useActualizarCotizaciones = () => useEscritura(actualizarCotizacion
 export const useDefinirMonedaBase = () => useEscritura(definirMonedaBase);
 export const useGuardarUbicacion = () => useEscritura(guardarUbicacion);
 export const useEliminarUbicacion = () => useEscritura(eliminarUbicacion);
+export const useGuardarTipoCarga = () => useEscritura(guardarTipoCarga);

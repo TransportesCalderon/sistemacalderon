@@ -69,7 +69,11 @@ export const NAVEGACION: readonly GrupoMenu[] = [
   {
     id: 'pendientes',
     etiqueta: 'Alertas',
-    entradas: [{ href: '/analisis/alertas', etiqueta: 'Alertas de la telemetría' }],
+    entradas: [
+      { href: '/analisis/alertas', etiqueta: 'Alertas de la telemetría' },
+      // Migración 122: consumo excesivo, daños en la unidad y velocidad excesiva
+      { href: '/actas', etiqueta: 'Actas de infracción' },
+    ],
   },
   {
     // Migración 67: seguimiento de clientes, cotizador, tarifas y facturación

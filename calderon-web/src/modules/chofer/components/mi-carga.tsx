@@ -132,7 +132,8 @@ export function TarjetaCarga({ c }: { c: CargaAsignada }) {
         <dl className="grid grid-cols-2 gap-3 text-sm">
           <Dato etiqueta="Mercadería" valor={c.producto} />
           <Dato etiqueta="Peso" valor={c.pesoKg !== null ? `${c.pesoKg.toLocaleString('es-AR')} kg` : null} />
-          <Dato etiqueta="Contenedor" valor={[c.tipoContenedor, c.contenedor].filter(Boolean).join(' · ') || null} mono />
+          <Dato etiqueta="Tipo de carga" valor={c.tipoContenedor} />
+          <Dato etiqueta="Contenedor" valor={c.contenedor} mono />
           <Dato etiqueta="Precinto" valor={c.precinto} mono />
           <Dato etiqueta="Booking · BL" valor={c.booking} mono />
           <Dato etiqueta="MIC" valor={c.mic} mono />

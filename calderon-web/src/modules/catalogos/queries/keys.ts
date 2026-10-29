@@ -22,6 +22,9 @@ export const catalogosQueries = {
     queryOptions({ queryKey: ['catalogos', 'ubicaciones'] as const, queryFn: () => catalogosRepository(db).ubicaciones(), staleTime: FRESCURA.maestro }),
   importaciones: (db: Db) =>
     queryOptions({ queryKey: ['catalogos', 'importaciones'] as const, queryFn: () => catalogosRepository(db).importaciones(), staleTime: FRESCURA.maestro }),
+  // Migración 121: lo leen los formularios de operación, tarifa y cotización
+  tiposCarga: (db: Db) =>
+    queryOptions({ queryKey: ['catalogos', 'tipos-carga'] as const, queryFn: () => catalogosRepository(db).tiposCarga(), staleTime: FRESCURA.maestro }),
   parametros: (db: Db) =>
     queryOptions({ queryKey: ['catalogos', 'parametros'] as const, queryFn: () => catalogosRepository(db).parametros(), staleTime: FRESCURA.maestro }),
 };

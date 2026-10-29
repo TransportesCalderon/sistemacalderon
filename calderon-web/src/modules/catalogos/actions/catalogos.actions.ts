@@ -6,6 +6,7 @@ import { ErrorNegocio } from '@/shared/lib/errores';
 import { pedirBcra, periodoBcra } from '@/server/externos/bcra';
 import { eliminarSchema, estacionSchema, parametroSchema, proveedorSchema, tipoCambioSchema, ubicacionSchema } from '../domain/catalogos.schemas';
 import { catalogosRepository } from '../repositories/catalogos.repository';
+import { tipoCargaSchema } from '../domain/tipos-carga';
 
 /**
  * Server actions de catálogos. Permisos de la matriz §16:
@@ -115,3 +116,14 @@ async function respuestaBcra(): Promise<unknown | null> {
     return null;
   }
 }
+
+/**
+ * Migración 121 · Tipos de carga. Los pueden cambiar Gerencia o TI: eso lo decide la base
+ * (ref.fn_guardar_tipo_carga); acá alcanza con poder ver Catálogos.
+ */
+export const guardarTipoCarga = createAction({
+  permiso: 'configuracion.catalogos:ver',
+  schema: tipoCargaSchema,
+  handler: (d, { db }) => catalogosRepository(db).guardarTipoCarga(d),
+  invalida: () => ({ paths: ['/ajustes/parametros/tipos-carga'] }),
+});

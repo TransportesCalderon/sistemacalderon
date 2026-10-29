@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { BellRing, ChevronDown, ChevronUp, Hand, LoaderCircle, MapPin, MessageSquare, Undo2 } from 'lucide-react';
+import Link from 'next/link';
+import { BellRing, ChevronDown, ChevronUp, FileWarning, Hand, LoaderCircle, MapPin, MessageSquare, Undo2 } from 'lucide-react';
+import { VERSION_ACTAS } from '@/modules/actas/domain/acta.types';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useChoferesCombustible } from '@/modules/combustible/queries/hooks';
+import { useCamionesCombustible, useChoferesCombustible } from '@/modules/combustible/queries/hooks';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { AccionConMotivo, Cargando, Chip, CLASE_TEXTAREA, Dato, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
@@ -19,6 +22,9 @@ import {
   ETIQUETA_SEVERIDAD,
   estaAbierta,
   etiquetaUnidad,
+  SEVERIDADES,
+  VERSION_FILTROS_ALERTAS,
+  type Severidad,
   type Alerta,
   type Decision,
   type Vista,
@@ -52,7 +58,12 @@ export function AlertasPantalla() {
   const [vista, setVista] = useState<Vista>('abiertas');
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
-  const { data, isPending, isError, error, isFetching, refetch } = useBandejaAlertas(vista, desde || null, hasta || null);
+  const [camion, setCamion] = useState('');
+  const [severidad, setSeveridad] = useState<Severidad | ''>('');
+  const conFiltros = useBaseTiene(VERSION_FILTROS_ALERTAS);
+  const { data: camiones } = useCamionesCombustible();
+  const filtros = conFiltros ? { camionId: camion ? Number(camion) : null, severidad: severidad || null } : undefined;
+  const { data, isPending, isError, error, isFetching, refetch } = useBandejaAlertas(vista, desde || null, hasta || null, filtros);
   const [abierta, setAbierta] = useState<number | null>(null);
 
   return (
@@ -83,6 +94,32 @@ export function AlertasPantalla() {
           <span className="block text-xs text-tinta-suave">Hasta</span>
           <input type="date" className={CONTROL_FILTRO} value={hasta} onChange={(e) => setHasta(e.target.value)} />
         </label>
+        {conFiltros && (
+          <>
+            <label className="space-y-1 text-sm">
+              <span className="block text-xs text-tinta-suave">Tractor</span>
+              <select className={CONTROL_FILTRO} value={camion} onChange={(e) => setCamion(e.target.value)}>
+                <option value="">Todos</option>
+                {camiones?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.patente}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="block text-xs text-tinta-suave">Gravedad</span>
+              <select className={CONTROL_FILTRO} value={severidad} onChange={(e) => setSeveridad(e.target.value as Severidad | '')}>
+                <option value="">Todas</option>
+                {SEVERIDADES.map((s) => (
+                  <option key={s} value={s}>
+                    {ETIQUETA_SEVERIDAD[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
         {isFetching && !isPending && <LoaderCircle className="mb-2 size-4 animate-spin text-tinta-suave" />}
       </div>
 
@@ -91,7 +128,7 @@ export function AlertasPantalla() {
       ) : isError ? (
         <ErrorLectura texto={error instanceof Error ? error.message : 'No se pudieron cargar las alertas.'} onReintentar={() => refetch()} />
       ) : data.length === 0 ? (
-        <Vacio icono={<BellRing className="size-6" />} texto={vista === 'abiertas' ? 'No hay alertas abiertas.' : 'No hay alertas en el período.'} />
+        <Vacio icono={<BellRing className="size-6" />} texto={camion || severidad ? 'No hay alertas con esos filtros.' : vista === 'abiertas' ? 'No hay alertas abiertas.' : 'No hay alertas en el período.'} />
       ) : (
         <ul className="space-y-3">
           {data.map((a) => (
@@ -145,6 +182,10 @@ function DetalleFila({ a }: { a: Alerta }) {
   const { zonaHoraria } = useSesion();
   const { data: d, isPending, isError, refetch } = useDetalleAlerta(a.id);
   const puede = useCan('anomalias.alertas:transicionar');
+  // Migración 122: de una alerta confirmada se hace el acta de infracción (la base valida todo)
+  const puedeActa = useCan('operacion.actas:editar');
+  const hayActas = useBaseTiene(VERSION_ACTAS);
+  const hacerActa = puedeActa && hayActas && a.estado === 'confirmada_operativa';
   const datos = Object.entries(a.evidencia).filter(([k, v]) => !DATOS_OCULTOS.has(k) && v !== null && typeof v !== 'object');
   const lat = Number(a.evidencia.latitud);
   const lon = Number(a.evidencia.longitud);
@@ -198,6 +239,11 @@ function DetalleFila({ a }: { a: Alerta }) {
       {a.resolucion && (
         <div className="rounded-lg bg-hover p-3 text-sm">
           <p className="font-medium text-tinta">{ETIQUETA_RESOLUCION[a.resolucion] ?? a.resolucion}</p>
+          {hacerActa && (
+            <Link href={`/actas?alerta=${a.id}`} className="mt-2 inline-flex items-center gap-1 font-medium text-marca hover:underline">
+              <FileWarning className="size-4" /> Hacer el acta de infracción
+            </Link>
+          )}
           {a.resolucion === 'a_descontar' && (
             <p className="text-tinta-suave">
               {a.descuentoChofer ?? '—'} · {formatearNumero(a.descuentoL, 2)} L

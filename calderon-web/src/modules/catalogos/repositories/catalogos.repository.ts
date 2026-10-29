@@ -2,6 +2,7 @@ import { ConflictoVersion, RepoError, type Db } from '@/shared/repository/types'
 import type { Json } from '@/shared/types/db';
 import type { FechaDia } from '@/shared/types/dominio';
 import type { Eliminar, EstacionDatos, ParametroDatos, ProveedorDatos, TipoCambioDatos, UbicacionDatos } from '../domain/catalogos.schemas';
+import { parsearTiposCarga, type TipoCargaDatos, type TiposCarga } from '../domain/tipos-carga';
 import {
   esTipoProveedor,
   tasaDesde,
@@ -266,6 +267,22 @@ export const catalogosRepository = (db: Db) => {
     },
 
     // ------------------------------------------------------------ parámetros
+    /** Migración 121: tipos de carga (la base dice si el usuario los puede editar). */
+    async tiposCarga(): Promise<TiposCarga> {
+      const { data, error } = await db.schema('ref').rpc('fn_tipos_carga');
+      if (error) throw new RepoError(error);
+      return parsearTiposCarga(data);
+    },
+
+    async guardarTipoCarga(d: TipoCargaDatos): Promise<number> {
+      const { data, error } = await db.schema('ref').rpc('fn_guardar_tipo_carga', {
+        p_id: d.id,
+        p_datos: { nombre: d.nombre, requiere_frio: d.requiereFrio, es_contenedor: d.esContenedor, activo: d.activo, orden: d.orden },
+      });
+      if (error) throw new RepoError(error);
+      return data;
+    },
+
     async parametros(): Promise<Parametro[]> {
       const { data, error } = await db
         .schema('ref')

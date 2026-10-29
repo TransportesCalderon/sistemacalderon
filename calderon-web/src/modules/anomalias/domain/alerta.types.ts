@@ -25,6 +25,15 @@ export const ETIQUETA_RESOLUCION: Record<string, string> = {
 
 export const ETIQUETA_SEVERIDAD: Record<string, string> = { alta: 'Alta', media: 'Media', baja: 'Baja' };
 
+/** Migración 120: la bandeja filtra por tractor y por gravedad (lo hace la base). */
+export const VERSION_FILTROS_ALERTAS = 120;
+export const SEVERIDADES = ['alta', 'media', 'baja'] as const;
+export type Severidad = (typeof SEVERIDADES)[number];
+export interface FiltrosAlertas {
+  camionId: number | null;
+  severidad: Severidad | null;
+}
+
 const UNIDAD: Record<string, string> = { l: 'L', km: 'km', min: 'min', l_100km: 'L/100 km', pct: '%' };
 export const etiquetaUnidad = (u: string | null) => (u ? (UNIDAD[u] ?? u) : '');
 

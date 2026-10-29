@@ -35,6 +35,8 @@ const PAGINAS: readonly Ruta[] = [
   // Pendientes y alertas
   { prefijo: '/pendientes', pantalla: 'inicio.pendientes', titulo: 'Mis pendientes' },
   { prefijo: '/anomalias/alertas', pantalla: 'anomalias.alertas', titulo: 'Alertas de la telemetría' },
+  // Migración 122: actas de infracción
+  { prefijo: '/actas', pantalla: 'operacion.actas', titulo: 'Actas de infracción' },
   // Ventas
   { prefijo: '/ventas', pantalla: 'ventas.tablero', titulo: 'Tablero' },
   { prefijo: '/ventas/empresas', pantalla: 'ventas.empresas', titulo: 'Clientes y prospectos' },
@@ -117,6 +119,8 @@ const PAGINAS: readonly Ruta[] = [
   { prefijo: '/telemetria/equipos', pantalla: 'telemetria.calidad', titulo: 'Equipos GPS (Trackerway)' },
   { prefijo: '/configuracion/monedas', pantalla: 'configuracion.catalogos', titulo: 'Monedas' },
   { prefijo: '/configuracion/catalogos', pantalla: 'configuracion.catalogos', titulo: 'Catálogos' },
+  // Migración 121: tipos de carga (página propia, dentro de Ajustes › Parámetros)
+  { prefijo: '/ajustes/parametros/tipos-carga', pantalla: 'configuracion.catalogos', titulo: 'Tipos de carga' },
 ];
 
 /**

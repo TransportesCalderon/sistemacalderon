@@ -94,7 +94,7 @@ describe('navegación (menú lateral por área; se mantiene después del Sprint 
 
   it('grupos por área, con «Cargar nuevo» y lo del chofer aparte', () => {
     expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'chofer', 'cargar', 'pendientes', 'ventas', 'logistica', 'combustible', 'flota', 'rrhh', 'finanzas', 'datos', 'configuracion']);
-    expect(entradas.length).toBe(43);
+    expect(entradas.length).toBe(44);
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
   });

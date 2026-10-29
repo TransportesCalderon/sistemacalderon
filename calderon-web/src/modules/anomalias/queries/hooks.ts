@@ -4,15 +4,15 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { ActionResult } from '@/server/actions/result';
 import { browserDb } from '@/shared/supabase/browser';
 import { cambiarUmbrales, comentarAlerta, reabrirAlerta, resolverAlerta, tomarAlerta } from '../actions/alerta.actions';
-import type { Vista } from '../domain/alerta.types';
+import type { FiltrosAlertas, Vista } from '../domain/alerta.types';
 import { alertaRepository } from '../repositories/alerta.repository';
 import { invalidar } from '@/shared/query/invalidar';
 
 /** Alertas (migración 49). Después de cada acción se vuelve a leer la bandeja y Mis pendientes. */
-export const useBandejaAlertas = (vista: Vista, desde: string | null, hasta: string | null) =>
+export const useBandejaAlertas = (vista: Vista, desde: string | null, hasta: string | null, filtros?: FiltrosAlertas) =>
   useQuery({
-    queryKey: ['anomalias', 'bandeja', vista, desde, hasta] as const,
-    queryFn: () => alertaRepository(browserDb()).bandeja(vista, desde, hasta),
+    queryKey: ['anomalias', 'bandeja', vista, desde, hasta, filtros?.camionId ?? null, filtros?.severidad ?? null] as const,
+    queryFn: () => alertaRepository(browserDb()).bandeja(vista, desde, hasta, filtros),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });

@@ -14,6 +14,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, horaLocalAIso, hoyEnZona, isoAHoraLocal } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
+import { SelectTipoCarga } from '@/modules/catalogos/components/tipos-carga';
 import type { FechaDia } from '@/shared/types/dominio';
 import type { AltaEntrada } from '../domain/operacion.schemas';
 import {
@@ -959,8 +960,8 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
         <Campo label="Mercadería" error={campo('producto')}>
           <input maxLength={200} value={f.producto} onChange={ev('producto')} placeholder="Banana, vino, madera…" />
         </Campo>
-        <Campo label="Contenedor" error={campo('tipoContenedor')}>
-          <input className="uppercase" maxLength={30} value={f.tipoContenedor} onChange={ev('tipoContenedor')} list="tipos-contenedor" placeholder="40 REEFER…" />
+        <Campo label="Tipo de carga" error={campo('tipoContenedor')} ayuda="A granel, pallet, contenedor 40 RF…">
+          <SelectTipoCarga value={f.tipoContenedor} onValor={(v) => setF((p) => ({ ...p, tipoContenedor: v }))} />
         </Campo>
         <label className="flex items-center gap-2 self-center text-sm text-tinta">
           <input type="checkbox" checked={f.contenedorVacio} onChange={(e) => setF((p) => ({ ...p, contenedorVacio: e.target.checked }))} />
@@ -999,11 +1000,6 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
             </Campo>
           </>
         )}
-        <datalist id="tipos-contenedor">
-          {['20 DRY', '40 DRY', '40 HC', '20 REEFER', '40 REEFER', '40 HC REEFER'].map((t) => (
-            <option key={t} value={t} />
-          ))}
-        </datalist>
       </div>
 
       <details open={mas} onToggle={(e) => setMas((e.target as HTMLDetailsElement).open)} className="rounded-md border border-borde">

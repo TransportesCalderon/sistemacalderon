@@ -66,7 +66,7 @@ export function CotizacionImprimible({ c }: { c: Cotizacion }) {
                 <p className="font-medium">{r.tipo === 'flete' ? (r.linea ?? r.descripcion) : r.descripcion}</p>
                 {r.tipo === 'flete' && (
                   <p className="text-neutral-600">
-                    {[r.tipoOperacion && OPERACION[r.tipoOperacion], r.tipoContenedor && `Contenedor ${r.tipoContenedor}`, r.descripcion !== `Flete ${r.linea}` && r.descripcion]
+                    {[r.tipoOperacion && OPERACION[r.tipoOperacion], r.tipoContenedor, r.descripcion !== `Flete ${r.linea}` && r.descripcion]
                       .filter(Boolean)
                       .join(' · ')}
                   </p>

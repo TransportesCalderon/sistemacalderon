@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
+import { SelectTipoCarga } from '@/modules/catalogos/components/tipos-carga';
 import { ETIQUETA_UNIDAD, usd, type Adicional, type Cotizacion, type Linea } from '../domain/ventas.types';
 import {
   useAnularCotizacion,
@@ -326,8 +327,8 @@ function FilaFlete({
         ) : (
           <span />
         )}
-        <Campo label="Contenedor">
-          <input value={f.tipoContenedor} disabled={!editable} placeholder="40 HC" onChange={(e) => onCambiar({ tipoContenedor: e.target.value })} />
+        <Campo label="Tipo de carga">
+          <SelectTipoCarga value={f.tipoContenedor} disabled={!editable} vacio="Cualquiera" onValor={(v) => onCambiar({ tipoContenedor: v })} />
         </Campo>
         <Campo label="Precio USD">
           <input inputMode="decimal" value={f.precioUsd} disabled={!editable} onChange={(e) => onCambiar({ precioUsd: e.target.value })} />

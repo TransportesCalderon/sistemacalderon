@@ -66,6 +66,8 @@ export const PESTANAS_MONEDAS = [
 export const PESTANAS_AJUSTES = [
   { href: '/ajustes/parametros', etiqueta: 'Parámetros' },
   { href: '/ajustes/parametros/catalogos', etiqueta: 'Catálogos' },
+  // Migración 121: la mercadería que se elige en operaciones, tarifas y cotizaciones
+  { href: '/ajustes/parametros/tipos-carga', etiqueta: 'Tipos de carga' },
 ] as const;
 
 /** Ajustes › Integraciones: datos de los camiones y equipos GPS. */

@@ -928,6 +928,9 @@ export type Database = {
       /** Migración 113 (Sprint 0 · T05): última migración aplicada. */
       fn_version_base: { Args: Record<string, never>; Returns: number };
       fn_definir_moneda_base: { Args: { p_codigo: string }; Returns: string };
+      // Migración 121: tipos de carga (mercadería)
+      fn_tipos_carga: { Args: Record<string, never>; Returns: Json };
+      fn_guardar_tipo_carga: { Args: { p_id: number | null; p_datos: Json }; Returns: number };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
@@ -1184,6 +1187,15 @@ export type Database = {
       fn_quitar_documento_operacion: { Args: { p_documento: number }; Returns: string };
       fn_seguimiento_operacion: { Args: { p_servicio: number; p_horas?: number }; Returns: Json };
       fn_costos_viajes: { Args: { p_desde: string; p_hasta: string }; Returns: CostoViajeRow[] };
+      // Migración 122: actas de infracción
+      fn_actas: { Args: { p_desde?: string | null; p_hasta?: string | null; p_chofer?: number | null; p_tipo?: string | null }; Returns: Json };
+      fn_acta: { Args: { p_id: number }; Returns: Json };
+      fn_crear_acta: { Args: { p_datos: Json }; Returns: number };
+      fn_cambiar_acta: { Args: { p_id: number; p_version: number; p_datos: Json }; Returns: undefined };
+      fn_agregar_foto_acta: { Args: { p_acta: number; p_ruta: string; p_nombre?: string | null }; Returns: number };
+      fn_quitar_foto_acta: { Args: { p_foto: number }; Returns: string };
+      fn_firmar_acta: { Args: { p_id: number; p_ruta: string | null; p_descargo?: string | null; p_se_nego?: boolean }; Returns: undefined };
+      fn_anular_acta: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_categorias_gasto_viaje: { Args: Record<string, never>; Returns: { codigo: string; nombre: string }[] };
       fn_agregar_gasto_viaje: {
         Args: { p_viaje: number; p_categoria: string; p_fecha: string; p_importe: number; p_moneda: string; p_documento?: string | null; p_observacion?: string | null };
@@ -1697,7 +1709,8 @@ export type Database = {
     Tables: { [_ in never]: never };
     Views: { [_ in never]: never };
     Functions: {
-      fn_bandeja_alertas: { Args: { p_vista?: string; p_desde?: string | null; p_hasta?: string | null }; Returns: AlertaRow[] };
+      // Migración 120: filtros por tractor (p_camion) y gravedad (p_severidad)
+      fn_bandeja_alertas: { Args: { p_vista?: string; p_desde?: string | null; p_hasta?: string | null; p_camion?: number | null; p_severidad?: string | null }; Returns: AlertaRow[] };
       fn_alerta_detalle: { Args: { p_alerta: number }; Returns: Json };
       fn_reglas_vigentes: {
         Args: Record<string, never>;

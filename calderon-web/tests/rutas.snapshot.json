@@ -1,4 +1,6 @@
 {
+  "/actas": "operacion.actas",
+  "/ajustes/parametros/tipos-carga": "configuracion.catalogos",
   "/analisis/rentabilidad": "finanzas.rentabilidad",
   "/anomalias/alertas": "anomalias.alertas",
   "/chofer": "chofer.mi_carga",

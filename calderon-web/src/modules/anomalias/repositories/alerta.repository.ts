@@ -1,14 +1,16 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { FechaISO } from '@/shared/types/dominio';
 import { num } from '@/modules/combustible/domain/comun';
-import { parsearDetalle, type Alerta, type DetalleAlerta, type Decision, type Regla, type Vista } from '../domain/alerta.types';
+import { parsearDetalle, type Alerta, type DetalleAlerta, type Decision, type FiltrosAlertas, type Regla, type Vista } from '../domain/alerta.types';
 
 /** Alertas (migración 49). Todo lo decide la base; su mensaje se muestra tal cual. */
 export const alertaRepository = (db: Db) => {
   const ana = () => db.schema('ana');
   return {
-    async bandeja(vista: Vista, desde: string | null, hasta: string | null): Promise<Alerta[]> {
-      const { data, error } = await ana().rpc('fn_bandeja_alertas', { p_vista: vista, p_desde: desde, p_hasta: hasta });
+    /** filtros: tractor y gravedad (migración 120); con una base anterior no se mandan. */
+    async bandeja(vista: Vista, desde: string | null, hasta: string | null, filtros?: FiltrosAlertas): Promise<Alerta[]> {
+      const extra = filtros ? { p_camion: filtros.camionId, p_severidad: filtros.severidad } : {};
+      const { data, error } = await ana().rpc('fn_bandeja_alertas', { p_vista: vista, p_desde: desde, p_hasta: hasta, ...extra });
       if (error) throw new RepoError(error);
       return (data ?? []).map((a) => ({
         id: a.id,

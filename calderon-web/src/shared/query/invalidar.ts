@@ -12,6 +12,7 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 /** Primer elemento de las claves de consulta de cada módulo. */
 export const RAICES = [
+  'actas',
   'anomalias',
   'catalogos',
   'chofer',
@@ -77,6 +78,8 @@ export const OBJETOS = {
   aviso_carga: [['tablero', 'mis-avisos']],
   /** Telemetría: importar ahora y equipos Trackerway. */
   telemetria: [['telemetria']],
+  /** Migración 122: actas de infracción (el descuento cambia la liquidación; el acta sale de una alerta). */
+  acta: [['actas'], ['liquidacion'], ['anomalias']],
   /** Usuarios del sistema. */
   usuario: [['usuarios']],
   /** Aprobar cierres o completar operaciones de un viaje: toca casi todo. */
