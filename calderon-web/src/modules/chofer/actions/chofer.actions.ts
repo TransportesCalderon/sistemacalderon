@@ -21,8 +21,8 @@ import { choferRepository } from '../repositories/chofer.repository';
  * primer filtro; la base vuelve a decidir (el chofer, solo lo suyo; los fondos, RRHH,
  * Finanzas o TI).
  */
-const rutasChofer = () => ({ paths: ['/chofer', '/chofer/gastos'] });
-const rutasFondos = () => ({ paths: ['/rrhh/fondos', '/rrhh/liquidacion', '/chofer/gastos'] });
+const rutasChofer = () => ({ paths: ['/mi-viaje'] });
+const rutasFondos = () => ({ paths: ['/liquidaciones/fondos', '/liquidaciones/resumen', '/mi-viaje'] });
 
 /* Documentos: el chofer desde Mi carga; Logística desde la operación. */
 export const subirDocumentoChofer = createAction({

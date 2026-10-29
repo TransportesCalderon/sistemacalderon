@@ -43,7 +43,7 @@ export function ClienteFicha({ id }: { id: ClienteId }) {
             </button>
           )}
           <SoloEnPagina>
-            <Link href="/comercial/clientes" className="text-marca hover:underline">
+            <Link href="/cotizaciones/datos-clientes" className="text-marca hover:underline">
               Volver a la lista
             </Link>
           </SoloEnPagina>
@@ -60,7 +60,7 @@ export function ClienteFicha({ id }: { id: ClienteId }) {
   return (
     <div className="space-y-5">
       <SoloEnPagina>
-        <Link href="/comercial/clientes" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
+        <Link href="/cotizaciones/datos-clientes" className="inline-flex items-center gap-1 text-sm text-tinta-suave hover:text-tinta">
           <ArrowLeft className="size-4" /> Clientes
         </Link>
       </SoloEnPagina>

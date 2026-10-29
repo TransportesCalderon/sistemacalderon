@@ -35,17 +35,18 @@ export function TextoSaldo({ s }: { s: Saldo }) {
 }
 
 /** Mis gastos: el fondo que recibió el chofer, lo que gastó y en qué estado está cada gasto. */
-export function MisGastos() {
+export function MisGastos({ abrirNuevo = false }: { abrirNuevo?: boolean } = {}) {
   const { data, isLoading, isError, refetch } = useMiFondo();
-  const [cargar, setCargar] = useState(false);
+  // Sprint 7: el botón «Gasto» de Mi viaje abre directo el formulario
+  const [cargar, setCargar] = useState(abrirNuevo);
 
   if (isLoading) return <Cargando texto="Leyendo tu fondo…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudo leer tu fondo." onReintentar={() => void refetch()} />;
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <Link href="/chofer" className="inline-flex items-center gap-1 text-sm text-marca">
-        <ChevronLeft className="size-4" /> Mi carga
+      <Link href="/mi-viaje" className="inline-flex items-center gap-1 text-sm text-marca">
+        <ChevronLeft className="size-4" /> Mi viaje
       </Link>
       <header>
         <h1 className="text-2xl font-semibold text-tinta">Mis gastos</h1>

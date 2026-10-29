@@ -33,8 +33,8 @@ export function TableroChofer() {
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <Link href="/chofer" className="inline-flex items-center gap-1 text-sm text-marca">
-        <ArrowLeft className="size-4" /> Mi carga
+      <Link href="/mi-viaje" className="inline-flex items-center gap-1 text-sm text-marca">
+        <ArrowLeft className="size-4" /> Mi viaje
       </Link>
       <header>
         <h1 className="text-2xl font-semibold text-tinta">Tablero del camión</h1>

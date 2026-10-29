@@ -68,3 +68,26 @@ describe('redirecciones de detalle (Sprint 1 · S1-06)', async () => {
     }
   });
 });
+
+/** Sprint 7: las rutas con número llevan el número a la ruta nueva; las de imprimir no se tocan. */
+describe('rutas movidas con número (Sprint 7)', async () => {
+  const reglas = (await nextConfig.redirects?.()) ?? [];
+  const destino = (ruta: string) => {
+    for (const r of reglas) {
+      const m = pathToRegexp(r.source).exec(ruta);
+      if (m) return r.destination.replace(':id', m[1] ?? '');
+    }
+    return null;
+  };
+  it('cotización, cartola y lo del chofer', () => {
+    expect(destino('/ventas/cotizaciones/12')).toBe('/cotizaciones/12');
+    expect(destino('/ventas/cotizaciones/nueva')).toBe('/cotizaciones/nueva');
+    expect(destino('/ventas/cotizaciones/12/imprimir')).toBeNull();
+    expect(destino('/finanzas/bancos/3')).toBe('/conciliacion/3');
+    expect(destino('/chofer/gastos')).toBe('/mi-viaje?ver=gastos');
+    expect(destino('/chofer/liquidaciones/4/recibo')).toBeNull();
+    expect(destino('/rrhh/liquidaciones/4/recibo')).toBeNull();
+    expect(destino('/comercial/clientes/nuevo')).toBeNull();
+    expect(destino('/comercial/clientes/7/editar')).toBeNull();
+  });
+});

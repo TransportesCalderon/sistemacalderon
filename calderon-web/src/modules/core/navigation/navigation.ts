@@ -48,9 +48,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     id: 'chofer',
     etiqueta: 'Mi trabajo',
     entradas: [
-      { href: '/chofer', etiqueta: 'Mi carga' },
-      { href: '/chofer/gastos', etiqueta: 'Mis gastos' },
-      { href: '/chofer/liquidaciones', etiqueta: 'Mis liquidaciones' },
+      // Sprint 7: una sola pantalla (carga, documentos, gastos, tablero y liquidaciones)
+      { href: '/mi-viaje', etiqueta: 'Mi viaje' },
     ],
   },
   {
@@ -76,9 +75,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     etiqueta: 'Ventas',
     entradas: [
       { href: '/ventas', etiqueta: 'Tablero' },
-      { href: '/ventas/empresas', etiqueta: 'Clientes y prospectos' },
-      { href: '/ventas/cotizaciones', etiqueta: 'Cotizaciones' },
-      { href: '/ventas/tarifas', etiqueta: 'Tarifas y costos' },
+      // Sprint 7: Cotizaciones, con los clientes y las tarifas como pestañas
+      { href: '/cotizaciones', etiqueta: 'Cotizaciones', incluye: ['/cotizaciones/clientes', '/cotizaciones/tarifas'] },
     ],
   },
   {
@@ -136,9 +134,10 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     id: 'rrhh',
     etiqueta: 'Administración',
     entradas: [
-      { href: '/rrhh/fondos', etiqueta: 'Fondos de choferes' },
+      // Sprint 7: los fondos son una pestaña de Liquidaciones (la entrada queda para quien ve los fondos y no las liquidaciones)
+      { href: '/liquidaciones/fondos', etiqueta: 'Fondos de choferes' },
       // Migración 62: liquidación mensual; el resumen y las tarifas son pestañas
-      { href: '/rrhh/liquidaciones', etiqueta: 'Liquidaciones', incluye: ['/rrhh/liquidacion', '/rrhh/tarifas', '/rrhh/datos-legales'] },
+      { href: '/liquidaciones', etiqueta: 'Liquidaciones', incluye: ['/liquidaciones/resumen', '/rrhh/tarifas', '/rrhh/datos-legales'] },
     ],
   },
   {
@@ -151,7 +150,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/finanzas', etiqueta: 'Resumen' },
       { href: '/finanzas/gastos', etiqueta: 'Gastos', incluye: ['/finanzas/gastos-fijos'] },
       { href: '/finanzas/cobros-pagos', etiqueta: 'Cobros y pagos' },
-      { href: '/finanzas/bancos', etiqueta: 'Bancos y cajas' },
+      // Sprint 7: Bancos y cajas pasa a Conciliación
+      { href: '/conciliacion', etiqueta: 'Conciliación' },
       { href: '/finanzas/informes', etiqueta: 'Informes' },
       { href: '/finanzas/plan-cuentas', etiqueta: 'Plan de cuentas' },
     ],
@@ -160,7 +160,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     id: 'datos',
     etiqueta: 'Datos',
     entradas: [
-      { href: '/comercial/clientes', etiqueta: 'Clientes' },
+      // Sprint 7: los datos de los clientes son una pestaña de Cotizaciones
+      { href: '/cotizaciones/datos-clientes', etiqueta: 'Clientes' },
       { href: '/comercial/ubicaciones', etiqueta: 'Lugares' },
       { href: '/operacion/lineas', etiqueta: 'Líneas' },
       { href: '/comercial/proveedores', etiqueta: 'Proveedores y estaciones', incluye: ['/comercial/estaciones'] },

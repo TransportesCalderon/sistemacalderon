@@ -37,7 +37,7 @@ export const guardarTableroChofer = createAction({
   permiso: 'chofer.mi_carga:editar',
   schema: guardar,
   handler: (d, { db }) => tableroRepository(db).guardar(d),
-  invalida: () => ({ paths: ['/chofer', '/chofer/tablero'] }),
+  invalida: () => ({ paths: ['/mi-viaje'] }),
 });
 export const guardarTableroOficina = createAction({
   permiso: 'combustible.cierre_viaje:editar',

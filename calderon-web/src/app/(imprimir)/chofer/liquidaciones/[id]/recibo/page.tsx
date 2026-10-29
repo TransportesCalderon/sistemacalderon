@@ -14,5 +14,5 @@ export default async function Pagina({ params }: Props) {
   const id = Number((await params).id);
   const l = (await liquidacionRepository(await createSupabaseServerClient()).mias()).find((x) => x.id === id);
   if (!l) notFound();
-  return <ReciboImprimible l={l} volver="/chofer/liquidaciones" />;
+  return <ReciboImprimible l={l} volver="/mi-viaje?ver=liquidaciones" />;
 }

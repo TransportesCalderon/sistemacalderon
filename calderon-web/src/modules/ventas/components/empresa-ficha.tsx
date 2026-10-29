@@ -57,7 +57,7 @@ export function EmpresaFicha({ id }: { id: number }) {
   return (
     <div className="space-y-4">
       <SoloEnPagina>
-        <Link href="/ventas/empresas" className="inline-flex items-center gap-1 text-sm text-marca hover:underline">
+        <Link href="/cotizaciones/clientes" className="inline-flex items-center gap-1 text-sm text-marca hover:underline">
           <ChevronLeft className="size-4" /> Clientes y prospectos
         </Link>
       </SoloEnPagina>
@@ -80,7 +80,7 @@ export function EmpresaFicha({ id }: { id: number }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {puedeCotizar && (
-            <Link href={`/ventas/cotizaciones/nueva?empresa=${e.id}`} className={BOTON_PRIMARIO}>
+            <Link href={`/cotizaciones/nueva?empresa=${e.id}`} className={BOTON_PRIMARIO}>
               <Plus className="size-4" /> Cotizar
             </Link>
           )}
@@ -112,7 +112,7 @@ export function EmpresaFicha({ id }: { id: number }) {
             <ul className="divide-y divide-borde text-sm">
               {e.cotizaciones.map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-3 py-1.5">
-                  <Link href={`/ventas/cotizaciones/${c.id}`} className="text-marca hover:underline">
+                  <Link href={`/cotizaciones/${c.id}`} className="text-marca hover:underline">
                     {c.numero}
                   </Link>
                   <span className="text-tinta-suave">{formatearFechaDia(c.fecha)}</span>

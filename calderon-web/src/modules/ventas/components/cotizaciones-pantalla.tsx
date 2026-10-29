@@ -27,7 +27,7 @@ export function CotizacionesPantalla() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Encabezado titulo="Cotizaciones" subtitulo="Ventas" />
         {puede && (
-          <Link href="/ventas/cotizaciones/nueva" className={BOTON_PRIMARIO}>
+          <Link href="/cotizaciones/nueva" className={BOTON_PRIMARIO}>
             <Plus className="size-4" /> Nueva cotización
           </Link>
         )}
@@ -75,7 +75,7 @@ export function CotizacionesPantalla() {
               {data.map((c) => (
                 <tr key={c.id} className="hover:bg-hover">
                   <td className={TD}>
-                    <Link href={`/ventas/cotizaciones/${c.id}`} className="font-medium text-marca hover:underline">
+                    <Link href={`/cotizaciones/${c.id}`} className="font-medium text-marca hover:underline">
                       {c.numero}
                     </Link>
                   </td>

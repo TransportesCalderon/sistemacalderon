@@ -95,7 +95,8 @@ describe('navegación (especificación §3)', () => {
     // (Sprint 0: las rutas que no están en el menú viven solo en rutas.ts)
     // 46: el Sprint 3 sacó «Mis pendientes», que ahora está dentro de «Hoy»
     // 45: el Sprint 6 sacó «Mapa de flota», que ahora es la vista Mapa de la Pizarra
-    expect(entradas.length).toBe(45);
+    // 41: el Sprint 7 juntó lo del chofer en «Mi viaje» (3 → 1) y Ventas en «Cotizaciones» con pestañas (3 → 1)
+    expect(entradas.length).toBe(41);
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     // Toda ruta incluida como pestaña sigue protegida por su fila en rutas.ts
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
@@ -133,11 +134,11 @@ describe('navegación (especificación §3)', () => {
     expect(pantallaDeRuta('/combustible/cierres/5')).toBe('combustible.cierre_viaje');
   });
 
-  it('la ruta inicial de todos es «Hoy» (Sprint 3) y la del chofer, Mi carga', () => {
+  it('la ruta inicial de todos es «Hoy» (Sprint 3) y la del chofer, Mi viaje (Sprint 7)', () => {
     for (const rol of ['gerencia', 'operaciones', 'base_mendoza', 'adm_combustible', 'finanzas', 'comercial'] as const) {
       expect(rutaInicial(permisosDe([rol], agregado)), rol).toBe('/hoy');
     }
-    expect(rutaInicial(permisosDe(['chofer'], agregado))).toBe('/chofer');
+    expect(rutaInicial(permisosDe(['chofer'], agregado))).toBe('/mi-viaje');
     expect(menuVisible(permisosDe(['chofer'], agregado)).map((g) => g.id)).toEqual(['chofer']);
   });
 });

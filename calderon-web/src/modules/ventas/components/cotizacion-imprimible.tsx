@@ -14,7 +14,7 @@ export function CotizacionImprimible({ c }: { c: Cotizacion }) {
   return (
     <main className="mx-auto max-w-3xl space-y-6 bg-white p-8 text-[12px] text-black print:max-w-none print:p-0">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/ventas/cotizaciones/${c.id}`} className="text-sm text-marca hover:underline">
+        <Link href={`/cotizaciones/${c.id}`} className="text-sm text-marca hover:underline">
           Volver
         </Link>
         <BotonImprimir />

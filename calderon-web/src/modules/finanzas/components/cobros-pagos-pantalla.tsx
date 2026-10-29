@@ -357,7 +357,7 @@ function SinCuentas() {
     <p className="pt-3 text-sm text-tinta-suave">
       Primero cargá un banco o caja en{" "}
       <Link
-        href="/finanzas/bancos"
+        href="/conciliacion"
         className="font-medium text-marca underline"
       >
         Bancos y cajas

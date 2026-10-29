@@ -46,7 +46,7 @@ export function AvisoCargaChofer() {
           <X className="size-5" />
         </button>
       </div>
-      <Link href="/chofer/tablero" className="flex items-center justify-center gap-2 rounded-md bg-panel px-3 py-2 text-sm font-medium text-marca">
+      <Link href="/mi-viaje?ver=tablero" className="flex items-center justify-center gap-2 rounded-md bg-panel px-3 py-2 text-sm font-medium text-marca">
         <Gauge className="size-4" /> Si es llenado de corte: sacá las fotos del tablero
       </Link>
     </div>

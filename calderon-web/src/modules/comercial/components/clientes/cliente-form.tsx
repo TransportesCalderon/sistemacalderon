@@ -116,7 +116,7 @@ export function ClienteForm(props: Props) {
     setError(null);
   };
 
-  const volver = original ? `/comercial/clientes/${original.id}` : '/comercial/clientes';
+  const volver = original ? `/comercial/clientes/${original.id}` : '/cotizaciones/datos-clientes';
   const estado = watch('estado');
   const listaParecidos = parecidos.data ?? [];
   // Solo se avisa cuando la razón social cambió respecto de la guardada.

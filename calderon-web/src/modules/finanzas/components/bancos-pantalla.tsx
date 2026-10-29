@@ -55,7 +55,7 @@ export function BancosPantalla() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Encabezado titulo="Bancos y cajas" subtitulo="Finanzas" />
+        <Encabezado titulo="Conciliación" subtitulo="Bancos y cajas" />
         {puede && !form && (
           <button
             type="button"
@@ -129,7 +129,7 @@ export function BancosPantalla() {
               <div key={c.id} className={cn(TARJETA, 'space-y-3 p-4', !c.activa && 'opacity-60')}>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <Link href={`/finanzas/bancos/${c.id}`} className="font-medium text-marca hover:underline">
+                    <Link href={`/conciliacion/${c.id}`} className="font-medium text-marca hover:underline">
                       {c.nombre}
                     </Link>
                     <p className="text-xs text-tinta-suave">
@@ -161,7 +161,7 @@ export function BancosPantalla() {
                     {c.porConciliar > 0 && <Chip tono="marca">{c.porConciliar} por conciliar</Chip>}
                   </div>
                 )}
-                <Link href={`/finanzas/bancos/${c.id}`} className="inline-block text-sm font-medium text-marca hover:underline">
+                <Link href={`/conciliacion/${c.id}`} className="inline-block text-sm font-medium text-marca hover:underline">
                   {c.tipo === 'banco' ? 'Importar cartola y conciliar →' : 'Ver movimientos →'}
                 </Link>
               </div>

@@ -56,13 +56,13 @@ export function MiCarga() {
       )}
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <Link href="/chofer/tablero" className={`${BOTON_SECUNDARIO} w-full sm:col-span-2`}>
+        <Link href="/mi-viaje?ver=tablero" className={`${BOTON_SECUNDARIO} w-full sm:col-span-2`}>
           <Gauge className="size-5" /> Fotos del tablero del camión
         </Link>
-        <Link href="/chofer/gastos" className={`${BOTON_SECUNDARIO} w-full`}>
+        <Link href="/mi-viaje?ver=gastos" className={`${BOTON_SECUNDARIO} w-full`}>
           <Receipt className="size-5" /> Mis gastos y fondo
         </Link>
-        <Link href="/chofer/liquidaciones" className={`${BOTON_SECUNDARIO} w-full`}>
+        <Link href="/mi-viaje?ver=liquidaciones" className={`${BOTON_SECUNDARIO} w-full`}>
           <FileText className="size-5" /> Mis liquidaciones
         </Link>
       </div>
@@ -97,7 +97,8 @@ function Dato({ etiqueta, valor, mono }: { etiqueta: string; valor: string | nul
   );
 }
 
-function TarjetaCarga({ c }: { c: CargaAsignada }) {
+/** Sprint 7: también la usa Mi viaje (cada carga con sus documentos). */
+export function TarjetaCarga({ c }: { c: CargaAsignada }) {
   const { zonaHoraria } = useSesion();
   const [subir, setSubir] = useState(c.documentos.length === 0);
   return (
@@ -148,7 +149,7 @@ function TarjetaCarga({ c }: { c: CargaAsignada }) {
         </p>
       )}
 
-      <div className="space-y-2">
+      <div id={`documentos-${c.servicioId}`} className="scroll-mt-20 space-y-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-tinta">
           <FileUp className="size-4" /> Documentos ({c.documentos.length})
         </h3>

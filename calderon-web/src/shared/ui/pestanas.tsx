@@ -20,10 +20,13 @@ export function Pestanas({ items }: { items: readonly { href: string; etiqueta: 
     return pantalla === null || can(permisos, `${pantalla}:ver`);
   });
   if (visibles.length < 2) return null;
+  // La pestaña activa es la de la ruta más larga que coincide (/cotizaciones/clientes no marca también /cotizaciones)
+  const coincide = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const activaHref = visibles.filter((i) => coincide(i.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
   return (
     <nav aria-label="Vistas" className="-mt-1 mb-4 flex flex-wrap gap-1 border-b border-borde">
       {visibles.map((i) => {
-        const activa = pathname === i.href || pathname.startsWith(`${i.href}/`);
+        const activa = i.href === activaHref;
         return (
           <Link
             key={i.href}

@@ -28,7 +28,7 @@ export function TableroFinanzas() {
       {sinDatos && (
         <Aviso>
           Para empezar: cargá tus cuentas en{' '}
-          <Link href="/finanzas/bancos" className="font-medium underline">
+          <Link href="/conciliacion" className="font-medium underline">
             Bancos y cajas
           </Link>{' '}
           (con el saldo de hoy), los gastos que se repiten en{' '}
@@ -53,7 +53,7 @@ export function TableroFinanzas() {
       {t.porConciliar > 0 && (
         <Aviso>
           Hay {t.porConciliar} {t.porConciliar === 1 ? 'línea' : 'líneas'} de la cartola sin conciliar.{' '}
-          <Link href="/finanzas/bancos" className="font-medium underline">
+          <Link href="/conciliacion" className="font-medium underline">
             Conciliar
           </Link>
         </Aviso>
@@ -100,8 +100,8 @@ export function TableroFinanzas() {
           detalle="cargas en cuenta corriente o tarjeta"
           href="/finanzas/combustible"
         />
-        <Indicador titulo="Fondos de choferes por rendir" valor={dinero(t.fondosChoferesClp)} detalle="plata entregada que falta rendir" href="/rrhh/fondos" />
-        <Indicador titulo="Sueldos y leyes sociales por pagar" valor={dinero(t.sueldosPorPagarClp)} detalle="liquidaciones aprobadas sin pagar" href="/rrhh/liquidaciones" />
+        <Indicador titulo="Fondos de choferes por rendir" valor={dinero(t.fondosChoferesClp)} detalle="plata entregada que falta rendir" href="/liquidaciones/fondos" />
+        <Indicador titulo="Sueldos y leyes sociales por pagar" valor={dinero(t.sueldosPorPagarClp)} detalle="liquidaciones aprobadas sin pagar" href="/liquidaciones" />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
@@ -181,7 +181,7 @@ export function IndicadoresFinanzas({ t }: { t: Tablero }) {
   const resAnt = t.resultado[n - 1] ?? 0;
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <Indicador titulo="Plata en bancos y cajas" valor={dinero(t.disponibleClp)} detalle={`${t.bancos.length} cuentas, en pesos de hoy`} href="/finanzas/bancos" />
+      <Indicador titulo="Plata en bancos y cajas" valor={dinero(t.disponibleClp)} detalle={`${t.bancos.length} cuentas, en pesos de hoy`} href="/conciliacion" />
       <Indicador
         titulo="Nos deben (clientes)"
         valor={dinero(t.porCobrarClp)}

@@ -23,7 +23,7 @@ import { liquidacionRepository } from '../repositories/liquidacion.repository';
  * Escrituras de liquidaciones (migración 62). El permiso de la pantalla es el primer filtro;
  * la base vuelve a exigir RRHH o TI (y Finanzas para registrar el pago).
  */
-const rutas = () => ({ paths: ['/rrhh/liquidaciones', '/rrhh/tarifas', '/rrhh/datos-legales', '/chofer/liquidaciones'] });
+const rutas = () => ({ paths: ['/liquidaciones', '/rrhh/tarifas', '/rrhh/datos-legales', '/mi-viaje'] });
 
 export const guardarTarifa = createAction({
   permiso: 'liquidacion.reglas:editar',

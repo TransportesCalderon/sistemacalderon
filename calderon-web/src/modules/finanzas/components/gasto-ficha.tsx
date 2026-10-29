@@ -402,7 +402,7 @@ export function PagarGasto({ gastoId, moneda, saldo, onListo }: { gastoId: numbe
     return (
       <p className="mt-3 text-sm text-tinta-suave">
         Para registrar pagos, primero cargá un banco o caja en{' '}
-        <Link href="/finanzas/bancos" className="font-medium text-marca underline">
+        <Link href="/conciliacion" className="font-medium text-marca underline">
           Bancos y cajas
         </Link>
         .

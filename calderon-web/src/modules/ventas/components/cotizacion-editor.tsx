@@ -149,12 +149,12 @@ export function CotizacionEditor({ id, empresaInicial }: { id: number | null; em
       })),
     });
     if (!r.ok) return envio.setError(r.error);
-    if (!c) router.replace(`/ventas/cotizaciones/${r.data}`);
+    if (!c) router.replace(`/cotizaciones/${r.data}`);
   };
 
   return (
     <div className="space-y-4">
-      <Link href="/ventas/cotizaciones" className="inline-flex items-center gap-1 text-sm text-marca hover:underline">
+      <Link href="/cotizaciones" className="inline-flex items-center gap-1 text-sm text-marca hover:underline">
         <ChevronLeft className="size-4" /> Cotizaciones
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -559,7 +559,7 @@ function Acciones({ c }: { c: Cotizacion }) {
           onClick={async () => {
             const r = await duplicar.mutateAsync({ id: c.id });
             if (!r.ok) return envio.setError(r.error);
-            router.push(`/ventas/cotizaciones/${r.data}`);
+            router.push(`/cotizaciones/${r.data}`);
           }}
         >
           <Copy className="size-4" /> Duplicar

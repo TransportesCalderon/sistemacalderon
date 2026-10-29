@@ -29,15 +29,15 @@ export function TableroVentas() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Encabezado titulo="Tablero de ventas" subtitulo="Ventas" />
         {puedeCotizar && (
-          <Link href="/ventas/cotizaciones/nueva" className={BOTON_PRIMARIO}>
+          <Link href="/cotizaciones/nueva" className={BOTON_PRIMARIO}>
             <Plus className="size-4" /> Nueva cotización
           </Link>
         )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Dato titulo="Cotizaciones del mes" valor={String(c.hechas)} detalle={`${c.aceptadas} aceptadas · ${c.rechazadas} rechazadas`} href="/ventas/cotizaciones" />
-        <Dato titulo="Esperando respuesta" valor={String(data.porResponder)} detalle="cotizaciones enviadas" href="/ventas/cotizaciones" />
+        <Dato titulo="Cotizaciones del mes" valor={String(c.hechas)} detalle={`${c.aceptadas} aceptadas · ${c.rechazadas} rechazadas`} href="/cotizaciones" />
+        <Dato titulo="Esperando respuesta" valor={String(data.porResponder)} detalle="cotizaciones enviadas" href="/cotizaciones" />
         <Dato titulo="Aceptado en el mes" valor={usd(c.aceptadoUsd)} detalle="total de las aceptadas" />
         <Dato titulo="Facturado en el mes" valor={usd(data.facturadoMesUsd)} detalle={`${data.porFacturar} operación(es) por facturar`} href="/ventas/facturacion" />
         <Dato

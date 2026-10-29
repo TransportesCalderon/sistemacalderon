@@ -57,12 +57,24 @@ export const PESTANAS_AJUSTES = [
   { href: '/configuracion/catalogos', etiqueta: 'Catálogos' },
 ] as const;
 
-export const PESTANAS_RRHH = [
-  { href: '/rrhh/fondos', etiqueta: 'Fondos de choferes' },
-  { href: '/rrhh/liquidaciones', etiqueta: 'Liquidaciones' },
-  { href: '/rrhh/liquidacion', etiqueta: 'Resumen para liquidar' },
+/** Sprint 7: Liquidaciones, con el resumen y los fondos (cierre del período) como pestañas. */
+export const PESTANAS_LIQUIDACIONES = [
+  { href: '/liquidaciones', etiqueta: 'Liquidaciones' },
+  { href: '/liquidaciones/resumen', etiqueta: 'Resumen para liquidar' },
+  { href: '/liquidaciones/fondos', etiqueta: 'Fondos de choferes' },
   { href: '/rrhh/tarifas', etiqueta: 'Tarifas y conceptos' },
   { href: '/rrhh/datos-legales', etiqueta: 'Datos legales' },
+] as const;
+
+/** Las pantallas de RRHH que todavía no se mudaron (tarifas y datos legales) usan las mismas pestañas. */
+export const PESTANAS_RRHH = PESTANAS_LIQUIDACIONES;
+
+/** Sprint 7: Cotizaciones, con los clientes y las tarifas como pestañas. */
+export const PESTANAS_COTIZACIONES = [
+  { href: '/cotizaciones', etiqueta: 'Cotizaciones' },
+  { href: '/cotizaciones/clientes', etiqueta: 'Clientes y prospectos' },
+  { href: '/cotizaciones/datos-clientes', etiqueta: 'Datos de los clientes' },
+  { href: '/cotizaciones/tarifas', etiqueta: 'Tarifas y costos' },
 ] as const;
 
 /** Migración 73: gastos y su plantilla mensual. */

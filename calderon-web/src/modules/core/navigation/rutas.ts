@@ -22,6 +22,8 @@ export const RUTAS: readonly Ruta[] = [
   { prefijo: '/chofer', pantalla: 'chofer.mi_carga', titulo: 'Mi carga' },
   { prefijo: '/chofer/gastos', pantalla: 'chofer.mis_gastos', titulo: 'Mis gastos' },
   { prefijo: '/chofer/liquidaciones', pantalla: 'chofer.mis_liquidaciones', titulo: 'Mis liquidaciones' },
+  // Sprint 7: todo lo del chofer en una pantalla (las secciones de gastos y liquidaciones piden su permiso en la página)
+  { prefijo: '/mi-viaje', pantalla: 'chofer.mi_carga', titulo: 'Mi viaje' },
   // Cargar nuevo
   { prefijo: '/combustible/cargas/nueva', pantalla: 'combustible.cargas', titulo: 'Carga de combustible' },
   { prefijo: '/operacion/operaciones', pantalla: 'operacion.servicios', titulo: 'Operaciones' },
@@ -37,6 +39,17 @@ export const RUTAS: readonly Ruta[] = [
   { prefijo: '/ventas/empresas', pantalla: 'ventas.empresas', titulo: 'Clientes y prospectos' },
   { prefijo: '/ventas/cotizaciones', pantalla: 'ventas.cotizaciones', titulo: 'Cotizaciones' },
   { prefijo: '/ventas/tarifas', pantalla: 'ventas.tarifas', titulo: 'Tarifas y costos' },
+  // Sprint 7: Cotizaciones, con pestañas (cada una con su pantalla)
+  { prefijo: '/cotizaciones', pantalla: 'ventas.cotizaciones', titulo: 'Cotizaciones' },
+  { prefijo: '/cotizaciones/clientes', pantalla: 'ventas.empresas', titulo: 'Clientes y prospectos' },
+  { prefijo: '/cotizaciones/datos-clientes', pantalla: 'comercial.clientes', titulo: 'Datos de los clientes' },
+  { prefijo: '/cotizaciones/tarifas', pantalla: 'ventas.tarifas', titulo: 'Tarifas y costos' },
+  // Sprint 7: Liquidaciones, con el resumen y los fondos como pestañas
+  { prefijo: '/liquidaciones', pantalla: 'liquidacion.liquidaciones', titulo: 'Liquidaciones' },
+  { prefijo: '/liquidaciones/resumen', pantalla: 'liquidacion.liquidaciones', titulo: 'Resumen para liquidar' },
+  { prefijo: '/liquidaciones/fondos', pantalla: 'rrhh.fondos', titulo: 'Fondos de choferes' },
+  // Sprint 7: Bancos y cajas pasa a Conciliación
+  { prefijo: '/conciliacion', pantalla: 'finanzas.bancos', titulo: 'Conciliación' },
   // Viajes
   { prefijo: '/operacion/tractores', pantalla: 'operacion.tramos', titulo: 'Tractores y viajes' },
   { prefijo: '/operacion/por-cerrar', pantalla: 'operacion.tramos', titulo: 'Cierres por hacer' },
@@ -110,6 +123,24 @@ export const RUTAS_MOVIDAS: readonly { desde: string; hasta: string }[] = [
   // Sprint 6: el mapa es la vista Mapa de la Pizarra; los tractores, sus filas (y la ficha del camión)
   { desde: '/telemetria/mapa', hasta: '/pizarra?vista=mapa' },
   { desde: '/operacion/tractores', hasta: '/pizarra' },
+  // Sprint 7: el chofer tiene una sola pantalla
+  { desde: '/chofer', hasta: '/mi-viaje' },
+  { desde: '/chofer/gastos', hasta: '/mi-viaje?ver=gastos' },
+  { desde: '/chofer/liquidaciones', hasta: '/mi-viaje?ver=liquidaciones' },
+  { desde: '/chofer/tablero', hasta: '/mi-viaje?ver=tablero' },
+  // Sprint 7: Liquidaciones (los fondos son su pestaña)
+  { desde: '/rrhh/liquidaciones', hasta: '/liquidaciones' },
+  { desde: '/rrhh/liquidacion', hasta: '/liquidaciones/resumen' },
+  { desde: '/rrhh/fondos', hasta: '/liquidaciones/fondos' },
+  // Sprint 7: Cotizaciones con sus pestañas (la ficha de cada cliente se abre en el panel)
+  { desde: '/ventas/cotizaciones', hasta: '/cotizaciones' },
+  { desde: '/ventas/cotizaciones/:id(\\d+|nueva)', hasta: '/cotizaciones/:id' },
+  { desde: '/ventas/empresas', hasta: '/cotizaciones/clientes' },
+  { desde: '/comercial/clientes', hasta: '/cotizaciones/datos-clientes' },
+  { desde: '/ventas/tarifas', hasta: '/cotizaciones/tarifas' },
+  // Sprint 7: Bancos y cajas pasa a Conciliación
+  { desde: '/finanzas/bancos', hasta: '/conciliacion' },
+  { desde: '/finanzas/bancos/:id(\\d+)', hasta: '/conciliacion/:id' },
 ];
 
 /** Rutas que no requieren sesión. */

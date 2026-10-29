@@ -86,5 +86,16 @@
   "/ventas/empresas": "ventas.empresas",
   "/ventas/empresas/_": "ventas.empresas",
   "/ventas/facturacion": "ventas.facturacion",
-  "/ventas/tarifas": "ventas.tarifas"
+  "/ventas/tarifas": "ventas.tarifas",
+  "/mi-viaje": "chofer.mi_carga",
+  "/cotizaciones": "ventas.cotizaciones",
+  "/cotizaciones/_": "ventas.cotizaciones",
+  "/cotizaciones/clientes": "ventas.empresas",
+  "/cotizaciones/datos-clientes": "comercial.clientes",
+  "/cotizaciones/tarifas": "ventas.tarifas",
+  "/liquidaciones": "liquidacion.liquidaciones",
+  "/liquidaciones/resumen": "liquidacion.liquidaciones",
+  "/liquidaciones/fondos": "rrhh.fondos",
+  "/conciliacion": "finanzas.bancos",
+  "/conciliacion/_": "finanzas.bancos"
 }

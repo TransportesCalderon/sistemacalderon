@@ -12,12 +12,12 @@ export const crearCliente = createAction({
   permiso: 'comercial.clientes:editar',
   schema: clienteAltaSchema,
   handler: (datos, { db }) => clienteService(db).crear(datos),
-  invalida: (_datos, cliente) => ({ paths: ['/comercial/clientes', `/comercial/clientes/${cliente.id}`] }),
+  invalida: (_datos, cliente) => ({ paths: ['/cotizaciones/datos-clientes', `/comercial/clientes/${cliente.id}`] }),
 });
 
 export const editarCliente = createAction({
   permiso: 'comercial.clientes:editar',
   schema: clienteEdicionSchema,
   handler: (input, { db }) => clienteService(db).editar(input),
-  invalida: ({ id }) => ({ paths: ['/comercial/clientes', `/comercial/clientes/${id}`] }),
+  invalida: ({ id }) => ({ paths: ['/cotizaciones/datos-clientes', `/comercial/clientes/${id}`] }),
 });

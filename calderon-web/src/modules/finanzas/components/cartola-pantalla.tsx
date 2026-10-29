@@ -45,8 +45,8 @@ export function CartolaPantalla({ cuentaId }: { cuentaId: number }) {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Encabezado titulo={c.nombre} subtitulo="Bancos y cajas" />
-        <Link href="/finanzas/bancos" className={BOTON_SECUNDARIO}>
+        <Encabezado titulo={c.nombre} subtitulo="Conciliación" />
+        <Link href="/conciliacion" className={BOTON_SECUNDARIO}>
           <ArrowLeft className="size-4" /> Volver
         </Link>
       </div>

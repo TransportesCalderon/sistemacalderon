@@ -8,10 +8,13 @@ import { nombrePeriodo } from '@/modules/chofer/domain/chofer.types';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia } from '@/shared/lib/fechas';
 import { TARJETA } from '@/shared/ui/clases';
-import { ETIQUETA_ESTADO_LIQ, pesos } from '../domain/liquidacion.types';
+import { ETIQUETA_ESTADO_LIQ, pesos, type Liquidacion } from '../domain/liquidacion.types';
 import { useMisLiquidaciones } from '../queries/hooks';
 import { Recibo } from './recibo';
 import { TONO_LIQ } from './liquidaciones-pantalla';
+
+/** Lo que cobra el chofer por una liquidación: el líquido a pagar si tiene la parte legal, si no el neto (Sprint 7: también en la tarjeta de Mi viaje). */
+export const importeACobrar = (l: Liquidacion) => pesos(l.legal && l.legal.totalHaberes > 0 ? l.legal.aPagar : l.neto, l.moneda);
 
 /** Chofer › Mis liquidaciones: las aprobadas y pagadas, con el detalle (solo lectura). */
 export function MisLiquidaciones() {
@@ -23,8 +26,8 @@ export function MisLiquidaciones() {
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <Link href="/chofer" className="inline-flex items-center gap-1 text-sm text-marca">
-        <ChevronLeft className="size-4" /> Mi carga
+      <Link href="/mi-viaje" className="inline-flex items-center gap-1 text-sm text-marca">
+        <ChevronLeft className="size-4" /> Mi viaje
       </Link>
       <h1 className="text-2xl font-semibold text-tinta">Mis liquidaciones</h1>
       {data.length === 0 ? (
@@ -44,7 +47,7 @@ export function MisLiquidaciones() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold tabular-nums text-tinta">{pesos(l.legal && l.legal.totalHaberes > 0 ? l.legal.aPagar : l.neto, l.moneda)}</p>
+                  <p className="font-semibold tabular-nums text-tinta">{importeACobrar(l)}</p>
                   <Chip tono={TONO_LIQ[l.estado]}>{ETIQUETA_ESTADO_LIQ[l.estado]}</Chip>
                 </div>
                 <ChevronDown className={cn('size-4 shrink-0 text-tinta-suave transition-transform', abierta === l.id && 'rotate-180')} />

@@ -15,5 +15,5 @@ export default async function Pagina({ params }: Props) {
   if (!Number.isInteger(id) || id <= 0) notFound();
   const l = await liquidacionRepository(await createSupabaseServerClient()).liquidacion(id);
   if (!l.numero) notFound();
-  return <ReciboImprimible l={l} volver="/rrhh/liquidaciones" />;
+  return <ReciboImprimible l={l} volver="/liquidaciones" />;
 }
