@@ -1233,6 +1233,14 @@ export type Database = {
       fn_gensets_operacion: { Args: { p_servicio: number }; Returns: Json };
       fn_ven_numero_factura: { Args: { p_id: number; p_numero_fiscal: string }; Returns: undefined };
       fn_ven_resumen_facturacion: { Args: Record<string, never>; Returns: Json };
+      // Migración 124: facturación electrónica (Facturacion.cl)
+      fn_ven_sii_estado: { Args: Record<string, never>; Returns: Json };
+      fn_ven_sii_probar: { Args: Record<string, never>; Returns: Json };
+      fn_ven_sii_factura: { Args: { p_id: number }; Returns: Json };
+      fn_ven_guardar_cliente_sii: { Args: { p_cliente: number; p_datos: Json }; Returns: undefined };
+      fn_ven_emitir_sii: { Args: { p_id: number; p_version: number; p_fecha: string }; Returns: Json };
+      fn_ven_nota_credito_sii: { Args: { p_dte: number; p_motivo: string }; Returns: Json };
+      fn_ven_resolver_dte: { Args: { p_dte: number; p_folio: number | null }; Returns: undefined };
       fn_cancelar_operacion: { Args: { p_servicio: number; p_motivo: string }; Returns: undefined };
       fn_pizarra_totales: {
         Args: Record<string, never>;

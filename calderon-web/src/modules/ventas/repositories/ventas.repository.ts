@@ -25,6 +25,7 @@ import type {
   ParametrosEntrada,
   TarifaEntrada,
 } from '../domain/ventas.schemas';
+import { parsearEstadoSii, parsearResultadoSii, parsearSiiFactura, type ClienteSiiEntrada } from '../domain/sii';
 
 /** Ventas (migraciones 67 y 68). Todo pasa por funciones de la base; su mensaje se muestra tal cual. */
 export const ventasRepository = (db: Db) => {
@@ -269,6 +270,34 @@ export const ventasRepository = (db: Db) => {
     },
     async anularFactura(id: number, motivo: string) {
       await leer(ven().rpc('fn_ven_anular_factura', { p_id: id, p_motivo: motivo }));
+    },
+
+    // Migración 124: facturación electrónica con Facturacion.cl (lo arma y lo envía la base)
+    async siiEstado() {
+      return parsearEstadoSii(await leer(ven().rpc('fn_ven_sii_estado')));
+    },
+    async siiProbar() {
+      return leer(ven().rpc('fn_ven_sii_probar')) as Promise<{ ok?: boolean; ambiente?: string; error?: string }>;
+    },
+    async siiFactura(id: number) {
+      return parsearSiiFactura(await leer(ven().rpc('fn_ven_sii_factura', { p_id: id })));
+    },
+    async guardarClienteSii(d: ClienteSiiEntrada) {
+      await leer(
+        ven().rpc('fn_ven_guardar_cliente_sii', {
+          p_cliente: d.clienteId,
+          p_datos: { giro: d.giro, direccion: d.direccion, comuna: d.comuna, ciudad: d.ciudad, correo: d.correo },
+        }),
+      );
+    },
+    async emitirSii(id: number, version: number, fecha: string) {
+      return parsearResultadoSii(await leer(ven().rpc('fn_ven_emitir_sii', { p_id: id, p_version: version, p_fecha: fecha })));
+    },
+    async notaCreditoSii(dteId: number, motivo: string) {
+      return parsearResultadoSii(await leer(ven().rpc('fn_ven_nota_credito_sii', { p_dte: dteId, p_motivo: motivo })));
+    },
+    async resolverDte(dteId: number, folio: number | null) {
+      await leer(ven().rpc('fn_ven_resolver_dte', { p_dte: dteId, p_folio: folio }));
     },
   };
 };

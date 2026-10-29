@@ -29,6 +29,11 @@ import {
   quitarTarifa,
   recalcularCostoKm,
   responderCotizacion,
+  emitirSii,
+  guardarClienteSii,
+  probarSii,
+  notaCreditoSii,
+  resolverDte,
 } from '../actions/ventas.actions';
 import { ventasRepository } from '../repositories/ventas.repository';
 import { invalidar } from '@/shared/query/invalidar';
@@ -91,3 +96,13 @@ export const useGuardarFactura = () => useEscritura(guardarFactura);
 export const useEmitirFactura = () => useEscritura(emitirFactura);
 export const useCobrarFactura = () => useEscritura(cobrarFactura);
 export const useAnularFactura = () => useEscritura(anularFactura);
+
+// Migración 124: facturación electrónica (Facturacion.cl)
+export const useSiiFactura = (id: number | null, activo = true) =>
+  useQuery({ queryKey: [...CLAVE, 'sii', id], queryFn: () => repo().siiFactura(id!), enabled: !!id && activo });
+export const useSiiEstado = (activo = true) => useQuery({ queryKey: [...CLAVE, 'sii-estado'], queryFn: () => repo().siiEstado(), enabled: activo });
+export const useGuardarClienteSii = () => useEscritura(guardarClienteSii);
+export const useEmitirSii = () => useEscritura(emitirSii);
+export const useNotaCreditoSii = () => useEscritura(notaCreditoSii);
+export const useResolverDte = () => useEscritura(resolverDte);
+export const useProbarSii = () => useEscritura(probarSii);

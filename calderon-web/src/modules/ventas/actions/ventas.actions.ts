@@ -1,5 +1,6 @@
 'use server';
 
+import { z } from 'zod';
 import { createAction } from '@/server/actions/create-action';
 import {
   actividadSchema,
@@ -23,6 +24,7 @@ import {
   tarifaSchema,
   versionSchema,
 } from '../domain/ventas.schemas';
+import { clienteSiiSchema, emitirSiiSchema, notaCreditoSiiSchema, resolverDteSchema } from '../domain/sii';
 import { ventasRepository } from '../repositories/ventas.repository';
 
 /**
@@ -113,4 +115,35 @@ export const anularFactura = createAction({
   schema: motivoSchema,
   handler: (d, { db }) => repo(db).anularFactura(d.id, d.motivo),
   invalida: rutas,
+});
+
+// Migración 124: facturación electrónica (Facturacion.cl). Envía la base; acá solo se llama.
+export const guardarClienteSii = createAction({
+  permiso: 'ventas.facturacion:editar',
+  schema: clienteSiiSchema,
+  handler: (d, { db }) => repo(db).guardarClienteSii(d),
+  invalida: rutas,
+});
+export const emitirSii = createAction({
+  permiso: 'ventas.facturacion:transicionar',
+  schema: emitirSiiSchema,
+  handler: (d, { db }) => repo(db).emitirSii(d.id, d.version, d.fecha),
+  invalida: rutas,
+});
+export const notaCreditoSii = createAction({
+  permiso: 'ventas.facturacion:transicionar',
+  schema: notaCreditoSiiSchema,
+  handler: (d, { db }) => repo(db).notaCreditoSii(d.dteId, d.motivo),
+  invalida: rutas,
+});
+export const resolverDte = createAction({
+  permiso: 'ventas.facturacion:transicionar',
+  schema: resolverDteSchema,
+  handler: (d, { db }) => repo(db).resolverDte(d.dteId, d.folio),
+  invalida: rutas,
+});
+export const probarSii = createAction({
+  permiso: 'ventas.facturacion:transicionar',
+  schema: z.object({}),
+  handler: (_d, { db }) => repo(db).siiProbar(),
 });

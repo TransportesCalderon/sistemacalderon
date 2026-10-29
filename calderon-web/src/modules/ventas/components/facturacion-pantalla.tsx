@@ -26,6 +26,7 @@ import {
   useResumenFacturacion,
 } from '../queries/hooks';
 import { ChipFactura } from './comun';
+import { FacturaSii } from './factura-sii';
 
 /** Migración 101: «por cobrar» = emitidas sin cobrar (con las vencidas). */
 type FiltroFactura = EstadoFactura | 'por_cobrar' | null;
@@ -51,8 +52,8 @@ export function FacturacionPantalla() {
     <div className="space-y-4">
       <Encabezado titulo="Facturación y cobranzas" subtitulo="Finanzas" />
       <p className="text-sm text-tinta-suave">
-        El sistema arma la prefactura con las operaciones y el precio de la tarifa. La factura electrónica se hace en el sistema de facturación de siempre;
-        acá se marca emitida (el número se puede cargar después) y se registra el cobro.
+        El sistema arma la prefactura con las operaciones y el precio de la tarifa. Desde la prefactura se emite la factura electrónica en el SII
+        (Facturacion.cl); si se hizo por fuera, se marca emitida (el número se puede cargar después). Después se registra el cobro.
       </p>
       <ResumenFacturacion onPorFacturar={() => setVista('por_facturar')} onFacturas={verFacturas} />
       <div className="flex gap-1 border-b border-borde">
@@ -472,6 +473,9 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
         </div>
       )}
       <ErrorBase error={envio.error} />
+
+      {/* Migración 124: emitir en el SII con Facturacion.cl */}
+      <FacturaSii facturaId={f.id} version={f.version} estado={f.estado} fecha={emision.fecha} />
 
       <div className="flex flex-wrap items-end gap-3 border-t border-borde pt-3">
         {f.estado === 'borrador' && puedeEstado && (
