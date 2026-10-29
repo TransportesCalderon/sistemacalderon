@@ -1400,6 +1400,8 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       fn_actualizar_cotizaciones: { Args: { p_dias?: number; p_origen?: string; p_bcra?: Json }; Returns: Json };
+      // Migración 119 (IA-1): margen de contribución por viaje, chofer o camión
+      fn_rentabilidad: { Args: { p_desde: string; p_hasta: string; p_agrupar?: string }; Returns: Json };
       // Migración 73: finanzas y contabilidad
       fn_plan_cuentas: { Args: Record<string, never>; Returns: Json };
       fn_cuentas_dinero: { Args: Record<string, never>; Returns: Json };

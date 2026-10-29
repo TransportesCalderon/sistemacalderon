@@ -23,6 +23,8 @@ import {
   registrarMovimiento,
 } from '../actions/finanzas.actions';
 import { finanzasRepository, type FiltroGastos } from '../repositories/finanzas.repository';
+import { rentabilidadRepository } from '../repositories/rentabilidad.repository';
+import type { Agrupacion } from '../domain/rentabilidad';
 import { invalidar } from '@/shared/query/invalidar';
 
 const CLAVE = ['finanzas'] as const;
@@ -93,3 +95,13 @@ export const useCrearDesdeLinea = () => useEscritura(crearDesdeLinea);
 export const useRecontabilizar = () => useEscritura(recontabilizar);
 export const useGuardarMedioPago = () => useEscritura(guardarMedioPago);
 export const useVincularCargas = () => useEscritura(vincularCargas);
+
+/** IA-1 · Rentabilidad (migración 119). Solo lectura; se pide solo si la base ya la tiene. */
+export const useRentabilidad = (desde: string, hasta: string, agrupar: Agrupacion, activo: boolean) =>
+  useQuery({
+    queryKey: ['finanzas', 'rentabilidad', desde, hasta, agrupar] as const,
+    queryFn: () => rentabilidadRepository(browserDb()).leer(desde, hasta, agrupar),
+    enabled: activo,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });

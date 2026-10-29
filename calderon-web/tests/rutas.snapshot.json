@@ -1,4 +1,5 @@
 {
+  "/analisis/rentabilidad": "finanzas.rentabilidad",
   "/anomalias/alertas": "anomalias.alertas",
   "/chofer": "chofer.mi_carga",
   "/chofer/gastos": "chofer.mis_gastos",

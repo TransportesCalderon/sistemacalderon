@@ -100,6 +100,8 @@ const PAGINAS: readonly Ruta[] = [
   { prefijo: '/finanzas/gastos-fijos', pantalla: 'finanzas.gastos', titulo: 'Gastos fijos' },
   // Sprint 0: antes la cuidaba finanzas.resumen (por el prefijo /finanzas) y la página pedía finanzas.gastos
   { prefijo: '/finanzas/combustible', pantalla: 'finanzas.gastos', titulo: 'Combustible' },
+  // IA-1: Rentabilidad (margen de contribución, migración 119). Página propia, no depende del asistente de IA
+  { prefijo: '/analisis/rentabilidad', pantalla: 'finanzas.rentabilidad', titulo: 'Rentabilidad' },
   // Datos
   { prefijo: '/comercial/clientes', pantalla: 'comercial.clientes', titulo: 'Clientes' },
   { prefijo: '/comercial/ubicaciones', pantalla: 'comercial.ubicaciones', titulo: 'Lugares' },

@@ -154,6 +154,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/analisis/resultados', etiqueta: 'Resumen' },
       { href: '/analisis/gastos', etiqueta: 'Gastos', incluye: ['/ajustes/gastos-fijos'] },
       { href: '/analisis/cobros-pagos', etiqueta: 'Cobros y pagos' },
+      // IA-1: margen de contribución por chofer, camión o viaje (migración 119)
+      { href: '/analisis/rentabilidad', etiqueta: 'Rentabilidad' },
       // Sprint 7: Bancos y cajas pasa a Conciliación
       { href: '/conciliacion', etiqueta: 'Conciliación' },
       { href: '/analisis/informes', etiqueta: 'Informes' },
