@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Cargando, Encabezado, ErrorLectura, Seccion } from '@/modules/combustible/components/comun/ui';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { cn } from '@/shared/lib/cn';
-import { dinero, mesCorto } from '../domain/finanzas.types';
+import { dinero, mesCorto, type TableroFinanzas as Tablero } from '../domain/finanzas.types';
 import { useTableroFinanzas } from '../queries/hooks';
 import { Aviso, Indicador } from './comun';
 import { GraficoIngresosGastos, GraficoPrincipales, GraficoResultado } from './graficos';
@@ -85,34 +85,7 @@ export function TableroFinanzas() {
         </Aviso>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Indicador titulo="Plata en bancos y cajas" valor={dinero(t.disponibleClp)} detalle={`${t.bancos.length} cuentas, en pesos de hoy`} href="/finanzas/bancos" />
-        <Indicador
-          titulo="Nos deben (clientes)"
-          valor={dinero(t.porCobrarClp)}
-          detalle={t.facturasVencidas > 0 ? `${dinero(t.porCobrarVencidoClp)} vencido en ${t.facturasVencidas} facturas` : 'nada vencido'}
-          tono={t.facturasVencidas > 0 ? 'error' : 'normal'}
-          href="/finanzas/cobros-pagos"
-        />
-        <Indicador
-          titulo="Debemos (proveedores)"
-          valor={dinero(t.porPagarClp)}
-          detalle={
-            t.gastosVencidos > 0
-              ? `${dinero(t.porPagarVencidoClp)} vencido en ${t.gastosVencidos} gastos`
-              : `${dinero(t.porPagar7DiasClp)} vence en los próximos 7 días`
-          }
-          tono={t.gastosVencidos > 0 ? 'error' : 'normal'}
-          href="/finanzas/cobros-pagos?ver=pagar"
-        />
-        <Indicador
-          titulo={`Resultado de ${t.meses[n] ? mesCorto(t.meses[n]) : 'este mes'}`}
-          valor={dinero(resMes)}
-          detalle={`${mesCorto(t.meses[n - 1] ?? t.hoy)}: ${dinero(resAnt)}`}
-          tono={resMes < 0 ? 'alerta' : 'normal'}
-          href="/finanzas/informes"
-        />
-      </div>
+      <IndicadoresFinanzas t={t} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Indicador
@@ -196,4 +169,52 @@ export function TableroFinanzas() {
       </details>
     </div>
   );
+}
+
+/**
+ * Las cuatro tarjetas de números del resumen: plata en bancos, lo que nos deben, lo que debemos y
+ * el resultado del mes. Sprint 4: se muestran también en «Hoy» de Finanzas y Gerencia.
+ */
+export function IndicadoresFinanzas({ t }: { t: Tablero }) {
+  const n = t.meses.length - 1;
+  const resMes = t.resultado[n] ?? 0;
+  const resAnt = t.resultado[n - 1] ?? 0;
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Indicador titulo="Plata en bancos y cajas" valor={dinero(t.disponibleClp)} detalle={`${t.bancos.length} cuentas, en pesos de hoy`} href="/finanzas/bancos" />
+      <Indicador
+        titulo="Nos deben (clientes)"
+        valor={dinero(t.porCobrarClp)}
+        detalle={t.facturasVencidas > 0 ? `${dinero(t.porCobrarVencidoClp)} vencido en ${t.facturasVencidas} facturas` : 'nada vencido'}
+        tono={t.facturasVencidas > 0 ? 'error' : 'normal'}
+        href="/finanzas/cobros-pagos"
+      />
+      <Indicador
+        titulo="Debemos (proveedores)"
+        valor={dinero(t.porPagarClp)}
+        detalle={
+          t.gastosVencidos > 0
+            ? `${dinero(t.porPagarVencidoClp)} vencido en ${t.gastosVencidos} gastos`
+            : `${dinero(t.porPagar7DiasClp)} vence en los próximos 7 días`
+        }
+        tono={t.gastosVencidos > 0 ? 'error' : 'normal'}
+        href="/finanzas/cobros-pagos?ver=pagar"
+      />
+      <Indicador
+        titulo={`Resultado de ${t.meses[n] ? mesCorto(t.meses[n]) : 'este mes'}`}
+        valor={dinero(resMes)}
+        detalle={`${mesCorto(t.meses[n - 1] ?? t.hoy)}: ${dinero(resAnt)}`}
+        tono={resMes < 0 ? 'alerta' : 'normal'}
+        href="/finanzas/informes"
+      />
+    </div>
+  );
+}
+
+/** Sprint 4: las tarjetas de números para «Hoy», con su propia lectura del resumen. */
+export function TarjetasFinanzas() {
+  const { data: t, isLoading, isError, error, refetch } = useTableroFinanzas();
+  if (isLoading) return <Cargando texto="Leyendo los números…" />;
+  if (isError || !t) return <ErrorLectura texto="No se pudo leer el resumen financiero." onReintentar={() => void refetch()} error={error} />;
+  return <IndicadoresFinanzas t={t} />;
 }

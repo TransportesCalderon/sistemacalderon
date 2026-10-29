@@ -38,6 +38,21 @@ describe('«Hoy» (Sprint 3)', () => {
     expect(contarPendientes(parsearTareas(filas))).toBe(1 + 1 + 3 + 1);
   });
 
+  it('Sprint 4: las tareas de cada rol dicen qué hacer y un error de lectura se ve', () => {
+    const t = parsearTareas([
+      { grupo: 'revisar', tipo: 'op_sin_confirmar', objeto_tipo: 'operacion', objeto_id: 3, titulo: 'Confirmar la operación 6234', pantalla: 'operacion.servicios', cantidad: 1 },
+      { grupo: 'revisar', tipo: 'por_cobrar_vencida', objeto_tipo: 'factura', objeto_id: 7, titulo: 'Cobrar la factura 1', pantalla: 'finanzas.cobros_pagos', cantidad: 1 },
+      { grupo: 'revisar', tipo: 'por_pagar', ruta: '/finanzas/cobros-pagos?ver=pagar', titulo: 'Pagar a X', pantalla: 'finanzas.cobros_pagos', cantidad: 1 },
+      { grupo: 'revisar', tipo: 'por_pagar', ruta: '/finanzas/cobros-pagos?ver=pagar', titulo: 'Pagar a Y', pantalla: 'finanzas.cobros_pagos', cantidad: 1 },
+      { grupo: 'revisar', tipo: 'error_seccion', ruta: '/finanzas/cobros-pagos', titulo: 'No se pudo leer «Por cobrar»', detalle: 'mensaje de la base', pantalla: 'finanzas.cobros_pagos', cantidad: 1 },
+    ]);
+    expect(t.map(accionDe)).toEqual(['Confirmar', 'Cobrar', 'Pagar', 'Pagar', 'Ir a la pantalla']);
+    expect(t[4]!.detalle).toBe('mensaje de la base');
+    // Finanzas ve sus tareas; Operaciones no ve las de Finanzas
+    expect(tareasVisibles(t, permisosDe(['finanzas'], opciones)).some((x) => x.tipo === 'por_pagar')).toBe(true);
+    expect(tareasVisibles(t, permisosDe(['operaciones'], opciones)).some((x) => x.tipo === 'por_pagar')).toBe(false);
+  });
+
   it('el botón dice qué hace', () => {
     const t = parsearTareas(filas);
     expect(accionDe(t[0]!)).toBe('Revisar');

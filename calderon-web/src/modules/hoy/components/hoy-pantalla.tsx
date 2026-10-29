@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowRightLeft, ChevronRight, ClipboardCheck, Fuel, Plus, Receipt, Truck, type LucideIcon } from 'lucide-react';
 import { Cargando, Chip, Encabezado, ErrorLectura, Seccion, Vacio } from '@/modules/combustible/components/comun/ui';
@@ -12,6 +13,14 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { accionDe, agruparTareas, ETIQUETA_GRUPO_HOY, type Tarea } from '../hoy';
 import { useHoy } from '../use-hoy';
+
+// Sprint 4: las tarjetas se cargan solo para los roles que las ven (no suman peso a los demás)
+const TarjetasFinanzas = dynamic(() => import('@/modules/finanzas/components/tablero').then((m) => ({ default: m.TarjetasFinanzas })), {
+  loading: () => <Cargando texto="Leyendo los números…" />,
+});
+const TarjetaTanqueBase = dynamic(() => import('@/modules/combustible/components/base/base-pantalla').then((m) => ({ default: m.TarjetaTanqueBase })), {
+  loading: () => <Cargando texto="Cargando el tanque de base…" />,
+});
 
 interface Atajo {
   href: string;
@@ -40,6 +49,7 @@ export function HoyPantalla() {
     return (
       <div className="space-y-5">
         <Franja />
+        <Tarjetas />
         <PendientesPantalla />
       </div>
     );
@@ -50,6 +60,7 @@ export function HoyPantalla() {
     <div className="space-y-5">
       <Encabezado titulo="Hoy" subtitulo="Lo que te toca, en una sola lista" />
       <Franja />
+      <Tarjetas />
       {isPending ? (
         <Cargando texto="Buscando lo que te toca…" />
       ) : isError ? (
@@ -62,12 +73,30 @@ export function HoyPantalla() {
             <p className="-mt-2 text-xs text-tinta-suave">{ETIQUETA_GRUPO_HOY[g.grupo].ayuda}</p>
             <ul className="divide-y divide-borde">
               {g.tareas.map((t, i) => (
-                <RenglonTarea key={`${t.tipo}-${t.objeto ? `${t.objeto.tipo}:${t.objeto.id}` : (t.ruta ?? i)}`} t={t} />
+                // Varias tareas pueden llevar a la misma lista (por ejemplo, varios pagos): la posición desempata
+                <RenglonTarea key={`${t.tipo}-${t.objeto ? `${t.objeto.tipo}:${t.objeto.id}` : t.ruta}-${i}`} t={t} />
               ))}
             </ul>
           </Seccion>
         ))
       )}
+    </div>
+  );
+}
+
+/**
+ * Sprint 4: tarjetas arriba de la lista, según el rol (las mismas de sus pantallas):
+ * los números de Finanzas para Finanzas y Gerencia, y el tanque para Base Mendoza.
+ */
+function Tarjetas() {
+  const { rolesApp, permisos } = useSesion();
+  const numeros = can(permisos, 'finanzas.resumen:ver') && rolesApp.some((r) => r === 'finanzas' || r === 'gerencia');
+  const tanque = can(permisos, 'combustible.depositos:ver') && rolesApp.includes('base_mendoza');
+  if (!numeros && !tanque) return null;
+  return (
+    <div className="space-y-4">
+      {numeros && <TarjetasFinanzas />}
+      {tanque && <TarjetaTanqueBase />}
     </div>
   );
 }
@@ -104,7 +133,7 @@ function RenglonTarea({ t }: { t: Tarea }) {
   const contenido = (
     <>
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-tinta">
+        <p className={cn('font-medium', t.tipo === 'error_seccion' ? 'text-error' : 'text-tinta')}>
           {t.titulo} {t.cantidad > 1 && <Chip tono="alerta">{t.cantidad}</Chip>}
         </p>
         {(t.detalle || t.fecha) && (

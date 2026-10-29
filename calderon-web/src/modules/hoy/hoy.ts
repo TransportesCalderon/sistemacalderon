@@ -83,8 +83,23 @@ export function contarPendientes(tareas: readonly Tarea[]): number {
 }
 
 /** Texto del botón de cada renglón. */
+const ACCION: Record<string, string> = {
+  carga_sin_ticket: 'Adjuntar ticket',
+  // Sprint 4 (migración 117)
+  op_sin_confirmar: 'Confirmar',
+  op_sin_equipo: 'Asignar equipo',
+  op_frio_sin_genset: 'Asignar genset',
+  gastos_por_revisar: 'Revisar',
+  fondo_bajo: 'Ver fondo',
+  por_facturar: 'Facturar',
+  por_cobrar_vencida: 'Cobrar',
+  por_pagar: 'Pagar',
+  cotizacion_por_vencer: 'Ver cotización',
+  error_seccion: 'Ir a la pantalla',
+};
+
 export function accionDe(t: Tarea): string {
-  if (t.tipo === 'carga_sin_ticket') return 'Adjuntar ticket';
+  if (ACCION[t.tipo]) return ACCION[t.tipo]!;
   if (t.grupo === 'aprobar') return 'Revisar';
   return t.objeto ? 'Abrir' : 'Ir';
 }

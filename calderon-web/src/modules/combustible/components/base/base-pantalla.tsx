@@ -113,7 +113,8 @@ export function BasePantalla() {
   );
 }
 
-function Resumen({ t }: { t: TanqueBase }) {
+/** Sprint 4: la tarjeta del tanque (saldo, último control, responsable y acciones) se usa también en «Hoy». */
+export function Resumen({ t }: { t: TanqueBase }) {
   const { zonaHoraria } = useSesion();
   const puedeEditar = useCan('combustible.depositos:editar');
   const { data: responsables } = useResponsablesBase(t.id);
@@ -500,5 +501,23 @@ function SelectorUsuario({
         ))}
       </select>
     </Campo>
+  );
+}
+
+/**
+ * Sprint 4: la tarjeta del tanque de la base para «Hoy» de Base Mendoza (lo mismo que se ve
+ * arriba en Combustible › Base Mendoza). Si hay varios tanques, una tarjeta por tanque.
+ */
+export function TarjetaTanqueBase() {
+  const { data: tanques, isPending, isError, refetch } = useTanquesDeBase();
+  if (isPending) return <Cargando texto="Cargando el tanque de base…" />;
+  if (isError) return <ErrorLectura texto="No se pudo cargar el tanque de base." onReintentar={() => refetch()} />;
+  if (!tanques || tanques.length === 0) return null;
+  return (
+    <>
+      {tanques.map((t) => (
+        <Resumen key={t.id} t={t} />
+      ))}
+    </>
   );
 }
