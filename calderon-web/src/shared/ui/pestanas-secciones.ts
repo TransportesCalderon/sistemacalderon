@@ -102,3 +102,9 @@ export const PESTANAS_GASTOS = [
   { href: '/ajustes/gastos-fijos', etiqueta: 'Gastos fijos' },
   { href: '/analisis/gastos/combustible', etiqueta: 'Combustible' },
 ] as const;
+
+/** Migración 123 · Conciliación: los bancos y cajas con su cartola, y los cambios de moneda armados desde ellas. */
+export const PESTANAS_CONCILIACION = [
+  { href: '/conciliacion', etiqueta: 'Bancos y cajas' },
+  { href: '/conciliacion/cambios', etiqueta: 'Cambios de moneda' },
+] as const;

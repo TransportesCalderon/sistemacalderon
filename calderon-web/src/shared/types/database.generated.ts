@@ -1414,6 +1414,10 @@ export type Database = {
       fn_actualizar_cotizaciones: { Args: { p_dias?: number; p_origen?: string; p_bcra?: Json }; Returns: Json };
       // Migración 119 (IA-1): margen de contribución por viaje, chofer o camión
       fn_rentabilidad: { Args: { p_desde: string; p_hasta: string; p_agrupar?: string }; Returns: Json };
+      // Migración 123: cambios de moneda armados desde las cartolas
+      fn_cambios_sugeridos: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
+      fn_confirmar_cambios: { Args: { p_pares: { salida: number; entrada: number }[] }; Returns: Json };
+      fn_costo_cambios: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       // Migración 73: finanzas y contabilidad
       fn_plan_cuentas: { Args: Record<string, never>; Returns: Json };
       fn_cuentas_dinero: { Args: Record<string, never>; Returns: Json };

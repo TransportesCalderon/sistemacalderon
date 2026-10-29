@@ -19,11 +19,13 @@ import {
   guardarProveedorRapido,
   ignorarLinea,
   importarCartola,
+  confirmarCambios,
   recontabilizar,
   registrarMovimiento,
 } from '../actions/finanzas.actions';
 import { finanzasRepository, type FiltroGastos } from '../repositories/finanzas.repository';
 import { rentabilidadRepository } from '../repositories/rentabilidad.repository';
+import { cambiosRepository } from '../repositories/cambios.repository';
 import type { Agrupacion } from '../domain/rentabilidad';
 import { invalidar } from '@/shared/query/invalidar';
 
@@ -88,6 +90,7 @@ export const useGenerarGastosFijos = () => useEscritura(generarGastosFijos);
 export const useRegistrarMovimiento = () => useEscritura(registrarMovimiento);
 export const useAnularMovimiento = () => useEscritura(anularMovimiento);
 export const useImportarCartola = () => useEscritura(importarCartola);
+export const useConfirmarCambios = () => useEscritura(confirmarCambios);
 export const useConciliar = () => useEscritura(conciliar);
 export const useDesconciliar = () => useEscritura(desconciliar);
 export const useIgnorarLinea = () => useEscritura(ignorarLinea);
@@ -103,5 +106,21 @@ export const useRentabilidad = (desde: string, hasta: string, agrupar: Agrupacio
     queryFn: () => rentabilidadRepository(browserDb()).leer(desde, hasta, agrupar),
     enabled: activo,
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+/** Migración 123: cambios de moneda propuestos y lo que costó cambiar (solo si la base ya los tiene). */
+export const useCambiosSugeridos = (desde: string, hasta: string, activo: boolean) =>
+  useQuery({
+    queryKey: [...CLAVE, 'cambios', 'sugeridos', desde, hasta],
+    queryFn: () => cambiosRepository(browserDb()).sugeridos(desde, hasta),
+    enabled: activo,
+    placeholderData: keepPreviousData,
+  });
+export const useCostoCambios = (desde: string, hasta: string, activo: boolean) =>
+  useQuery({
+    queryKey: [...CLAVE, 'cambios', 'costo', desde, hasta],
+    queryFn: () => cambiosRepository(browserDb()).costo(desde, hasta),
+    enabled: activo,
     placeholderData: keepPreviousData,
   });

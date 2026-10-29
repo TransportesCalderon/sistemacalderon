@@ -18,6 +18,8 @@ import {
   periodoSchema,
   proveedorSchema,
 } from '../domain/finanzas.schemas';
+import { confirmarCambiosSchema } from '../domain/cambios';
+import { cambiosRepository } from '../repositories/cambios.repository';
 import { finanzasRepository as repo } from '../repositories/finanzas.repository';
 import { z } from 'zod';
 
@@ -129,5 +131,13 @@ export const vincularCargas = createAction({
   permiso: 'finanzas.gastos:editar',
   schema: vincularCargasSchema,
   handler: (d, { db }) => repo(db).vincularCargas(d.gastoId, d.cargas),
+  invalida: () => RUTAS,
+});
+
+/** Migración 123: confirmar los cambios de moneda propuestos (la base exige Finanzas o TI). */
+export const confirmarCambios = createAction({
+  permiso: 'finanzas.bancos:editar',
+  schema: confirmarCambiosSchema,
+  handler: (d, { db }) => cambiosRepository(db).confirmar(d.pares),
   invalida: () => RUTAS,
 });
