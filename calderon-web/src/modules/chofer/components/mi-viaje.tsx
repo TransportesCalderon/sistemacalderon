@@ -70,7 +70,7 @@ export function MiViaje() {
         </div>
       )}
 
-      <CompartirUbicacion habilitado={data.compartirUbicacion} intervaloS={data.intervaloS} />
+      <CompartirUbicacion habilitado={data.compartirUbicacion} intervaloS={data.intervaloS} viaje={data.cargas.map((c) => c.servicioId).join(',')} />
 
       {data.cargas.length === 0 ? (
         <div className={cn(TARJETA, 'space-y-2 p-6 text-center')}>

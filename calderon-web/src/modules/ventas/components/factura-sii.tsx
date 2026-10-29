@@ -8,6 +8,7 @@ import { useCan } from '@/modules/core/permissions/can';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia } from '@/shared/lib/fechas';
+import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { ETIQUETA_ESTADO_DTE, NOMBRE_DTE, VERSION_SII, type DocumentoSii, type EstadoDte, type ResultadoSii, type SiiFactura } from '../domain/sii';
@@ -29,6 +30,8 @@ export function FacturaSii({ facturaId, version, estado, fecha }: { facturaId: n
   const [resultado, setResultado] = useState<ResultadoSii | null>(null);
 
   if (!hay || !puedeEstado || !s) return null;
+  // Una factura hecha por fuera del sistema (sin envíos al SII) no muestra el recuadro
+  if (estado !== 'borrador' && s.documentos.length === 0) return null;
   const prueba = s.ambiente === 'prueba';
   const faltaCliente = s.faltantes.some((x) => x.startsWith('Cliente:') || x.includes('RUT'));
 
@@ -42,6 +45,12 @@ export function FacturaSii({ facturaId, version, estado, fecha }: { facturaId: n
       </div>
       <Conexion />
 
+      {s.tipo === 34 && estado === 'borrador' && s.tcClp !== null && s.totalClp !== null && (
+        <p className="text-sm text-tinta-suave">
+          Precio pactado en dólares. Se emite en pesos chilenos al dólar de hoy ({formatearNumero(s.tcClp, 2)}): <b className="text-tinta">CLP {formatearNumero(s.totalClp, 0)}</b>.
+          Cada renglón dice en la factura su precio en dólares.
+        </p>
+      )}
       {s.faltantes.length > 0 && estado === 'borrador' && (
         <div className="rounded-md bg-alerta/10 p-2 text-sm text-tinta">
           <p className="font-medium">Antes de emitir falta:</p>

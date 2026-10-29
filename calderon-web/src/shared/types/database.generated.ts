@@ -792,6 +792,8 @@ export type OperacionRow = {
   buque: string | null;
   crt: string | null;
   mic: string | null;
+  /** Migración 125. */
+  guia?: string | null;
   observacion: string | null;
   motivo_cancelacion: string | null;
   transportista_id: number | null;
@@ -1241,6 +1243,18 @@ export type Database = {
       fn_ven_emitir_sii: { Args: { p_id: number; p_version: number; p_fecha: string }; Returns: Json };
       fn_ven_nota_credito_sii: { Args: { p_dte: number; p_motivo: string }; Returns: Json };
       fn_ven_resolver_dte: { Args: { p_dte: number; p_folio: number | null }; Returns: undefined };
+      // Migración 125: detalle de la factura por cliente, comprobante del cobro, cambio de tractor
+      fn_ven_detalle_cliente: { Args: { p_cliente: number; p_servicio?: number | null }; Returns: Json };
+      fn_ven_vista_detalle: { Args: { p_servicio: number; p_campos: string[] }; Returns: string };
+      fn_ven_guardar_detalle_cliente: { Args: { p_cliente: number; p_campos: string[] }; Returns: undefined };
+      fn_ven_rearmar_detalle: { Args: { p_factura: number; p_campos: string[] }; Returns: undefined };
+      fn_ven_guardar_comprobante_cobro: { Args: { p_id: number; p_ruta: string; p_nombre: string }; Returns: string | null };
+      fn_bases_operativas: { Args: Record<string, never>; Returns: Json };
+      fn_dejar_en_base: { Args: { p_servicio: number; p_base: number; p_ts?: string | null; p_odometro_km?: number | null }; Returns: undefined };
+      fn_seguir_con_otro_tractor: {
+        Args: { p_servicio: number; p_camion: number; p_chofer: number; p_ts?: string | null; p_odometro_km?: number | null };
+        Returns: number;
+      };
       fn_cancelar_operacion: { Args: { p_servicio: number; p_motivo: string }; Returns: undefined };
       fn_pizarra_totales: {
         Args: Record<string, never>;

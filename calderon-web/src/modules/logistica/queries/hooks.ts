@@ -23,6 +23,7 @@ import {
   asignarTercero,
   cancelarOperacion,
   confirmarOperacion,
+  dejarEnBase,
   eliminarLinea,
   eliminarTransportista,
   guardarLinea,
@@ -30,6 +31,7 @@ import {
   guardarTransportista,
   quitarEquipo,
   registrarHito,
+  seguirConOtroTractor,
   terminarDemora,
   volverPaso,
 } from '../actions/operaciones.actions';
@@ -110,6 +112,11 @@ export const useGuardarTransportista = () => useEscritura(guardarTransportista);
 export const useEliminarTransportista = () => useEscritura(eliminarTransportista);
 export const useAltaOperaciones = () => useEscritura(altaOperaciones);
 export const useAvanzarOperacion = () => useEscritura(avanzarOperacion);
+// Migración 125: cambio de tractor en la base operativa
+export const useDejarEnBase = () => useEscritura(dejarEnBase);
+export const useSeguirConOtroTractor = () => useEscritura(seguirConOtroTractor);
+export const useBasesOperativas = (activo = true) =>
+  useQuery({ queryKey: ['logistica', 'bases-operativas'] as const, queryFn: () => operacionesRepository(browserDb()).basesOperativas(), enabled: activo, staleTime: 300_000 });
 
 // Migración 46: tractores y viajes de chofer
 export const useTractores = () => useQuery({ ...q.tractores(browserDb()), refetchInterval: 60_000 });

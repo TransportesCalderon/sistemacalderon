@@ -25,6 +25,7 @@ export const ESTADOS_LOGISTICA = [
   'hacia_puerto',
   'demorado',
   'descargando',
+  'en_base',
   'entregado',
   'cancelado',
 ] as const;
@@ -43,6 +44,8 @@ export const ESTADO_INFO: Record<EstadoLogistica, { etiqueta: string; clase: str
   demorado: { etiqueta: '06-Demorado', clase: 'bg-[#fef0c7] text-[#93370d] border border-[#f79009]' },
   hacia_puerto: { etiqueta: '07-En tránsito hacia puerto', clase: 'bg-[#dbe8f7] text-[#0b4a85] border border-[#84adff]' },
   descargando: { etiqueta: 'Descargando', clase: 'bg-[#ebe4fa] text-[#4b2c91]' },
+  // Migración 125: el semi quedó en la base operativa esperando otro tractor
+  en_base: { etiqueta: 'En base (cambio de tractor)', clase: 'bg-[#dbe8f7] text-[#0b4a85] border border-dashed border-[#2e90fa]' },
   entregado: { etiqueta: '08-Entregado', clase: 'bg-[#1d4ed8] text-white' },
   cancelado: { etiqueta: 'Cancelado', clase: 'bg-white text-tinta-suave line-through border border-borde' },
 };
@@ -58,7 +61,7 @@ export const GRUPOS_FILTRO = [
     id: 'transito',
     etiqueta: 'En tránsito',
     clase: 'bg-[#2e90fa] text-white',
-    estados: ['en_transito', 'hacia_puerto', 'demorado', 'descargando'],
+    estados: ['en_transito', 'hacia_puerto', 'demorado', 'descargando', 'en_base'],
   },
   { id: 'entregado', etiqueta: 'Entregados', clase: 'bg-[#1d4ed8] text-white', estados: ['entregado'] },
   { id: 'cancelado', etiqueta: 'Cancelados', clase: 'bg-panel text-tinta-suave border border-borde', estados: ['cancelado'] },
@@ -102,6 +105,9 @@ export const PASOS_OPERACION = [
   'entrego',
   'demora',
   'fin_demora',
+  // Migración 125: cambio de tractor en la base operativa
+  'en_base',
+  'seguir',
 ] as const;
 export type PasoOperacion = (typeof PASOS_OPERACION)[number];
 export const esPasoOperacion = (v: string): v is PasoOperacion => (PASOS_OPERACION as readonly string[]).includes(v);
@@ -119,7 +125,11 @@ export const PASO_OPERACION_ETIQUETA: Record<PasoOperacion, string> = {
   entrego: 'Entregó',
   demora: 'Demorado',
   fin_demora: 'Siguió viaje',
+  en_base: 'Dejar el semi en la base',
+  seguir: 'Seguir con otro tractor',
 };
+/** Migración 125: pasos con su propio panel (no se hacen con un clic ni con «otra fecha u hora»). */
+export const PASOS_CON_PANEL: readonly PasoOperacion[] = ['equipo', 'en_base', 'seguir'];
 /** Pasos que pueden pedir el odómetro (solo con equipo propio y sin telemetría). */
 export const PASOS_CON_ODOMETRO: readonly PasoOperacion[] = ['cargando', 'cargo', 'entrego'];
 
@@ -169,6 +179,8 @@ export interface Operacion {
   buque: string | null;
   crt: string | null;
   mic: string | null;
+  /** Migración 125. */
+  guia: string | null;
   observacion: string | null;
   motivoCancelacion: string | null;
   transportistaId: number | null;

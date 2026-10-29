@@ -76,8 +76,11 @@ export function parsearSigue(filas: readonly Crudo[] | null | undefined): Map<nu
   return m;
 }
 
-/** Pasos que se hacen desde la fila. «Asignar equipo» y «Confirmar» se hacen en Operaciones (la fila ya tiene equipo). */
-const EN_LA_FILA = (p: PasoOperacion) => p !== 'equipo' && p !== 'confirmar';
+/**
+ * Pasos que se hacen desde la fila. «Asignar equipo» y «Confirmar» se hacen en Operaciones (la fila ya tiene equipo);
+ * también el cambio de tractor en la base (migración 125), que pide la base o el tractor y el chofer.
+ */
+const EN_LA_FILA = (p: PasoOperacion) => p !== 'equipo' && p !== 'confirmar' && p !== 'en_base' && p !== 'seguir';
 
 /** Los botones de la fila: el principal es el que la base marcó como «siguiente»; los otros van en «Más». */
 export function botonesPaso(s: SigueFila): { principal: PasoOperacion | null; otros: PasoOperacion[] } {

@@ -67,6 +67,7 @@ export const operacionSchema = z.object({
   buque: texto(100),
   crt: texto(60),
   mic: texto(60),
+  guia: texto(60).optional(),
   observacion: texto(2000),
 });
 export type OperacionEntrada = z.input<typeof operacionSchema>;
@@ -110,6 +111,20 @@ export const avanzarSchema = z.object({
     .transform((v) => (v === '' ? null : v)),
 });
 export type AvanzarDatos = z.output<typeof avanzarSchema>;
+
+/** Migración 125: cambio de tractor en la base operativa (las reglas las valida la base). */
+const momentoOpcional = avanzarSchema.shape.momento;
+const odometroOpcional = avanzarSchema.shape.odometroKm;
+export const enBaseSchema = z.object({ servicioId: z.number().int().positive(), baseId: z.number().int().positive(), momento: momentoOpcional, odometroKm: odometroOpcional });
+export const seguirSchema = z.object({
+  servicioId: z.number().int().positive(),
+  camionId: z.number().int().positive(),
+  choferId: z.number().int().positive(),
+  momento: momentoOpcional,
+  odometroKm: odometroOpcional,
+});
+export type EnBaseDatos = z.output<typeof enBaseSchema>;
+export type SeguirDatos = z.output<typeof seguirSchema>;
 
 export const servicioSchema = z.object({ servicioId: servicio });
 

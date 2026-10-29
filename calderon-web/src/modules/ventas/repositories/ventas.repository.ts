@@ -25,6 +25,7 @@ import type {
   ParametrosEntrada,
   TarifaEntrada,
 } from '../domain/ventas.schemas';
+import { parsearDetalleCliente } from '../domain/detalle';
 import { parsearEstadoSii, parsearResultadoSii, parsearSiiFactura, type ClienteSiiEntrada } from '../domain/sii';
 
 /** Ventas (migraciones 67 y 68). Todo pasa por funciones de la base; su mensaje se muestra tal cual. */
@@ -241,7 +242,9 @@ export const ventasRepository = (db: Db) => {
     },
 
     // Facturación
-    async crearFactura(clienteId: number, servicios: number[]): Promise<number> {
+    async crearFactura(clienteId: number, servicios: number[], campos?: string[]): Promise<number> {
+      // Migración 125: primero quedan guardados los datos del detalle para el cliente
+      if (campos) await leer(ven().rpc('fn_ven_guardar_detalle_cliente', { p_cliente: clienteId, p_campos: campos }));
       return leer(ven().rpc('fn_ven_crear_factura', { p_cliente: clienteId, p_servicios: servicios }));
     },
     async guardarFactura(f: GuardarFacturaEntrada) {
@@ -270,6 +273,20 @@ export const ventasRepository = (db: Db) => {
     },
     async anularFactura(id: number, motivo: string) {
       await leer(ven().rpc('fn_ven_anular_factura', { p_id: id, p_motivo: motivo }));
+    },
+
+    // Migración 125: detalle de la factura por cliente y comprobante del cobro
+    async detalleCliente(clienteId: number, servicioId: number | null) {
+      return parsearDetalleCliente(await leer(ven().rpc('fn_ven_detalle_cliente', { p_cliente: clienteId, p_servicio: servicioId })));
+    },
+    async vistaDetalle(servicioId: number, campos: string[]) {
+      return leer(ven().rpc('fn_ven_vista_detalle', { p_servicio: servicioId, p_campos: campos }));
+    },
+    async rearmarDetalle(facturaId: number, campos: string[]) {
+      await leer(ven().rpc('fn_ven_rearmar_detalle', { p_factura: facturaId, p_campos: campos }));
+    },
+    async guardarComprobanteCobro(id: number, ruta: string, nombre: string) {
+      return leer(ven().rpc('fn_ven_guardar_comprobante_cobro', { p_id: id, p_ruta: ruta, p_nombre: nombre }));
     },
 
     // Migración 124: facturación electrónica con Facturacion.cl (lo arma y lo envía la base)

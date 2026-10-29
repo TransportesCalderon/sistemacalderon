@@ -23,10 +23,13 @@ import {
   useGuardarFactura,
   useNumeroFactura,
   usePorFacturar,
+  useRearmarDetalle,
   useResumenFacturacion,
 } from '../queries/hooks';
 import { ChipFactura } from './comun';
 import { FacturaSii } from './factura-sii';
+import { ElegirDetalle } from './detalle-factura';
+import { CampoComprobante, ComprobanteCobro, useAdjuntarComprobante } from './comprobante-cobro';
 
 /** Migración 101: «por cobrar» = emitidas sin cobrar (con las vencidas). */
 type FiltroFactura = EstadoFactura | 'por_cobrar' | null;
@@ -138,6 +141,8 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
   const crear = useCrearFactura();
   const envio = useEnvio();
   const [marcadas, setMarcadas] = useState<Set<number>>(new Set());
+  // Migración 125: qué datos van en cada renglón, por cliente
+  const [campos, setCampos] = useState<Record<number, string[]>>({});
   const grupos = useMemo(() => {
     const m = new Map<number, { cliente: string; ops: PorFacturar[] }>();
     for (const o of data ?? []) {
@@ -179,7 +184,7 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
                   disabled={crear.isPending || elegidas.length === 0}
                   onClick={async () => {
                     envio.setError(null);
-                    const r = await crear.mutateAsync({ clienteId, servicios: elegidas.map((o) => o.servicioId) });
+                    const r = await crear.mutateAsync({ clienteId, servicios: elegidas.map((o) => o.servicioId), campos: campos[clienteId] });
                     if (!r.ok) return envio.setError(r.error);
                     onCreada(r.data);
                   }}
@@ -189,6 +194,13 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
                 </button>
               )}
             </div>
+            {puede && (
+              <ElegirDetalle
+                clienteId={clienteId}
+                servicioId={(elegidas[0] ?? g.ops[0])?.servicioId ?? null}
+                onCambiar={(c) => setCampos((m) => ({ ...m, [clienteId]: c }))}
+              />
+            )}
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
@@ -346,6 +358,11 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
   const cobrar = useCobrarFactura();
   const anular = useAnularFactura();
   const numero = useNumeroFactura();
+  const rearmar = useRearmarDetalle();
+  const comprobante = useAdjuntarComprobante();
+  // Migración 125: datos del detalle de la prefactura y comprobante del cobro
+  const [camposFicha, setCamposFicha] = useState<string[]>([]);
+  const [archivoCobro, setArchivoCobro] = useState<File | null>(null);
   const [numeroDespues, setNumeroDespues] = useState('');
   const envio = useEnvio();
   const [filas, setFilas] = useState<FilaEdit[]>([]);
@@ -449,6 +466,20 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
           >
             <Plus className="size-4" /> Agregar un cargo (estadía, sobrepeso…)
           </button>
+          {f.renglones.some((r) => r.servicioId) && (
+            <div className="space-y-2">
+              <ElegirDetalle clienteId={f.clienteId} servicioId={f.renglones.find((r) => r.servicioId)?.servicioId ?? null} onCambiar={setCamposFicha} />
+              <button
+                type="button"
+                className="text-sm text-marca hover:underline disabled:opacity-60"
+                disabled={rearmar.isPending || camposFicha.length === 0}
+                onClick={() => void envio.enviar(rearmar.mutateAsync({ facturaId: f.id, campos: camposFicha }), () => undefined)}
+              >
+                {rearmar.isPending && <LoaderCircle className="mr-1 inline size-4 animate-spin" />}
+                Rearmar el detalle de las operaciones con estos datos
+              </button>
+            </div>
+          )}
           <Campo label="Observación">
             <input value={obs} onChange={(e) => setObs(e.target.value)} />
           </Campo>
@@ -473,6 +504,8 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
         </div>
       )}
       <ErrorBase error={envio.error} />
+
+      <ComprobanteCobro f={f} puede={puedeEstado} />
 
       {/* Migración 124: emitir en el SII con Facturacion.cl */}
       <FacturaSii facturaId={f.id} version={f.version} estado={f.estado} fecha={emision.fecha} />
@@ -529,13 +562,24 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
                 </select>
               </Campo>
             )}
+            <CampoComprobante archivo={archivoCobro} onArchivo={setArchivoCobro} />
             <button
               type="button"
               className={BOTON_PRIMARIO}
-              disabled={cobrar.isPending}
-              onClick={() => void envio.enviar(cobrar.mutateAsync({ id: f.id, fecha: cobro, cuentaId: cuentaCobro }), () => undefined)}
+              disabled={cobrar.isPending || comprobante.ocupado}
+              onClick={async () => {
+                envio.setError(null);
+                const r = await cobrar.mutateAsync({ id: f.id, fecha: cobro, cuentaId: cuentaCobro });
+                if (!r.ok) return envio.setError(r.error);
+                // Migración 125: el comprobante queda en la factura (comprimido antes de subir)
+                if (archivoCobro) {
+                  const e = await comprobante.adjuntar(f.id, archivoCobro);
+                  if (e) envio.setError({ ...e, mensaje: `El cobro quedó registrado, pero el comprobante no: ${e.mensaje}` });
+                  else setArchivoCobro(null);
+                }
+              }}
             >
-              Registrar el cobro
+              {(cobrar.isPending || comprobante.ocupado) && <LoaderCircle className="size-4 animate-spin" />} Registrar el cobro
             </button>
           </>
         )}

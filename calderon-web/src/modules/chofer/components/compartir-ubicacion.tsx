@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { LocateFixed, LocateOff, MapPinned } from 'lucide-react';
 import { leerLocal, guardarLocal } from '@/shared/lib/local';
 import { cn } from '@/shared/lib/cn';
-import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
+import { TARJETA } from '@/shared/ui/clases';
 import { useEnviarPosicion } from '../queries/hooks';
 
-const CLAVE = 'tc.chofer.compartir';
+const CLAVE = 'tc.chofer.aviso_ubicacion';
 
 type Estado = 'apagado' | 'esperando' | 'activo' | 'sin_permiso' | 'sin_gps';
 
@@ -15,21 +14,23 @@ type Estado = 'apagado' | 'esperando' | 'activo' | 'sin_permiso' | 'sin_gps';
  * Comparte la ubicación del celular mientras el chofer tiene una carga asignada (la base
  * no guarda nada sin carga). Con una página web el navegador solo la da con la aplicación
  * abierta: se pide que la pantalla no se apague mientras está activo.
+ * Pedido de Gerencia (30/10/2026): discreto. Un aviso corto al empezar cada viaje y nada más
+ * (salvo que el navegador no dé permiso). El chofer queda informado del seguimiento.
  */
-export function CompartirUbicacion({ habilitado, intervaloS }: { habilitado: boolean; intervaloS: number }) {
+export function CompartirUbicacion({ habilitado, intervaloS, viaje }: { habilitado: boolean; intervaloS: number; viaje: string }) {
   const enviar = useEnviarPosicion();
-  const [quiere, setQuiere] = useState(true);
+  const [visto, setVisto] = useState(true);
   const [estado, setEstado] = useState<Estado>('apagado');
-  const [ultima, setUltima] = useState<Date | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const posicion = useRef<GeolocationPosition | null>(null);
   const enviarRef = useRef(enviar.mutateAsync);
   enviarRef.current = enviar.mutateAsync;
 
-  useEffect(() => setQuiere(leerLocal<boolean>(CLAVE, true)), []);
+  // El aviso se muestra una sola vez por viaje (las cargas asignadas)
+  useEffect(() => setVisto(leerLocal<string>(CLAVE, '') === viaje), [viaje]);
 
   useEffect(() => {
-    if (!habilitado || !quiere) {
+    if (!habilitado) {
       setEstado('apagado');
       return;
     }
@@ -54,7 +55,6 @@ export function CompartirUbicacion({ habilitado, intervaloS }: { habilitado: boo
         ts: new Date(p.timestamp).toISOString(),
       });
       if (r.ok && r.data.guardada) {
-        setUltima(new Date());
         setAviso(null);
       } else if (r.ok && r.data.motivo && r.data.motivo !== 'Demasiado seguido') {
         setAviso(r.data.motivo);
@@ -102,49 +102,30 @@ export function CompartirUbicacion({ habilitado, intervaloS }: { habilitado: boo
       document.removeEventListener('visibilitychange', alVolver);
       void bloqueo?.release().catch(() => undefined);
     };
-  }, [habilitado, quiere, intervaloS]);
+  }, [habilitado, intervaloS]);
 
-  const alternar = () => {
-    const v = !quiere;
-    setQuiere(v);
-    guardarLocal(CLAVE, v);
-  };
+  if (!habilitado) return null;
 
-  if (!habilitado) {
+  // Solo al empezar el viaje: un aviso corto que se cierra. Después nada, salvo que falte el permiso.
+  if (!visto) {
     return (
-      <div className={cn(TARJETA, 'flex items-start gap-3 p-4 text-sm text-tinta-suave')}>
-        <LocateOff className="mt-0.5 size-5 shrink-0" />
-        <p>Sin carga asignada no se comparte tu ubicación.</p>
+      <div className={cn(TARJETA, 'flex items-center gap-3 p-3 text-sm text-tinta-suave')}>
+        <p className="flex-1">Durante el viaje, la aplicación comparte la ubicación del celular con Logística.</p>
+        <button
+          type="button"
+          className="text-sm font-medium text-marca hover:underline"
+          onClick={() => {
+            guardarLocal(CLAVE, viaje);
+            setVisto(true);
+          }}
+        >
+          Entendido
+        </button>
       </div>
     );
   }
-
-  const textos: Record<Estado, string> = {
-    apagado: 'No estás compartiendo tu ubicación. Logística no puede seguir la carga.',
-    esperando: 'Buscando la señal del GPS…',
-    activo: ultima
-      ? `Compartiendo tu ubicación. Última enviada: ${ultima.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.`
-      : 'Compartiendo tu ubicación.',
-    sin_permiso: 'El celular no da permiso de ubicación a la aplicación. Activalo en los ajustes del navegador para este sitio.',
-    sin_gps: 'Este celular o navegador no tiene GPS disponible.',
-  };
-
-  return (
-    <div className={cn(TARJETA, 'space-y-2 p-4', estado === 'activo' ? 'border-exito/40' : estado === 'apagado' ? '' : 'border-alerta/40')}>
-      <div className="flex items-start gap-3">
-        {estado === 'activo' ? <LocateFixed className="mt-0.5 size-5 shrink-0 text-exito" /> : <MapPinned className="mt-0.5 size-5 shrink-0 text-alerta" />}
-        <div className="flex-1 space-y-1 text-sm">
-          <p className="font-medium text-tinta">{textos[estado]}</p>
-          <p className="text-tinta-suave">
-            Solo mientras tenés una carga y la aplicación está abierta. Dejá esta pantalla abierta durante el viaje; si cerrás la aplicación o se
-            bloquea el celular, deja de enviarse.
-          </p>
-          {aviso && <p className="text-alerta">{aviso}</p>}
-        </div>
-      </div>
-      <button type="button" className={BOTON_SECUNDARIO} onClick={alternar}>
-        {quiere ? 'Dejar de compartir' : 'Compartir mi ubicación'}
-      </button>
-    </div>
-  );
+  if (estado === 'sin_permiso') {
+    return <p className="text-xs text-tinta-suave">Para seguir la carga, activá la ubicación de este sitio en los ajustes del navegador.</p>;
+  }
+  return aviso ? <p className="text-xs text-tinta-suave">{aviso}</p> : null;
 }

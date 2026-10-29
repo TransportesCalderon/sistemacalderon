@@ -147,7 +147,12 @@ export type CotizacionEntrada = z.infer<typeof cotizacionSchema>;
 export const versionSchema = z.object({ id, version: z.number().int().positive() });
 export const responderSchema = z.object({ id, aceptada: z.boolean(), motivo: texto(500), guardarTarifas: z.boolean() });
 
-export const crearFacturaSchema = z.object({ clienteId: id, servicios: z.array(id).min(1, 'Elegí al menos una operación.') });
+export const crearFacturaSchema = z.object({
+  clienteId: id,
+  servicios: z.array(id).min(1, 'Elegí al menos una operación.'),
+  /** Migración 125: datos de cada renglón (se guardan para el cliente; los valida la base). */
+  campos: z.array(z.string()).optional(),
+});
 export const guardarFacturaSchema = z.object({
   id,
   version: z.number().int().positive(),

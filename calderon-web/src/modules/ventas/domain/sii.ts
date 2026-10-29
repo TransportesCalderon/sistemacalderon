@@ -59,6 +59,9 @@ export interface SiiFactura {
   cliente: ClienteSii;
   puedeEmitir: boolean;
   puedeAnular: boolean;
+  /** Migración 125: la exenta (34) se emite en pesos chilenos al dólar del día. */
+  tcClp: number | null;
+  totalClp: number | null;
   documentos: DocumentoSii[];
 }
 
@@ -97,6 +100,8 @@ export function parsearSiiFactura(raw: unknown): SiiFactura {
     faltantes: Array.isArray(j.faltantes) ? j.faltantes.map(String) : [],
     puedeEmitir: j.puede_emitir === true,
     puedeAnular: j.puede_anular === true,
+    tcClp: numN(j.tc_clp),
+    totalClp: numN(j.total_clp),
     cliente: {
       id: Number(c.id),
       razonSocial: str(c.razon_social),

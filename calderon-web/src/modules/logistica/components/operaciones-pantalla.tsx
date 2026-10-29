@@ -23,6 +23,7 @@ import {
   GRUPOS_FILTRO,
   HITO_ETIQUETA,
   PASOS_CON_ODOMETRO,
+  PASOS_CON_PANEL,
   PASO_OPERACION_ETIQUETA,
   TIPO_OPERACION_ETIQUETA,
   TIPOS_OPERACION,
@@ -39,13 +40,16 @@ import {
   useAsignarGenset,
   useAsignarTercero,
   useAvanzarOperacion,
+  useBasesOperativas,
   useCancelarOperacion,
+  useDejarEnBase,
   useGensetsOperacion,
   useGuardarOperacion,
   useLineas,
   useOperaciones,
   useOpcionesViaje,
   useQuitarEquipo,
+  useSeguirConOtroTractor,
   useSugerenciaCliente,
   useTramosOperacion,
   useTransportistas,
@@ -58,7 +62,7 @@ import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 export type Abierto =
   | { tipo: 'nueva'; base?: Operacion }
-  | { tipo: 'detalle' | 'modificar' | 'equipo' | 'tercero' | 'cancelar'; o: Operacion }
+  | { tipo: 'detalle' | 'modificar' | 'equipo' | 'tercero' | 'cancelar' | 'en_base' | 'seguir'; o: Operacion }
   | { tipo: 'paso'; o: Operacion; paso: PasoOperacion; error?: ErrorAccion | null }
   | null;
 
@@ -97,7 +101,7 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
       (o) =>
         o.activa === (vista === 'activas') &&
         (!t ||
-        [String(o.numero), o.redline ? String(o.redline.numero) : null, o.cliente, o.linea, o.contenedor, o.chofer, o.tractor, o.semi, o.booking, o.crt, o.mic, o.transportista].some(
+        [String(o.numero), o.redline ? String(o.redline.numero) : null, o.cliente, o.linea, o.contenedor, o.chofer, o.tractor, o.semi, o.booking, o.crt, o.mic, o.guia, o.transportista].some(
           (c) => normalizar(c).includes(t),
         )),
     );
@@ -263,6 +267,8 @@ function useUnClic(o: Operacion, onAbrir: (a: Abierto) => void) {
   const [enCurso, setEnCurso] = useState<PasoOperacion | null>(null);
   const hacer = async (paso: PasoOperacion) => {
     if (paso === 'equipo') return onAbrir({ tipo: 'equipo', o });
+    // Migración 125: el cambio de tractor pide la base, o el tractor y el chofer
+    if (paso === 'en_base' || paso === 'seguir') return onAbrir({ tipo: paso, o });
     if (paso === 'demora') return onAbrir({ tipo: 'paso', o, paso });
     setEnCurso(paso);
     const r = await avanzar.mutateAsync({ servicioId: o.servicioId, paso, momento: '', odometroKm: '', detalle: '' });
@@ -422,6 +428,7 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       ['Tara que pide', o.taraMaxDias && `${o.taraMaxDias} días`],
       ['CRT', o.crt, true],
       ['MIC', o.mic, true],
+      ['N° de guía', o.guia, true],
       ['Transportista', o.transportista],
       ['Fecha de la operación', formatearFechaDia(o.fecha)],
       [
@@ -499,11 +506,17 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
           {o.posibles.map((p) => (
             <BotonPaso key={p} paso={p} principal={p === o.siguiente} enCurso={enCurso} onClick={() => void hacer(p)} />
           ))}
-          {o.posibles.some((p) => p !== 'equipo') && (
+          {o.posibles.some((p) => !PASOS_CON_PANEL.includes(p)) && (
             <button
               type="button"
               className="text-xs text-marca hover:underline"
-              onClick={() => onAbrir({ tipo: 'paso', o, paso: o.siguiente && o.siguiente !== 'equipo' ? o.siguiente : (o.posibles.find((p) => p !== 'equipo') as PasoOperacion) })}
+              onClick={() =>
+                onAbrir({
+                  tipo: 'paso',
+                  o,
+                  paso: o.siguiente && !PASOS_CON_PANEL.includes(o.siguiente) ? o.siguiente : (o.posibles.find((p) => !PASOS_CON_PANEL.includes(p)) as PasoOperacion),
+                })
+              }
             >
               …con otra fecha u hora
             </button>
@@ -522,6 +535,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       {tipo === 'paso' && abierto?.tipo === 'paso' && <PanelPaso o={o} paso={abierto.paso} errorInicial={abierto.error ?? null} zona={zona} onCerrar={cerrar} />}
       {tipo === 'modificar' && <FormOperacion base={o} zona={zona} onCerrar={cerrar} />}
       {tipo === 'equipo' && <PanelEquipo o={o} onCerrar={cerrar} />}
+      {tipo === 'en_base' && <PanelEnBase o={o} zona={zona} onCerrar={cerrar} />}
+      {tipo === 'seguir' && <PanelSeguir o={o} zona={zona} onCerrar={cerrar} />}
       {tipo === 'tercero' && <PanelTercero o={o} onCerrar={cerrar} />}
       {tipo === 'cancelar' && <PanelCancelar o={o} onCerrar={cerrar} />}
 
@@ -703,7 +718,7 @@ function PanelPaso({
   const { error, setError, enviar, campo } = useEnvio();
   const mostrado = error ?? errorInicial;
   const [f, setF] = useState({ paso: pasoInicial, momento: '', odometroKm: '', detalle: '' });
-  const pasos = o.posibles.filter((p) => p !== 'equipo');
+  const pasos = o.posibles.filter((p) => !PASOS_CON_PANEL.includes(p));
   const pideOdometro = !!o.tramoId && PASOS_CON_ODOMETRO.includes(f.paso);
   return (
     <Panel
@@ -772,6 +787,7 @@ const vacioForm = (zona: string) => ({
   buque: '',
   crt: '',
   mic: '',
+  guia: '',
   observacion: '',
 });
 type Form = ReturnType<typeof vacioForm>;
@@ -790,6 +806,7 @@ const MAS_DATOS: (keyof Form)[] = [
   'taraMaxDias',
   'crt',
   'mic',
+  'guia',
   'observacion',
 ];
 
@@ -835,6 +852,7 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
       buque: s(base.buque),
       crt: editar ? s(base.crt) : '',
       mic: editar ? s(base.mic) : '',
+      guia: editar ? s(base.guia) : '',
       observacion: s(base.observacion),
     };
   });
@@ -1049,6 +1067,9 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
           <Campo label="MIC" error={campo('mic')}>
             <input className="uppercase" maxLength={60} value={f.mic} onChange={ev('mic')} />
           </Campo>
+          <Campo label="N° de guía" error={campo('guia')}>
+            <input className="uppercase" maxLength={60} value={f.guia} onChange={ev('guia')} />
+          </Campo>
           <div className="sm:col-span-2">
             <Campo label="Observaciones" error={campo('observacion')}>
               <input maxLength={2000} value={f.observacion} onChange={ev('observacion')} />
@@ -1116,6 +1137,93 @@ function PanelEquipo({ o, onCerrar }: { o: Operacion; onCerrar: () => void }) {
           </button>
         </div>
       )}
+    </Panel>
+  );
+}
+
+/**
+ * Migración 125 · Cambio de tractor: el tractor que trae la carga deja el semi en la base operativa
+ * (su viaje termina ahí y queda libre). Después otro tractor con su chofer lo engancha y sigue.
+ */
+function PanelEnBase({ o, zona, onCerrar }: { o: Operacion; zona: string; onCerrar: () => void }) {
+  const dejar = useDejarEnBase();
+  const { data: bases } = useBasesOperativas();
+  const { error, enviar, campo } = useEnvio();
+  const [f, setF] = useState({ baseId: '', momento: '', odometroKm: '' });
+  useEffect(() => {
+    if (bases?.length === 1 && !f.baseId) setF((p) => ({ ...p, baseId: String(bases[0]!.id) }));
+  }, [bases, f.baseId]);
+  return (
+    <Panel
+      titulo={`Dejar el semi en la base · Op. ${o.numero}`}
+      explicacion={`El tractor ${o.tractor ?? ''} deja el semi ${o.semi ?? ''} en la base y queda libre. Después elegís el tractor y el chofer que siguen el viaje.`}
+      error={error}
+      ocupado={dejar.isPending}
+      textoBoton="Dejar en la base"
+      onCerrar={onCerrar}
+      onConfirmar={() =>
+        enviar(dejar.mutateAsync({ servicioId: o.servicioId, baseId: Number(f.baseId) || 0, momento: aIso(f.momento, zona), odometroKm: f.odometroKm }), onCerrar)
+      }
+    >
+      <Campo label="Base operativa *" error={campo('baseId')}>
+        <select value={f.baseId} onChange={(e) => setF({ ...f, baseId: e.target.value })}>
+          <option value="">Elegí la base…</option>
+          {(bases ?? []).map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.nombre}
+            </option>
+          ))}
+        </select>
+      </Campo>
+      <Campo label="Fecha y hora de llegada a la base" error={campo('momento')} ayuda="Vacío = ahora.">
+        <input type="datetime-local" value={f.momento} onChange={(e) => setF({ ...f, momento: e.target.value })} />
+      </Campo>
+      <Campo label="Odómetro del tractor (km)" error={campo('odometroKm')} ayuda="Solo si no hay telemetría.">
+        <input inputMode="decimal" value={f.odometroKm} onChange={(e) => setF({ ...f, odometroKm: e.target.value })} />
+      </Campo>
+    </Panel>
+  );
+}
+
+function PanelSeguir({ o, zona, onCerrar }: { o: Operacion; zona: string; onCerrar: () => void }) {
+  const seguir = useSeguirConOtroTractor();
+  const { data: op } = useOpcionesViaje();
+  const { error, enviar, campo } = useEnvio();
+  const [f, setF] = useState({ camionId: '', choferId: '', momento: '', odometroKm: '' });
+  const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+  return (
+    <Panel
+      titulo={`Seguir con otro tractor · Op. ${o.numero}`}
+      explicacion={`El semi ${o.semi ?? ''} está en la base. El tractor y el chofer que elijas lo enganchan y siguen hasta ${o.destino ?? 'el destino'}.`}
+      error={error}
+      ocupado={seguir.isPending}
+      textoBoton="Seguir viaje"
+      onCerrar={onCerrar}
+      onConfirmar={() =>
+        enviar(
+          seguir.mutateAsync({
+            servicioId: o.servicioId,
+            camionId: Number(f.camionId) || 0,
+            choferId: Number(f.choferId) || 0,
+            momento: aIso(f.momento, zona),
+            odometroKm: f.odometroKm,
+          }),
+          onCerrar,
+        )
+      }
+    >
+      <Campo label="Tractor *" error={campo('camionId')}>
+        <Lista valor={f.camionId} opciones={op?.tractores} onCambiar={set('camionId')} />
+      </Campo>
+      <Campo label="Chofer *" error={campo('choferId')}>
+        <Lista valor={f.choferId} opciones={op?.choferes} onCambiar={set('choferId')} />
+      </Campo>
+      <Campo label="Fecha y hora de salida de la base" error={campo('momento')} ayuda="Vacío = ahora.">
+        <input type="datetime-local" value={f.momento} onChange={(e) => setF({ ...f, momento: e.target.value })} />
+      </Campo>
+      <Campo label="Odómetro del tractor (km)" error={campo('odometroKm')} ayuda="Solo si no hay telemetría.">
+        <input inputMode="decimal" value={f.odometroKm} onChange={(e) => setF({ ...f, odometroKm: e.target.value })} />
+      </Campo>
     </Panel>
   );
 }

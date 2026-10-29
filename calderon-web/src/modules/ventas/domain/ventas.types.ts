@@ -662,6 +662,9 @@ export interface Factura {
   cobradaEn: string | null;
   observacion: string | null;
   motivo: string | null;
+  /** Migración 125: comprobante de pago del cobro (Storage). */
+  comprobanteRuta: string | null;
+  comprobanteNombre: string | null;
   version: number;
   renglones: RenglonFactura[];
 }
@@ -683,6 +686,8 @@ export const parsearFactura = (v: unknown): Factura => {
     cobradaEn: s(x.cobrada_en),
     observacion: s(x.observacion),
     motivo: s(x.motivo),
+    comprobanteRuta: s(x.comprobante_ruta),
+    comprobanteNombre: s(x.comprobante_nombre),
     version: n(x.version) ?? 1,
     renglones: arr(x.renglones).map((a) => {
       const y = o(a);

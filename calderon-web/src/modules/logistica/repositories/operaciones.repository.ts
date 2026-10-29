@@ -4,6 +4,8 @@ import type { OperacionRow } from '@/shared/types/database.generated';
 import type {
   AltaDatos,
   AvanzarDatos,
+  EnBaseDatos,
+  SeguirDatos,
   EliminarDatos,
   EquipoDatos,
   HitoDatos,
@@ -39,6 +41,7 @@ const datosOperacion = (d: OperacionDatos) => ({
   buque: d.buque,
   crt: d.crt,
   mic: d.mic,
+  guia: d.guia,
   observacion: d.observacion,
 });
 
@@ -81,6 +84,7 @@ function aOperacion(o: OperacionRow): Operacion {
     buque: o.buque,
     crt: o.crt,
     mic: o.mic,
+    guia: o.guia ?? null,
     observacion: o.observacion,
     motivoCancelacion: o.motivo_cancelacion,
     transportistaId: o.transportista_id,
@@ -156,6 +160,25 @@ export const operacionesRepository = (db: Db) => {
           p_ts: d.momento,
           p_odometro_km: d.odometroKm,
           p_detalle: d.detalle,
+        }),
+      ),
+
+    // Migración 125: cambio de tractor en la base operativa
+    async basesOperativas(): Promise<{ id: number; nombre: string }[]> {
+      const { data, error } = await ops().rpc('fn_bases_operativas');
+      if (error) throw new RepoError(error);
+      return (Array.isArray(data) ? (data as { id: number; nombre: string }[]) : []).map((b) => ({ id: Number(b.id), nombre: String(b.nombre) }));
+    },
+    dejarEnBase: (d: EnBaseDatos) =>
+      llamar(ops().rpc('fn_dejar_en_base', { p_servicio: d.servicioId, p_base: d.baseId, p_ts: d.momento, p_odometro_km: d.odometroKm })),
+    seguirConOtroTractor: (d: SeguirDatos) =>
+      llamar(
+        ops().rpc('fn_seguir_con_otro_tractor', {
+          p_servicio: d.servicioId,
+          p_camion: d.camionId,
+          p_chofer: d.choferId,
+          p_ts: d.momento,
+          p_odometro_km: d.odometroKm,
         }),
       ),
 

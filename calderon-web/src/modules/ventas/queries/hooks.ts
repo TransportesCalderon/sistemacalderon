@@ -31,6 +31,8 @@ import {
   responderCotizacion,
   emitirSii,
   guardarClienteSii,
+  guardarComprobanteCobro,
+  rearmarDetalle,
   probarSii,
   notaCreditoSii,
   resolverDte,
@@ -106,3 +108,16 @@ export const useEmitirSii = () => useEscritura(emitirSii);
 export const useNotaCreditoSii = () => useEscritura(notaCreditoSii);
 export const useResolverDte = () => useEscritura(resolverDte);
 export const useProbarSii = () => useEscritura(probarSii);
+
+// Migración 125: detalle de la factura por cliente y comprobante del cobro
+export const useDetalleCliente = (clienteId: number | null, servicioId: number | null, activo = true) =>
+  useQuery({ queryKey: [...CLAVE, 'detalle', clienteId, servicioId], queryFn: () => repo().detalleCliente(clienteId!, servicioId), enabled: !!clienteId && activo });
+export const useVistaDetalle = (servicioId: number | null, campos: string[], activo = true) =>
+  useQuery({
+    queryKey: [...CLAVE, 'vista-detalle', servicioId, campos.join(',')],
+    queryFn: () => repo().vistaDetalle(servicioId!, campos),
+    enabled: !!servicioId && campos.length > 0 && activo,
+    placeholderData: keepPreviousData,
+  });
+export const useRearmarDetalle = () => useEscritura(rearmarDetalle);
+export const useGuardarComprobanteCobro = () => useEscritura(guardarComprobanteCobro);

@@ -7,6 +7,8 @@ import {
   avanzarSchema,
   cancelarOperacionSchema,
   eliminarSchema,
+  enBaseSchema,
+  seguirSchema,
   equipoSchema,
   gensetOperacionSchema,
   hitoSchema,
@@ -147,4 +149,18 @@ export const eliminarTransportista = createAction({
   schema: eliminarSchema,
   handler: (d, { db }) => operacionesRepository(db).eliminarTransportista(d),
   invalida: catalogos,
+});
+
+/** Migración 125: cambio de tractor en la base operativa (la base exige Operaciones o TI). */
+export const dejarEnBase = createAction({
+  permiso: PERMISO,
+  schema: enBaseSchema,
+  handler: (d, { db }) => operacionesRepository(db).dejarEnBase(d),
+  invalida: rutas,
+});
+export const seguirConOtroTractor = createAction({
+  permiso: PERMISO,
+  schema: seguirSchema,
+  handler: (d, { db }) => operacionesRepository(db).seguirConOtroTractor(d),
+  invalida: rutas,
 });

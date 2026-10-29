@@ -24,6 +24,7 @@ import {
   tarifaSchema,
   versionSchema,
 } from '../domain/ventas.schemas';
+import { comprobanteCobroSchema, rearmarDetalleSchema } from '../domain/detalle';
 import { clienteSiiSchema, emitirSiiSchema, notaCreditoSiiSchema, resolverDteSchema } from '../domain/sii';
 import { ventasRepository } from '../repositories/ventas.repository';
 
@@ -88,7 +89,7 @@ export const duplicarCotizacion = createAction({ permiso: 'ventas.cotizaciones:e
 export const crearFactura = createAction({
   permiso: 'ventas.facturacion:editar',
   schema: crearFacturaSchema,
-  handler: (d, { db }) => repo(db).crearFactura(d.clienteId, d.servicios),
+  handler: (d, { db }) => repo(db).crearFactura(d.clienteId, d.servicios, d.campos),
   invalida: rutas,
 });
 export const guardarFactura = createAction({ permiso: 'ventas.facturacion:editar', schema: guardarFacturaSchema, handler: (d, { db }) => repo(db).guardarFactura(d), invalida: rutas });
@@ -146,4 +147,18 @@ export const probarSii = createAction({
   permiso: 'ventas.facturacion:transicionar',
   schema: z.object({}),
   handler: (_d, { db }) => repo(db).siiProbar(),
+});
+
+// Migración 125: detalle de la factura por cliente y comprobante del cobro
+export const rearmarDetalle = createAction({
+  permiso: 'ventas.facturacion:editar',
+  schema: rearmarDetalleSchema,
+  handler: (d, { db }) => repo(db).rearmarDetalle(d.facturaId, d.campos),
+  invalida: rutas,
+});
+export const guardarComprobanteCobro = createAction({
+  permiso: 'ventas.facturacion:transicionar',
+  schema: comprobanteCobroSchema,
+  handler: (d, { db }) => repo(db).guardarComprobanteCobro(d.id, d.ruta, d.nombre),
+  invalida: rutas,
 });
