@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { ORDEN_COLUMNAS, PANTALLAS } from '@/modules/core/permissions/matriz';
 import { alcanceDe, can, permisosDe } from '@/modules/core/permissions/resolver';
-import { itemActual, masVisible, puedeVerRuta, rutaInicial } from '@/modules/core/navigation/filtrar';
-import { MAS } from '@/modules/core/navigation/navigation';
-import { RUTAS, RUTAS_MOVIDAS, RUTAS_NUEVAS, pantallaDeRuta } from '@/modules/core/navigation/rutas';
+import { menuVisible, pantallaDeEntrada, rutaInicial } from '@/modules/core/navigation/filtrar';
+import { NAVEGACION, entradaActual } from '@/modules/core/navigation/navigation';
+import * as PESTANAS from '@/shared/ui/pestanas-secciones';
+import { RUTAS, RUTAS_NUEVAS, pantallaDeRuta } from '@/modules/core/navigation/rutas';
 import { decodificarClaims, identidadDesdeClaims } from '@/modules/core/auth/claims';
 
 const agregado = { gerenciaDetalleAlertas: 'agregado' as const };
@@ -87,50 +88,37 @@ describe('matriz de permisos (especificación §16)', () => {
   });
 });
 
-describe('navegación (Sprint 8: barra de arriba y «Más», sin menú lateral)', () => {
-  /** Las entradas del menú lateral antes del Sprint 8 (sin las altas, que siguen en sus listas y en Hoy). */
-  const MENU_VIEJO = [
-    '/hoy', '/mi-viaje', '/anomalias/alertas', '/ventas', '/cotizaciones', '/operacion/operaciones', '/operacion/viajes-chofer',
-    '/operacion/por-cerrar', '/pizarra', '/pizarra/mapa', '/telemetria/ranking', '/combustible/cargas', '/combustible/base',
-    '/combustible/costo-medio', '/flota/camiones', '/flota/choferes', '/flota/asignaciones', '/liquidaciones/fondos', '/liquidaciones',
-    '/ventas/facturacion', '/finanzas', '/finanzas/gastos', '/finanzas/cobros-pagos', '/conciliacion', '/finanzas/informes',
-    '/finanzas/plan-cuentas', '/cotizaciones/datos-clientes', '/comercial/ubicaciones', '/operacion/lineas', '/comercial/proveedores',
-    '/operacion/transportistas', '/configuracion/usuarios', '/finanzas/tipos-cambio', '/configuracion/parametros', '/telemetria/datos',
-    '/telemetria/equipos',
-  ];
-  const BARRA = ['/hoy', '/pizarra', '/pizarra/mapa', '/mi-viaje'];
-  const adonde = (ruta: string) =>
-    RUTAS_NUEVAS.find((n) => n.vieja === ruta)?.nueva ?? RUTAS_MOVIDAS.find((m) => m.desde === ruta)?.hasta.split('?')[0] ?? ruta;
+describe('navegación (menú lateral por área; se mantiene después del Sprint 8)', () => {
+  const entradas = NAVEGACION.flatMap((g) => g.entradas);
+  const GRUPOS_PESTANAS = Object.values(PESTANAS) as readonly (readonly { href: string }[])[];
 
-  it('nada se pierde: lo que cada rol veía en el menú lateral está en la barra o en «Más»', () => {
-    for (const rol of ORDEN_COLUMNAS) {
-      const p = permisosDe([rol], agregado);
-      const alcance = [...BARRA.filter((r) => puedeVerRuta(p, r)), ...masVisible(p).flatMap((g) => g.items.flatMap((i) => i.rutas))];
-      for (const viejo of MENU_VIEJO.filter((r) => puedeVerRuta(p, r))) expect(alcance, `${rol}: ${viejo}`).toContain(adonde(viejo));
-    }
+  it('grupos por área, con «Cargar nuevo» y lo del chofer aparte', () => {
+    expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'chofer', 'cargar', 'pendientes', 'ventas', 'logistica', 'combustible', 'flota', 'rrhh', 'finanzas', 'datos', 'configuracion']);
+    expect(entradas.length).toBe(42);
+    expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
+    for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
   });
 
-  it('cada dirección de Análisis y Ajustes está en «Más» y tiene la pantalla de la página de antes', () => {
-    const todas = MAS.flatMap((g) => g.items.flatMap((i) => i.rutas));
+  it('nada queda sin entrada: cada dirección de Análisis y Ajustes se llega desde el menú o desde sus pestañas', () => {
+    const delMenu = new Set(entradas.flatMap((e) => [e.href, ...(e.incluye ?? [])]));
+    const alcance = new Set([...delMenu, ...GRUPOS_PESTANAS.filter((g) => g.some((t) => delMenu.has(t.href))).flatMap((g) => g.map((t) => t.href))]);
     for (const n of RUTAS_NUEVAS) {
-      expect(todas, n.nueva).toContain(n.nueva);
+      expect(alcance.has(n.nueva) || n.nueva === '/ajustes/viajes', n.nueva).toBe(true);
       expect(pantallaDeRuta(n.nueva), n.nueva).toBe(pantallaDeRuta(n.vieja));
     }
-    for (const r of todas) expect(pantallaDeRuta(r), r).not.toBeNull();
-    expect(new Set(todas).size).toBe(todas.length);
   });
 
-  it('cada ítem de «Más» lleva a la primera pestaña que la persona puede ver', () => {
-    const ope = masVisible(permisosDe(['operaciones'], agregado)).flatMap((g) => g.items);
-    // Operaciones no ve Cotizaciones pero sí los datos de los clientes
-    expect(ope.find((i) => i.etiqueta === 'Cotizaciones')?.href).toBe('/cotizaciones/datos-clientes');
-    // Operaciones ve los fondos pero no las liquidaciones
-    expect(ope.find((i) => i.etiqueta === 'Liquidaciones')?.href).toBe('/liquidaciones/fondos');
-    expect(itemActual('/analisis/cierres/viajes', [{ id: 'analisis', etiqueta: '', items: ope }])).toBe('/analisis/viajes');
+  it('marca una sola entrada: la de la coincidencia más larga, contando las pestañas', () => {
+    expect(entradaActual('/combustible/cargas/nueva', entradas)).toBe('/combustible/cargas/nueva');
+    expect(entradaActual('/analisis/cargas/por-validar', entradas)).toBe('/analisis/cargas');
+    expect(entradaActual('/analisis/cierres/viajes', entradas)).toBe('/analisis/viajes');
+    expect(entradaActual('/ajustes/flota/gensets', entradas)).toBe('/ajustes/flota');
+    expect(entradaActual('/pizarra/mapa', entradas)).toBe('/pizarra/mapa');
   });
 
   it('todas las rutas apuntan a pantallas de la matriz, sin prefijos repetidos (Sprint 0 · T01)', () => {
     for (const r of RUTAS) expect(PANTALLAS[r.pantalla], r.prefijo).toBeDefined();
+    for (const e of entradas) expect(pantallaDeEntrada(e), e.href).not.toBeNull();
     expect(new Set(RUTAS.map((r) => r.prefijo)).size).toBe(RUTAS.length);
   });
 
@@ -140,12 +128,13 @@ describe('navegación (Sprint 8: barra de arriba y «Más», sin menú lateral)'
     expect(pantallaDeRuta('/otra-cosa')).toBeNull();
   });
 
-  it('el inicio de todos es «Hoy» (Sprint 3); el del chofer, Mi viaje, y no tiene «Más»', () => {
-    for (const rol of ['gerencia', 'operaciones', 'base_mendoza', 'adm_combustible', 'finanzas', 'comercial', 'ti'] as const) {
+  it('TI ve 11 grupos (no el del chofer); el inicio de todos es «Hoy» y el del chofer, Mi viaje', () => {
+    expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(11);
+    for (const rol of ['gerencia', 'operaciones', 'base_mendoza', 'adm_combustible', 'finanzas', 'comercial'] as const) {
       expect(rutaInicial(permisosDe([rol], agregado)), rol).toBe('/hoy');
     }
     expect(rutaInicial(permisosDe(['chofer'], agregado))).toBe('/mi-viaje');
-    expect(masVisible(permisosDe(['chofer'], agregado))).toEqual([]);
+    expect(menuVisible(permisosDe(['chofer'], agregado)).map((g) => g.id)).toEqual(['chofer']);
   });
 });
 

@@ -1,21 +1,43 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import type { GrupoMasVisible } from '@/modules/core/navigation/filtrar';
-import { BarraInferior, BarraSuperior } from './topbar';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { cn } from '@/shared/lib/cn';
+import type { GrupoMenu } from '@/modules/core/navigation/navigation';
+import { guardarLocal, leerLocal, Sidebar } from './sidebar';
+import { BarraSuperior } from './topbar';
 
-/**
- * Estructura de la aplicación. Sprint 8 (ítem 35): sin menú lateral. Arriba la barra (logo, Hoy,
- * Pizarra, Mapa, buscador, Más y usuario); en el celular, abajo, Hoy, Pizarra, Mapa y Más.
- */
-export function AppShell({ mas, inicio, aviso, children }: { mas: GrupoMasVisible[]; inicio: string; aviso?: ReactNode; children: ReactNode }) {
+const CLAVE_PLEGADO = 'tc.sidebar.plegado';
+
+/** Estructura de la aplicación: Sidebar fijo + barra superior (con el buscador) + contenido. */
+export function AppShell({ menu, aviso, children }: { menu: GrupoMenu[]; aviso?: ReactNode; children: ReactNode }) {
+  const [plegado, setPlegado] = useState(false);
+  const [abiertoMovil, setAbiertoMovil] = useState(false);
+
+  useEffect(() => setPlegado(leerLocal(CLAVE_PLEGADO, false)), []);
+
+  const alternarPlegado = useCallback(() => {
+    setPlegado((p) => {
+      guardarLocal(CLAVE_PLEGADO, !p);
+      return !p;
+    });
+  }, []);
+  const cerrarMovil = useCallback(() => setAbiertoMovil(false), []);
+  const abrirMovil = useCallback(() => setAbiertoMovil(true), []);
+
   return (
-    <div className="flex min-h-dvh flex-col bg-fondo">
-      <BarraSuperior mas={mas} inicio={inicio} />
-      {aviso}
-      {/* En el celular, lugar para la barra de abajo */}
-      <main className="flex-1 px-4 pt-6 pb-24 sm:px-6 md:pb-6 lg:px-8">{children}</main>
-      <BarraInferior mas={mas} />
+    <div className="min-h-dvh bg-fondo">
+      <Sidebar
+        menu={menu}
+        plegado={plegado && !abiertoMovil}
+        onAlternarPlegado={alternarPlegado}
+        abiertoMovil={abiertoMovil}
+        onCerrarMovil={cerrarMovil}
+      />
+      <div className={cn('flex min-h-dvh flex-col transition-[padding] duration-200', plegado ? 'lg:pl-16' : 'lg:pl-64')}>
+        <BarraSuperior onAbrirMenu={abrirMovil} />
+        {aviso}
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+      </div>
     </div>
   );
 }

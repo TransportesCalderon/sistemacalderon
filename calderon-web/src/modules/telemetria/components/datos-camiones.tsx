@@ -40,7 +40,7 @@ function TarjetasSinEnlace() {
     <Seccion titulo="Tarjetas de conductor sin enlazar">
       <p className="text-sm text-tinta-suave">
         Son tarjetas del tacógrafo que aparecen en la telemetría de los últimos 30 días y no están cargadas en ningún chofer. Mientras no se enlacen, el
-        sistema usa el viaje de chofer o el chofer fijo del tractor. Para enlazarla: Más › Ajustes › Flota › Choferes › editar el chofer › «Identificador de conductor
+        sistema usa el viaje de chofer o el chofer fijo del tractor. Para enlazarla: Flota › Choferes › editar el chofer › «Identificador de conductor
         Optifleet».
       </p>
       {isPending ? (

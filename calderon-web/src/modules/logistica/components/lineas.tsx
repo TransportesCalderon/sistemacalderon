@@ -38,7 +38,7 @@ export function LineasPantalla() {
       </Encabezado>
       <p className="max-w-3xl text-sm text-tinta-suave">
         Como en REDLINE: al elegir la línea en una operación se completan el lugar de retiro, la aduana y el de entrega. Los lugares se
-        cargan en Más › Ajustes › Lugares.
+        cargan en Datos › Lugares.
       </p>
       {abierto?.modo === 'nuevo' && <FormLinea onCerrar={() => setAbierto(null)} />}
       <input

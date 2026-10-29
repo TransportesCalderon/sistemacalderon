@@ -161,7 +161,7 @@ function NosDeben() {
               href="/analisis/facturacion"
               className="font-medium text-marca underline"
             >
-              Más › Análisis › Facturación
+              Finanzas › Facturación y cobranzas
             </Link>
             . Un cobro puede ser parcial; cuando se completa, la factura queda
             cobrada.

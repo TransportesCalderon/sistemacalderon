@@ -13,7 +13,7 @@ export function AvisoMonedaBase({ puedeConfigurar }: { puedeConfigurar: boolean 
             {' '}
             Definila en{' '}
             <Link href="/ajustes/monedas" className="font-medium underline">
-              Más › Ajustes › Monedas
+              Configuración › Monedas
             </Link>
             .
           </>

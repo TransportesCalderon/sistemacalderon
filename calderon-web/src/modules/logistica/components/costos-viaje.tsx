@@ -82,7 +82,7 @@ function ContenidoCostos({ c, viaje }: { c: Costos; viaje: ViajeChofer }) {
                 Costo por km
                 <span className="block text-xs text-tinta-suave">
                   {c.costoKmFijo === null
-                    ? 'Sin cargar: Más › Ajustes › Parámetros y catálogos › ops.costo_km_fijo'
+                    ? 'Sin cargar: Configuración › Parámetros y catálogos › ops.costo_km_fijo'
                     : `${formatoNumero(c.fuenteKm === 'telemetria' ? c.kmReales : c.kmLinea)} km ${c.fuenteKm === 'telemetria' ? 'reales' : 'de la línea'} × ${imp(c.costoKmFijo)}`}
                 </span>
               </td>
@@ -269,7 +269,7 @@ export function CostosViajesPantalla() {
     <div className="space-y-5">
       <Encabezado titulo="Costos de viajes" subtitulo="Viajes" />
       <p className="max-w-3xl text-sm text-tinta-suave">
-        Por viaje de chofer: combustible de las cargas, canon, km reales × costo fijo por km (Más › Ajustes › Parámetros y catálogos) y los gastos cargados en el
+        Por viaje de chofer: combustible de las cargas, canon, km reales × costo fijo por km (Configuración › Parámetros y catálogos) y los gastos cargados en el
         viaje. Los km de la línea son los que se liquidan; los reales salen de la telemetría.
       </p>
       <FiltroPeriodo p={p} onCambiar={setP} />
