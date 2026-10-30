@@ -31,15 +31,19 @@ export interface ItemElegido {
   lineaId: number | null;
 }
 
-/** Operaciones que se pueden sumar a un viaje: no canceladas ni de transportista externo. Primero las del tractor. */
-export function useOperacionesParaViaje(camionId: number | null, excluir: readonly number[] = []) {
+/**
+ * Operaciones que se pueden sumar a un viaje: no canceladas ni de transportista externo.
+ * Siempre por número, de la más nueva a la más vieja (pedido de Gerencia 30/10/2026); las del tractor
+ * se marcan «Asignada a este tractor» en su lugar.
+ */
+export function useOperacionesParaViaje(excluir: readonly number[] = []) {
   const { data, isPending } = useOperaciones(null, null);
   const lista = useMemo(() => {
     const fuera = new Set(excluir);
     return (data ?? [])
       .filter((o) => o.estadoLogistica !== 'cancelado' && o.transportistaId === null && !fuera.has(o.servicioId))
-      .sort((a, b) => Number(b.camionId === camionId) - Number(a.camionId === camionId) || b.numero - a.numero);
-  }, [data, camionId, excluir]);
+      .sort((a, b) => b.numero - a.numero);
+  }, [data, excluir]);
   return { operaciones: lista, isPending };
 }
 
@@ -47,6 +51,9 @@ export function useOperacionesParaViaje(camionId: number | null, excluir: readon
  * Selector de lo que lleva el viaje: lista de operaciones con casilla (las asignadas a este tractor
  * arriba y marcadas) y, aparte, «vuelta vacía» por línea.
  */
+/** Cuántas operaciones se dibujan a la vez (el buscador encuentra cualquiera). */
+const MAX_VISIBLES = 150;
+
 export function SelectorItems({
   camionId,
   elegidos,
@@ -58,14 +65,15 @@ export function SelectorItems({
   onCambiar: (v: ItemElegido[]) => void;
   excluir?: readonly number[];
 }) {
-  const { operaciones, isPending } = useOperacionesParaViaje(camionId, excluir);
+  const { operaciones, isPending } = useOperacionesParaViaje(excluir);
   const { data: lineas } = useLineas();
   const [texto, setTexto] = useState('');
   const [vacia, setVacia] = useState('');
   const t = normalizar(texto);
-  const visibles = operaciones
-    .filter((o) => !t || [String(o.numero), o.cliente, o.linea ?? '', o.contenedor ?? '', o.tractor ?? ''].some((c) => normalizar(c).includes(t)))
-    .slice(0, 40);
+  const coinciden = operaciones.filter(
+    (o) => !t || [String(o.numero), o.cliente, o.linea ?? '', o.contenedor ?? '', o.tractor ?? ''].some((c) => normalizar(c).includes(t)),
+  );
+  const visibles = coinciden.slice(0, MAX_VISIBLES);
   const marcada = (id: number) => elegidos.some((e) => e.servicioId === id);
   const alternar = (o: Operacion) =>
     onCambiar(marcada(o.servicioId) ? elegidos.filter((e) => e.servicioId !== o.servicioId) : [...elegidos, { servicioId: o.servicioId, lineaId: null }]);
@@ -133,6 +141,11 @@ export function SelectorItems({
           })
         )}
       </ul>
+      {coinciden.length > MAX_VISIBLES && (
+        <p className="text-xs text-tinta-suave">
+          Se ven las {MAX_VISIBLES} más nuevas de {coinciden.length}. Para otra, escribí su número en el buscador.
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-tinta-suave">¿Fue o volvió vacío?</span>
         <select aria-label="Línea de la vuelta vacía" value={vacia} onChange={(e) => setVacia(e.target.value)} className="h-9 rounded-md border border-borde bg-panel px-2 text-sm">
