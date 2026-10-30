@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LoaderCircle, MessageSquarePlus, Send, ThumbsDown, ThumbsUp, TriangleAlert, X } from 'lucide-react';
+import { LoaderCircle, MessageSquarePlus, Mic, Send, Square, ThumbsDown, ThumbsUp, TriangleAlert, Volume2, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCan } from '@/modules/core/permissions/can';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
@@ -14,6 +14,7 @@ import { asistenteRepository, textoPeriodo, textoSemana, VERSION_ASISTENTE, VERS
 import { generarInforme, preguntarAsistente, valorarRespuesta } from './asistente.actions';
 import { parsearMarkdown, type Bloque, type Trozo } from './markdown';
 import irisLogo from './iris-logo.png';
+import { useEscuchar, useHablar } from './voz-hooks';
 
 const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 const repo = () => asistenteRepository(browserDb());
@@ -73,6 +74,18 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
   const avisarCambio = useRef(onCambio);
   avisarCambio.current = onCambio;
   const pensando = turnos.some((t) => t.estado === 'pensando');
+  // Chat por voz: lo que se pregunta hablando, Iris lo responde hablando
+  const voz = useHablar();
+  const leerAlLlegar = useRef(new Set<number>());
+  const { hablar, callar } = voz;
+  useEffect(() => {
+    for (const t of turnos) {
+      if (t.estado === 'pensando' || !leerAlLlegar.current.has(t.id)) continue;
+      leerAlLlegar.current.delete(t.id);
+      hablar(t.id, t.estado === 'lista' ? (t.respuesta ?? '') : (t.error ?? ''));
+    }
+  }, [turnos, hablar]);
+  useEffect(() => callar, [callar]);
 
   useEffect(() => {
     const alTeclear = (e: KeyboardEvent) => e.key === 'Escape' && !e.defaultPrevented && onCerrar();
@@ -113,8 +126,9 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
     };
   }, [pendiente]);
 
-  const preguntar = async (pregunta: string | null, sugerida: string | null, mostrar: string) => {
+  const preguntar = async (pregunta: string | null, sugerida: string | null, mostrar: string, porVoz = false) => {
     setError(null);
+    callar();
     setEnviando(true);
     const r = await preguntarAsistente({ pregunta, conversacionId: conversacion, sugerida });
     setEnviando(false);
@@ -134,6 +148,7 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
       fuentes: [],
       util: null,
     };
+    if (porVoz) leerAlLlegar.current.add(r.data);
     setTurnos((ts) => [...ts, nuevo]);
     setTexto('');
     // La conversación la crea la base con la primera pregunta: se toma de la primera respuesta
@@ -148,12 +163,26 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
     }
   };
 
+  const oido = useEscuchar((dicho) => {
+    if (!enviando && !pensando) void preguntar(dicho, null, dicho, true);
+    else setTexto(dicho);
+  });
+  const { cancelar } = oido;
+  useEffect(() => cancelar, [cancelar]);
+  const microfono = () => {
+    if (oido.escuchando) return oido.parar();
+    voz.desbloquear();
+    callar();
+    oido.empezar();
+  };
+
   const enviarTexto = () => {
     const p = texto.trim();
     if (p && !enviando && !pensando) void preguntar(p, null, p);
   };
 
   const nueva = () => {
+    callar();
     setConversacion(null);
     setTurnos([]);
     setError(null);
@@ -225,16 +254,22 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
           </div>
         )}
         {turnos.map((t) => (
-          <TurnoVista key={t.id} t={t} onValorado={(util) => setTurnos((ts) => ts.map((x) => (x.id === t.id ? { ...x, util } : x)))} />
+          <TurnoVista
+            key={t.id}
+            t={t}
+            onValorado={(util) => setTurnos((ts) => ts.map((x) => (x.id === t.id ? { ...x, util } : x)))}
+            voz={voz.disponible ? { leyendo: voz.hablando === t.id, onLeer: () => (voz.hablando === t.id ? callar() : hablar(t.id, t.respuesta ?? '')) } : null}
+          />
         ))}
         <div ref={fondo} />
       </div>
 
       <div className="space-y-1.5 border-t border-borde p-3">
-        {error && <p className="text-sm text-error">{error}</p>}
+        {(error ?? oido.error) && <p className="text-sm text-error">{error ?? oido.error}</p>}
         <div className="flex items-end gap-2">
           <textarea
-            value={texto}
+            value={oido.escuchando ? oido.parcial : texto}
+            readOnly={oido.escuchando}
             rows={2}
             maxLength={2000}
             disabled={!!apagado}
@@ -245,9 +280,26 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
                 enviarTexto();
               }
             }}
-            placeholder={turnos.length ? 'Repreguntale a Iris («¿y el mes pasado?»)…' : 'Escribile a Iris…'}
+            placeholder={
+              oido.escuchando ? 'Te escucho…' : turnos.length ? 'Repreguntale a Iris («¿y el mes pasado?»)…' : oido.disponible ? 'Escribile o hablale a Iris…' : 'Escribile a Iris…'
+            }
             className="min-h-11 flex-1 resize-none rounded-md border border-borde bg-panel px-3 py-2 text-sm outline-none focus:border-marca"
           />
+          {oido.disponible && (
+            <button
+              type="button"
+              onClick={microfono}
+              disabled={(!oido.escuchando && (enviando || pensando)) || !!apagado}
+              aria-label={oido.escuchando ? 'Terminar y preguntar' : 'Preguntar hablando'}
+              title={oido.escuchando ? 'Terminar y preguntar' : 'Preguntar hablando (Iris te responde con voz)'}
+              className={cn(
+                'grid size-11 place-items-center rounded-md border disabled:opacity-50',
+                oido.escuchando ? 'animate-pulse border-error bg-error text-white' : 'border-borde text-marca hover:bg-marca-suave',
+              )}
+            >
+              {oido.escuchando ? <Square className="size-4 fill-current" /> : <Mic className="size-5" />}
+            </button>
+          )}
           <button
             type="button"
             onClick={enviarTexto}
@@ -266,7 +318,15 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
   );
 }
 
-function TurnoVista({ t, onValorado }: { t: Turno; onValorado: (util: boolean) => void }) {
+function TurnoVista({
+  t,
+  onValorado,
+  voz,
+}: {
+  t: Turno;
+  onValorado: (util: boolean) => void;
+  voz: { leyendo: boolean; onLeer: () => void } | null;
+}) {
   return (
     <div className="space-y-2">
       <p className="ml-auto w-fit max-w-[85%] rounded-lg bg-marca-suave px-3 py-2 text-sm text-tinta">{t.pregunta}</p>
@@ -279,6 +339,16 @@ function TurnoVista({ t, onValorado }: { t: Turno; onValorado: (util: boolean) =
       {t.estado === 'lista' && (
         <div className="space-y-3">
           <Markdown texto={t.respuesta ?? ''} />
+          {voz && (
+            <button
+              type="button"
+              onClick={voz.onLeer}
+              className={cn('flex items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-hover', voz.leyendo ? 'text-marca' : 'text-tinta-suave')}
+            >
+              {voz.leyendo ? <Square className="size-3.5 fill-current" /> : <Volume2 className="size-4" />}
+              {voz.leyendo ? 'Detener' : 'Escuchar'}
+            </button>
+          )}
           <Avisos avisos={t.avisos} />
           <Fuentes fuentes={t.fuentes} />
           <Valorar t={t} onValorado={onValorado} />

@@ -1,0 +1,20 @@
+CHAT POR VOZ CON IRIS
+=====================
+Solo cambia la web. En Supabase no hay que hacer nada.
+
+GITHUB: subí cada archivo en SU carpeta (arrastrá los archivos, no las carpetas)
+  next.config.ts                                   (en la raíz del proyecto: habilita el micrófono)
+  src/modules/ia/asistente/asistente-boton.tsx
+  src/modules/ia/asistente/voz.ts                  (nuevo)
+  src/modules/ia/asistente/voz-hooks.ts            (nuevo)
+  src/modules/ia/asistente/iris-logo.png           (el logo; si ya lo subiste, reemplazalo igual)
+  tests/asistente.test.ts
+  docs/DECISIONES.md
+
+CÓMO SE USA
+  · Tocá el micrófono, hablá y tocá el cuadrado (o hacé silencio): Iris pregunta y responde con voz.
+  · La primera vez el navegador pide permiso para el micrófono: aceptalo.
+  · Cada respuesta tiene «Escuchar» para oírla (y «Detener»).
+  · En iPhone: usar Safari o Chrome actualizados; con el celular en silencio puede no sonar.
+
+¿HAY QUE BORRAR ALGO? No.
