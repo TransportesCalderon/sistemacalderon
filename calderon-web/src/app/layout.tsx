@@ -4,7 +4,7 @@ import { QueryProvider } from '@/shared/query/provider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Transportes Calderón', template: '%s · Transportes Calderón' },
+  title: { default: 'IronTrack', template: '%s · IronTrack' },
   description: 'Gestión de flota, combustible, anomalías y rentabilidad',
   robots: { index: false, follow: false },
 };

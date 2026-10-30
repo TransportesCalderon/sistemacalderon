@@ -4,7 +4,8 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LoaderCircle, MessageSquarePlus, Send, Sparkles, ThumbsDown, ThumbsUp, TriangleAlert, X } from 'lucide-react';
+import { LoaderCircle, MessageSquarePlus, Send, ThumbsDown, ThumbsUp, TriangleAlert, X } from 'lucide-react';
+import Image from 'next/image';
 import { useCan } from '@/modules/core/permissions/can';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
@@ -12,12 +13,18 @@ import { browserDb } from '@/shared/supabase/browser';
 import { asistenteRepository, textoPeriodo, textoSemana, VERSION_ASISTENTE, VERSION_INFORME, type Fuente, type Turno } from './asistente';
 import { generarInforme, preguntarAsistente, valorarRespuesta } from './asistente.actions';
 import { parsearMarkdown, type Bloque, type Trozo } from './markdown';
+import irisLogo from './iris-logo.png';
 
 const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 const repo = () => asistenteRepository(browserDb());
 
+/** El logo de Iris (el ojo), sin letras. */
+function IrisLogo({ className }: { className?: string }) {
+  return <Image src={irisLogo} alt="" aria-hidden className={cn('shrink-0 object-contain', className)} />;
+}
+
 /**
- * IA-3 · Botón «Iris» (el asistente de IA, pedido de Gerencia 30/10/2026) en la barra de arriba y su panel a la derecha (como las fichas: la
+ * IA-3 · Botón «Iris» (el asistente inteligente de IronTrack, con su logo; pedido de Gerencia 30/10/2026) en la barra de arriba y su panel a la derecha (como las fichas: la
  * pantalla de atrás no se pierde). Primero las preguntas sugeridas; abajo, el cuadro para escribir.
  * Lo ve quien la base deja usar el asistente (Gerencia y los usuarios de prueba).
  */
@@ -42,9 +49,9 @@ export function BotonAsistente() {
           'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm',
           abierto ? 'bg-marca-suave font-medium text-marca' : 'text-tinta-suave hover:bg-hover hover:text-tinta',
         )}
-        title="Preguntale a Iris, el asistente de IA"
+        title="Preguntale a Iris, el asistente inteligente de IronTrack"
       >
-        <Sparkles className="size-4" />
+        <IrisLogo className="size-5" />
         <span className="hidden sm:inline">Iris</span>
       </button>
       {/* Fuera de la barra (su desenfoque encierra a los elementos fijos): directo en el body */}
@@ -157,11 +164,11 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
   return (
     <aside
       role="dialog"
-      aria-label="Iris, el asistente de IA"
+      aria-label="Iris, el asistente inteligente de IronTrack"
       className="fixed bottom-0 right-0 top-14 z-[1050] flex w-full max-w-[540px] flex-col border-l border-borde bg-panel shadow-2xl"
     >
       <div className="flex items-center gap-2 border-b border-borde px-4 py-2">
-        <Sparkles className="size-4 text-marca" />
+        <IrisLogo className="size-6" />
         <div className="flex flex-1 items-center gap-1">
           <PestanaPanel activa={vista === 'preguntar'} onClick={() => setVista('preguntar')}>
             Iris
@@ -200,7 +207,7 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
         {turnos.length === 0 && !apagado && (
           <div className="space-y-3">
             <p className="text-sm text-tinta-suave">
-              Hola, soy Iris. Respondo con los números del sistema y te digo de dónde sale cada dato. Solo leo: no cambio nada.
+              Hola, soy Iris, el asistente inteligente de IronTrack. Respondo con los números del sistema y te digo de dónde sale cada dato. Solo leo: no cambio nada.
             </p>
             <div className="grid gap-2">
               {(est?.sugeridas ?? []).map((s) => (
