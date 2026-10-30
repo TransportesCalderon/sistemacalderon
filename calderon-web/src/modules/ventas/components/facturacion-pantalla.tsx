@@ -369,7 +369,6 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
   const rearmar = useRearmarDetalle();
   const comprobante = useAdjuntarComprobante();
   // Migración 125: datos del detalle de la prefactura y comprobante del cobro
-  const [camposFicha, setCamposFicha] = useState<string[]>([]);
   const [archivoCobro, setArchivoCobro] = useState<File | null>(null);
   const [numeroDespues, setNumeroDespues] = useState('');
   const envio = useEnvio();
@@ -476,16 +475,23 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
           </button>
           {f.renglones.some((r) => r.servicioId) && (
             <div className="space-y-2">
-              <ElegirDetalle clienteId={f.clienteId} servicioId={f.renglones.find((r) => r.servicioId)?.servicioId ?? null} onCambiar={setCamposFicha} />
-              <button
-                type="button"
-                className="text-sm text-marca hover:underline disabled:opacity-60"
-                disabled={rearmar.isPending || camposFicha.length === 0}
-                onClick={() => void envio.enviar(rearmar.mutateAsync({ facturaId: f.id, campos: camposFicha }), () => undefined)}
-              >
-                {rearmar.isPending && <LoaderCircle className="mr-1 inline size-4 animate-spin" />}
-                Rearmar el detalle de las operaciones con estos datos
-              </button>
+              {/* Al tildar se guarda para el cliente y se rearma el detalle de la prefactura (sin otro botón) */}
+              <ElegirDetalle
+                clienteId={f.clienteId}
+                servicioId={f.renglones.find((r) => r.servicioId)?.servicioId ?? null}
+                onElegir={(c) => void envio.enviar(rearmar.mutateAsync({ facturaId: f.id, campos: c }), () => undefined)}
+                nota={
+                  <p className="text-xs text-tinta-suave">
+                    {rearmar.isPending ? (
+                      <>
+                        <LoaderCircle className="mr-1 inline size-3.5 animate-spin" /> Guardando y actualizando el detalle…
+                      </>
+                    ) : (
+                      'Se guarda al tildar: actualiza el detalle de esta prefactura y queda para las próximas de este cliente.'
+                    )}
+                  </p>
+                }
+              />
             </div>
           )}
           <Campo label="Observación">
