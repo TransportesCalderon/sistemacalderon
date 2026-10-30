@@ -18,6 +18,7 @@ describe('Vista previa de la factura electrónica (migración 138)', () => {
       total_usd: 1600,
       glosa: 'El pago… U$D 1.600,00',
       glosa_automatica: true,
+      glosa_lugar: 'renglon',
       faltantes: [],
     });
     expect(v.tipo).toBe(34);
@@ -25,12 +26,14 @@ describe('Vista previa de la factura electrónica (migración 138)', () => {
     expect(v.receptor.comuna).toBe('');
     expect(v.items[0]?.importeUsd).toBe(1600);
     expect(v.glosaAutomatica).toBe(true);
+    expect(v.glosaEnRenglon).toBe(true);
   });
   it('sin datos no se rompe', () => {
     const v = parsearVistaPrevia(null);
     expect(v.items).toEqual([]);
     expect(v.moneda).toBe('CLP');
     expect(v.glosa).toBeNull();
+    expect(v.glosaEnRenglon).toBe(false);
   });
   it('la leyenda puede quedar automática (null)', () => {
     expect(glosaSiiSchema.safeParse({ id: 1, glosa: null }).success).toBe(true);

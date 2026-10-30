@@ -157,6 +157,8 @@ export interface VistaPreviaSii {
   totalUsd: number;
   glosa: string | null;
   glosaAutomatica: boolean;
+  /** Migración 140: dónde va la leyenda: al final del último renglón o en «Observaciones». */
+  glosaEnRenglon: boolean;
   faltantes: string[];
 }
 const textos = (v: unknown): Record<string, string> =>
@@ -186,6 +188,7 @@ export function parsearVistaPrevia(raw: unknown): VistaPreviaSii {
     totalUsd: Number(j.total_usd ?? 0),
     glosa: strN(j.glosa),
     glosaAutomatica: j.glosa_automatica === true,
+    glosaEnRenglon: j.glosa_lugar === 'renglon',
     faltantes: Array.isArray(j.faltantes) ? j.faltantes.map(String) : [],
   };
 }

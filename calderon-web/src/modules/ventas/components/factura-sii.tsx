@@ -52,7 +52,7 @@ export function FacturaSii({ facturaId, version, estado, fecha }: { facturaId: n
       {s.tipo === 34 && estado === 'borrador' && s.tcClp !== null && s.totalClp !== null && (
         <p className="text-sm text-tinta-suave">
           Precio pactado en dólares. Se emite en pesos chilenos al dólar de hoy ({formatearNumero(s.tcClp, 2)}): <b className="text-tinta">CLP {formatearNumero(s.totalClp, 0)}</b>.
-          Abajo, en «Observaciones», va la leyenda con el valor en dólares.
+          La factura lleva la leyenda con el valor en dólares (se ve en la vista previa).
         </p>
       )}
       {s.faltantes.length > 0 && estado === 'borrador' && (
@@ -405,7 +405,7 @@ function HojaFactura({
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-md text-xs">
             <p className="font-semibold">Observaciones</p>
-            <p>{glosa.trim() || <span className="text-neutral-500">(sin leyenda)</span>}</p>
+            {!v.glosaEnRenglon && <p>{glosa.trim() || <span className="text-neutral-500">(sin leyenda)</span>}</p>}
           </div>
           <div className="text-right">
             <p className="text-base font-bold">Total: {plata(v.moneda, v.total)}</p>
@@ -421,7 +421,7 @@ function HojaFactura({
       {/* La leyenda: automática, pero se puede cambiar */}
       <div className="space-y-1">
         <label className="text-sm font-medium text-tinta" htmlFor={`glosa-${facturaId}`}>
-          Leyenda de «Observaciones» {v.glosaAutomatica && <span className="font-normal text-tinta-suave">(automática)</span>}
+          {v.glosaEnRenglon ? 'Leyenda (va al final del detalle del último renglón)' : 'Leyenda de «Observaciones»'} {v.glosaAutomatica && <span className="font-normal text-tinta-suave">(automática)</span>}
         </label>
         <textarea
           id={`glosa-${facturaId}`}
