@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Plus, Route, Trash2 } from 'lucide-react';
+import { Map as MapaIcono, Pencil, Plus, Route, Trash2 } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Encabezado, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { useMonedas } from '@/modules/combustible/queries/hooks';
@@ -11,16 +11,20 @@ import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import type { Linea } from '../domain/operacion.types';
-import { useEliminarLinea, useGuardarLinea, useLineas, useOpcionesViaje } from '../queries/hooks';
+import { useEliminarLinea, useGuardarLinea, useLineas, useOpcionesViaje, useRutas } from '../queries/hooks';
+import { RutasLinea } from './rutas/rutas-linea';
 import { Lista } from './viajes-pantalla';
 
-type Abierto = { modo: 'nuevo' } | { modo: 'editar' | 'eliminar'; l: Linea } | null;
+type Abierto = { modo: 'nuevo' } | { modo: 'editar' | 'eliminar' | 'rutas'; l: Linea } | null;
 
 /** Operación > Líneas (migración 41): los recorridos de REDLINE (SAI-BSAS, MZA-VALP…). */
 export function LineasPantalla() {
   const puede = useCan('operacion.servicios:editar');
   const { data, isPending, isError, refetch } = useLineas();
   const { data: op } = useOpcionesViaje();
+  const verRutas = useCan('operacion.rutas:ver');
+  const { data: rutas } = useRutas(null);
+  const cuantas = (id: number) => (rutas ?? []).filter((r) => r.lineaId === id).length;
   const [abierto, setAbierto] = useState<Abierto>(null);
   const [texto, setTexto] = useState('');
   const lugar = (id: number | null) => (id === null ? '—' : (op?.lugares.find((u) => u.id === id)?.nombre ?? '…'));
@@ -69,14 +73,14 @@ export function LineasPantalla() {
                 <th className={cn(TH, 'text-right')}>Tr. tiempo (h)</th>
                 <th className={cn(TH, 'text-right')}>Objetivo (L/100 km)</th>
                 <th className={cn(TH, 'text-right')}>Canon chofer</th>
-                {puede && <th className={TH} />}
+                {(puede || verRutas) && <th className={TH} />}
               </tr>
             </thead>
             <tbody className="divide-y divide-borde">
               {filas.map((l) => {
                 const modo = abierto && abierto.modo !== 'nuevo' && abierto.l.id === l.id ? abierto.modo : null;
                 return (
-                  <FilaLinea key={l.id} l={l} lugar={lugar} puede={puede} modo={modo} onAbrir={setAbierto} />
+                  <FilaLinea key={l.id} l={l} lugar={lugar} puede={puede} verRutas={verRutas} rutas={cuantas(l.id)} modo={modo} onAbrir={setAbierto} />
                 );
               })}
             </tbody>
@@ -91,13 +95,17 @@ function FilaLinea({
   l,
   lugar,
   puede,
+  verRutas,
+  rutas,
   modo,
   onAbrir,
 }: {
   l: Linea;
   lugar: (id: number | null) => string;
   puede: boolean;
-  modo: 'editar' | 'eliminar' | null;
+  verRutas: boolean;
+  rutas: number;
+  modo: 'editar' | 'eliminar' | 'rutas' | null;
   onAbrir: (a: Abierto) => void;
 }) {
   return (
@@ -115,21 +123,41 @@ function FilaLinea({
         <td className={cn(TD, 'text-right whitespace-nowrap tabular-nums')}>
           {l.canonChofer === null ? '—' : `${l.canonMoneda} ${l.canonChofer.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`}
         </td>
-        {puede && (
+        {(puede || verRutas) && (
           <td className={cn(TD, 'text-right whitespace-nowrap')}>
+            {verRutas && (
+              <button
+                type="button"
+                className="mr-3 inline-flex items-center gap-1 text-xs text-marca hover:underline"
+                onClick={() => onAbrir(modo === 'rutas' ? null : { modo: 'rutas', l })}
+                title="Rutas para el chofer en Google Maps"
+              >
+                <MapaIcono className="size-3.5" /> Rutas ({rutas})
+              </button>
+            )}
+            {puede && (
+              <>
             <button type="button" className="mr-3 inline-flex items-center gap-1 text-xs text-marca hover:underline" onClick={() => onAbrir({ modo: 'editar', l })}>
               <Pencil className="size-3.5" /> Editar
             </button>
             <button type="button" className="inline-flex items-center gap-1 text-xs text-marca hover:underline" onClick={() => onAbrir({ modo: 'eliminar', l })}>
               <Trash2 className="size-3.5" /> Eliminar
             </button>
+              </>
+            )}
           </td>
         )}
       </tr>
       {modo && (
         <tr>
           <td colSpan={11} className="px-3 pb-3">
-            {modo === 'editar' ? <FormLinea l={l} onCerrar={() => onAbrir(null)} /> : <EliminarLinea l={l} onCerrar={() => onAbrir(null)} />}
+            {modo === 'rutas' ? (
+              <RutasLinea lineaId={l.id} linea={l.codigo} onCerrar={() => onAbrir(null)} />
+            ) : modo === 'editar' ? (
+              <FormLinea l={l} onCerrar={() => onAbrir(null)} />
+            ) : (
+              <EliminarLinea l={l} onCerrar={() => onAbrir(null)} />
+            )}
           </td>
         </tr>
       )}

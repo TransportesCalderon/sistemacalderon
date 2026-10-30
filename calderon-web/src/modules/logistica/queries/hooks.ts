@@ -61,6 +61,8 @@ export const useOperaciones = (desde: FechaDia | null, hasta: FechaDia | null) =
 export const useSugerenciaCliente = (cliente: number | null) =>
   useQuery({ ...q.sugerencia(browserDb(), cliente ?? 0), enabled: !!cliente });
 export const useLineas = () => useQuery(q.lineas(browserDb()));
+export const useRutas = (linea: number | null = null) => useQuery(q.rutas(browserDb(), linea));
+export const useRutaOperacion = (servicio: number) => useQuery(q.rutaOperacion(browserDb(), servicio));
 export const useTramosOperacion = (servicio: number) => useQuery(q.tramos(browserDb(), servicio));
 export const useOperacion = (servicio: number) => useQuery(q.operacion(browserDb(), servicio));
 export const useTransportistas = () => useQuery(q.transportistas(browserDb()));

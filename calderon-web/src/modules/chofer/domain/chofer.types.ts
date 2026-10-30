@@ -1,4 +1,5 @@
 import type { Json } from '@/shared/types/database.generated';
+import { parsearRutaChofer, type RutaChofer } from '@/modules/logistica/domain/rutas';
 
 /**
  * Módulo del chofer (migraciones 60 y 61). La base arma todo; acá solo se lee el JSON
@@ -89,6 +90,8 @@ export interface CargaAsignada {
   semi: string | null;
   observacion: string | null;
   documentos: DocumentoOperacion[];
+  /** Migración 135: la ruta para Google Maps (la elegida o la predeterminada de su línea). */
+  ruta: RutaChofer | null;
 }
 
 export interface MisCargas {
@@ -131,6 +134,7 @@ export const parsearMisCargas = (v: Json | unknown): MisCargas => {
         semi: s(y.semi),
         observacion: s(y.observacion),
         documentos: parsearDocumentos(y.documentos),
+        ruta: parsearRutaChofer(y.ruta),
       };
     }),
   };

@@ -13,6 +13,7 @@ import { useMisCargas } from '../queries/hooks';
 import { AvisoCargaChofer } from '@/modules/telemetria/components/aviso-carga-chofer';
 import { CompartirUbicacion } from './compartir-ubicacion';
 import { ListaDocumentos, SubirDocumento } from './documentos';
+import { RutaDelChofer } from './ruta-chofer';
 
 const TIPO: Record<string, string> = { exportacion: 'Exportación', importacion: 'Importación', nacional: 'Nacional', round_trip: 'Round trip' };
 const ESTADO: Record<string, string> = {
@@ -117,6 +118,9 @@ export function TarjetaCarga({ c }: { c: CargaAsignada }) {
       {c.presentacion && (
         <p className="rounded-md bg-alerta-suave px-3 py-2 text-sm text-alerta">Presentarse: {formatearFechaHora(c.presentacion, zonaHoraria)}</p>
       )}
+
+      {/* Migración 135: la ruta para Google Maps, desde donde esté */}
+      {c.ruta && <RutaDelChofer ruta={c.ruta} />}
 
       <ul className="divide-y divide-borde">
         <FilaLugar titulo="Retirar el contenedor en" l={c.retiro} />

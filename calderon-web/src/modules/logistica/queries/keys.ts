@@ -5,10 +5,24 @@ import type { FechaDia } from '@/shared/types/dominio';
 import { operacionesRepository } from '../repositories/operaciones.repository';
 import { viajesRepository } from '../repositories/viajes.repository';
 import { viajesChoferRepository } from '../repositories/viajes-chofer.repository';
+import { rutasRepository } from '../repositories/rutas.repository';
 
 /** Claves de React Query de Logística. */
 export const logisticaQueries = {
   todo: () => ['logistica'] as const,
+  /** Migración 135: rutas para los choferes (todas o de una línea) y la de una operación. */
+  rutas: (db: Db, linea: number | null) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', linea] as const,
+      queryFn: () => rutasRepository(db).lista(linea),
+      staleTime: FRESCURA.maestro,
+    }),
+  rutaOperacion: (db: Db, servicio: number) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'operacion', servicio] as const,
+      queryFn: () => rutasRepository(db).deOperacion(servicio),
+      staleTime: FRESCURA.transaccional,
+    }),
   abiertos: (db: Db) =>
     queryOptions({
       queryKey: ['logistica', 'abiertos'] as const,

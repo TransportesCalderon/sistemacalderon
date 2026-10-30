@@ -1181,6 +1181,11 @@ export type Database = {
       fn_cerrar_y_aprobar_varios: { Args: { p_viajes: number[] }; Returns: Json };
       fn_completar_operaciones_viaje: { Args: { p_viaje: number }; Returns: number };
       fn_crear_viaje_pasado: { Args: { p_carga_salida: number; p_chofer?: number }; Returns: number };
+      fn_rutas: { Args: { p_linea?: number }; Returns: Json };
+      fn_guardar_ruta: { Args: { p_id: number | null; p_version: number | null; p_datos: Json }; Returns: number };
+      fn_quitar_ruta: { Args: { p_id: number; p_version: number }; Returns: undefined };
+      fn_elegir_ruta: { Args: { p_servicio: number; p_ruta: number | null }; Returns: undefined };
+      fn_ruta_de_servicio: { Args: { p_servicio: number }; Returns: Json };
       // Módulo del chofer (60)
       fn_mi_chofer: { Args: Record<string, never>; Returns: number | null };
       fn_mis_cargas: { Args: Record<string, never>; Returns: Json };

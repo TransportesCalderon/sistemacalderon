@@ -59,6 +59,7 @@ import {
 import { Lista } from './viajes-pantalla';
 import { SeguimientoOperacion } from '@/modules/chofer/components/seguimiento-operacion';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import { RutaOperacion } from './rutas/ruta-operacion';
 
 export type Abierto =
   | { tipo: 'nueva'; base?: Operacion }
@@ -530,6 +531,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       )}
 
       {puede && (o.estado !== 'cancelado' || o.gensetId) && <GensetOperacion o={o} />}
+      {/* Migración 135: la ruta que recibe el chofer */}
+      <RutaOperacion servicioId={o.servicioId} lineaId={o.lineaId} abierta={!cerrada} />
       {puede && o.puedeVolver && <VolverPaso o={o} />}
 
       {tipo === 'paso' && abierto?.tipo === 'paso' && <PanelPaso o={o} paso={abierto.paso} errorInicial={abierto.error ?? null} zona={zona} onCerrar={cerrar} />}
