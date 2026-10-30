@@ -17,7 +17,7 @@ const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 const repo = () => asistenteRepository(browserDb());
 
 /**
- * IA-3 · Botón «Preguntale» en la barra de arriba y su panel a la derecha (como las fichas: la
+ * IA-3 · Botón «Iris» (el asistente de IA, pedido de Gerencia 30/10/2026) en la barra de arriba y su panel a la derecha (como las fichas: la
  * pantalla de atrás no se pierde). Primero las preguntas sugeridas; abajo, el cuadro para escribir.
  * Lo ve quien la base deja usar el asistente (Gerencia y los usuarios de prueba).
  */
@@ -42,10 +42,10 @@ export function BotonAsistente() {
           'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm',
           abierto ? 'bg-marca-suave font-medium text-marca' : 'text-tinta-suave hover:bg-hover hover:text-tinta',
         )}
-        title="Preguntale al asistente de IA"
+        title="Preguntale a Iris, el asistente de IA"
       >
         <Sparkles className="size-4" />
-        <span className="hidden sm:inline">Preguntale</span>
+        <span className="hidden sm:inline">Iris</span>
       </button>
       {/* Fuera de la barra (su desenfoque encierra a los elementos fijos): directo en el body */}
       {abierto && createPortal(<PanelAsistente onCerrar={() => setAbierto(false)} onCambio={() => void estado.refetch()} />, document.body)}
@@ -157,14 +157,14 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
   return (
     <aside
       role="dialog"
-      aria-label="Asistente de IA"
+      aria-label="Iris, el asistente de IA"
       className="fixed bottom-0 right-0 top-14 z-[1050] flex w-full max-w-[540px] flex-col border-l border-borde bg-panel shadow-2xl"
     >
       <div className="flex items-center gap-2 border-b border-borde px-4 py-2">
         <Sparkles className="size-4 text-marca" />
         <div className="flex flex-1 items-center gap-1">
           <PestanaPanel activa={vista === 'preguntar'} onClick={() => setVista('preguntar')}>
-            Preguntale
+            Iris
           </PestanaPanel>
           {/* IA-4: los informes de los lunes */}
           {hayInformes && (
@@ -178,7 +178,7 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
             <MessageSquarePlus className="size-4" /> Nueva
           </button>
         )}
-        <button type="button" onClick={onCerrar} aria-label="Cerrar el asistente" title="Cerrar (Esc)" className="rounded-md p-1.5 text-tinta-suave hover:bg-hover">
+        <button type="button" onClick={onCerrar} aria-label="Cerrar a Iris" title="Cerrar (Esc)" className="rounded-md p-1.5 text-tinta-suave hover:bg-hover">
           <X className="size-5" />
         </button>
       </div>
@@ -191,7 +191,7 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
         {apagado && (
           <p className="rounded-md bg-alerta-suave p-3 text-sm text-alerta">
             {!est.activo
-              ? 'El asistente está apagado. TI lo prende con el parámetro ia.asistente_activo.'
+              ? 'Iris está apagado. TI lo prende con el parámetro ia.asistente_activo.'
               : !est.conClave
                 ? 'Falta la clave anthropic_api_key en Vault: pedísela a TI.'
                 : 'La base no tiene pg_net: la IA no puede llamar a la API.'}
@@ -200,7 +200,7 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
         {turnos.length === 0 && !apagado && (
           <div className="space-y-3">
             <p className="text-sm text-tinta-suave">
-              Respondo con los números del sistema y te digo de dónde sale cada dato. Solo leo: no cambio nada.
+              Hola, soy Iris. Respondo con los números del sistema y te digo de dónde sale cada dato. Solo leo: no cambio nada.
             </p>
             <div className="grid gap-2">
               {(est?.sugeridas ?? []).map((s) => (
@@ -238,7 +238,7 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
                 enviarTexto();
               }
             }}
-            placeholder={turnos.length ? 'Repreguntá sobre esto («¿y el mes pasado?»)…' : 'Escribí tu pregunta…'}
+            placeholder={turnos.length ? 'Repreguntale a Iris («¿y el mes pasado?»)…' : 'Escribile a Iris…'}
             className="min-h-11 flex-1 resize-none rounded-md border border-borde bg-panel px-3 py-2 text-sm outline-none focus:border-marca"
           />
           <button

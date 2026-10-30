@@ -1,10 +1,12 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 
 /**
- * IA-3 · El asistente «Preguntale» (base: migración 126, IA-2). La base arma el pedido, hace las
+ * IA-3 · Iris, el asistente de IA (base: migración 126, IA-2; nombre: migración 128). La base arma el pedido, hace las
  * lecturas con los permisos de quien pregunta, llama a Claude y guarda todo; acá solo se muestra.
  */
 export const VERSION_ASISTENTE = 126;
+/** Nombre de la asistente (pedido de Gerencia, 30/10/2026). */
+export const NOMBRE_ASISTENTE = 'Iris';
 
 export interface Sugerida {
   codigo: string;

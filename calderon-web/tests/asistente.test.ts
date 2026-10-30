@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { can, permisosDe } from '@/modules/core/permissions/resolver';
-import { parsearEstadoAsistente, parsearInforme, parsearInformes, parsearTurno, textoPeriodo, textoSemana, VERSION_ASISTENTE, VERSION_INFORME } from '@/modules/ia/asistente/asistente';
+import { NOMBRE_ASISTENTE, parsearEstadoAsistente, parsearInforme, parsearInformes, parsearTurno, textoPeriodo, textoSemana, VERSION_ASISTENTE, VERSION_INFORME } from '@/modules/ia/asistente/asistente';
 import { parsearMarkdown, trozos } from '@/modules/ia/asistente/markdown';
 
-describe('IA-3 · El asistente «Preguntale»', () => {
+describe('IA-3 · Iris, el asistente de IA', () => {
   it('lee el estado y una pregunta tal como los devuelve la base', () => {
     const e = parsearEstadoAsistente({
       puede: true,
@@ -32,6 +32,7 @@ describe('IA-3 · El asistente «Preguntale»', () => {
     expect(textoPeriodo({ mes: '2026-10' })).toBe('10/2026');
     expect(parsearTurno({ id: 1, estado: 'esperando' }).estado).toBe('pensando');
     expect(VERSION_ASISTENTE).toBe(126);
+    expect(NOMBRE_ASISTENTE).toBe('Iris');
   });
 
   it('dibuja el markdown de la respuesta sin HTML: párrafos, listas, tablas y negrita', () => {

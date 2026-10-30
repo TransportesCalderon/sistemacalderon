@@ -109,9 +109,9 @@ export const PANTALLAS = {
   'finanzas.costos_indirectos': { etiqueta: 'Costos indirectos, índices de ajuste', fila: ['L', '—', '—', '—', '—', '—', '—', 'E', 'E A', 'L', '—'] },
   'finanzas.tipos_cambio':   { etiqueta: 'Tipos de cambio', fila: ['L', '—', '—', '—', 'L', '—', 'L', 'E', 'E A', 'L', '—'] },
   'finanzas.rentabilidad':   { etiqueta: 'Asignación de costos y rentabilidad', fila: ['L', 'L', '—', '—', '—', '—', '—', 'L', 'E A', 'L', '—'] },
-  // IA-3 (migración 126): el asistente «Preguntale». La base decide quién lo usa (Gerencia y los usuarios de
+  // IA-3 (migración 126): Iris, el asistente de IA. La base decide quién lo usa (Gerencia y los usuarios de
   // prueba de ia.asistente_usuarios_prueba); la matriz solo deja pedir (el chofer no) y ver el informe de uso.
-  'ia.asistente':            { etiqueta: 'Asistente de IA (Preguntale)', fila: ['E', 'E', 'E', '—', 'E', 'E', 'E', 'E', 'E A', 'L', 'E'] },
+  'ia.asistente':            { etiqueta: 'Iris (asistente de IA)', fila: ['E', 'E', 'E', '—', 'E', 'E', 'E', 'E', 'E A', 'L', 'E'] },
   'finanzas.cierre':         { etiqueta: 'Cierre de período', fila: ['L', '—', '—', '—', '—', '—', '—', 'A', 'E A', 'L', '—'] },
   // Migración 73: finanzas y contabilidad (Chile, pesos). Cargan Finanzas y TI; ven Gerencia y Auditoría.
   'finanzas.resumen':        { etiqueta: 'Resumen financiero (tablero)', fila: ['L', '—', '—', '—', '—', '—', '—', 'E A', 'E A', 'L', '—'] },
