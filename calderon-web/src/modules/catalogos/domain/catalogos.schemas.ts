@@ -35,6 +35,12 @@ export const proveedorSchema = z.object({
 export type ProveedorEntrada = z.input<typeof proveedorSchema>;
 export type ProveedorDatos = z.output<typeof proveedorSchema>;
 
+/** Una coordenada escrita o elegida en el mapa: vacía = sin punto (el rango lo controla la base). */
+const coordenadaEstacion = z
+  .union([z.string(), z.number(), z.null()])
+  .transform((v) => (v === null || (typeof v === 'string' && v.trim() === '') ? null : Number(String(v).trim().replace(',', '.'))))
+  .refine((v) => v === null || Number.isFinite(v), 'Escribí un número, por ejemplo -32.8895.');
+
 export const estacionSchema = z.object({
   id: id().nullable(),
   versionFila: version().nullable(),
@@ -46,6 +52,9 @@ export const estacionSchema = z.object({
     .refine((v) => v === null || (Number.isInteger(v) && v > 0), 'Elegí un proveedor.'),
   pais,
   esTanquePropio: z.boolean(),
+  // Migración 143: el punto en el mapa (para el aviso de litros a cargar). Sin enviar = no se toca.
+  latitud: coordenadaEstacion.optional(),
+  longitud: coordenadaEstacion.optional(),
 });
 export type EstacionEntrada = z.input<typeof estacionSchema>;
 export type EstacionDatos = z.output<typeof estacionSchema>;

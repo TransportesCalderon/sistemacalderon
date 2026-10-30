@@ -1,16 +1,30 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Fuel, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Fuel, Import, LoaderCircle, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
+import type { ErrorAccion } from '@/server/actions/result';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { useCan } from '@/modules/core/permissions/can';
 import { Cargando, Chip, Encabezado, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { cn } from '@/shared/lib/cn';
-import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
+import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import type { Estacion } from '../domain/catalogos.types';
 import { useEliminarEstacion, useEstaciones, useGuardarEstacion, usePaises, useProveedores } from '../queries/hooks';
+import { abrirLinkEstacion } from '../actions/catalogos.actions';
+import { coordenadasDeTexto } from '../domain/ubicacion-link';
+import { esLinkCorto, esLinkDeMaps } from '@/modules/logistica/domain/rutas';
 import { Panel, TD, TH, useEnvio } from './comun';
+
+/** Migración 143: desde esta versión se guarda el punto de la estación. */
+const VERSION_UBICACION = 143;
+
+const MapaRuta = dynamic(() => import('@/modules/logistica/components/rutas/mapa-ruta').then((m) => m.MapaRuta), {
+  ssr: false,
+  loading: () => <div className="h-64 animate-pulse rounded-lg bg-fondo" />,
+});
 
 type Abierto = { modo: 'nuevo' } | { modo: 'editar' | 'eliminar'; e: Estacion } | null;
 
@@ -26,6 +40,8 @@ export function EstacionesPantalla() {
   const proveedor = (id: number | null) => (id === null ? null : (proveedores?.find((p) => p.id === id)?.razonSocial ?? `#${id}`));
   const t = texto.trim().toLowerCase();
   const filas = (data ?? []).filter((e) => !t || `${e.codigo} ${e.nombre} ${proveedor(e.proveedorId) ?? ''}`.toLowerCase().includes(t));
+  const conMapa = useBaseTiene(VERSION_UBICACION);
+  const sinUbicar = (data ?? []).filter((e) => !e.esTanquePropio && e.latitud === null).length;
 
   return (
     <div className="space-y-5">
@@ -44,6 +60,14 @@ export function EstacionesPantalla() {
             Cargá primero los proveedores
           </Link>
           .
+        </p>
+      )}
+
+      {conMapa && sinUbicar > 0 && (
+        <p className="flex items-start gap-2 rounded-lg border border-alerta/30 bg-alerta-suave p-3 text-sm text-alerta">
+          <MapPin className="mt-0.5 size-4 shrink-0" />
+          {sinUbicar === 1 ? '1 estación no tiene' : `${sinUbicar} estaciones no tienen`} su lugar en el mapa: sin eso, el chofer no recibe el aviso de cuántos litros
+          cargar al llegar. Tocá «Editar» y pegá el link de Google Maps de la estación (o marcala en el mapa).
         </p>
       )}
 
@@ -72,6 +96,7 @@ export function EstacionesPantalla() {
                 <th className={TH}>Nombre</th>
                 <th className={TH}>Proveedor</th>
                 <th className={TH}>País</th>
+                {conMapa && <th className={TH}>En el mapa</th>}
                 {puede && <th className={TH} />}
               </tr>
             </thead>
@@ -79,7 +104,7 @@ export function EstacionesPantalla() {
               {filas.map((e) => {
                 const modo = abierto && abierto.modo !== 'nuevo' && abierto.e.id === e.id ? abierto.modo : null;
                 return (
-                  <FilaEstacion key={e.id} e={e} proveedor={proveedor(e.proveedorId)} pais={pais(e.pais)} puede={puede} modo={modo} onAbrir={setAbierto} />
+                  <FilaEstacion key={e.id} e={e} proveedor={proveedor(e.proveedorId)} pais={pais(e.pais)} puede={puede} conMapa={conMapa} modo={modo} onAbrir={setAbierto} />
                 );
               })}
             </tbody>
@@ -95,6 +120,7 @@ function FilaEstacion({
   proveedor,
   pais,
   puede,
+  conMapa,
   modo,
   onAbrir,
 }: {
@@ -102,6 +128,7 @@ function FilaEstacion({
   proveedor: string | null;
   pais: string;
   puede: boolean;
+  conMapa: boolean;
   modo: 'editar' | 'eliminar' | null;
   onAbrir: (a: Abierto) => void;
 }) {
@@ -114,6 +141,19 @@ function FilaEstacion({
         </td>
         <td className={TD}>{proveedor ?? '—'}</td>
         <td className={TD}>{pais}</td>
+        {conMapa && (
+          <td className={TD}>
+            {e.latitud !== null ? (
+              <Chip tono="exito">
+                <MapPin className="size-3" /> Ubicada
+              </Chip>
+            ) : e.esTanquePropio ? (
+              '—'
+            ) : (
+              <Chip tono="alerta">Sin ubicar</Chip>
+            )}
+          </td>
+        )}
         {puede && (
           <td className={cn(TD, 'text-right whitespace-nowrap')}>
             <button type="button" className="mr-3 inline-flex items-center gap-1 text-xs text-marca hover:underline" onClick={() => onAbrir({ modo: 'editar', e })}>
@@ -127,7 +167,7 @@ function FilaEstacion({
       </tr>
       {modo && (
         <tr>
-          <td colSpan={5} className="px-3 pb-3">
+          <td colSpan={6} className="px-3 pb-3">
             {modo === 'editar' ? <FormEstacion e={e} onCerrar={() => onAbrir(null)} /> : <EliminarEstacion e={e} onCerrar={() => onAbrir(null)} />}
           </td>
         </tr>
@@ -148,6 +188,10 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
     pais: e?.pais ?? '',
     esTanquePropio: e?.esTanquePropio ?? false,
   });
+  const conMapa = useBaseTiene(VERSION_UBICACION);
+  const [punto, setPunto] = useState<{ lat: number; lng: number } | null>(
+    e?.latitud != null && e.longitud != null ? { lat: e.latitud, lng: e.longitud } : null,
+  );
   const set = (k: 'codigo' | 'nombre' | 'proveedorId' | 'pais') => (ev: { target: { value: string } }) => setV({ ...v, [k]: ev.target.value });
 
   return (
@@ -158,7 +202,17 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
       ocupado={guardar.isPending}
       textoBoton={e ? 'Guardar cambios' : 'Dar de alta'}
       onCerrar={onCerrar}
-      onConfirmar={() => enviar(guardar.mutateAsync({ ...v, id: e?.id ?? null, versionFila: e?.versionFila ?? null }), onCerrar)}
+      onConfirmar={() =>
+        enviar(
+          guardar.mutateAsync({
+            ...v,
+            id: e?.id ?? null,
+            versionFila: e?.versionFila ?? null,
+            ...(conMapa ? { latitud: punto?.lat ?? null, longitud: punto?.lng ?? null } : {}),
+          }),
+          onCerrar,
+        )
+      }
     >
       <Campo label="Código *" error={campo('codigo')} ayuda="Único, por ejemplo YPF-USPALLATA.">
         <input className="uppercase" maxLength={30} value={v.codigo} onChange={set('codigo')} />
@@ -190,6 +244,7 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
         <input type="checkbox" className="size-4 accent-marca" checked={v.esTanquePropio} onChange={(ev) => setV({ ...v, esTanquePropio: ev.target.checked })} />
         Surtidor propio de la empresa (Base Mendoza)
       </label>
+      {conMapa && <UbicacionEstacion nombre={v.nombre} punto={punto} onCambiar={setPunto} />}
     </Panel>
   );
 }
@@ -207,5 +262,92 @@ function EliminarEstacion({ e, onCerrar }: { e: Estacion; onCerrar: () => void }
       onCerrar={onCerrar}
       onConfirmar={() => enviar(eliminar.mutateAsync({ id: e.id, versionFila: e.versionFila }), onCerrar)}
     />
+  );
+}
+
+/**
+ * Migración 143: dónde está la estación. Se pega el link de Google Maps de la estación (o sus
+ * coordenadas) o se toca el mapa. Con eso, el chofer recibe el aviso de cuántos litros cargar.
+ */
+function UbicacionEstacion({
+  nombre,
+  punto,
+  onCambiar,
+}: {
+  nombre: string;
+  punto: { lat: number; lng: number } | null;
+  onCambiar: (p: { lat: number; lng: number } | null) => void;
+}) {
+  const [texto, setTexto] = useState('');
+  const [leyendo, setLeyendo] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorAccion | null>(null);
+
+  const leer = async () => {
+    setAviso(null);
+    setError(null);
+    let t = texto.trim();
+    if (esLinkDeMaps(t) && esLinkCorto(t)) {
+      setLeyendo(true);
+      const r = await abrirLinkEstacion({ link: t });
+      setLeyendo(false);
+      if (!r.ok) return setError(r.error);
+      t = r.data;
+    }
+    const c = coordenadasDeTexto(t);
+    if (!c) {
+      setAviso('No encontré el lugar en lo que pegaste. En Google Maps buscá la estación, tocá «Compartir» → «Copiar vínculo» y pegalo acá; o tocá el mapa donde está.');
+      return;
+    }
+    onCambiar({ lat: Math.round(c.lat * 1e6) / 1e6, lng: Math.round(c.lng * 1e6) / 1e6 });
+    setTexto('');
+  };
+
+  return (
+    <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+      <p className="flex items-center gap-2 text-sm font-medium text-tinta">
+        <MapPin className="size-4 text-marca" /> Lugar en el mapa{' '}
+        <span className="font-normal text-tinta-suave">(para avisarle al chofer cuántos litros cargar cuando llega)</span>
+      </p>
+      <div className="flex gap-2">
+        <input
+          className="h-9 w-full rounded-md border border-borde bg-panel px-3 text-sm outline-none focus:border-marca"
+          value={texto}
+          onChange={(ev) => setTexto(ev.target.value)}
+          onKeyDown={(ev) => {
+            if (ev.key === 'Enter') {
+              ev.preventDefault();
+              void leer();
+            }
+          }}
+          placeholder="Link de Google Maps de la estación (o -32.8895, -68.8458)"
+        />
+        <button type="button" className={BOTON_SECUNDARIO} onClick={() => void leer()} disabled={!texto.trim() || leyendo}>
+          {leyendo ? <LoaderCircle className="size-4 animate-spin" /> : <Import className="size-4" />} Leer
+        </button>
+      </div>
+      {aviso && <p className="rounded-md bg-marca-suave p-2 text-sm text-tinta">{aviso}</p>}
+      {error && <p className="text-sm text-error">{error.mensaje}</p>}
+      <MapaRuta
+        puntos={punto ? [{ nombre: nombre || 'Estación', lat: punto.lat, lng: punto.lng }] : []}
+        seleccionado={null}
+        onTocarMapa={(lat, lng) => onCambiar({ lat, lng })}
+        alto="h-64"
+      />
+      <p className="flex flex-wrap items-center gap-3 text-xs text-tinta-suave">
+        {punto ? (
+          <>
+            <span>
+              Ubicada en {punto.lat}, {punto.lng}. Para corregirla, tocá el mapa donde está.
+            </span>
+            <button type="button" className="text-error hover:underline" onClick={() => onCambiar(null)}>
+              Quitar la ubicación
+            </button>
+          </>
+        ) : (
+          <span>Sin ubicar: pegá el link o tocá el mapa donde está la estación.</span>
+        )}
+      </p>
+    </div>
   );
 }

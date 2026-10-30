@@ -7,6 +7,8 @@ import { pedirBcra, periodoBcra } from '@/server/externos/bcra';
 import { eliminarSchema, estacionSchema, parametroSchema, proveedorSchema, tipoCambioSchema, ubicacionSchema } from '../domain/catalogos.schemas';
 import { catalogosRepository } from '../repositories/catalogos.repository';
 import { tipoCargaSchema } from '../domain/tipos-carga';
+import { abrirLinkMaps } from '@/server/externos/maps';
+import { esLinkDeMaps } from '@/modules/logistica/domain/rutas';
 
 /**
  * Server actions de catálogos. Permisos de la matriz §16:
@@ -36,6 +38,13 @@ export const guardarEstacion = createAction({
   schema: estacionSchema,
   handler: (d, { db }) => catalogosRepository(db).guardarEstacion(d),
   invalida: comercial,
+});
+
+/** Migración 143: abre un link corto de Google Maps para leer dónde está la estación. */
+export const abrirLinkEstacion = createAction({
+  permiso: 'comercial.proveedores:editar',
+  schema: z.object({ link: z.string().max(2000).refine(esLinkDeMaps, 'Pegá un link de Google Maps') }),
+  handler: async (d) => abrirLinkMaps(d.link),
 });
 
 export const eliminarEstacion = createAction({

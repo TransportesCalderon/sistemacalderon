@@ -96,10 +96,18 @@ export const catalogosRepository = (db: Db) => {
     async estaciones(): Promise<Estacion[]> {
       const { data, error } = await mae()
         .from('estacion_servicio')
-        .select('id, codigo, nombre, proveedor_id, pais, es_tanque_propio, version_fila')
+        .select('id, codigo, nombre, proveedor_id, pais, es_tanque_propio, version_fila, ubicacion_id')
         .is('eliminado_en', null)
         .order('nombre');
       if (error) throw new RepoError(error);
+      // Migración 143: el punto de cada estación está en su ubicación
+      const ids = data.map((e) => e.ubicacion_id).filter((x): x is number => x !== null);
+      const puntos = new Map<number, { latitud: number | null; longitud: number | null }>();
+      if (ids.length > 0) {
+        const u = await mae().from('ubicacion').select('id, latitud, longitud').in('id', ids).is('eliminado_en', null);
+        if (u.error) throw new RepoError(u.error);
+        for (const x of u.data) puntos.set(x.id, { latitud: x.latitud === null ? null : Number(x.latitud), longitud: x.longitud === null ? null : Number(x.longitud) });
+      }
       return data.map((e) => ({
         id: e.id,
         codigo: e.codigo,
@@ -108,24 +116,33 @@ export const catalogosRepository = (db: Db) => {
         pais: e.pais.trim(),
         esTanquePropio: e.es_tanque_propio,
         versionFila: e.version_fila,
+        latitud: e.ubicacion_id === null ? null : (puntos.get(e.ubicacion_id)?.latitud ?? null),
+        longitud: e.ubicacion_id === null ? null : (puntos.get(e.ubicacion_id)?.longitud ?? null),
       }));
     },
     async guardarEstacion(d: EstacionDatos): Promise<void> {
       const fila = { codigo: d.codigo, nombre: d.nombre, proveedor_id: d.proveedorId, pais: d.pais, es_tanque_propio: d.esTanquePropio };
-      if (d.id === null) {
-        const { error } = await mae().from('estacion_servicio').insert(fila);
+      let id = d.id;
+      if (id === null) {
+        const { data, error } = await mae().from('estacion_servicio').insert(fila).select('id').single();
         if (error) throw new RepoError(error);
-        return;
+        id = data.id;
+      } else {
+        const { data, error } = await mae()
+          .from('estacion_servicio')
+          .update({ ...fila, version_fila: d.versionFila ?? 0 })
+          .eq('id', id)
+          .eq('version_fila', d.versionFila ?? 0)
+          .select('id')
+          .maybeSingle();
+        if (error) throw new RepoError(error);
+        if (!data) throw new ConflictoVersion('mae.estacion_servicio', id);
       }
-      const { data, error } = await mae()
-        .from('estacion_servicio')
-        .update({ ...fila, version_fila: d.versionFila ?? 0 })
-        .eq('id', d.id)
-        .eq('version_fila', d.versionFila ?? 0)
-        .select('id')
-        .maybeSingle();
-      if (error) throw new RepoError(error);
-      if (!data) throw new ConflictoVersion('mae.estacion_servicio', d.id);
+      // Migración 143: el punto en el mapa (solo si el formulario lo manda)
+      if (d.latitud !== undefined && d.longitud !== undefined) {
+        const { error } = await mae().rpc('fn_ubicar_estacion', { p_estacion: id, p_latitud: d.latitud, p_longitud: d.longitud });
+        if (error) throw new RepoError(error);
+      }
     },
     async eliminarEstacion(d: Eliminar): Promise<void> {
       const { data, error } = await mae()

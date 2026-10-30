@@ -1067,6 +1067,8 @@ export type Database = {
         Args: { p_tanque: number; p_desde: string; p_capacidad_nominal_l: number; p_capacidad_util_l: number };
         Returns: number;
       };
+      /** Migración 143: punto de una estación de servicio (null = sin punto). */
+      fn_ubicar_estacion: { Args: { p_estacion: number; p_latitud: number | null; p_longitud: number | null }; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

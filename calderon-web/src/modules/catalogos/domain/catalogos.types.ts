@@ -34,6 +34,9 @@ export interface Estacion {
   pais: string;
   esTanquePropio: boolean;
   versionFila: number;
+  /** Migración 143: dónde está (para el aviso de litros a cargar). */
+  latitud: number | null;
+  longitud: number | null;
 }
 
 /** Cotización: tasa = unidades de moneda base por 1 unidad de la moneda (como la guarda la base). */
