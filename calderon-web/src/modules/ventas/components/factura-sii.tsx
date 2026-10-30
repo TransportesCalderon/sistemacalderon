@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileText, LoaderCircle, Save, Send, Undo2 } from 'lucide-react';
+import Image from 'next/image';
+import { Eye, FileText, LoaderCircle, Save, Send, Undo2, X } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { AccionConMotivo, Chip, ErrorBase, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
@@ -11,8 +12,10 @@ import { formatearFechaDia } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { ETIQUETA_ESTADO_DTE, NOMBRE_DTE, VERSION_SII, type DocumentoSii, type EstadoDte, type ResultadoSii, type SiiFactura } from '../domain/sii';
-import { useEmitirSii, useGuardarClienteSii, useNotaCreditoSii, useProbarSii, useResolverDte, useSiiEstado, useSiiFactura } from '../queries/hooks';
+import { ETIQUETA_ESTADO_DTE, NOMBRE_DTE, VERSION_SII, type DocumentoSii, type VistaPreviaSii, type EstadoDte, type ResultadoSii, type SiiFactura } from '../domain/sii';
+import { useEmitirSii, useGuardarClienteSii, useGuardarGlosaSii, useSiiVistaPrevia, useNotaCreditoSii, useProbarSii, useResolverDte, useSiiEstado, useSiiFactura } from '../queries/hooks';
+
+import logoAurea from './aurea-logo.png';
 
 const TONO_DTE: Record<EstadoDte, Tono> = { aceptado: 'exito', rechazado: 'error', sin_respuesta: 'alerta', descartado: 'neutro' };
 
@@ -28,6 +31,7 @@ export function FacturaSii({ facturaId, version, estado, fecha }: { facturaId: n
   const emitir = useEmitirSii();
   const envio = useEnvio();
   const [resultado, setResultado] = useState<ResultadoSii | null>(null);
+  const [verPrevia, setVerPrevia] = useState(false);
 
   if (!hay || !puedeEstado || !s) return null;
   // Una factura hecha por fuera del sistema (sin envíos al SII) no muestra el recuadro
@@ -48,7 +52,7 @@ export function FacturaSii({ facturaId, version, estado, fecha }: { facturaId: n
       {s.tipo === 34 && estado === 'borrador' && s.tcClp !== null && s.totalClp !== null && (
         <p className="text-sm text-tinta-suave">
           Precio pactado en dólares. Se emite en pesos chilenos al dólar de hoy ({formatearNumero(s.tcClp, 2)}): <b className="text-tinta">CLP {formatearNumero(s.totalClp, 0)}</b>.
-          Cada renglón dice en la factura su precio en dólares.
+          Abajo, en «Observaciones», va la leyenda con el valor en dólares.
         </p>
       )}
       {s.faltantes.length > 0 && estado === 'borrador' && (
@@ -63,28 +67,35 @@ export function FacturaSii({ facturaId, version, estado, fecha }: { facturaId: n
       )}
       {faltaCliente && estado === 'borrador' && <DatosClienteSii s={s} />}
 
-      {estado === 'borrador' && (
+      {estado === 'borrador' && !verPrevia && (
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            className={BOTON_PRIMARIO}
-            disabled={!s.puedeEmitir || emitir.isPending}
-            onClick={() => {
-              setResultado(null);
-              void envio.enviar(
-                emitir.mutateAsync({ id: facturaId, version, fecha }).then((r) => {
-                  if (r.ok) setResultado(r.data);
-                  return r;
-                }),
-                () => undefined,
-              );
-            }}
-          >
-            {emitir.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
-            {prueba ? 'Enviar de prueba al SII' : 'Emitir en el SII'}
+          <button type="button" className={BOTON_PRIMARIO} disabled={!s.puedeEmitir} onClick={() => { setResultado(null); setVerPrevia(true); }}>
+            <Eye className="size-4" /> Ver vista previa
           </button>
-          <span className="text-xs text-tinta-suave">Con la fecha de la factura de abajo ({formatearFechaDia(fecha)}).</span>
+          <span className="text-xs text-tinta-suave">Revisá la factura antes de enviarla. Con la fecha de la factura de abajo ({formatearFechaDia(fecha)}).</span>
         </div>
+      )}
+      {estado === 'borrador' && verPrevia && (
+        <VistaPrevia
+          facturaId={facturaId}
+          fecha={fecha}
+          prueba={prueba}
+          enviando={emitir.isPending}
+          onCerrar={() => setVerPrevia(false)}
+          onEnviar={() => {
+            setResultado(null);
+            void envio.enviar(
+              emitir.mutateAsync({ id: facturaId, version, fecha }).then((r) => {
+                if (r.ok) {
+                  setResultado(r.data);
+                  if (r.data.ok) setVerPrevia(false);
+                }
+                return r;
+              }),
+              () => undefined,
+            );
+          }}
+        />
       )}
       <ErrorBase error={envio.error} />
       {resultado && !resultado.ok && resultado.error && (
@@ -274,6 +285,194 @@ function Conexion() {
         </button>
       )}
       {msg && <span className={msg.ok ? 'text-exito' : 'text-error'}>{msg.texto}</span>}
+    </div>
+  );
+}
+
+const MAX_GLOSA = 100;
+const plata = (moneda: 'CLP' | 'USD', n: number) => (moneda === 'CLP' ? `$ ${formatearNumero(n, 0)}` : `U$D ${formatearNumero(n, 2)}`);
+
+/**
+ * Migración 138: vista previa de la factura electrónica, como la va a recibir el SII. Los datos y la
+ * leyenda los arma la base (ven.fn_sii_vista_previa); acá se muestran y se puede cambiar la leyenda.
+ */
+function VistaPrevia({
+  facturaId,
+  fecha,
+  prueba,
+  enviando,
+  onCerrar,
+  onEnviar,
+}: {
+  facturaId: number;
+  fecha: string;
+  prueba: boolean;
+  enviando: boolean;
+  onCerrar: () => void;
+  onEnviar: () => void;
+}) {
+  const { data: v, error, isLoading } = useSiiVistaPrevia(facturaId, fecha, true);
+  if (isLoading) return <p className="flex items-center gap-2 text-sm text-tinta-suave"><LoaderCircle className="size-4 animate-spin" /> Armando la vista previa…</p>;
+  if (error || !v) return <p className="rounded-md bg-error/10 p-2 text-sm text-error">{error instanceof Error ? error.message : 'No se pudo armar la vista previa.'}</p>;
+  return <HojaFactura v={v} facturaId={facturaId} prueba={prueba} enviando={enviando} onCerrar={onCerrar} onEnviar={onEnviar} />;
+}
+
+function HojaFactura({
+  v,
+  facturaId,
+  prueba,
+  enviando,
+  onCerrar,
+  onEnviar,
+}: {
+  v: VistaPreviaSii;
+  facturaId: number;
+  prueba: boolean;
+  enviando: boolean;
+  onCerrar: () => void;
+  onEnviar: () => void;
+}) {
+  const guardar = useGuardarGlosaSii();
+  const envio = useEnvio();
+  const [glosa, setGlosa] = useState(v.glosa ?? '');
+  useEffect(() => setGlosa(v.glosa ?? ''), [v.glosa]);
+  const cambiada = glosa.trim() !== (v.glosa ?? '').trim();
+  const e = v.emisor;
+  const r = v.receptor;
+  const lugar = (o: Record<string, string>) => [o.direccion, o.comuna, o.ciudad].filter(Boolean).join(', ');
+
+  return (
+    <div className="space-y-3 rounded-lg border-2 border-marca/40 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="font-semibold text-tinta">Vista previa</h4>
+        <button type="button" onClick={onCerrar} className="inline-flex items-center gap-1 text-sm text-tinta-suave">
+          <X className="size-4" /> Cerrar
+        </button>
+      </div>
+
+      {/* La hoja */}
+      <div className="space-y-4 rounded-md border border-borde bg-white p-4 text-sm text-neutral-900 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1">
+            <Image src={logoAurea} alt="AUREA CARGO" className="h-14 w-auto" />
+            <p className="font-semibold">{e.razon_social}</p>
+            <p className="text-xs">{e.giro}</p>
+            <p className="text-xs">{lugar(e)}</p>
+            {(e.correo || e.telefono) && <p className="text-xs">{[e.correo, e.telefono].filter(Boolean).join(' · ')}</p>}
+          </div>
+          <div className="min-w-48 rounded border-2 border-red-600 px-4 py-2 text-center font-semibold text-red-600">
+            <p>R.U.T.: {e.rut}</p>
+            <p className="uppercase">{v.tipoNombre}</p>
+            <p>N° (se asigna al enviar)</p>
+          </div>
+        </div>
+
+        <div className="grid gap-x-6 gap-y-1 rounded border border-neutral-300 p-2 text-xs sm:grid-cols-2">
+          <p><b>Señor(es):</b> {r.razon_social}</p>
+          <p><b>{r.pais === 'CL' || !r.pais ? 'R.U.T.' : 'Identificación'}:</b> {r.identificador_fiscal}</p>
+          {r.giro && <p><b>Giro:</b> {r.giro}</p>}
+          {lugar(r) && <p><b>Dirección:</b> {lugar(r)}</p>}
+          <p><b>Fecha de emisión:</b> {formatearFechaDia(v.fecha)}</p>
+          {v.vence && <p><b>Vencimiento:</b> {formatearFechaDia(v.vence)}</p>}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-neutral-400 text-left">
+                <th className="py-1 pr-2">Detalle</th>
+                <th className="py-1 pr-2 text-right">Cant.</th>
+                <th className="py-1 pr-2 text-right">Precio</th>
+                <th className="py-1 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {v.items.map((it) => (
+                <tr key={it.n} className="border-b border-neutral-200 align-top">
+                  <td className="py-1 pr-2">
+                    <p className="font-medium">{it.nombre}</p>
+                    {it.descripcion && <p className="whitespace-pre-line text-neutral-600">{it.descripcion}</p>}
+                  </td>
+                  <td className="py-1 pr-2 text-right tabular-nums">{formatearNumero(it.cantidad, 0)}</td>
+                  <td className="py-1 pr-2 text-right tabular-nums">{plata(v.moneda, it.precio)}</td>
+                  <td className="py-1 text-right tabular-nums">{plata(v.moneda, it.monto)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-md text-xs">
+            <p className="font-semibold">Observaciones</p>
+            <p>{glosa.trim() || <span className="text-neutral-500">(sin leyenda)</span>}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-base font-bold">Total: {plata(v.moneda, v.total)}</p>
+            {v.moneda === 'CLP' && v.tcClp !== null && (
+              <p className="text-xs text-neutral-600">
+                U$D {formatearNumero(v.totalUsd, 2)} al dólar {formatearNumero(v.tcClp, 2)}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* La leyenda: automática, pero se puede cambiar */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-tinta" htmlFor={`glosa-${facturaId}`}>
+          Leyenda de «Observaciones» {v.glosaAutomatica && <span className="font-normal text-tinta-suave">(automática)</span>}
+        </label>
+        <textarea
+          id={`glosa-${facturaId}`}
+          rows={2}
+          maxLength={MAX_GLOSA}
+          value={glosa}
+          onChange={(ev) => setGlosa(ev.target.value)}
+          className="w-full rounded-md border border-borde bg-white p-2 text-sm"
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-tinta-suave">{glosa.length}/{MAX_GLOSA} letras</span>
+          <button
+            type="button"
+            className={BOTON_SECUNDARIO}
+            disabled={!cambiada || guardar.isPending}
+            onClick={() => void envio.enviar(guardar.mutateAsync({ id: facturaId, glosa }), () => undefined)}
+          >
+            <Save className="size-4" /> Guardar leyenda
+          </button>
+          {!v.glosaAutomatica && (
+            <button
+              type="button"
+              className={BOTON_SECUNDARIO}
+              disabled={guardar.isPending}
+              onClick={() => void envio.enviar(guardar.mutateAsync({ id: facturaId, glosa: null }), () => undefined)}
+            >
+              <Undo2 className="size-4" /> Usar la automática
+            </button>
+          )}
+        </div>
+        <ErrorBase error={envio.error} />
+      </div>
+
+      {v.faltantes.length > 0 && (
+        <div className="rounded-md bg-alerta/10 p-2 text-sm text-tinta">
+          <p className="font-medium">Antes de enviar falta:</p>
+          <ul className="list-disc pl-5">
+            {v.faltantes.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" className={BOTON_PRIMARIO} disabled={enviando || cambiada || v.faltantes.length > 0} onClick={onEnviar}>
+          {enviando ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
+          {prueba ? 'Enviar de prueba al SII' : 'Enviar al SII'}
+        </button>
+        {cambiada && <span className="text-xs text-alerta">Guardá la leyenda antes de enviar.</span>}
+      </div>
     </div>
   );
 }

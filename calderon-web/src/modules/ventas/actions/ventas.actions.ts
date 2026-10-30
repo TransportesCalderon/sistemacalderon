@@ -25,7 +25,7 @@ import {
   versionSchema,
 } from '../domain/ventas.schemas';
 import { comprobanteCobroSchema, rearmarDetalleSchema } from '../domain/detalle';
-import { clienteSiiSchema, emitirSiiSchema, notaCreditoSiiSchema, resolverDteSchema } from '../domain/sii';
+import { clienteSiiSchema, emitirSiiSchema, glosaSiiSchema, notaCreditoSiiSchema, resolverDteSchema } from '../domain/sii';
 import { ventasRepository } from '../repositories/ventas.repository';
 
 /**
@@ -129,6 +129,13 @@ export const emitirSii = createAction({
   permiso: 'ventas.facturacion:transicionar',
   schema: emitirSiiSchema,
   handler: (d, { db }) => repo(db).emitirSii(d.id, d.version, d.fecha),
+  invalida: rutas,
+});
+/** Migración 138: la leyenda de la factura electrónica (null = la automática; '' = sin leyenda). */
+export const guardarGlosaSii = createAction({
+  permiso: 'ventas.facturacion:transicionar',
+  schema: glosaSiiSchema,
+  handler: (d, { db }) => repo(db).guardarGlosaSii(d.id, d.glosa),
   invalida: rutas,
 });
 export const notaCreditoSii = createAction({

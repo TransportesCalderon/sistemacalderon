@@ -30,6 +30,7 @@ import {
   recalcularCostoKm,
   responderCotizacion,
   emitirSii,
+  guardarGlosaSii,
   guardarClienteSii,
   guardarComprobanteCobro,
   rearmarDetalle,
@@ -105,6 +106,10 @@ export const useSiiFactura = (id: number | null, activo = true) =>
 export const useSiiEstado = (activo = true) => useQuery({ queryKey: [...CLAVE, 'sii-estado'], queryFn: () => repo().siiEstado(), enabled: activo });
 export const useGuardarClienteSii = () => useEscritura(guardarClienteSii);
 export const useEmitirSii = () => useEscritura(emitirSii);
+export const useGuardarGlosaSii = () => useEscritura(guardarGlosaSii);
+/** Migración 138: vista previa de la factura electrónica (con la fecha con que se va a emitir). */
+export const useSiiVistaPrevia = (id: number, fecha: string, activo: boolean) =>
+  useQuery({ queryKey: [...CLAVE, 'sii-vista', id, fecha], queryFn: () => repo().siiVistaPrevia(id, fecha), enabled: activo });
 export const useNotaCreditoSii = () => useEscritura(notaCreditoSii);
 export const useResolverDte = () => useEscritura(resolverDte);
 export const useProbarSii = () => useEscritura(probarSii);

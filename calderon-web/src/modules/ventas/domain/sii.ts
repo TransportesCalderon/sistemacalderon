@@ -131,6 +131,65 @@ export function parsearSiiFactura(raw: unknown): SiiFactura {
   };
 }
 
+/** Migración 138: vista previa de la factura electrónica (lo mismo que se envía). */
+export const VERSION_VISTA_PREVIA = 138;
+export interface RenglonVistaPrevia {
+  n: number;
+  nombre: string;
+  descripcion: string | null;
+  cantidad: number;
+  precio: number;
+  monto: number;
+  importeUsd: number;
+}
+export interface VistaPreviaSii {
+  ambiente: AmbienteSii;
+  tipo: number;
+  tipoNombre: string;
+  fecha: string;
+  vence: string;
+  moneda: 'CLP' | 'USD';
+  tcClp: number | null;
+  emisor: Record<string, string>;
+  receptor: Record<string, string>;
+  items: RenglonVistaPrevia[];
+  total: number;
+  totalUsd: number;
+  glosa: string | null;
+  glosaAutomatica: boolean;
+  faltantes: string[];
+}
+const textos = (v: unknown): Record<string, string> =>
+  Object.fromEntries(Object.entries(obj(v)).map(([k, x]) => [k, x === null || x === undefined ? '' : String(x)]));
+export function parsearVistaPrevia(raw: unknown): VistaPreviaSii {
+  const j = obj(raw);
+  return {
+    ambiente: amb(j.ambiente),
+    tipo: Number(j.tipo),
+    tipoNombre: str(j.tipo_nombre),
+    fecha: str(j.fecha),
+    vence: str(j.vence),
+    moneda: j.moneda === 'USD' ? 'USD' : 'CLP',
+    tcClp: numN(j.tc_clp),
+    emisor: textos(j.emisor),
+    receptor: textos(j.receptor),
+    items: arr(j.items).map((x) => ({
+      n: Number(x.n),
+      nombre: str(x.nombre),
+      descripcion: strN(x.descripcion),
+      cantidad: Number(x.cantidad),
+      precio: Number(x.precio),
+      monto: Number(x.monto),
+      importeUsd: Number(x.importe_usd),
+    })),
+    total: Number(j.total ?? 0),
+    totalUsd: Number(j.total_usd ?? 0),
+    glosa: strN(j.glosa),
+    glosaAutomatica: j.glosa_automatica === true,
+    faltantes: Array.isArray(j.faltantes) ? j.faltantes.map(String) : [],
+  };
+}
+
 export function parsearResultadoSii(raw: unknown): ResultadoSii {
   const j = obj(raw);
   return {
@@ -164,3 +223,5 @@ export const clienteSiiSchema = z.object({
   correo: z.string(),
 });
 export type ClienteSiiEntrada = z.infer<typeof clienteSiiSchema>;
+/** Migración 138: la leyenda (null = la automática; vacía = sin leyenda). */
+export const glosaSiiSchema = z.object({ id, glosa: z.string().max(300).nullable() });

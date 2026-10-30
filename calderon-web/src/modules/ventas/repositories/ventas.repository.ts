@@ -26,7 +26,7 @@ import type {
   TarifaEntrada,
 } from '../domain/ventas.schemas';
 import { parsearDetalleCliente } from '../domain/detalle';
-import { parsearEstadoSii, parsearResultadoSii, parsearSiiFactura, type ClienteSiiEntrada } from '../domain/sii';
+import { parsearEstadoSii, parsearResultadoSii, parsearSiiFactura, parsearVistaPrevia, type ClienteSiiEntrada } from '../domain/sii';
 
 /** Ventas (migraciones 67 y 68). Todo pasa por funciones de la base; su mensaje se muestra tal cual. */
 export const ventasRepository = (db: Db) => {
@@ -306,6 +306,13 @@ export const ventasRepository = (db: Db) => {
           p_datos: { giro: d.giro, direccion: d.direccion, comuna: d.comuna, ciudad: d.ciudad, correo: d.correo },
         }),
       );
+    },
+    /** Migración 138: vista previa y leyenda de la factura electrónica. */
+    async siiVistaPrevia(id: number, fecha: string) {
+      return parsearVistaPrevia(await leer(ven().rpc('fn_ven_sii_vista_previa', { p_id: id, p_fecha: fecha })));
+    },
+    async guardarGlosaSii(id: number, glosa: string | null) {
+      return leer(ven().rpc('fn_ven_guardar_glosa_sii', { p_id: id, p_glosa: glosa })) as Promise<string | null>;
     },
     async emitirSii(id: number, version: number, fecha: string) {
       return parsearResultadoSii(await leer(ven().rpc('fn_ven_emitir_sii', { p_id: id, p_version: version, p_fecha: fecha })));
