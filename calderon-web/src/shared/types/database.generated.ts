@@ -1180,6 +1180,7 @@ export type Database = {
       fn_cierres_por_hacer: { Args: { p_dias?: number }; Returns: Json };
       fn_cerrar_y_aprobar_varios: { Args: { p_viajes: number[] }; Returns: Json };
       fn_completar_operaciones_viaje: { Args: { p_viaje: number }; Returns: number };
+      fn_crear_viaje_pasado: { Args: { p_carga_salida: number; p_chofer?: number }; Returns: number };
       // Módulo del chofer (60)
       fn_mi_chofer: { Args: Record<string, never>; Returns: number | null };
       fn_mis_cargas: { Args: Record<string, never>; Returns: Json };

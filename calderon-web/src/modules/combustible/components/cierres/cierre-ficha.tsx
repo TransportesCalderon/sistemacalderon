@@ -29,6 +29,7 @@ import { BorradorForm } from './borrador-form';
 import { EstadoCierreChip, VerificacionChip } from './estado-cierre';
 import { SoloEnPagina, useFicha, useNombreFicha } from '@/modules/core/fichas/contexto';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import { CargarEnViajeChofer } from '@/modules/logistica/components/viaje-del-cierre';
 
 /**
  * Ficha del cierre de viaje. Todo número sale de la base: en el borrador, de
@@ -118,7 +119,15 @@ function Identificacion({ cierre, resultado }: { cierre: CierreViaje; resultado:
           {responsable ?? <span className="text-tinta-suave">Sin asignar</span>}
           {!cierre.datos.choferResponsableId && propuesto && <span className="block text-xs text-tinta-suave">Propuesto por la base: {propuesto}</span>}
         </Dato>
-        <Dato etiqueta="Línea">{resultado?.lineaViaje ?? '—'}</Dato>
+        <Dato etiqueta="Línea">
+          {resultado?.lineaViaje ?? '—'}
+          {/* Migración 134: la línea y las operaciones se cargan en el viaje del chofer */}
+          {cierre.estado !== 'anulado' && (
+            <span className="mt-0.5 block">
+              <CargarEnViajeChofer cargaSalidaId={cierre.cargaSalidaId} texto={resultado?.lineaViaje ? 'Ver el viaje del chofer' : 'Cargar operaciones y línea'} />
+            </span>
+          )}
+        </Dato>
         <Dato etiqueta="Salida (corte inicial)">
           <NombreEnlazado tipo="carga" id={cierre.cargaSalidaId} className="text-marca hover:underline">
             {formatearFechaHora(cierre.salidaTs, zonaHoraria)}

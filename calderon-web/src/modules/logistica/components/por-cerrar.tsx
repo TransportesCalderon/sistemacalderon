@@ -19,6 +19,7 @@ import { porCerrarRepository, type EtapaCierre, type ViajePorCerrar } from '../r
 import { invalidar } from '@/shared/query/invalidar';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { useCrearBorrador } from '@/modules/combustible/queries/hooks';
+import { CargarEnViajeChofer } from './viaje-del-cierre';
 
 type Grupo = 'aprobar' | 'faltan' | 'viaje';
 const GRUPO_DE: Record<EtapaCierre, Grupo> = { listo: 'aprobar', con_diferencia: 'aprobar', faltan_datos: 'faltan', en_viaje: 'viaje' };
@@ -297,6 +298,7 @@ function Fila({
             </NombreEnlazado>
           )}
           {v.viajeId === null && v.cierreId === null && v.cargaSalidaId !== null && <ArmarCierre camionId={v.camionId} cargaSalidaId={v.cargaSalidaId} />}
+          {v.viajeId === null && v.cargaSalidaId !== null && <CargarEnViajeChofer cargaSalidaId={v.cargaSalidaId} texto="Crear el viaje del chofer" />}
         </div>
       </td>
     </tr>

@@ -20,3 +20,10 @@ export const completarOperacionesViaje = createAction({
   handler: (d, { db }) => porCerrarRepository(db).completarOperaciones(d.viajeId),
   invalida: rutas,
 });
+
+export const crearViajePasado = createAction({
+  permiso: 'operacion.tramos:editar',
+  schema: z.object({ cargaSalidaId: z.number().int().positive() }),
+  handler: (d, { db }) => porCerrarRepository(db).crearViajePasado(d.cargaSalidaId),
+  invalida: rutas,
+});

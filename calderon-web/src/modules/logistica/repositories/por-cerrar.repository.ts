@@ -87,6 +87,12 @@ export const porCerrarRepository = (db: Db) => {
       const r = (data ?? {}) as { aprobados?: number; errores?: { viaje: string | null; error: string }[] };
       return { aprobados: r.aprobados ?? 0, errores: r.errores ?? [] };
     },
+    /** Migración 134: el viaje del chofer de un viaje ya terminado (o el que ya tiene), para cargarle operaciones y línea. */
+    async crearViajePasado(cargaSalidaId: number): Promise<number> {
+      const { data, error } = await ops().rpc('fn_crear_viaje_pasado', { p_carga_salida: cargaSalidaId });
+      if (error) throw new RepoError(error);
+      return Number(data);
+    },
     async completarOperaciones(viaje: number): Promise<number> {
       const { data, error } = await ops().rpc('fn_completar_operaciones_viaje', { p_viaje: viaje });
       if (error) throw new RepoError(error);
