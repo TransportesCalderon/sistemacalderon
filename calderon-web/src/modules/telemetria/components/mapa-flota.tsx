@@ -76,6 +76,8 @@ export function MapaFlota({
   const redibujando = useRef(false);
   const alElegir = useRef(onSeleccionar);
   alElegir.current = onSeleccionar;
+  // Para redibujar al hacer zoom con los datos de ahora (los camiones juntos se apilan según el zoom)
+  const redibujar = useRef<(L: typeof import('leaflet')) => void>(() => undefined);
   const [completa, setCompleta] = useState(false);
   const [rankingAbierto, setRankingAbierto] = useState(false);
   const alternarRanking = () => setRankingAbierto((a) => !a);
@@ -98,6 +100,7 @@ export function MapaFlota({
         abierto.current = null;
         alElegir.current(null);
       });
+      m.on('zoomend', () => setTimeout(() => redibujar.current(L), 0));
       dibujar(L);
     });
     return () => {
@@ -239,10 +242,25 @@ export function MapaFlota({
             </div>`;
   }
 
+  /** Una línea fina desde donde está de verdad hasta el punto corrido (si se apiló). */
+  const guia = (dy: number, x: number) =>
+    dy > 0 ? `<span style="position:absolute;left:${x}px;top:${x + 1 - dy}px;width:2px;height:${dy}px;background:#475569;opacity:.7"></span>` : '';
+
   function dibujar(L: typeof import('leaflet')) {
     const m = mapa.current;
     const g = capa.current;
     if (!m || !g) return;
+    // Camiones (y celulares) en el mismo lugar: se apilan hacia abajo para que se vean todos
+    const ocupados: { x: number; y: number; n: number }[] = [];
+    const apilar = (lat: number, lng: number) => {
+      const p = m.latLngToLayerPoint([lat, lng]);
+      const lugar = ocupados.find((o) => Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 16);
+      if (!lugar) {
+        ocupados.push({ x: p.x, y: p.y, n: 1 });
+        return 0;
+      }
+      return 22 * lugar.n++;
+    };
     redibujando.current = true;
     g.clearLayers();
     redibujando.current = false;
@@ -278,6 +296,7 @@ export function MapaFlota({
         anda && c.rumbo !== null
           ? `<span style="position:absolute;left:3px;top:-9px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid ${color};transform-origin:5px 17px;transform:rotate(${c.rumbo}deg)"></span>`
           : '';
+      const dy = apilar(c.latitud, c.longitud);
       const etiqueta = `${escapar(c.patente)}${d?.chofer ? ` · ${escapar(d.chofer.split(',')[0] ?? d.chofer)}` : ''}${anda ? ` (${formatearNumero(c.velocidadKmh ?? 0, 0)} km/h)` : ''}${
         // Migración 103: consumo del mes del chofer
         d?.consumoMes?.l100km != null ? ` · <span style="color:#0f5fa8">${formatearNumero(d.consumoMes.l100km, 1)} L/100</span>` : ''
@@ -285,13 +304,13 @@ export function MapaFlota({
       const icono = L.divIcon({
         className: '',
         iconSize: [0, 0],
-        html: `<div style="transform:translate(-8px,-8px);display:flex;align-items:center;gap:4px;white-space:nowrap">
-                 <span style="position:relative;flex:none;display:inline-block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 ${elegido ? 3 : 1}px ${elegido ? '#0f5fa8' : 'rgba(0,0,0,.3)'}">${flecha}${abusivo}</span>
+        html: `<div style="position:relative;transform:translate(-8px,${dy - 8}px);display:flex;align-items:center;gap:4px;white-space:nowrap">
+                 ${guia(dy, 7)}<span style="position:relative;flex:none;display:inline-block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 ${elegido ? 3 : 1}px ${elegido ? '#0f5fa8' : 'rgba(0,0,0,.3)'}">${flecha}${abusivo}</span>
                  <span style="font:600 11px/1 system-ui;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${etiqueta}</span>
                </div>`,
       });
       const marcador = L.marker([c.latitud, c.longitud], { icon: icono, zIndexOffset: elegido ? 1000 : 0 })
-        .bindPopup(ficha(c, d), { maxWidth: 320, autoPan: false })
+        .bindPopup(ficha(c, d), { maxWidth: 320, autoPan: false, offset: [0, dy + 7] })
         .on('click', () => alElegir.current(c.camionId))
         .on('popupopen', () => (abierto.current = c.camionId))
         .on('popupclose', () => {
@@ -301,19 +320,21 @@ export function MapaFlota({
       puntos.push([c.latitud, c.longitud]);
       // Centra solo al elegir otro camión (no en cada refresco) y abre su ficha
       if (elegido && centrado.current !== c.camionId) {
-        m.setView([c.latitud, c.longitud], Math.max(m.getZoom(), 11));
+        // (se marca antes de mover: el zoom vuelve a dibujar el mapa)
         centrado.current = c.camionId;
+        m.setView([c.latitud, c.longitud], Math.max(m.getZoom(), 11));
         abierto.current = c.camionId;
       }
       if (abierto.current === c.camionId) marcador.openPopup();
     }
     for (const c of celulares) {
       const texto = `${c.chofer}${c.numeroOperacion ? ` · Op. ${c.numeroOperacion}` : ''} (celular)`;
+      const dy = apilar(c.latitud, c.longitud);
       const icono = L.divIcon({
         className: '',
         iconSize: [0, 0],
-        html: `<div style="transform:translate(-7px,-7px);display:flex;align-items:center;gap:4px;white-space:nowrap">
-                 <span style="flex:none;display:inline-block;width:14px;height:14px;border-radius:3px;background:${senalDe(minutosDesde(c.ts)) === 'vivo' ? '#7c3aed' : '#a78bfa'};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)"></span>
+        html: `<div style="position:relative;transform:translate(-7px,${dy - 7}px);display:flex;align-items:center;gap:4px;white-space:nowrap">
+                 ${guia(dy, 6)}<span style="flex:none;display:inline-block;width:14px;height:14px;border-radius:3px;background:${senalDe(minutosDesde(c.ts)) === 'vivo' ? '#7c3aed' : '#a78bfa'};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)"></span>
                  <span style="font:600 11px/1 system-ui;background:#f5f3ff;color:#5b21b6;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${escapar(texto)}</span>
                </div>`,
       });
@@ -321,10 +342,12 @@ export function MapaFlota({
       puntos.push([c.latitud, c.longitud]);
     }
     if (!encuadrado.current && puntos.length > 0) {
-      m.fitBounds(L.latLngBounds(puntos), { padding: [40, 40], maxZoom: 11 });
       encuadrado.current = true;
+      m.fitBounds(L.latLngBounds(puntos), { padding: [40, 40], maxZoom: 11 });
     }
   }
+
+  redibujar.current = dibujar;
 
   return (
     <>
