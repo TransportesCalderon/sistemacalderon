@@ -9,6 +9,7 @@ import {
   cobrarFactura,
   completarActividad,
   crearFactura,
+  crearFacturaLibre,
   duplicarCotizacion,
   emitirFactura,
   enviarCotizacion,
@@ -95,6 +96,7 @@ export const useResponderCotizacion = () => useEscritura(responderCotizacion);
 export const useAnularCotizacion = () => useEscritura(anularCotizacion);
 export const useDuplicarCotizacion = () => useEscritura(duplicarCotizacion);
 export const useCrearFactura = () => useEscritura(crearFactura);
+export const useCrearFacturaLibre = () => useEscritura(crearFacturaLibre);
 export const useGuardarFactura = () => useEscritura(guardarFactura);
 export const useEmitirFactura = () => useEscritura(emitirFactura);
 export const useCobrarFactura = () => useEscritura(cobrarFactura);

@@ -1131,6 +1131,8 @@ export type Database = {
       fn_ven_anular_cotizacion: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_ven_duplicar_cotizacion: { Args: { p_id: number }; Returns: number };
       fn_ven_crear_factura: { Args: { p_cliente: number; p_servicios: number[] }; Returns: number };
+      /** Migración 144: factura sin operación. */
+      fn_ven_crear_factura_libre: { Args: { p_cliente: number; p_renglones: Json; p_observacion?: string | null }; Returns: number };
       fn_ven_guardar_factura: { Args: { p_id: number; p_version: number; p_renglones: Json; p_observacion?: string | null }; Returns: undefined };
       fn_ven_emitir_factura: { Args: { p_id: number; p_version: number; p_numero_fiscal: string; p_fecha: string }; Returns: undefined };
       fn_ven_cobrar_factura: { Args: { p_id: number; p_fecha: string; p_cuenta?: number | null }; Returns: undefined };

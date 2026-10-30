@@ -19,6 +19,7 @@ import type {
   ContactoEntrada,
   CotizacionEntrada,
   EmpresaEntrada,
+  CrearFacturaLibreEntrada,
   GuardarFacturaEntrada,
   HacerClienteEntrada,
   NegocioEntrada,
@@ -246,6 +247,16 @@ export const ventasRepository = (db: Db) => {
       // Migración 125: primero quedan guardados los datos del detalle para el cliente
       if (campos) await leer(ven().rpc('fn_ven_guardar_detalle_cliente', { p_cliente: clienteId, p_campos: campos }));
       return leer(ven().rpc('fn_ven_crear_factura', { p_cliente: clienteId, p_servicios: servicios }));
+    },
+    /** Migración 144: factura sin operación. */
+    async crearFacturaLibre(f: CrearFacturaLibreEntrada): Promise<number> {
+      return leer(
+        ven().rpc('fn_ven_crear_factura_libre', {
+          p_cliente: f.clienteId,
+          p_observacion: f.observacion,
+          p_renglones: f.renglones.map((r) => ({ descripcion: r.descripcion, cantidad: r.cantidad, precio: r.precio })) as Json,
+        }),
+      );
     },
     async guardarFactura(f: GuardarFacturaEntrada) {
       await leer(

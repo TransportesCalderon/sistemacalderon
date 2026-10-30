@@ -30,6 +30,8 @@ import {
 import { ChipFactura } from './comun';
 import { FacturaSii } from './factura-sii';
 import { ElegirDetalle } from './detalle-factura';
+import { FacturaLibre, VERSION_FACTURA_LIBRE } from './factura-libre';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { CampoComprobante, ComprobanteCobro, useAdjuntarComprobante } from './comprobante-cobro';
 
 /** Migración 101: «por cobrar» = emitidas sin cobrar (con las vencidas). */
@@ -52,9 +54,31 @@ export function FacturacionPantalla() {
     setEstado(f);
     setVista('facturas');
   };
+  // Migración 144: factura sin operación (gastos extra)
+  const puedeEditarFac = useCan('ventas.facturacion:editar');
+  const hayLibre = useBaseTiene(VERSION_FACTURA_LIBRE);
+  const puedeLibre = puedeEditarFac && hayLibre;
+  const [libre, setLibre] = useState(false);
   return (
     <div className="space-y-4">
-      <Encabezado titulo="Facturación y cobranzas" subtitulo="Finanzas" />
+      <Encabezado titulo="Facturación y cobranzas" subtitulo="Finanzas">
+        {puedeLibre && !libre && (
+          <button type="button" className={BOTON_SECUNDARIO} onClick={() => setLibre(true)}>
+            <FilePlus2 className="size-4" /> Factura sin operación
+          </button>
+        )}
+      </Encabezado>
+      {libre && (
+        <FacturaLibre
+          onCerrar={() => setLibre(false)}
+          onCreada={(id) => {
+            setLibre(false);
+            setAbierta(id);
+            setEstado('borrador');
+            setVista('facturas');
+          }}
+        />
+      )}
       <p className="text-sm text-tinta-suave">
         El sistema arma la prefactura con las operaciones y el precio de la tarifa. Desde la prefactura se emite la factura electrónica en el SII
         (Facturacion.cl); si se hizo por fuera, se marca emitida (el número se puede cargar después). Después se registra el cobro.
@@ -473,6 +497,8 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
           >
             <Plus className="size-4" /> Agregar un cargo (estadía, sobrepeso…)
           </button>
+          {/* Migración 144 */}
+          <p className="text-xs text-tinta-suave">Un cargo sale en la factura con el título tal cual lo escribís (sin «Servicio de transporte…»).</p>
           {f.renglones.some((r) => r.servicioId) && (
             <div className="space-y-2">
               {/* Al tildar se guarda para el cliente y se rearma el detalle de la prefactura (sin otro botón) */}

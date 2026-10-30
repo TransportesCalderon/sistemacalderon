@@ -153,6 +153,13 @@ export const crearFacturaSchema = z.object({
   /** Migración 125: datos de cada renglón (se guardan para el cliente; los valida la base). */
   campos: z.array(z.string()).optional(),
 });
+/** Migración 144: factura sin operación (gastos extra) con renglones escritos a mano. */
+export const crearFacturaLibreSchema = z.object({
+  clienteId: id,
+  observacion: texto(1000),
+  renglones: z.array(z.object({ descripcion: z.string().trim().max(250), cantidad: numeroOpc, precio: numeroOpc })).min(1, 'Escribí al menos un renglón.'),
+});
+export type CrearFacturaLibreEntrada = z.infer<typeof crearFacturaLibreSchema>;
 export const guardarFacturaSchema = z.object({
   id,
   version: z.number().int().positive(),

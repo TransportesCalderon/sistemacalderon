@@ -9,6 +9,7 @@ import {
   completarSchema,
   contactoSchema,
   cotizacionSchema,
+  crearFacturaLibreSchema,
   crearFacturaSchema,
   emitirSchema,
   empresaSchema,
@@ -90,6 +91,13 @@ export const crearFactura = createAction({
   permiso: 'ventas.facturacion:editar',
   schema: crearFacturaSchema,
   handler: (d, { db }) => repo(db).crearFactura(d.clienteId, d.servicios, d.campos),
+  invalida: rutas,
+});
+// Migración 144: factura sin operación (gastos extra)
+export const crearFacturaLibre = createAction({
+  permiso: 'ventas.facturacion:editar',
+  schema: crearFacturaLibreSchema,
+  handler: (d, { db }) => repo(db).crearFacturaLibre(d),
   invalida: rutas,
 });
 export const guardarFactura = createAction({ permiso: 'ventas.facturacion:editar', schema: guardarFacturaSchema, handler: (d, { db }) => repo(db).guardarFactura(d), invalida: rutas });
