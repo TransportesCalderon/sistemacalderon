@@ -9,8 +9,8 @@ import { useCan } from '@/modules/core/permissions/can';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { browserDb } from '@/shared/supabase/browser';
-import { asistenteRepository, textoPeriodo, VERSION_ASISTENTE, type Turno } from './asistente';
-import { preguntarAsistente, valorarRespuesta } from './asistente.actions';
+import { asistenteRepository, textoPeriodo, textoSemana, VERSION_ASISTENTE, VERSION_INFORME, type Fuente, type Turno } from './asistente';
+import { generarInforme, preguntarAsistente, valorarRespuesta } from './asistente.actions';
 import { parsearMarkdown, type Bloque, type Trozo } from './markdown';
 
 const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
@@ -60,6 +60,8 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [vista, setVista] = useState<'preguntar' | 'informes'>('preguntar');
+  const hayInformes = useBaseTiene(VERSION_INFORME);
   const fondo = useRef<HTMLDivElement>(null);
   const avisarCambio = useRef(onCambio);
   avisarCambio.current = onCambio;
@@ -160,8 +162,18 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
     >
       <div className="flex items-center gap-2 border-b border-borde px-4 py-2">
         <Sparkles className="size-4 text-marca" />
-        <p className="flex-1 font-semibold text-tinta">Preguntale</p>
-        {turnos.length > 0 && (
+        <div className="flex flex-1 items-center gap-1">
+          <PestanaPanel activa={vista === 'preguntar'} onClick={() => setVista('preguntar')}>
+            Preguntale
+          </PestanaPanel>
+          {/* IA-4: los informes de los lunes */}
+          {hayInformes && (
+            <PestanaPanel activa={vista === 'informes'} onClick={() => setVista('informes')}>
+              Informes semanales
+            </PestanaPanel>
+          )}
+        </div>
+        {vista === 'preguntar' && turnos.length > 0 && (
           <button type="button" onClick={nueva} className="flex items-center gap-1 rounded-md px-2 py-1 text-sm text-tinta-suave hover:bg-hover">
             <MessageSquarePlus className="size-4" /> Nueva
           </button>
@@ -171,6 +183,10 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
         </button>
       </div>
 
+      {vista === 'informes' ? (
+        <InformesVista />
+      ) : (
+      <>
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
         {apagado && (
           <p className="rounded-md bg-alerta-suave p-3 text-sm text-alerta">
@@ -237,6 +253,8 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
         </div>
         {est && <p className="text-xs text-tinta-suave">Te quedan {est.quedanHoy} preguntas hoy.</p>}
       </div>
+      </>
+      )}
     </aside>
   );
 }
@@ -254,37 +272,155 @@ function TurnoVista({ t, onValorado }: { t: Turno; onValorado: (util: boolean) =
       {t.estado === 'lista' && (
         <div className="space-y-3">
           <Markdown texto={t.respuesta ?? ''} />
-          {t.avisos.length > 0 && (
-            <div className="space-y-1 rounded-md bg-alerta-suave p-2 text-sm text-alerta">
-              {t.avisos.map((a) => (
-                <p key={a} className="flex gap-1.5">
-                  <TriangleAlert className="mt-0.5 size-4 shrink-0" /> {a}
-                </p>
-              ))}
-            </div>
-          )}
-          {t.fuentes.length > 0 && (
-            <div className="text-xs text-tinta-suave">
-              <span className="font-medium">De dónde sale: </span>
-              {t.fuentes.map((f, i) => (
-                <Fragment key={`${f.herramienta}-${i}`}>
-                  {i > 0 && ' · '}
-                  {f.pantalla ? (
-                    <Link href={f.pantalla} className="text-marca hover:underline">
-                      {f.etiqueta}
-                    </Link>
-                  ) : (
-                    f.etiqueta
-                  )}
-                  {textoPeriodo(f.periodo) && ` (${textoPeriodo(f.periodo)})`}
-                  {!f.ok && ' (no se pudo leer)'}
-                </Fragment>
-              ))}
-            </div>
-          )}
+          <Avisos avisos={t.avisos} />
+          <Fuentes fuentes={t.fuentes} />
           <Valorar t={t} onValorado={onValorado} />
         </div>
       )}
+    </div>
+  );
+}
+
+function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
+  if (fuentes.length === 0) return null;
+  return (
+    <div className="text-xs text-tinta-suave">
+      <span className="font-medium">De dónde sale: </span>
+      {fuentes.map((f, i) => (
+        <Fragment key={`${f.herramienta}-${i}`}>
+          {i > 0 && ' · '}
+          {f.pantalla ? (
+            <Link href={f.pantalla} className="text-marca hover:underline">
+              {f.etiqueta}
+            </Link>
+          ) : (
+            f.etiqueta
+          )}
+          {textoPeriodo(f.periodo) && ` (${textoPeriodo(f.periodo)})`}
+          {!f.ok && ' (no se pudo leer)'}
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+function Avisos({ avisos }: { avisos: string[] }) {
+  if (avisos.length === 0) return null;
+  return (
+    <div className="space-y-1 rounded-md bg-alerta-suave p-2 text-sm text-alerta">
+      {avisos.map((a) => (
+        <p key={a} className="flex gap-1.5">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" /> {a}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function PestanaPanel({ activa, onClick, children }: { activa: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn('rounded-md px-2 py-1 text-sm', activa ? 'bg-marca-suave font-semibold text-marca' : 'text-tinta-suave hover:bg-hover')}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * IA-4 · Los informes de los lunes (semana anterior, lunes a domingo). Se arman solos a las 7:00;
+ * Gerencia o TI pueden armar el de la semana pasada si no está o dio error.
+ */
+function InformesVista() {
+  const [abierto, setAbierto] = useState<number | null>(null);
+  const [armando, setArmando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const lista = useQuery({
+    queryKey: ['ia', 'asistente', 'informes'],
+    queryFn: () => repo().informes(),
+    refetchInterval: (q) => (q.state.data?.informes.some((i) => i.estado === 'pensando') ? 5000 : false),
+  });
+  const detalle = useQuery({
+    queryKey: ['ia', 'asistente', 'informe', abierto],
+    queryFn: () => repo().informe(abierto!),
+    enabled: !!abierto,
+    refetchInterval: (q) => (q.state.data?.estado === 'pensando' ? 5000 : false),
+  });
+  const d = lista.data;
+  const pasada = d?.informes.find((i) => i.desde === d.semanaPasada);
+  const puedeArmarPasada = !!d?.puedeArmar && (!pasada || pasada.estado === 'error');
+
+  if (abierto) {
+    const inf = detalle.data;
+    return (
+      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+        <button type="button" onClick={() => setAbierto(null)} className="text-sm text-marca hover:underline">
+          ← Todos los informes
+        </button>
+        {!inf ? (
+          <p className="flex items-center gap-2 text-sm text-tinta-suave">
+            <LoaderCircle className="size-4 animate-spin" /> Abriendo…
+          </p>
+        ) : (
+          <>
+            <p className="font-semibold text-tinta">{textoSemana(inf.desde, inf.hasta)}</p>
+            {inf.estado === 'pensando' && (
+              <p className="flex items-center gap-2 text-sm text-tinta-suave">
+                <LoaderCircle className="size-4 animate-spin" /> Armando el informe…
+              </p>
+            )}
+            {inf.estado === 'error' && <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">{inf.error}</p>}
+            {inf.estado === 'lista' && <Markdown texto={inf.texto ?? ''} />}
+            <Avisos avisos={inf.estado === 'lista' ? inf.avisos : []} />
+            {inf.estado === 'lista' && <Fuentes fuentes={inf.fuentes} />}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      <p className="text-sm text-tinta-suave">Cada lunes a las 7:00 se arma el informe de la semana anterior con los números del sistema.</p>
+      {puedeArmarPasada && (
+        <button
+          type="button"
+          disabled={armando}
+          onClick={async () => {
+            setError(null);
+            setArmando(true);
+            const r = await generarInforme({ desde: d.semanaPasada });
+            setArmando(false);
+            if (!r.ok) return setError(r.error.mensaje);
+            void lista.refetch();
+            setAbierto(r.data);
+          }}
+          className="flex items-center gap-2 rounded-md bg-marca px-3 py-2 text-sm font-medium text-white hover:bg-marca/90 disabled:opacity-60"
+        >
+          {armando && <LoaderCircle className="size-4 animate-spin" />}
+          {pasada?.estado === 'error' ? 'Armar de nuevo el de la semana pasada' : 'Armar ahora el de la semana pasada'}
+        </button>
+      )}
+      {error && <p className="text-sm text-error">{error}</p>}
+      {lista.isError && <p className="text-sm text-error">{lista.error instanceof Error ? lista.error.message : 'No se pudo leer la lista.'}</p>}
+      {d && d.informes.length === 0 && <p className="text-sm text-tinta-suave">Todavía no hay informes.</p>}
+      <ul className="divide-y divide-borde">
+        {(d?.informes ?? []).map((i) => (
+          <li key={i.id}>
+            <button type="button" onClick={() => setAbierto(i.id)} className="flex w-full items-center gap-2 py-2.5 text-left text-sm hover:bg-hover">
+              <span className="flex-1 font-medium text-tinta">{textoSemana(i.desde, i.hasta)}</span>
+              {i.estado === 'pensando' && (
+                <span className="flex items-center gap-1 text-xs text-tinta-suave">
+                  <LoaderCircle className="size-3.5 animate-spin" /> armando
+                </span>
+              )}
+              {i.estado === 'error' && <span className="text-xs text-error">con error</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

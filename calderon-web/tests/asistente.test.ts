@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { can, permisosDe } from '@/modules/core/permissions/resolver';
-import { parsearEstadoAsistente, parsearTurno, textoPeriodo, VERSION_ASISTENTE } from '@/modules/ia/asistente/asistente';
+import { parsearEstadoAsistente, parsearInforme, parsearInformes, parsearTurno, textoPeriodo, textoSemana, VERSION_ASISTENTE, VERSION_INFORME } from '@/modules/ia/asistente/asistente';
 import { parsearMarkdown, trozos } from '@/modules/ia/asistente/markdown';
 
 describe('IA-3 · El asistente «Preguntale»', () => {
@@ -57,5 +57,20 @@ describe('IA-3 · El asistente «Preguntale»', () => {
     expect(p('gerencia')).toBe(true);
     expect(p('operaciones')).toBe(true);
     expect(p('chofer')).toBe(false);
+  });
+
+  it('IA-4: lee la lista de informes semanales y un informe', () => {
+    const l = parsearInformes({
+      puede_armar: true,
+      semana_pasada: '2026-10-19',
+      informes: [{ id: 3, desde: '2026-10-19', hasta: '2026-10-25', estado: 'pensando' }, { id: 2, desde: '2026-10-12', hasta: '2026-10-18', estado: 'error', error: 'La IA no respondió a tiempo: armalo de nuevo' }],
+    });
+    expect(l.informes[0]?.estado).toBe('pensando');
+    expect(l.informes[1]?.error).toContain('armalo de nuevo');
+    const i = parsearInforme({ id: 3, desde: '2026-10-19', hasta: '2026-10-25', estado: 'lista', texto: '## Resumen', avisos: ['x'], fuentes: [{ herramienta: 'flujo_caja', etiqueta: 'Flujo de caja', pantalla: '/analisis/informes', ok: true }] });
+    expect(i.texto).toBe('## Resumen');
+    expect(i.fuentes[0]?.etiqueta).toBe('Flujo de caja');
+    expect(textoSemana('2026-10-19', '2026-10-25')).toBe('Semana del 19/10 al 25/10');
+    expect(VERSION_INFORME).toBe(127);
   });
 });

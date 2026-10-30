@@ -16,3 +16,10 @@ export const valorarRespuesta = createAction({
   schema: z.object({ turno: z.number().int().positive(), util: z.boolean(), comentario: z.string().nullable() }),
   handler: (d, { db }) => asistenteRepository(db).valorar(d.turno, d.util, d.comentario),
 });
+
+/** IA-4: armar (o volver a armar) el informe de una semana. La base exige Gerencia o TI. */
+export const generarInforme = createAction({
+  permiso: 'ia.asistente:editar',
+  schema: z.object({ desde: z.string().nullable() }),
+  handler: (d, { db }) => asistenteRepository(db).generarInforme(d.desde),
+});

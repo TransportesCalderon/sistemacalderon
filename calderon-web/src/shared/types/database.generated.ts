@@ -1168,6 +1168,10 @@ export type Database = {
       fn_ia_valorar: { Args: { p_turno: number; p_util: boolean; p_comentario?: string | null }; Returns: undefined };
       fn_ia_conversacion: { Args: { p_conversacion: number }; Returns: Json };
       fn_ia_uso_asistente: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
+      // Migración 127 (IA-4): informe semanal
+      fn_ia_informes: { Args: { p_limite?: number }; Returns: Json };
+      fn_ia_informe: { Args: { p_id: number }; Returns: Json };
+      fn_ia_informe_generar: { Args: { p_desde?: string | null }; Returns: number };
       fn_ia_leer: { Args: { p_tipo: string; p_imagen_base64: string; p_media_type?: string }; Returns: number };
       fn_ia_resultado: { Args: { p_lectura: number }; Returns: Json };
       fn_ia_marcar_usada: { Args: { p_lectura: number; p_guardado: Json }; Returns: undefined };

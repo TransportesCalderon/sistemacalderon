@@ -87,6 +87,45 @@ export function textoPeriodo(p: Record<string, string> | null): string | null {
   return null;
 }
 
+// IA-4 (migración 127): informe semanal (lunes 7:00, semana anterior)
+export const VERSION_INFORME = 127;
+export interface InformeFila {
+  id: number;
+  desde: string;
+  hasta: string;
+  estado: 'pensando' | 'lista' | 'error';
+  error: string | null;
+}
+export interface Informes {
+  puedeArmar: boolean;
+  semanaPasada: string;
+  informes: InformeFila[];
+}
+export interface Informe extends InformeFila {
+  texto: string | null;
+  avisos: string[];
+  fuentes: Fuente[];
+}
+const estadoDe = (v: unknown): InformeFila['estado'] => (v === 'lista' || v === 'error' ? v : 'pensando');
+
+export function parsearInformes(raw: unknown): Informes {
+  const j = obj(raw);
+  return {
+    puedeArmar: j.puede_armar === true,
+    semanaPasada: String(j.semana_pasada ?? ''),
+    informes: arr(j.informes).map((i) => ({ id: Number(i.id), desde: String(i.desde ?? ''), hasta: String(i.hasta ?? ''), estado: estadoDe(i.estado), error: strN(i.error) })),
+  };
+}
+
+export function parsearInforme(raw: unknown): Informe {
+  const j = obj(raw);
+  const t = parsearTurno({ ...j, respuesta: j.texto });
+  return { id: Number(j.id), desde: String(j.desde ?? ''), hasta: String(j.hasta ?? ''), estado: estadoDe(j.estado), error: strN(j.error), texto: t.respuesta, avisos: t.avisos, fuentes: t.fuentes };
+}
+
+/** «Semana del 19/10 al 25/10». */
+export const textoSemana = (desde: string, hasta: string) => `Semana del ${textoPeriodo({ desde, hasta }) ?? desde}`;
+
 export const asistenteRepository = (db: Db) => {
   const ops = () => db.schema('ops');
   const leer = async <T>(p: PromiseLike<{ data: T | null; error: unknown }>): Promise<T> => {
@@ -104,6 +143,15 @@ export const asistenteRepository = (db: Db) => {
     /** Se llama cada segundo y medio: la base avanza (lecturas, Claude) y devuelve cómo va. */
     async respuesta(turno: number) {
       return parsearTurno(await leer(ops().rpc('fn_ia_respuesta', { p_turno: turno })));
+    },
+    async informes() {
+      return parsearInformes(await leer(ops().rpc('fn_ia_informes', { p_limite: 12 })));
+    },
+    async informe(id: number) {
+      return parsearInforme(await leer(ops().rpc('fn_ia_informe', { p_id: id })));
+    },
+    async generarInforme(desde: string | null): Promise<number> {
+      return leer(ops().rpc('fn_ia_informe_generar', { p_desde: desde }));
     },
     async valorar(turno: number, util: boolean, comentario: string | null) {
       await leer(ops().rpc('fn_ia_valorar', { p_turno: turno, p_util: util, p_comentario: comentario }));
