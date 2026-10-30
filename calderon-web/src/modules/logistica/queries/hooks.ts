@@ -27,6 +27,7 @@ import {
   eliminarLinea,
   eliminarTransportista,
   guardarLinea,
+  guardarAgenteTransporte,
   guardarOperacion,
   guardarTransportista,
   quitarEquipo,
@@ -61,6 +62,7 @@ export const useOperaciones = (desde: FechaDia | null, hasta: FechaDia | null) =
 export const useSugerenciaCliente = (cliente: number | null) =>
   useQuery({ ...q.sugerencia(browserDb(), cliente ?? 0), enabled: !!cliente });
 export const useLineas = () => useQuery(q.lineas(browserDb()));
+export const useAgentesTransporte = (todos = false) => useQuery(q.agentes(browserDb(), todos));
 export const useRutaOperacion = (servicio: number) => useQuery(q.rutaOperacion(browserDb(), servicio));
 export const useTramosOperacion = (servicio: number) => useQuery(q.tramos(browserDb(), servicio));
 export const useOperacion = (servicio: number) => useQuery(q.operacion(browserDb(), servicio));
@@ -108,6 +110,7 @@ export const useGensetsOperacion = (servicio: number, enabled = true) =>
     staleTime: 0,
   });
 export const useGuardarLinea = () => useEscritura(guardarLinea);
+export const useGuardarAgente = () => useEscritura(guardarAgenteTransporte);
 export const useEliminarLinea = () => useEscritura(eliminarLinea);
 export const useGuardarTransportista = () => useEscritura(guardarTransportista);
 export const useEliminarTransportista = () => useEscritura(eliminarTransportista);

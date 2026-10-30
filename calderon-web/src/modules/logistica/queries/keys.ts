@@ -53,6 +53,13 @@ export const logisticaQueries = {
       queryFn: () => operacionesRepository(db).sugerencia(cliente),
       staleTime: FRESCURA.transaccional,
     }),
+  /** Migración 137: agentes de transporte. */
+  agentes: (db: Db, todos: boolean) =>
+    queryOptions({
+      queryKey: ['logistica', 'agentes', todos] as const,
+      queryFn: () => operacionesRepository(db).agentes(todos),
+      staleTime: FRESCURA.maestro,
+    }),
   lineas: (db: Db) =>
     queryOptions({
       queryKey: ['logistica', 'lineas'] as const,

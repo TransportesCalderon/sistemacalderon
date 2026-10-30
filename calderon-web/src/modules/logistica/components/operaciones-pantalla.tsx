@@ -44,6 +44,7 @@ import {
   useCancelarOperacion,
   useDejarEnBase,
   useGensetsOperacion,
+  useAgentesTransporte,
   useGuardarOperacion,
   useLineas,
   useOperaciones,
@@ -430,6 +431,7 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       ['CRT', o.crt, true],
       ['MIC', o.mic, true],
       ['N° de guía', o.guia, true],
+      ['Agente de transporte', o.agenteTransporte],
       ['Transportista', o.transportista],
       ['Fecha de la operación', formatearFechaDia(o.fecha)],
       [
@@ -446,7 +448,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
 
   const acciones: { id: 'modificar' | 'tercero' | 'cancelar'; etiqueta: string }[] = puede
     ? [
-        ...(!cerrada ? [{ id: 'modificar' as const, etiqueta: abiertaOp ? 'Modificar' : 'Completar documentación' }] : []),
+        // Migración 137: se modifica mientras no esté facturada ni cancelada
+        ...(!['facturado', 'cancelado'].includes(o.estado) ? [{ id: 'modificar' as const, etiqueta: 'Modificar' }] : []),
         ...(!o.tramoId && ['sin_confirmar', 'planificado', 'en_curso'].includes(o.estado)
           ? [{ id: 'tercero' as const, etiqueta: o.transportistaId ? 'Transportista externo' : 'La hace un externo' }]
           : []),
@@ -791,6 +794,7 @@ const vacioForm = (zona: string) => ({
   crt: '',
   mic: '',
   guia: '',
+  agenteTransporteId: '',
   observacion: '',
 });
 type Form = ReturnType<typeof vacioForm>;
@@ -810,6 +814,7 @@ const MAS_DATOS: (keyof Form)[] = [
   'crt',
   'mic',
   'guia',
+  'agenteTransporteId',
   'observacion',
 ];
 
@@ -825,8 +830,12 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
   const { data: lineas } = useLineas();
   const { error, enviar, campo } = useEnvio();
   const editar = !!base && !duplicar;
-  // Migración 79: una entregada traída de Redline se puede completar (línea, lugares, cliente)
-  const soloDocs = editar && !esAbierta(base) && !(base.redline && base.estado === 'entregado');
+  // Migración 137: se modifica todo mientras no esté facturada ni cancelada (la base lo controla)
+  const { data: agentes } = useAgentesTransporte();
+  const opAgentes = (agentes ?? []).map((a) => ({ id: a.id, nombre: a.nombre }));
+  if (base?.agenteTransporteId && base.agenteTransporte && !opAgentes.some((a) => a.id === base.agenteTransporteId)) {
+    opAgentes.push({ id: base.agenteTransporteId, nombre: `${base.agenteTransporte} (inactivo)` });
+  }
   const [f, setF] = useState<Form>(() => {
     const v = vacioForm(zona);
     if (!base) return v;
@@ -856,6 +865,7 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
       crt: editar ? s(base.crt) : '',
       mic: editar ? s(base.mic) : '',
       guia: editar ? s(base.guia) : '',
+      agenteTransporteId: s(base.agenteTransporteId),
       observacion: s(base.observacion),
     };
   });
@@ -916,7 +926,6 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
   const varias = !editar && Number(f.cantidad) > 1;
   const conEquipo = !editar && !varias && !f.sinConfirmar;
   const ocupado = alta.isPending || guardar.isPending;
-  const bloq = soloDocs;
 
   const enviarForm = () => {
     const comun = {
@@ -952,18 +961,17 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
     >
       <div>
         <h3 className="font-medium text-tinta">
-          {editar ? (soloDocs ? `Documentación de la operación ${base.numero}` : `Modificar la operación ${base.numero}`) : base ? `Duplicar la operación ${base.numero}` : 'Nueva operación'}
+          {editar ? `Modificar la operación ${base.numero}` : base ? `Duplicar la operación ${base.numero}` : 'Nueva operación'}
         </h3>
-        {soloDocs && <p className="text-sm text-tinta-suave">Ya salió: se completan la documentación, la mercadería y la entrega programada.</p>}
         {sugerido && <p className="text-sm text-tinta-suave">Se completó con lo de la última operación del cliente; cambiá lo que haga falta.</p>}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Campo label="Cliente *" error={campo('clienteId')}>
-          <Lista valor={f.clienteId} opciones={op?.clientes} onCambiar={set('clienteId')} disabled={bloq} />
+          <Lista valor={f.clienteId} opciones={op?.clientes} onCambiar={set('clienteId')} />
         </Campo>
         <Campo label="Tipo *" error={campo('tipoOperacion')}>
-          <select value={f.tipoOperacion} onChange={ev('tipoOperacion')} disabled={bloq}>
+          <select value={f.tipoOperacion} onChange={ev('tipoOperacion')}>
             <option value="">Elegí…</option>
             {TIPOS_OPERACION.map((t) => (
               <option key={t} value={t}>
@@ -973,10 +981,10 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
           </select>
         </Campo>
         <Campo label="Línea" error={campo('lineaId')} ayuda="Completa retiro, aduana y entrega.">
-          <Lista valor={f.lineaId} opciones={opLineas} onCambiar={(id) => setF((p) => conLinea(p, id))} vacio="Sin línea" disabled={bloq} />
+          <Lista valor={f.lineaId} opciones={opLineas} onCambiar={(id) => setF((p) => conLinea(p, id))} vacio="Sin línea" />
         </Campo>
         <Campo label="Presentación" error={campo('fechaPresentacion')} ayuda="Cuándo se presenta a cargar.">
-          <input type="datetime-local" value={f.fechaPresentacion} onChange={ev('fechaPresentacion')} disabled={bloq} />
+          <input type="datetime-local" value={f.fechaPresentacion} onChange={ev('fechaPresentacion')} />
         </Campo>
         <Campo label="Mercadería" error={campo('producto')}>
           <input maxLength={200} value={f.producto} onChange={ev('producto')} placeholder="Banana, vino, madera…" />
@@ -1025,23 +1033,27 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
 
       <details open={mas} onToggle={(e) => setMas((e.target as HTMLDetailsElement).open)} className="rounded-md border border-borde">
         <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-tinta select-none">
-          Más datos <span className="font-normal text-tinta-suave">— lugares, Booking, buque, precinto, peso, CRT, MIC, observaciones</span>
+          Más datos <span className="font-normal text-tinta-suave">— lugares, agente, Booking, buque, precinto, peso, CRT, MIC, observaciones</span>
         </summary>
         <div className="grid gap-3 border-t border-borde p-3 sm:grid-cols-2 lg:grid-cols-4">
           <Campo label="Lugar retiro" error={campo('lugarRetiroId')}>
-            <Lista valor={f.lugarRetiroId} opciones={op?.lugares} onCambiar={set('lugarRetiroId')} vacio="—" disabled={bloq} />
+            <Lista valor={f.lugarRetiroId} opciones={op?.lugares} onCambiar={set('lugarRetiroId')} vacio="—" />
           </Campo>
           <Campo label="Lugar carga" error={campo('origenId')} ayuda="Vacío = el de retiro.">
-            <Lista valor={f.origenId} opciones={op?.lugares} onCambiar={set('origenId')} vacio="—" disabled={bloq} />
+            <Lista valor={f.origenId} opciones={op?.lugares} onCambiar={set('origenId')} vacio="—" />
+          </Campo>
+          {/* Migración 137: entre el lugar de carga y la aduana, como en RedLine */}
+          <Campo label="Agente transporte" error={campo('agenteTransporteId')}>
+            <Lista valor={f.agenteTransporteId} opciones={opAgentes} onCambiar={set('agenteTransporteId')} vacio="—" />
           </Campo>
           <Campo label="Lugar aduana" error={campo('lugarAduanaId')}>
-            <Lista valor={f.lugarAduanaId} opciones={op?.lugares} onCambiar={set('lugarAduanaId')} vacio="—" disabled={bloq} />
+            <Lista valor={f.lugarAduanaId} opciones={op?.lugares} onCambiar={set('lugarAduanaId')} vacio="—" />
           </Campo>
           <Campo label="Lugar entrega" error={campo('destinoId')}>
-            <Lista valor={f.destinoId} opciones={op?.lugares} onCambiar={set('destinoId')} vacio="—" disabled={bloq} />
+            <Lista valor={f.destinoId} opciones={op?.lugares} onCambiar={set('destinoId')} vacio="—" />
           </Campo>
           <Campo label="Fecha de la operación" error={campo('fechaOperacion')}>
-            <input type="date" value={f.fechaOperacion} onChange={ev('fechaOperacion')} disabled={bloq} />
+            <input type="date" value={f.fechaOperacion} onChange={ev('fechaOperacion')} />
           </Campo>
           <Campo label="Entrega programada" error={campo('fechaEntrega')}>
             <input type="datetime-local" value={f.fechaEntrega} onChange={ev('fechaEntrega')} />
@@ -1062,7 +1074,7 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
             <input inputMode="decimal" value={f.pesoKg} onChange={ev('pesoKg')} />
           </Campo>
           <Campo label="Tara que pide (días)" error={campo('taraMaxDias')} ayuda="Vacío si no pide.">
-            <input inputMode="numeric" value={f.taraMaxDias} onChange={ev('taraMaxDias')} disabled={bloq} />
+            <input inputMode="numeric" value={f.taraMaxDias} onChange={ev('taraMaxDias')} />
           </Campo>
           <Campo label="CRT" error={campo('crt')}>
             <input className="uppercase" maxLength={60} value={f.crt} onChange={ev('crt')} />

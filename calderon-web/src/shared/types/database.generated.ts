@@ -794,6 +794,9 @@ export type OperacionRow = {
   mic: string | null;
   /** Migración 125. */
   guia?: string | null;
+  /** Migración 137. */
+  agente_transporte_id?: number | null;
+  agente_transporte?: string | null;
   observacion: string | null;
   motivo_cancelacion: string | null;
   transportista_id: number | null;
@@ -1181,6 +1184,8 @@ export type Database = {
       fn_cerrar_y_aprobar_varios: { Args: { p_viajes: number[] }; Returns: Json };
       fn_completar_operaciones_viaje: { Args: { p_viaje: number }; Returns: number };
       fn_crear_viaje_pasado: { Args: { p_carga_salida: number; p_chofer?: number }; Returns: number };
+      fn_agentes_transporte: { Args: { p_todos?: boolean }; Returns: Json };
+      fn_guardar_agente_transporte: { Args: { p_id: number | null; p_version: number | null; p_nombre: string; p_activo?: boolean }; Returns: number };
       fn_ruta_de_servicio: { Args: { p_servicio: number }; Returns: Json };
       fn_guardar_ruta_operacion: { Args: { p_servicio: number; p_version: number | null; p_datos: Json }; Returns: undefined };
       fn_quitar_ruta_operacion: { Args: { p_servicio: number; p_version: number }; Returns: undefined };

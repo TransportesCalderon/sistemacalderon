@@ -1,5 +1,6 @@
 'use server';
 
+import { z } from 'zod';
 import { createAction } from '@/server/actions/create-action';
 import {
   altaSchema,
@@ -163,4 +164,17 @@ export const seguirConOtroTractor = createAction({
   schema: seguirSchema,
   handler: (d, { db }) => operacionesRepository(db).seguirConOtroTractor(d),
   invalida: rutas,
+});
+
+/** Migración 137: alta o cambio de un agente de transporte (la base exige Operaciones o TI). */
+export const guardarAgenteTransporte = createAction({
+  permiso: PERMISO,
+  schema: z.object({
+    id: z.number().int().positive().nullable(),
+    version: z.number().int().nullable(),
+    nombre: z.string().trim().min(1, 'Escribí el nombre del agente.').max(120, 'Máximo 120 caracteres.'),
+    activo: z.boolean(),
+  }),
+  handler: (d, { db }) => operacionesRepository(db).guardarAgente(d),
+  invalida: catalogos,
 });

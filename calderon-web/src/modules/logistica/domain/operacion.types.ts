@@ -181,6 +181,9 @@ export interface Operacion {
   mic: string | null;
   /** Migración 125. */
   guia: string | null;
+  /** Migración 137. */
+  agenteTransporteId: number | null;
+  agenteTransporte: string | null;
   observacion: string | null;
   motivoCancelacion: string | null;
   transportistaId: number | null;

@@ -175,7 +175,7 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/ajustes/lugares', etiqueta: 'Lugares' },
       { href: '/ajustes/lineas', etiqueta: 'Líneas' },
       { href: '/ajustes/proveedores', etiqueta: 'Proveedores y estaciones', incluye: ['/ajustes/proveedores/estaciones'] },
-      { href: '/ajustes/transportistas', etiqueta: 'Transportistas externos' },
+      { href: '/ajustes/transportistas', etiqueta: 'Transportistas y agentes' },
     ],
   },
   {

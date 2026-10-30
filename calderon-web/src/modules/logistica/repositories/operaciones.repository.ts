@@ -42,6 +42,7 @@ const datosOperacion = (d: OperacionDatos) => ({
   crt: d.crt,
   mic: d.mic,
   guia: d.guia,
+  agente_transporte_id: d.agenteTransporteId ?? null,
   observacion: d.observacion,
 });
 
@@ -85,6 +86,8 @@ function aOperacion(o: OperacionRow): Operacion {
     crt: o.crt,
     mic: o.mic,
     guia: o.guia ?? null,
+    agenteTransporteId: o.agente_transporte_id ?? null,
+    agenteTransporte: o.agente_transporte ?? null,
     observacion: o.observacion,
     motivoCancelacion: o.motivo_cancelacion,
     transportistaId: o.transportista_id,
@@ -314,6 +317,20 @@ export const operacionesRepository = (db: Db) => {
         versionFila: l.version_fila,
       }));
     },
+    /** Migración 137: agentes de transporte (activos, o todos para el catálogo). */
+    async agentes(todos = false): Promise<AgenteTransporte[]> {
+      const { data, error } = await ops().rpc('fn_agentes_transporte', { p_todos: todos });
+      if (error) throw new RepoError(error);
+      return (Array.isArray(data) ? data : []).map((x) => {
+        const o = (x ?? {}) as Record<string, unknown>;
+        return { id: Number(o.id), nombre: String(o.nombre ?? ''), activo: o.activo === true, version: Number(o.version ?? 1), operaciones: Number(o.operaciones ?? 0) };
+      });
+    },
+    async guardarAgente(d: { id: number | null; version: number | null; nombre: string; activo: boolean }): Promise<number> {
+      const { data, error } = await ops().rpc('fn_guardar_agente_transporte', { p_id: d.id, p_version: d.version, p_nombre: d.nombre, p_activo: d.activo });
+      if (error) throw new RepoError(error);
+      return Number(data);
+    },
     async guardarLinea(d: LineaDatos): Promise<void> {
       const fila = {
         codigo: d.codigo,
@@ -403,3 +420,12 @@ export const operacionesRepository = (db: Db) => {
     },
   };
 };
+
+/** Migración 137: agente de transporte (catálogo). */
+export interface AgenteTransporte {
+  id: number;
+  nombre: string;
+  activo: boolean;
+  version: number;
+  operaciones: number;
+}

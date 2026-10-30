@@ -10,6 +10,7 @@ import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import type { Transportista } from '../domain/operacion.types';
 import { useEliminarTransportista, useGuardarTransportista, useTransportistas } from '../queries/hooks';
+import { AgentesTransporte } from './agentes-transporte';
 
 type Abierto = { modo: 'nuevo' } | { modo: 'editar' | 'eliminar'; t: Transportista } | null;
 
@@ -61,6 +62,8 @@ export function TransportistasPantalla() {
           </table>
         )}
       </div>
+      {/* Migración 137 */}
+      <AgentesTransporte />
     </div>
   );
 }

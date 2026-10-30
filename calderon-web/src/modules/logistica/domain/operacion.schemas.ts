@@ -53,6 +53,8 @@ export const operacionSchema = z.object({
   origenId: idOpcional,
   lugarAduanaId: idOpcional,
   destinoId: idOpcional,
+  /** Migración 137. */
+  agenteTransporteId: idOpcional.optional(),
   fechaPresentacion: instante,
   fechaEntrega: instante,
   producto: texto(200),
