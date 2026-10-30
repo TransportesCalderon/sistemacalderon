@@ -1161,6 +1161,13 @@ export type Database = {
       fn_costos_viaje: { Args: { p_viaje: number }; Returns: Json };
       // Lectura de tickets con IA (64)
       fn_ia_estado: { Args: Record<string, never>; Returns: Json };
+      // Migración 126 (IA-2/IA-3): el asistente
+      fn_ia_asistente_estado: { Args: Record<string, never>; Returns: Json };
+      fn_ia_preguntar: { Args: { p_pregunta: string | null; p_conversacion?: number | null; p_sugerida?: string | null }; Returns: number };
+      fn_ia_respuesta: { Args: { p_turno: number }; Returns: Json };
+      fn_ia_valorar: { Args: { p_turno: number; p_util: boolean; p_comentario?: string | null }; Returns: undefined };
+      fn_ia_conversacion: { Args: { p_conversacion: number }; Returns: Json };
+      fn_ia_uso_asistente: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       fn_ia_leer: { Args: { p_tipo: string; p_imagen_base64: string; p_media_type?: string }; Returns: number };
       fn_ia_resultado: { Args: { p_lectura: number }; Returns: Json };
       fn_ia_marcar_usada: { Args: { p_lectura: number; p_guardado: Json }; Returns: undefined };
