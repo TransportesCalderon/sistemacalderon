@@ -13,6 +13,8 @@ import { RankingMapa } from './ranking-mapa';
 /** Migración 112: verde en marcha, rojo apagado, gris sin señal o sin dato del motor (el estado lo decide la base). */
 const COLOR: Record<EstadoMotor, string> = { en_marcha: '#16a34a', apagado: '#dc2626', sin_senal: '#94a3b8', sin_dato: '#94a3b8' };
 const ESTELA = '#22c55e';
+/** Camiones a menos de esta distancia en la pantalla (px) se juntan en un círculo con la cantidad. */
+const RADIO_GRUPO = 48;
 
 const escapar = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -242,109 +244,163 @@ export function MapaFlota({
             </div>`;
   }
 
-  /** Una línea fina desde donde está de verdad hasta el punto corrido (si se apiló). */
-  const guia = (dy: number, x: number) =>
-    dy > 0 ? `<span style="position:absolute;left:${x}px;top:${x + 1 - dy}px;width:2px;height:${dy}px;background:#475569;opacity:.7"></span>` : '';
-
   function dibujar(L: typeof import('leaflet')) {
     const m = mapa.current;
     const g = capa.current;
     if (!m || !g) return;
-    // Camiones (y celulares) en el mismo lugar: se apilan hacia abajo para que se vean todos
-    const ocupados: { x: number; y: number; n: number }[] = [];
-    const apilar = (lat: number, lng: number) => {
-      const p = m.latLngToLayerPoint([lat, lng]);
-      const lugar = ocupados.find((o) => Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 16);
-      if (!lugar) {
-        ocupados.push({ x: p.x, y: p.y, n: 1 });
-        return 0;
-      }
-      return 22 * lugar.n++;
-    };
     redibujando.current = true;
     g.clearLayers();
     redibujando.current = false;
     const porCamion = new Map(detalles.map((d) => [d.camionId, d]));
     const puntos: [number, number][] = [];
 
+    // Camiones y celulares cercanos en la pantalla se juntan en un círculo con la cantidad (como Renault).
+    // El camión elegido siempre se ve solo. Se recalcula al hacer zoom.
+    type Item = { lat: number; lng: number; camion?: CamionEnVivo; celular?: CelularEnMapa };
+    const items: Item[] = [
+      ...camiones.filter((c) => c.latitud !== null && c.longitud !== null).map((c) => ({ lat: c.latitud!, lng: c.longitud!, camion: c })),
+      ...celulares.map((c) => ({ lat: c.latitud, lng: c.longitud, celular: c })),
+    ];
+    const grupos: { x: number; y: number; items: Item[] }[] = [];
+    // Se juntan si están cerca o si sus nombres se pisarían (el nombre va a la derecha del punto)
+    const seTocan = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+      Math.hypot(a.x - b.x, a.y - b.y) < RADIO_GRUPO || (Math.abs(a.y - b.y) < 18 && Math.abs(a.x - b.x) < 140);
+    for (const it of items) {
+      puntos.push([it.lat, it.lng]);
+      const p = m.latLngToLayerPoint([it.lat, it.lng]);
+      const solo = it.camion?.camionId === seleccionado;
+      const grupo = solo ? undefined : grupos.find((x) => x.items[0]?.camion?.camionId !== seleccionado && seTocan(x, p));
+      if (grupo) grupo.items.push(it);
+      else grupos.push({ x: p.x, y: p.y, items: [it] });
+    }
+
+    // Estelas: de dónde viene cada camión (más transparente cuanto más vieja). Con un camión elegido, solo la suya
     for (const c of camiones) {
       if (c.latitud === null || c.longitud === null) continue;
-      const d = porCamion.get(c.camionId);
       const elegido = c.camionId === seleccionado;
-
-      // Estela: de dónde viene (más transparente cuanto más vieja). Con un camión elegido, solo la suya
-      const conEstela = seleccionado === null || elegido;
-      const tramo: [number, number][] = conEstela ? (d?.estela ?? []).map((p) => [p.lat, p.lng]) : [];
+      if (seleccionado !== null && !elegido) continue;
+      const tramo: [number, number][] = (porCamion.get(c.camionId)?.estela ?? []).map((p) => [p.lat, p.lng]);
       const ultimo = tramo[tramo.length - 1];
       if (!ultimo || ultimo[0] !== c.latitud || ultimo[1] !== c.longitud) tramo.push([c.latitud, c.longitud]);
-      for (let i = 1; conEstela && i < tramo.length; i++) {
-        L.polyline([tramo[i - 1]!, tramo[i]!], {
-          color: ESTELA,
-          weight: elegido ? 6 : 4,
-          opacity: 0.25 + (0.75 * i) / (tramo.length - 1),
-          lineCap: 'round',
-        }).addTo(g);
+      for (let i = 1; i < tramo.length; i++) {
+        L.polyline([tramo[i - 1]!, tramo[i]!], { color: ESTELA, weight: elegido ? 6 : 4, opacity: 0.25 + (0.75 * i) / (tramo.length - 1), lineCap: 'round' }).addTo(g);
       }
-
-      // Migración 112: el color dice el motor; el uso abusivo se marca con «!»
-      const color = COLOR[d?.estadoMotor?.estado ?? 'sin_dato'];
-      const abusivo = d?.hoy?.abusivo?.activo
-        ? `<span title="Uso abusivo" style="position:absolute;left:-9px;top:-10px;width:14px;height:14px;border-radius:9999px;background:${ABUSIVO};color:#fff;font:800 10px/14px system-ui;text-align:center;border:1.5px solid #fff">!</span>`
-        : '';
-      const anda = (c.velocidadKmh ?? 0) > 2;
-      const flecha =
-        anda && c.rumbo !== null
-          ? `<span style="position:absolute;left:3px;top:-9px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid ${color};transform-origin:5px 17px;transform:rotate(${c.rumbo}deg)"></span>`
-          : '';
-      const dy = apilar(c.latitud, c.longitud);
-      const etiqueta = `${escapar(c.patente)}${d?.chofer ? ` · ${escapar(d.chofer.split(',')[0] ?? d.chofer)}` : ''}${anda ? ` (${formatearNumero(c.velocidadKmh ?? 0, 0)} km/h)` : ''}${
-        // Migración 103: consumo del mes del chofer
-        d?.consumoMes?.l100km != null ? ` · <span style="color:#0f5fa8">${formatearNumero(d.consumoMes.l100km, 1)} L/100</span>` : ''
-      }`;
-      const icono = L.divIcon({
-        className: '',
-        iconSize: [0, 0],
-        html: `<div style="position:relative;transform:translate(-8px,${dy - 8}px);display:flex;align-items:center;gap:4px;white-space:nowrap">
-                 ${guia(dy, 7)}<span style="position:relative;flex:none;display:inline-block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 ${elegido ? 3 : 1}px ${elegido ? '#0f5fa8' : 'rgba(0,0,0,.3)'}">${flecha}${abusivo}</span>
-                 <span style="font:600 11px/1 system-ui;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${etiqueta}</span>
-               </div>`,
-      });
-      const marcador = L.marker([c.latitud, c.longitud], { icon: icono, zIndexOffset: elegido ? 1000 : 0 })
-        .bindPopup(ficha(c, d), { maxWidth: 320, autoPan: false, offset: [0, dy + 7] })
-        .on('click', () => alElegir.current(c.camionId))
-        .on('popupopen', () => (abierto.current = c.camionId))
-        .on('popupclose', () => {
-          if (!redibujando.current && abierto.current === c.camionId) abierto.current = null;
-        })
-        .addTo(g);
-      puntos.push([c.latitud, c.longitud]);
-      // Centra solo al elegir otro camión (no en cada refresco) y abre su ficha
-      if (elegido && centrado.current !== c.camionId) {
-        // (se marca antes de mover: el zoom vuelve a dibujar el mapa)
-        centrado.current = c.camionId;
-        m.setView([c.latitud, c.longitud], Math.max(m.getZoom(), 11));
-        abierto.current = c.camionId;
-      }
-      if (abierto.current === c.camionId) marcador.openPopup();
     }
-    for (const c of celulares) {
-      const texto = `${c.chofer}${c.numeroOperacion ? ` · Op. ${c.numeroOperacion}` : ''} (celular)`;
-      const dy = apilar(c.latitud, c.longitud);
-      const icono = L.divIcon({
-        className: '',
-        iconSize: [0, 0],
-        html: `<div style="position:relative;transform:translate(-7px,${dy - 7}px);display:flex;align-items:center;gap:4px;white-space:nowrap">
-                 ${guia(dy, 6)}<span style="flex:none;display:inline-block;width:14px;height:14px;border-radius:3px;background:${senalDe(minutosDesde(c.ts)) === 'vivo' ? '#7c3aed' : '#a78bfa'};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)"></span>
-                 <span style="font:600 11px/1 system-ui;background:#f5f3ff;color:#5b21b6;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${escapar(texto)}</span>
-               </div>`,
-      });
-      L.marker([c.latitud, c.longitud], { icon: icono }).addTo(g);
-      puntos.push([c.latitud, c.longitud]);
+
+    for (const grupo of grupos) {
+      if (grupo.items.length > 1) {
+        dibujarGrupo(L, m, g, grupo.items);
+        continue;
+      }
+      const it = grupo.items[0]!;
+      if (it.camion) dibujarCamion(L, m, g, it.camion, porCamion.get(it.camion.camionId));
+      else if (it.celular) dibujarCelular(L, g, it.celular);
     }
     if (!encuadrado.current && puntos.length > 0) {
       encuadrado.current = true;
       m.fitBounds(L.latLngBounds(puntos), { padding: [40, 40], maxZoom: 11 });
     }
+  }
+
+  /** Un círculo con la cantidad. Al tocarlo acerca el mapa; si ya no se puede separar, muestra la lista. */
+  function dibujarGrupo(L: typeof import('leaflet'), m: MapaLeaflet, g: LayerGroup, grupo: { lat: number; lng: number; camion?: CamionEnVivo; celular?: CelularEnMapa }[]) {
+    const lat = grupo.reduce((a, x) => a + x.lat, 0) / grupo.length;
+    const lng = grupo.reduce((a, x) => a + x.lng, 0) / grupo.length;
+    const n = grupo.length;
+    const tam = n < 10 ? 32 : 38;
+    const icono = L.divIcon({
+      className: '',
+      iconSize: [tam, tam],
+      iconAnchor: [tam / 2, tam / 2],
+      html: `<div title="${n} juntos: tocá para acercar" style="width:${tam}px;height:${tam}px;border-radius:9999px;background:#334155;color:#fff;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);display:grid;place-items:center;font:700 14px system-ui;cursor:pointer">${n}</div>`,
+    });
+    const limites = L.latLngBounds(grupo.map((x) => [x.lat, x.lng] as [number, number]));
+    const marcador = L.marker([lat, lng], { icon: icono, zIndexOffset: 500 }).addTo(g);
+    marcador.on('click', () => {
+      // Si están separados, acerca; si están prácticamente en el mismo lugar (menos de 30 m), la lista
+      const juntos = limites.getNorthEast().distanceTo(limites.getSouthWest()) < 30;
+      if (!juntos && m.getBoundsZoom(limites.pad(0.5)) > m.getZoom() && m.getZoom() < m.getMaxZoom()) {
+        m.fitBounds(limites.pad(0.5), { maxZoom: m.getMaxZoom() });
+        return;
+      }
+      // Están en el mismo lugar: la lista, y tocar uno lo elige
+      const lista = document.createElement('div');
+      lista.style.cssText = 'font:12px/1.4 system-ui;min-width:200px';
+      lista.innerHTML = `<div style="font-weight:700;margin-bottom:4px">${n} en el mismo lugar</div>`;
+      for (const x of grupo) {
+        const fila = document.createElement(x.camion ? 'button' : 'div');
+        fila.style.cssText = 'display:block;width:100%;text-align:left;padding:3px 0;border-top:1px solid #e2e8f0;background:none;cursor:' + (x.camion ? 'pointer' : 'default');
+        if (x.camion) {
+          const d = detalles.find((y) => y.camionId === x.camion!.camionId);
+          fila.innerHTML = `<b style="color:#0f5fa8">${escapar(x.camion.patente)}</b>${d?.chofer ? ` · ${escapar(d.chofer.split(',')[0] ?? d.chofer)}` : ''}`;
+          const id = x.camion.camionId;
+          fila.addEventListener('click', () => {
+            m.closePopup();
+            alElegir.current(id);
+          });
+        } else if (x.celular) {
+          fila.innerHTML = `<span style="color:#5b21b6">${escapar(x.celular.chofer)}${x.celular.numeroOperacion ? ` · Op. ${x.celular.numeroOperacion}` : ''} (celular)</span>`;
+        }
+        lista.appendChild(fila);
+      }
+      L.popup({ maxWidth: 280, autoPan: false }).setLatLng([lat, lng]).setContent(lista).openOn(m);
+    });
+  }
+
+  function dibujarCamion(L: typeof import('leaflet'), m: MapaLeaflet, g: LayerGroup, c: CamionEnVivo, d: DetalleMapa | undefined) {
+    if (c.latitud === null || c.longitud === null) return;
+    const elegido = c.camionId === seleccionado;
+    // Migración 112: el color dice el motor; el uso abusivo se marca con «!»
+    const color = COLOR[d?.estadoMotor?.estado ?? 'sin_dato'];
+    const abusivo = d?.hoy?.abusivo?.activo
+      ? `<span title="Uso abusivo" style="position:absolute;left:-9px;top:-10px;width:14px;height:14px;border-radius:9999px;background:${ABUSIVO};color:#fff;font:800 10px/14px system-ui;text-align:center;border:1.5px solid #fff">!</span>`
+      : '';
+    const anda = (c.velocidadKmh ?? 0) > 2;
+    const flecha =
+      anda && c.rumbo !== null
+        ? `<span style="position:absolute;left:3px;top:-9px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid ${color};transform-origin:5px 17px;transform:rotate(${c.rumbo}deg)"></span>`
+        : '';
+    const etiqueta = `${escapar(c.patente)}${d?.chofer ? ` · ${escapar(d.chofer.split(',')[0] ?? d.chofer)}` : ''}${anda ? ` (${formatearNumero(c.velocidadKmh ?? 0, 0)} km/h)` : ''}${
+      // Migración 103: consumo del mes del chofer
+      d?.consumoMes?.l100km != null ? ` · <span style="color:#0f5fa8">${formatearNumero(d.consumoMes.l100km, 1)} L/100</span>` : ''
+    }`;
+    const icono = L.divIcon({
+      className: '',
+      iconSize: [0, 0],
+      html: `<div style="transform:translate(-8px,-8px);display:flex;align-items:center;gap:4px;white-space:nowrap">
+               <span style="position:relative;flex:none;display:inline-block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 ${elegido ? 3 : 1}px ${elegido ? '#0f5fa8' : 'rgba(0,0,0,.3)'}">${flecha}${abusivo}</span>
+               <span style="font:600 11px/1 system-ui;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${etiqueta}</span>
+             </div>`,
+    });
+    const marcador = L.marker([c.latitud, c.longitud], { icon: icono, zIndexOffset: elegido ? 1000 : 0 })
+      .bindPopup(ficha(c, d), { maxWidth: 320, autoPan: false })
+      .on('click', () => alElegir.current(c.camionId))
+      .on('popupopen', () => (abierto.current = c.camionId))
+      .on('popupclose', () => {
+        if (!redibujando.current && abierto.current === c.camionId) abierto.current = null;
+      })
+      .addTo(g);
+    // Centra solo al elegir otro camión (no en cada refresco) y abre su ficha
+    if (elegido && centrado.current !== c.camionId) {
+      // (se marca antes de mover: el zoom vuelve a dibujar el mapa)
+      centrado.current = c.camionId;
+      abierto.current = c.camionId;
+      m.setView([c.latitud, c.longitud], Math.max(m.getZoom(), 11));
+    }
+    if (abierto.current === c.camionId) marcador.openPopup();
+  }
+
+  function dibujarCelular(L: typeof import('leaflet'), g: LayerGroup, c: CelularEnMapa) {
+    const texto = `${c.chofer}${c.numeroOperacion ? ` · Op. ${c.numeroOperacion}` : ''} (celular)`;
+    const icono = L.divIcon({
+      className: '',
+      iconSize: [0, 0],
+      html: `<div style="transform:translate(-7px,-7px);display:flex;align-items:center;gap:4px;white-space:nowrap">
+               <span style="flex:none;display:inline-block;width:14px;height:14px;border-radius:3px;background:${senalDe(minutosDesde(c.ts)) === 'vivo' ? '#7c3aed' : '#a78bfa'};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)"></span>
+               <span style="font:600 11px/1 system-ui;background:#f5f3ff;color:#5b21b6;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${escapar(texto)}</span>
+             </div>`,
+    });
+    L.marker([c.latitud, c.longitud], { icon: icono }).addTo(g);
   }
 
   redibujar.current = dibujar;
