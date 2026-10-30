@@ -1,5 +1,8 @@
-LOGO DE IRONTRACK
-=================
+LOGO DE IRONTRACK (SIN FONDO)
+=============================
+Si ya subiste el zip anterior del logo, alcanza con reemplazar la carpeta
+src/shared/ui/marca (3 archivos) y docs/DECISIONES.md. Si no, subí todo.
+
 Solo cambia la web. En Supabase no hay que hacer nada.
 
 GITHUB: subí cada archivo en SU carpeta (arrastrá los archivos, no las carpetas)
