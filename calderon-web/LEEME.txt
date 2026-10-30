@@ -1,25 +1,8 @@
-LOGO DE IRONTRACK (SIN FONDO)
+ÍCONO DE LA PESTAÑA SIN FONDO
 =============================
-Si ya subiste el zip anterior del logo, alcanza con reemplazar la carpeta
-src/shared/ui/marca (3 archivos) y docs/DECISIONES.md. Si no, subí todo.
-
-Solo cambia la web. En Supabase no hay que hacer nada.
-
-GITHUB: subí cada archivo en SU carpeta (arrastrá los archivos, no las carpetas)
-  src/app/layout.tsx
-  src/app/icon.png                          (nuevo: ícono de la pestaña)
-  src/app/apple-icon.png                    (nuevo: ícono del acceso directo en el celular)
-  src/app/(auth)/layout.tsx                 (ojo: carpeta «(auth)», con paréntesis)
-  src/shared/ui/marca/marca.tsx             (nuevo, carpeta nueva «marca»)
-  src/shared/ui/marca/irontrack-icono.png   (nuevo)
-  src/shared/ui/marca/irontrack-logo.png    (nuevo)
-  src/modules/core/layout/sidebar.tsx
+Solo web. Subí a GitHub, reemplazando:
+  src/app/icon.png          (pestaña del navegador, sin fondo)
+  src/app/apple-icon.png    (acceso directo del celular, sobre blanco)
   docs/DECISIONES.md
-
-Para crear la carpeta «marca» en GitHub: entrá a src/shared/ui › Add file › Upload files
-y arrastrá la carpeta «marca» entera (en este caso sí, porque es nueva).
-
-Si el navegador sigue mostrando el ícono viejo en la pestaña, recargá con Ctrl+Shift+R.
-En el celular, si ya tenías el acceso directo, borralo y agregalo de nuevo a la pantalla de inicio.
-
+Después recargá con Ctrl+Shift+R (el navegador guarda el ícono viejo un rato).
 ¿HAY QUE BORRAR ALGO? No.
