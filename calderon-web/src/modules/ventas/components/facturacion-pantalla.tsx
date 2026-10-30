@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { FilePlus2, LoaderCircle, Plus, Receipt, Save, Trash2, X } from 'lucide-react';
 import { TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { AccionConMotivo, Cargando, Encabezado, ErrorBase, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
+import { useAbrirFicha } from '@/modules/core/fichas/contexto';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
@@ -139,6 +140,7 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
   const { data, isLoading, isError, error, refetch } = usePorFacturar();
   const puede = useCan('ventas.facturacion:editar');
   const crear = useCrearFactura();
+  const abrirFicha = useAbrirFicha();
   const envio = useEnvio();
   const [marcadas, setMarcadas] = useState<Set<number>>(new Set());
   // Migración 125: qué datos van en cada renglón, por cliente
@@ -246,7 +248,13 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
                             )}
                           </>
                         ) : (
-                          <span className="text-xs text-alerta">{o.precio.falta}</span>
+                          <>
+                            <span className="block text-xs text-alerta">{o.precio.falta}</span>
+                            {/* Para completar lo que falta (la línea, el peso) sin salir de la pantalla */}
+                            <button type="button" onClick={() => abrirFicha('operacion', o.servicioId)} className="text-xs font-medium text-marca hover:underline">
+                              Completar en la operación
+                            </button>
+                          </>
                         )}
                       </td>
                     </tr>

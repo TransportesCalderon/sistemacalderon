@@ -15,7 +15,6 @@ import { Buscador } from '@/modules/core/buscador/buscador';
 import { VERSION_BUSCADOR } from '@/modules/core/buscador/resultados';
 import { contarPendientes } from '@/modules/hoy/hoy';
 import { useHoy } from '@/modules/hoy/use-hoy';
-import { BotonAsistente } from '@/modules/ia/asistente/asistente-boton';
 
 /**
  * Barra superior (Sprint 2, Plan de migración UX ítems 6 a 8): Pizarra a mano, el buscador
@@ -64,8 +63,6 @@ export function BarraSuperior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
           Mapa
         </Link>
       )}
-      {/* IA-3: el asistente, al lado de Hoy, Pizarra y Mapa (lo ve quien la base deja usarlo) */}
-      <BotonAsistente />
       <div className="flex min-w-0 flex-1 justify-center">
         {hayBuscador && (
           <Suspense fallback={null}>

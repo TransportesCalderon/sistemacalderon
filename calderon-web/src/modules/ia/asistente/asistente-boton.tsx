@@ -25,7 +25,7 @@ function IrisLogo({ className }: { className?: string }) {
 }
 
 /**
- * IA-3 · Botón «Iris» (el asistente inteligente de IronTrack, con su logo; pedido de Gerencia 30/10/2026) en la barra de arriba y su panel a la derecha (como las fichas: la
+ * IA-3 · Botón flotante «Iris» (el asistente inteligente de IronTrack: su logo abajo a la derecha, en compu y celular; pedido de Gerencia 30/10/2026) y su panel a la derecha (como las fichas: la
  * pantalla de atrás no se pierde). Primero las preguntas sugeridas; abajo, el cuadro para escribir.
  * Lo ve quien la base deja usar el asistente (Gerencia y los usuarios de prueba).
  */
@@ -42,19 +42,18 @@ export function BotonAsistente() {
   if (!hayBase || !permitido || !estado.data?.puede) return null;
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setAbierto((a) => !a)}
-        aria-expanded={abierto}
-        className={cn(
-          'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm',
-          abierto ? 'bg-marca-suave font-medium text-marca' : 'text-tinta-suave hover:bg-hover hover:text-tinta',
-        )}
-        title="Preguntale a Iris, el asistente inteligente de IronTrack"
-      >
-        <IrisLogo className="size-5" />
-        <span className="hidden sm:inline">Iris</span>
-      </button>
+      {!abierto && (
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          aria-label="Abrir a Iris, el asistente inteligente de IronTrack"
+          title="Preguntale a Iris, el asistente inteligente de IronTrack"
+          style={{ bottom: 'max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem))' }}
+          className="fixed right-5 z-[1040] grid size-14 place-items-center rounded-full border border-borde bg-panel shadow-lg transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-marca"
+        >
+          <IrisLogo className="size-10" />
+        </button>
+      )}
       {/* Fuera de la barra (su desenfoque encierra a los elementos fijos): directo en el body */}
       {abierto && createPortal(<PanelAsistente onCerrar={() => setAbierto(false)} onCambio={() => void estado.refetch()} />, document.body)}
     </>

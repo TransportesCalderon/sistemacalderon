@@ -5,6 +5,7 @@ import { cn } from '@/shared/lib/cn';
 import type { GrupoMenu } from '@/modules/core/navigation/navigation';
 import { guardarLocal, leerLocal, Sidebar } from './sidebar';
 import { BarraSuperior } from './topbar';
+import { BotonAsistente } from '@/modules/ia/asistente/asistente-boton';
 
 const CLAVE_PLEGADO = 'tc.sidebar.plegado';
 
@@ -36,8 +37,11 @@ export function AppShell({ menu, aviso, children }: { menu: GrupoMenu[]; aviso?:
       <div className={cn('flex min-h-dvh flex-col transition-[padding] duration-200', plegado ? 'lg:pl-16' : 'lg:pl-64')}>
         <BarraSuperior onAbrirMenu={abrirMovil} />
         {aviso}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        {/* pb-24: que el botón flotante de Iris no tape lo último de la pantalla */}
+        <main className="flex-1 px-4 pb-24 pt-6 sm:px-6 lg:px-8">{children}</main>
       </div>
+      {/* Iris: botón flotante abajo a la derecha (lo ve quien la base deja usarlo) */}
+      <BotonAsistente />
     </div>
   );
 }
