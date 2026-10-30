@@ -1,5 +1,6 @@
 'use client';
 
+import { IconoIronTrack, NombreIronTrack } from '@/shared/ui/marca/marca';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -72,8 +73,8 @@ export function Sidebar({ menu, plegado, onAlternarPlegado, abiertoMovil, onCerr
       >
         <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-borde px-3">
           <Link href="/" className={cn('flex items-center gap-2 font-semibold text-tinta', plegado && 'lg:hidden')}>
-            <span className="grid size-8 place-items-center rounded-md bg-marca text-sm font-bold text-white">IT</span>
-            <span className="truncate">IronTrack</span>
+            <IconoIronTrack className="size-8" />
+            <NombreIronTrack className="truncate text-lg" />
           </Link>
           <button
             type="button"

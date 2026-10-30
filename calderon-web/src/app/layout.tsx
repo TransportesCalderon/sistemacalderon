@@ -5,7 +5,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: { default: 'IronTrack', template: '%s · IronTrack' },
-  description: 'Gestión de flota, combustible, anomalías y rentabilidad',
+  description: 'IronTrack · Gestión de flotas',
   robots: { index: false, follow: false },
 };
 

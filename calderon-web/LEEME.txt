@@ -1,20 +1,22 @@
-CHAT POR VOZ CON IRIS
-=====================
+LOGO DE IRONTRACK
+=================
 Solo cambia la web. En Supabase no hay que hacer nada.
 
 GITHUB: subí cada archivo en SU carpeta (arrastrá los archivos, no las carpetas)
-  next.config.ts                                   (en la raíz del proyecto: habilita el micrófono)
-  src/modules/ia/asistente/asistente-boton.tsx
-  src/modules/ia/asistente/voz.ts                  (nuevo)
-  src/modules/ia/asistente/voz-hooks.ts            (nuevo)
-  src/modules/ia/asistente/iris-logo.png           (el logo; si ya lo subiste, reemplazalo igual)
-  tests/asistente.test.ts
+  src/app/layout.tsx
+  src/app/icon.png                          (nuevo: ícono de la pestaña)
+  src/app/apple-icon.png                    (nuevo: ícono del acceso directo en el celular)
+  src/app/(auth)/layout.tsx                 (ojo: carpeta «(auth)», con paréntesis)
+  src/shared/ui/marca/marca.tsx             (nuevo, carpeta nueva «marca»)
+  src/shared/ui/marca/irontrack-icono.png   (nuevo)
+  src/shared/ui/marca/irontrack-logo.png    (nuevo)
+  src/modules/core/layout/sidebar.tsx
   docs/DECISIONES.md
 
-CÓMO SE USA
-  · Tocá el micrófono, hablá y tocá el cuadrado (o hacé silencio): Iris pregunta y responde con voz.
-  · La primera vez el navegador pide permiso para el micrófono: aceptalo.
-  · Cada respuesta tiene «Escuchar» para oírla (y «Detener»).
-  · En iPhone: usar Safari o Chrome actualizados; con el celular en silencio puede no sonar.
+Para crear la carpeta «marca» en GitHub: entrá a src/shared/ui › Add file › Upload files
+y arrastrá la carpeta «marca» entera (en este caso sí, porque es nueva).
+
+Si el navegador sigue mostrando el ícono viejo en la pestaña, recargá con Ctrl+Shift+R.
+En el celular, si ya tenías el acceso directo, borralo y agregalo de nuevo a la pantalla de inicio.
 
 ¿HAY QUE BORRAR ALGO? No.
