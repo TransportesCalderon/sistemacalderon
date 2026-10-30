@@ -5,7 +5,8 @@ import type { Json } from '@/shared/types/database.generated';
 export type EtapaCierre = 'listo' | 'con_diferencia' | 'faltan_datos' | 'en_viaje';
 
 export interface ViajePorCerrar {
-  viajeId: number;
+  /** null: viaje terminado que no tiene viaje de chofer (migración 133); se cierra armando su cierre. */
+  viajeId: number | null;
   numero: string;
   version: number;
   estadoViaje: 'abierto' | 'cerrado';
@@ -27,6 +28,12 @@ export interface ViajePorCerrar {
   toleranciaL: number | null;
   km: number | null;
   consumoL: number | null;
+  /** Migración 133: carga de salida, horas desde la llegada y si pasó el plazo para cerrar. */
+  cargaSalidaId: number | null;
+  horas: number | null;
+  vencido: boolean;
+  plazoHoras: number | null;
+  sinViajeChofer: boolean;
 }
 
 type Obj = Record<string, unknown>;
@@ -37,7 +44,7 @@ export const parsearPorCerrar = (v: Json | unknown): ViajePorCerrar[] =>
   (Array.isArray(v) ? v : []).map((x) => {
     const o = (x ?? {}) as Obj;
     return {
-      viajeId: Number(o.viaje_id),
+      viajeId: n(o.viaje_id),
       numero: s(o.numero) ?? '',
       version: n(o.version) ?? 1,
       estadoViaje: o.estado_viaje === 'cerrado' ? 'cerrado' : 'abierto',
@@ -58,6 +65,11 @@ export const parsearPorCerrar = (v: Json | unknown): ViajePorCerrar[] =>
       toleranciaL: n(o.tolerancia_l),
       km: n(o.km),
       consumoL: n(o.consumo_l),
+      cargaSalidaId: n(o.carga_salida_id),
+      horas: n(o.horas),
+      vencido: o.vencido === true,
+      plazoHoras: n(o.plazo_horas),
+      sinViajeChofer: o.sin_viaje_chofer === true,
     };
   });
 
