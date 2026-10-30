@@ -10,13 +10,7 @@ import { rutasRepository } from '../repositories/rutas.repository';
 /** Claves de React Query de Logística. */
 export const logisticaQueries = {
   todo: () => ['logistica'] as const,
-  /** Migración 135: rutas para los choferes (todas o de una línea) y la de una operación. */
-  rutas: (db: Db, linea: number | null) =>
-    queryOptions({
-      queryKey: ['logistica', 'rutas', linea] as const,
-      queryFn: () => rutasRepository(db).lista(linea),
-      staleTime: FRESCURA.maestro,
-    }),
+  /** Migración 136: la ruta para el chofer de una operación. */
   rutaOperacion: (db: Db, servicio: number) =>
     queryOptions({
       queryKey: ['logistica', 'rutas', 'operacion', servicio] as const,

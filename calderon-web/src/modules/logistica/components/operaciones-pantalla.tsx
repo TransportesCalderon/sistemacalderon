@@ -531,8 +531,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       )}
 
       {puede && (o.estado !== 'cancelado' || o.gensetId) && <GensetOperacion o={o} />}
-      {/* Migración 135: la ruta que recibe el chofer */}
-      <RutaOperacion servicioId={o.servicioId} lineaId={o.lineaId} abierta={!cerrada} />
+      {/* Migración 136: la ruta que recibe el chofer (una por operación) */}
+      <RutaOperacion servicioId={o.servicioId} abierta={!cerrada} />
       {puede && o.puedeVolver && <VolverPaso o={o} />}
 
       {tipo === 'paso' && abierto?.tipo === 'paso' && <PanelPaso o={o} paso={abierto.paso} errorInicial={abierto.error ?? null} zona={zona} onCerrar={cerrar} />}

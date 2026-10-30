@@ -1,5 +1,5 @@
 /**
- * Rutas para los choferes (migración 135): leer un link de Google Maps, armar el link para seguir
+ * Rutas para los choferes (migraciones 135 y 136: una por operación): leer un link de Google Maps, armar el link para seguir
  * la ruta desde donde está el chofer y saber qué paradas ya pasó. Funciones puras (sin red).
  *
  * El truco: un link de Google Maps SIN punto de partida arranca desde la ubicación del teléfono.
@@ -10,19 +10,6 @@ export interface PuntoRuta {
   nombre: string;
   lat: number | null;
   lng: number | null;
-}
-
-export interface Ruta {
-  id: number;
-  lineaId: number;
-  linea: string;
-  nombre: string;
-  notas: string | null;
-  puntos: PuntoRuta[];
-  linkOriginal: string | null;
-  predeterminada: boolean;
-  version: number;
-  operacionesActivas: number;
 }
 
 /** Google Maps acepta hasta 9 paradas intermedias en un link (además del destino). */
@@ -37,23 +24,6 @@ export const parsearPuntos = (v: unknown): PuntoRuta[] =>
   (Array.isArray(v) ? v : []).map((x, i) => {
     const o = (x ?? {}) as Obj;
     return { nombre: typeof o.nombre === 'string' && o.nombre ? o.nombre : `Punto ${i + 1}`, lat: num(o.lat), lng: num(o.lng) };
-  });
-
-export const parsearRutas = (v: unknown): Ruta[] =>
-  (Array.isArray(v) ? v : []).map((x) => {
-    const o = (x ?? {}) as Obj;
-    return {
-      id: Number(o.id),
-      lineaId: Number(o.linea_id),
-      linea: typeof o.linea === 'string' ? o.linea : '',
-      nombre: typeof o.nombre === 'string' ? o.nombre : '',
-      notas: typeof o.notas === 'string' && o.notas ? o.notas : null,
-      puntos: parsearPuntos(o.puntos),
-      linkOriginal: typeof o.link_original === 'string' && o.link_original ? o.link_original : null,
-      predeterminada: o.predeterminada === true,
-      version: num(o.version) ?? 1,
-      operacionesActivas: num(o.operaciones_activas) ?? 0,
-    };
   });
 
 /** La ruta de una carga del chofer (ops.fn_mis_cargas → ruta). */
