@@ -1419,6 +1419,11 @@ export type Database = {
       };
       fn_cuentas_sin_vincular: { Args: Record<string, never>; Returns: { email: string; creada_en: string }[] };
       fn_guardar_usuario: { Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean; p_chofer?: number | null }; Returns: number };
+      /** Migración 150: crea la cuenta de acceso (Supabase Auth, con la llave de Vault) y el usuario. Solo TI. */
+      fn_crear_usuario: {
+        Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean; p_chofer?: number | null; p_clave?: string | null };
+        Returns: number;
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

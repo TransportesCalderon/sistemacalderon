@@ -39,6 +39,19 @@ export const usuariosRepository = (db: Db) => ({
     if (error) throw new RepoError(error);
     return (data ?? []).map((c) => ({ email: c.email, creadaEn: c.creada_en as FechaISO }));
   },
+  /** Migración 150: TI crea la cuenta de acceso y el usuario desde la plataforma. */
+  async crear(d: { email: string; nombre: string; roles: string[]; choferId: number | null; clave: string | null }): Promise<number> {
+    const { data, error } = await db.schema('seg').rpc('fn_crear_usuario', {
+      p_email: d.email,
+      p_nombre: d.nombre,
+      p_roles: d.roles,
+      p_activo: true,
+      p_chofer: d.choferId,
+      p_clave: d.clave || null,
+    });
+    if (error) throw new RepoError(error);
+    return data as number;
+  },
   async guardar(d: { email: string; nombre: string; roles: string[]; activo: boolean; choferId: number | null }): Promise<number> {
     const { data, error } = await db
       .schema('seg')

@@ -13,16 +13,22 @@ import { FRESCURA } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { Campo } from '@/shared/ui/campo';
 import { useChoferesCombustible } from '@/modules/combustible/queries/hooks';
-import { guardarUsuario } from '../usuarios.actions';
+import { crearUsuario, guardarUsuario } from '../usuarios.actions';
+import { BOTON_PRIMARIO } from '@/shared/ui/clases';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { usuariosRepository, type Usuario } from '../usuarios.repository';
 import { invalidar } from '@/shared/query/invalidar';
 
 /** Roles que se asignan desde acá. Migración 60: el chofer entra al celular (Mi carga, Mis gastos), vinculado a su ficha. */
 const ROLES_ASIGNABLES = ROLES_APP;
 
+/** Migración 150: desde esta versión TI crea la cuenta de acceso desde acá. */
+const VERSION_CREAR = 150;
+
 /**
- * Configuración > Usuarios y roles (migración 34). La cuenta de acceso (email y contraseña) se crea
- * en Supabase; acá se vincula con un nombre y sus roles, se cambian los roles o se desactiva.
+ * Configuración > Usuarios y roles (migración 34). Migración 150: «Nuevo usuario» crea la cuenta de
+ * acceso (email y contraseña) y el usuario con sus roles, sin entrar a Supabase. Acá también se
+ * vinculan las cuentas creadas en Supabase, se cambian los roles o se desactiva.
  */
 export function UsuariosPantalla() {
   const { zonaHoraria } = useSesion();
@@ -38,15 +44,33 @@ export function UsuariosPantalla() {
     staleTime: FRESCURA.maestro,
   });
   const [abierto, setAbierto] = useState<string | null>(null);
+  const puedeCrear = useBaseTiene(VERSION_CREAR);
 
   return (
     <div className="space-y-5">
-      <Encabezado titulo="Usuarios y roles" subtitulo="Configuración" />
+      <Encabezado titulo="Usuarios y roles" subtitulo="Configuración">
+        {puedeCrear && abierto !== 'nuevo' && (
+          <button type="button" className={BOTON_PRIMARIO} onClick={() => setAbierto('nuevo')}>
+            <UserPlus className="size-4" /> Nuevo usuario
+          </button>
+        )}
+      </Encabezado>
       <p className="text-sm text-tinta-suave">
-        Para sumar a alguien: en Supabase, <span className="font-medium">Authentication → Users → Add user</span> (email y contraseña, o
-        invitación por email). Después aparece abajo en «Cuentas sin vincular» para darle nombre y roles. Los roles nuevos rigen cuando la
-        persona vuelve a entrar (hasta 1 hora); desactivar corta el acceso en el momento.
+        {puedeCrear ? (
+          <>
+            Para sumar a alguien: <span className="font-medium">Nuevo usuario</span>, con su email, nombre y roles. Los roles nuevos rigen
+            cuando la persona vuelve a entrar (hasta 1 hora); desactivar corta el acceso en el momento.
+          </>
+        ) : (
+          <>
+            Para sumar a alguien: en Supabase, <span className="font-medium">Authentication → Users → Add user</span> (email y contraseña, o
+            invitación por email). Después aparece abajo en «Cuentas sin vincular» para darle nombre y roles. Los roles nuevos rigen cuando la
+            persona vuelve a entrar (hasta 1 hora); desactivar corta el acceso en el momento.
+          </>
+        )}
       </p>
+
+      {abierto === 'nuevo' && <FormUsuario nuevo onCerrar={() => setAbierto(null)} />}
 
       {cuentas.data && cuentas.data.length > 0 && (
         <Seccion titulo={`Cuentas sin vincular (${cuentas.data.length})`}>
@@ -150,12 +174,19 @@ export function UsuariosPantalla() {
   );
 }
 
-function FormUsuario({ email, usuario, onCerrar }: { email: string; usuario?: Usuario; onCerrar: () => void }) {
+function FormUsuario({ email: emailFijo = '', usuario, nuevo = false, onCerrar }: { email?: string; usuario?: Usuario; nuevo?: boolean; onCerrar: () => void }) {
   const qc = useQueryClient();
   const guardar = useMutation({
     mutationFn: guardarUsuario,
     onSuccess: (r) => (r.ok ? invalidar(qc, 'usuario') : undefined),
   });
+  // Migración 150: alta completa (cuenta de acceso + usuario)
+  const crear = useMutation({
+    mutationFn: crearUsuario,
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'usuario') : undefined),
+  });
+  const [email, setEmail] = useState(emailFijo);
+  const [clave, setClave] = useState('');
   const { error, enviar, campo } = useEnvio();
   const [nombre, setNombre] = useState(usuario?.nombre ?? '');
   const [roles, setRoles] = useState<RolApp[]>(usuario?.roles ?? []);
@@ -166,14 +197,32 @@ function FormUsuario({ email, usuario, onCerrar }: { email: string; usuario?: Us
 
   return (
     <Panel
-      titulo={usuario ? `Editar ${usuario.nombre}` : `Vincular ${email}`}
-      explicacion="Con varios roles, el usuario suma los permisos de todos. Las aprobaciones las hacen Administración de combustible, Finanzas y TI (parámetro fue.correccion_roles_aprobadores)."
+      titulo={nuevo ? 'Nuevo usuario' : usuario ? `Editar ${usuario.nombre}` : `Vincular ${email}`}
+      explicacion={
+        nuevo
+          ? 'Se crea su cuenta para entrar (email y contraseña) y el usuario con sus roles. Si dejás la contraseña vacía, la persona entra con «¿Olvidaste tu contraseña?» y elige la suya.'
+          : 'Con varios roles, el usuario suma los permisos de todos. Las aprobaciones las hacen Administración de combustible, Finanzas y TI (parámetro fue.correccion_roles_aprobadores).'
+      }
       error={error}
-      ocupado={guardar.isPending}
-      textoBoton={usuario ? 'Guardar cambios' : 'Vincular'}
+      ocupado={guardar.isPending || crear.isPending}
+      textoBoton={nuevo ? 'Crear usuario' : usuario ? 'Guardar cambios' : 'Vincular'}
       onCerrar={onCerrar}
-      onConfirmar={() => enviar(guardar.mutateAsync({ email, nombre, roles, activo, choferId: roles.includes('chofer') ? choferId : null }), onCerrar)}
+      onConfirmar={() =>
+        nuevo
+          ? enviar(crear.mutateAsync({ email, nombre, roles, choferId: roles.includes('chofer') ? choferId : null, clave }), onCerrar)
+          : enviar(guardar.mutateAsync({ email, nombre, roles, activo, choferId: roles.includes('chofer') ? choferId : null }), onCerrar)
+      }
     >
+      {nuevo && (
+        <>
+          <Campo label="Email *" error={campo('email')}>
+            <input type="email" autoComplete="off" maxLength={200} value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Campo>
+          <Campo label="Contraseña inicial" error={campo('clave')} ayuda="Mínimo 8 letras. Pasásela a la persona; la puede cambiar en su perfil.">
+            <input type="text" autoComplete="new-password" maxLength={72} value={clave} onChange={(e) => setClave(e.target.value)} />
+          </Campo>
+        </>
+      )}
       <Campo label="Nombre *" error={campo('nombre')}>
         <input maxLength={200} value={nombre} onChange={(e) => setNombre(e.target.value)} />
       </Campo>

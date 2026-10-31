@@ -18,3 +18,18 @@ export const guardarUsuario = createAction({
   handler: (d, { db }) => usuariosRepository(db).guardar(d),
   invalida: () => ({ paths: ['/configuracion/usuarios'] }),
 });
+
+/** Migración 150: crear el usuario con su cuenta de acceso (email y contraseña inicial opcional). Solo TI. */
+export const crearUsuario = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({
+    email: z.string().trim().toLowerCase().email('Email no válido.'),
+    nombre: z.string().trim().min(1, 'Escribí el nombre.').max(200, 'Máximo 200 caracteres.'),
+    roles: z.array(z.string()).min(1, 'Elegí al menos un rol.'),
+    choferId: z.number().int().positive().nullable(),
+    // Vacía = sin contraseña inicial (la base pone una al azar)
+    clave: z.string().max(72, 'Máximo 72 caracteres.').nullable(),
+  }),
+  handler: (d, { db }) => usuariosRepository(db).crear(d),
+  invalida: () => ({ paths: ['/configuracion/usuarios'] }),
+});
