@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { browserDb } from '@/shared/supabase/browser';
 import { agregarGastoViaje, anularGastoViaje } from '../actions/costos.actions';
+import { marcarDesvioVisto } from '../actions/rutas.actions';
 import { costosRepository } from '../repositories/costos.repository';
 import { usePizarraEnVivo } from '@/modules/pizarra/queries/hooks';
 import {
@@ -65,6 +66,18 @@ export const useSugerenciaCliente = (cliente: number | null) =>
 export const useLineas = () => useQuery(q.lineas(browserDb()));
 export const useAgentesTransporte = (todos = false) => useQuery(q.agentes(browserDb(), todos));
 export const useRutaOperacion = (servicio: number) => useQuery(q.rutaOperacion(browserDb(), servicio));
+/** Migración 156: pantalla «Rutas para choferes» (cada minuto, para ver los desvíos). */
+export const useRutasOperaciones = () => useQuery({ ...q.rutasOperaciones(browserDb()), refetchInterval: 60_000 });
+/** Migración 156: ventana emergente de desvíos (cada minuto). */
+export const useAvisosDesvio = (activo: boolean) =>
+  useQuery({ ...q.avisosDesvio(browserDb()), enabled: activo, refetchInterval: activo ? 60_000 : false });
+export function useDesvioVisto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: marcarDesvioVisto,
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'desvio') : undefined),
+  });
+}
 export const useTramosOperacion = (servicio: number) => useQuery(q.tramos(browserDb(), servicio));
 export const useOperacion = (servicio: number) => useQuery(q.operacion(browserDb(), servicio));
 export const useTransportistas = () => useQuery(q.transportistas(browserDb()));

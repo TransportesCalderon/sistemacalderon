@@ -1,6 +1,6 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/database.generated';
-import { parsearPuntos, type PuntoRuta } from '../domain/rutas';
+import { parsearAvisosDesvio, parsearOperacionesRuta, parsearPuntos, type AvisoDesvio, type OperacionRuta, type PuntoRuta } from '../domain/rutas';
 
 /** Migración 136: la ruta para el chofer de cada operación. La base valida todo. */
 export interface RutaOperacion {
@@ -49,6 +49,22 @@ export const rutasRepository = (db: Db) => {
           puntos: d.puntos.map((p) => ({ nombre: p.nombre, lat: p.lat, lng: p.lng })),
         } as unknown as Json,
       });
+      if (error) throw new RepoError(error);
+    },
+    /** Migración 156: operaciones abiertas con su ruta (o sin ruta) y si hay un desvío. */
+    async operaciones(): Promise<OperacionRuta[]> {
+      const { data, error } = await ops().rpc('fn_rutas_operaciones');
+      if (error) throw new RepoError(error);
+      return parsearOperacionesRuta(data);
+    },
+    /** Migración 156: desvíos para la ventana emergente del usuario. */
+    async avisosDesvio(): Promise<AvisoDesvio[]> {
+      const { data, error } = await db.schema('tel').rpc('fn_avisos_desvio');
+      if (error) throw new RepoError(error);
+      return parsearAvisosDesvio(data);
+    },
+    async desvioVisto(id: number): Promise<void> {
+      const { error } = await db.schema('tel').rpc('fn_desvio_visto', { p_desvio: id });
       if (error) throw new RepoError(error);
     },
     async quitar(servicioId: number, version: number): Promise<void> {

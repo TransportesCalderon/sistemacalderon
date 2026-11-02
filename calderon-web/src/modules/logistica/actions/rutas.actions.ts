@@ -37,3 +37,10 @@ export const abrirLinkCorto = createAction({
   schema: z.object({ link: z.string().max(2000).refine(esLinkDeMaps, 'Pegá un link de Google Maps') }),
   handler: async (d) => abrirLinkMaps(d.link),
 });
+
+/** Migración 156: «Entendido» en la ventana emergente de un desvío (no vuelve a aparecer para ese usuario). */
+export const marcarDesvioVisto = createAction({
+  permiso: 'anomalias.alertas:ver',
+  schema: z.object({ id: z.number().int().positive() }),
+  handler: (d, { db }) => rutasRepository(db).desvioVisto(d.id),
+});

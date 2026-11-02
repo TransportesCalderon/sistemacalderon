@@ -64,6 +64,8 @@ export const OBJETOS = {
   viajes_en_vivo: [['pizarra'], ['logistica']],
   /** Operaciones, tramos y viajes: también la Pizarra y el combustible del viaje. */
   operacion: [['logistica'], ['pizarra'], ['combustible'], ['pendientes']],
+  /** Migración 156: «Entendido» en el aviso de desvío de ruta (solo la ventana emergente). */
+  desvio: [['logistica', 'rutas', 'avisos']],
   /** Ventas: emitir o cobrar cambia también Finanzas y los viajes. */
   venta: [['ventas'], ['finanzas'], ['logistica']],
   /** Finanzas: un cobro cambia también Ventas › Facturación. */

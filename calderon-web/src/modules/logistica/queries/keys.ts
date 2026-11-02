@@ -17,6 +17,19 @@ export const logisticaQueries = {
       queryFn: () => rutasRepository(db).deOperacion(servicio),
       staleTime: FRESCURA.transaccional,
     }),
+  /** Migración 156: pantalla «Rutas para choferes» y avisos de desvío. */
+  rutasOperaciones: (db: Db) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'lista'] as const,
+      queryFn: () => rutasRepository(db).operaciones(),
+      staleTime: FRESCURA.transaccional,
+    }),
+  avisosDesvio: (db: Db) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'avisos'] as const,
+      queryFn: () => rutasRepository(db).avisosDesvio(),
+      staleTime: 0,
+    }),
   abiertos: (db: Db) =>
     queryOptions({
       queryKey: ['logistica', 'abiertos'] as const,

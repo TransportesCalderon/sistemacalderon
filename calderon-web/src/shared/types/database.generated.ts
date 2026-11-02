@@ -1195,6 +1195,8 @@ export type Database = {
       fn_agentes_transporte: { Args: { p_todos?: boolean }; Returns: Json };
       fn_guardar_agente_transporte: { Args: { p_id: number | null; p_version: number | null; p_nombre: string; p_activo?: boolean }; Returns: number };
       fn_ruta_de_servicio: { Args: { p_servicio: number }; Returns: Json };
+      /** Migración 156 */
+      fn_rutas_operaciones: { Args: Record<string, never>; Returns: Json };
       fn_guardar_ruta_operacion: { Args: { p_servicio: number; p_version: number | null; p_datos: Json }; Returns: undefined };
       fn_quitar_ruta_operacion: { Args: { p_servicio: number; p_version: number }; Returns: undefined };
       // Módulo del chofer (60)
@@ -1748,6 +1750,9 @@ export type Database = {
       fn_trackerway_datos_motor: { Args: { p_dias?: number }; Returns: Json };
       // Migración 72: equipos GPS de Trackerway
       fn_trackerway_panel: { Args: Record<string, never>; Returns: Json };
+      /** Migración 156 */
+      fn_avisos_desvio: { Args: Record<string, never>; Returns: Json };
+      fn_desvio_visto: { Args: { p_desvio: number }; Returns: undefined };
       fn_trackerway_buscar: { Args: Record<string, never>; Returns: Json };
       fn_trackerway_enlazar: { Args: { p_imei: string; p_camion: number | null }; Returns: undefined };
       fn_trackerway_importar: { Args: { p_imei: string; p_importar: boolean }; Returns: undefined };

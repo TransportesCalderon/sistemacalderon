@@ -62,6 +62,8 @@ import { Lista } from './viajes-pantalla';
 import { SeguimientoOperacion } from '@/modules/chofer/components/seguimiento-operacion';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { RutaOperacion } from './rutas/ruta-operacion';
+import { VERSION_RUTAS_PANTALLA } from '../domain/rutas';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 
 export type Abierto =
   | { tipo: 'nueva'; base?: Operacion }
@@ -405,6 +407,7 @@ function Dato({ label, children, mono }: { label: string; children: ReactNode; m
 /** Sprint 1: se exporta para la ficha de la operación en el panel (operacion-ficha.tsx). */
 export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: string; puede: boolean; abierto: Abierto; onAbrir: (a: Abierto) => void }) {
   const { hacer, enCurso } = useUnClic(o, onAbrir);
+  const rutasAparte = useBaseTiene(VERSION_RUTAS_PANTALLA);
   const anular = useAnularHito();
   const envioAnular = useEnvio();
   const cerrar = () => onAbrir({ tipo: 'detalle', o });
@@ -537,8 +540,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       )}
 
       {puede && (o.estado !== 'cancelado' || o.gensetId) && <GensetOperacion o={o} />}
-      {/* Migración 136: la ruta que recibe el chofer (una por operación) */}
-      <RutaOperacion servicioId={o.servicioId} abierta={!cerrada} />
+      {/* Migración 136: la ruta que recibe el chofer. Desde la 156 se carga en Viajes › Rutas para choferes */}
+      {!rutasAparte && <RutaOperacion servicioId={o.servicioId} abierta={!cerrada} />}
       {puede && o.puedeVolver && <VolverPaso o={o} />}
 
       {tipo === 'paso' && abierto?.tipo === 'paso' && <PanelPaso o={o} paso={abierto.paso} errorInicial={abierto.error ?? null} zona={zona} onCerrar={cerrar} />}

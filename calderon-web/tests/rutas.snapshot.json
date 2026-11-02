@@ -102,5 +102,6 @@
   "/conciliacion": "finanzas.bancos",
   "/conciliacion/cambios": "finanzas.bancos",
   "/conciliacion/_": "finanzas.bancos",
-  "/pizarra/mapa": "telemetria.mapa"
+  "/pizarra/mapa": "telemetria.mapa",
+  "/pizarra/rutas": "operacion.rutas"
 }

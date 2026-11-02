@@ -190,3 +190,74 @@ export function linkCompleto(puntos: PuntoRuta[]): string | null {
   if (medio.length > 0) q.set('waypoints', medio.slice(0, MAX_PARADAS_LINK).map(coord).join('|'));
   return `https://www.google.com/maps/dir/?${q.toString()}`;
 }
+
+/** Migración 156: pantalla «Rutas para choferes» (operaciones abiertas, con ruta o sin ruta). */
+export const VERSION_RUTAS_PANTALLA = 156;
+export interface OperacionRuta {
+  servicioId: number;
+  numero: number;
+  cliente: string;
+  origen: string;
+  destino: string;
+  estado: string;
+  presentacion: string | null;
+  tractor: string | null;
+  chofer: string | null;
+  ruta: { puntos: number; partida: string; destino: string; notas: string | null } | null;
+  desvio: { km: number; minutos: number; alerta: boolean } | null;
+}
+const txt = (v: unknown) => (typeof v === 'string' ? v : '');
+const txtN = (v: unknown) => (typeof v === 'string' && v ? v : null);
+export const parsearOperacionesRuta = (v: unknown): OperacionRuta[] =>
+  (Array.isArray(v) ? v : []).map((x) => {
+    const o = (x ?? {}) as Obj;
+    const r = o.ruta && typeof o.ruta === 'object' ? (o.ruta as Obj) : null;
+    const d = o.desvio && typeof o.desvio === 'object' ? (o.desvio as Obj) : null;
+    return {
+      servicioId: Number(o.servicio_id),
+      numero: Number(o.numero_operacion),
+      cliente: txt(o.cliente),
+      origen: txt(o.origen),
+      destino: txt(o.destino),
+      estado: txt(o.estado),
+      presentacion: txtN(o.fecha_presentacion),
+      tractor: txtN(o.tractor),
+      chofer: txtN(o.chofer),
+      ruta: r ? { puntos: Number(r.puntos), partida: txt(r.partida), destino: txt(r.destino), notas: txtN(r.notas) } : null,
+      desvio: d ? { km: Number(d.km), minutos: Number(d.minutos), alerta: d.alerta === true } : null,
+    };
+  });
+
+/** Migración 156: un desvío de la ruta para la ventana emergente. */
+export interface AvisoDesvio {
+  id: number;
+  servicioId: number;
+  numero: number;
+  cliente: string;
+  tractor: string;
+  chofer: string | null;
+  desde: string;
+  minutos: number;
+  km: number;
+  kmMax: number;
+  lat: number | null;
+  lng: number | null;
+}
+export const parsearAvisosDesvio = (v: unknown): AvisoDesvio[] =>
+  (Array.isArray(v) ? v : []).map((x) => {
+    const o = (x ?? {}) as Obj;
+    return {
+      id: Number(o.id),
+      servicioId: Number(o.servicio_id),
+      numero: Number(o.numero_operacion),
+      cliente: txt(o.cliente),
+      tractor: txt(o.tractor),
+      chofer: txtN(o.chofer),
+      desde: txt(o.desde),
+      minutos: Number(o.minutos ?? 0),
+      km: Number(o.km ?? 0),
+      kmMax: Number(o.km_max ?? 0),
+      lat: num(o.latitud),
+      lng: num(o.longitud),
+    };
+  });
