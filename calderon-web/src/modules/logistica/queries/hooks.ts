@@ -37,6 +37,7 @@ import {
   volverPaso,
 } from '../actions/operaciones.actions';
 import { operacionesRepository } from '../repositories/operaciones.repository';
+import { viajesChoferRepository } from '../repositories/viajes-chofer.repository';
 import {
   agregarItemViaje,
   ajustarItemViaje,
@@ -126,6 +127,17 @@ export const useBasesOperativas = (activo = true) =>
 export const useTractores = () => useQuery({ ...q.tractores(browserDb()), refetchInterval: 60_000 });
 export const useViajesChofer = (desde: FechaDia | null, hasta: FechaDia | null) => useQuery(q.viajesChofer(browserDb(), desde, hasta));
 export const useViajeChofer = (id: number) => useQuery(q.viajeChofer(browserDb(), id));
+// Migración 153: lo que hizo cada chofer y quién llevó cada operación
+export const useTramosDelViaje = (id: number, activo = true) =>
+  useQuery({ queryKey: ['logistica', 'viaje-chofer', id, 'tramos'], queryFn: () => viajesChoferRepository(browserDb()).tramosDelViaje(id), enabled: activo });
+export const useHistorialChofer = (chofer: number, desde: FechaDia, hasta: FechaDia, activo = true) =>
+  useQuery({
+    queryKey: ['logistica', 'historial-chofer', chofer, desde, hasta],
+    queryFn: () => viajesChoferRepository(browserDb()).historialChofer(chofer, desde, hasta),
+    enabled: activo,
+  });
+export const useHistorialOperacion = (servicio: number, activo = true) =>
+  useQuery({ queryKey: ['logistica', 'historial-operacion', servicio], queryFn: () => viajesChoferRepository(browserDb()).historialOperacion(servicio), enabled: activo });
 export const useAsignarTractor = () => useEscritura(asignarTractor);
 export const useIniciarViajeChofer = () => useEscritura(iniciarViajeChofer);
 export const useAgregarItemViaje = () => useEscritura(agregarItemViaje);

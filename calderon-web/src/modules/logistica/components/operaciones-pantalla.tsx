@@ -1,5 +1,6 @@
 'use client';
 
+import { QuienLaLlevo } from './historial/historial';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ChevronRight, ClipboardList, Copy, LoaderCircle, Plus, Search, Snowflake, Undo2, X } from 'lucide-react';
@@ -503,6 +504,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
         </div>
       </div>
 
+      {/* Migración 153: quién la llevó y quién la trajo */}
+      <QuienLaLlevo servicioId={o.servicioId} />
       <TramosDeLaOperacion servicioId={o.servicioId} />
 
       {puede && o.posibles.length > 0 && (

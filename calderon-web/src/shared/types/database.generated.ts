@@ -1239,6 +1239,10 @@ export type Database = {
       fn_sugerencia_cliente: { Args: { p_cliente: number }; Returns: Json };
       /** Migración 81. */
       fn_tramos_de_operacion: { Args: { p_servicio: number }; Returns: Json };
+      /** Migración 153: lo que hizo cada chofer y quién llevó cada operación. */
+      fn_tramos_del_viaje: { Args: { p_viaje: number }; Returns: Json };
+      fn_historial_chofer: { Args: { p_chofer: number; p_desde: string; p_hasta: string }; Returns: Json };
+      fn_historial_operacion: { Args: { p_servicio: number }; Returns: Json };
       fn_guardar_operacion: { Args: { p_servicio: number | null; p_version: number | null; p_datos: Json }; Returns: number };
       fn_confirmar_operacion: { Args: { p_servicio: number }; Returns: undefined };
       fn_asignar_equipo: {

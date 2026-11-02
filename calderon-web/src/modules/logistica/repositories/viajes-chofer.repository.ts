@@ -9,6 +9,7 @@ import {
   type ViajeChofer,
   type ViajeChoferResumen,
 } from '../domain/viaje-chofer.types';
+import { parsearMovimientos, parsearTramosDelViaje, type Movimiento, type TramoDelViaje } from '../domain/historial';
 
 /** Tractores y viajes de chofer (migración 46). Cada acción es una función de la base; su mensaje se muestra tal cual. */
 export const viajesChoferRepository = (db: Db) => {
@@ -61,6 +62,25 @@ export const viajesChoferRepository = (db: Db) => {
         cierreId: v.cierre_id,
         cierreEstado: v.cierre_estado,
       }));
+    },
+
+    /** Migración 153: lo asignado al chofer en el período del viaje (para marcar los tramos que hizo). */
+    async tramosDelViaje(id: number): Promise<TramoDelViaje[]> {
+      const { data, error } = await ops().rpc('fn_tramos_del_viaje', { p_viaje: id });
+      if (error) throw new RepoError(error);
+      return parsearTramosDelViaje(data);
+    },
+    /** Migración 153: historial del chofer (qué llevó, con qué equipo y cuándo). */
+    async historialChofer(chofer: number, desde: FechaDia, hasta: FechaDia): Promise<Movimiento[]> {
+      const { data, error } = await ops().rpc('fn_historial_chofer', { p_chofer: chofer, p_desde: desde, p_hasta: hasta });
+      if (error) throw new RepoError(error);
+      return parsearMovimientos(data);
+    },
+    /** Migración 153: quién llevó la operación, tramo por tramo. */
+    async historialOperacion(servicio: number): Promise<Movimiento[]> {
+      const { data, error } = await ops().rpc('fn_historial_operacion', { p_servicio: servicio });
+      if (error) throw new RepoError(error);
+      return parsearMovimientos(data);
     },
 
     async viaje(id: number): Promise<ViajeChofer> {
