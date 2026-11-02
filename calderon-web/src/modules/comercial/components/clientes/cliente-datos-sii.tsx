@@ -46,6 +46,7 @@ export function ClienteDatosSii({ clienteId, editable }: { clienteId: number; ed
     <section className={cn(TARJETA, 'p-5 lg:col-span-2')}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-tinta">Datos para la factura electrónica</h2>
+        {!puede && editable && <span className="text-xs text-tinta-suave">Los cambian Finanzas o TI.</span>}
         {puede && !editando && data && (
           <button type="button" className={BOTON_SECUNDARIO} onClick={() => setEditando(true)}>
             <Pencil className="size-4" /> Editar
