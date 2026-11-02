@@ -11,6 +11,14 @@ export interface RutaOperacion {
   version: number;
 }
 
+/** Migración 158: una de las rutas de la operación, con su estado. */
+export interface RutaTramo extends RutaOperacion {
+  orden: number;
+  estado: 'hecha' | 'en_curso' | 'pendiente';
+  llegadaEn: string | null;
+  llegadaPor: 'gps' | 'chofer' | 'oficina' | null;
+}
+
 export interface RutaDatos {
   servicioId: number;
   version: number | null;
@@ -31,6 +39,23 @@ export const parsearRutaOperacion = (v: unknown): RutaOperacion | null => {
   };
 };
 
+export const parsearRutasTramo = (v: unknown): RutaTramo[] =>
+  (Array.isArray(v) ? v : []).flatMap((x) => {
+    const base = parsearRutaOperacion(x);
+    if (!base) return [];
+    const o = x as Record<string, unknown>;
+    const estado = o.estado === 'hecha' || o.estado === 'en_curso' ? o.estado : 'pendiente';
+    const por = o.llegada_por === 'gps' || o.llegada_por === 'chofer' || o.llegada_por === 'oficina' ? o.llegada_por : null;
+    return [{ ...base, orden: Number(o.orden ?? 1), estado, llegadaEn: typeof o.llegada_en === 'string' ? o.llegada_en : null, llegadaPor: por }];
+  });
+
+const datosRuta = (d: Pick<RutaDatos, 'notas' | 'linkOriginal' | 'puntos'>) =>
+  ({
+    notas: d.notas,
+    link_original: d.linkOriginal,
+    puntos: d.puntos.map((p) => ({ nombre: p.nombre, lat: p.lat, lng: p.lng })),
+  }) as unknown as Json;
+
 export const rutasRepository = (db: Db) => {
   const ops = () => db.schema('ops');
   return {
@@ -49,6 +74,38 @@ export const rutasRepository = (db: Db) => {
           puntos: d.puntos.map((p) => ({ nombre: p.nombre, lat: p.lat, lng: p.lng })),
         } as unknown as Json,
       });
+      if (error) throw new RepoError(error);
+    },
+    /** Migración 158: todas las rutas de la operación, en orden. */
+    async todas(servicioId: number): Promise<RutaTramo[]> {
+      const { data, error } = await ops().rpc('fn_rutas_de_servicio', { p_servicio: servicioId });
+      if (error) throw new RepoError(error);
+      return parsearRutasTramo(data);
+    },
+    async guardarTramo(d: RutaDatos & { id: number | null }): Promise<number> {
+      const { data, error } = await ops().rpc('fn_guardar_ruta_tramo', {
+        p_servicio: d.servicioId,
+        p_id: d.id,
+        p_version: d.version,
+        p_datos: datosRuta(d),
+      });
+      if (error) throw new RepoError(error);
+      return Number(data);
+    },
+    async quitarTramo(id: number, version: number): Promise<void> {
+      const { error } = await ops().rpc('fn_quitar_ruta_tramo', { p_id: id, p_version: version });
+      if (error) throw new RepoError(error);
+    },
+    async moverTramo(id: number, dir: -1 | 1): Promise<void> {
+      const { error } = await ops().rpc('fn_mover_ruta_tramo', { p_id: id, p_dir: dir });
+      if (error) throw new RepoError(error);
+    },
+    async llegada(servicioId: number, llego: boolean): Promise<void> {
+      const { error } = await ops().rpc('fn_llegada_ruta', { p_servicio: servicioId, p_llego: llego });
+      if (error) throw new RepoError(error);
+    },
+    async llegueDestino(servicioId: number): Promise<void> {
+      const { error } = await ops().rpc('fn_llegue_destino', { p_servicio: servicioId });
       if (error) throw new RepoError(error);
     },
     /** Migración 156: operaciones abiertas con su ruta (o sin ruta) y si hay un desvío. */

@@ -129,8 +129,12 @@ function Fila({ o, abierta, onAbrir }: { o: OperacionRuta; abierta: boolean; onA
         <span className="ml-auto flex flex-wrap gap-1.5">
           {o.estado === 'en_curso' && <Chip tono="marca">En curso</Chip>}
           {o.ruta ? (
-            <Chip tono="exito">
-              Ruta: {o.ruta.puntos} puntos
+            <Chip tono={o.ruta.orden === null ? 'neutro' : 'exito'}>
+              {o.ruta.orden === null
+                ? `${o.ruta.total} ${o.ruta.total === 1 ? 'ruta hecha' : 'rutas hechas'}`
+                : o.ruta.total > 1
+                  ? `Ruta ${o.ruta.orden} de ${o.ruta.total}: ${o.ruta.partida} → ${o.ruta.destino}`
+                  : `Ruta: ${o.ruta.puntos} puntos`}
             </Chip>
           ) : (
             <Chip tono="alerta">Sin ruta</Chip>

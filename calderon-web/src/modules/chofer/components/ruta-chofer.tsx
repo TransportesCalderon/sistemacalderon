@@ -1,7 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronDown, LocateFixed, Navigation, TriangleAlert } from 'lucide-react';
+import { CheckCheck, ChevronDown, LocateFixed, Navigation, TriangleAlert } from 'lucide-react';
+import { ErrorBase } from '@/modules/combustible/components/comun/ui';
+import { llegueDestino } from '@/modules/logistica/actions/rutas.actions';
+import type { ErrorAccion } from '@/server/actions/result';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { useInvalidar } from '@/shared/query/invalidar';
 import { linkDesde, siguientePunto, type RutaChofer } from '@/modules/logistica/domain/rutas';
 import { cn } from '@/shared/lib/cn';
 
@@ -11,7 +16,7 @@ type Pos = { lat: number; lng: number };
  * Migración 135: la ruta del chofer para Google Maps. El botón abre Google Maps desde donde está
  * el chofer, con las paradas que le faltan (si cerró Google Maps, vuelve a tocar el mismo botón).
  */
-export function RutaDelChofer({ ruta }: { ruta: RutaChofer }) {
+export function RutaDelChofer({ ruta, servicioId }: { ruta: RutaChofer; servicioId: number }) {
   const [pos, setPos] = useState<Pos | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [sinUbicacion, setSinUbicacion] = useState(false);
@@ -92,6 +97,9 @@ export function RutaDelChofer({ ruta }: { ruta: RutaChofer }) {
       )}
       {sinUbicacion && <p className="text-xs text-error">No se pudo saber dónde estás: permití la ubicación o elegí desde qué parada seguir.</p>}
 
+      {/* Migración 158: al llegar al destino aparece la ruta siguiente (también la detecta el GPS) */}
+      <LlegueAlDestino servicioId={servicioId} ultima={ruta.orden >= ruta.total} />
+
       <button type="button" onClick={() => setVerParadas((v) => !v)} className="flex items-center gap-1 text-sm text-tinta-suave">
         <ChevronDown className={cn('size-4 transition-transform', verParadas && 'rotate-180')} /> {verParadas ? 'Ocultar' : 'Ver'} las paradas ({ruta.puntos.length})
       </button>
@@ -115,5 +123,47 @@ export function RutaDelChofer({ ruta }: { ruta: RutaChofer }) {
         </ol>
       )}
     </section>
+  );
+}
+
+function LlegueAlDestino({ servicioId, ultima }: { servicioId: number; ultima: boolean }) {
+  const hay = useBaseTiene(158);
+  const invalidar = useInvalidar();
+  const [confirmar, setConfirmar] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState<ErrorAccion | null>(null);
+  if (!hay) return null;
+  const enviar = async () => {
+    setError(null);
+    setOcupado(true);
+    const r = await llegueDestino({ servicioId });
+    setOcupado(false);
+    if (!r.ok) return setError(r.error);
+    setConfirmar(false);
+    await invalidar('chofer_portal');
+  };
+  return (
+    <div className="space-y-2">
+      {confirmar ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-panel px-3 py-2 text-sm">
+          <span className="flex-1">{ultima ? '¿Llegaste al destino final?' : '¿Llegaste al destino? Te vamos a mostrar la ruta siguiente.'}</span>
+          <button type="button" disabled={ocupado} onClick={() => void enviar()} className="rounded-md bg-marca px-3 py-1.5 font-medium text-white disabled:opacity-60">
+            Sí, llegué
+          </button>
+          <button type="button" onClick={() => setConfirmar(false)} className="px-2 py-1.5 text-tinta-suave">
+            No
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setConfirmar(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-marca bg-panel px-4 py-3 text-sm font-semibold text-marca"
+        >
+          <CheckCheck className="size-4" /> Llegué al destino
+        </button>
+      )}
+      <ErrorBase error={error} />
+    </div>
   );
 }

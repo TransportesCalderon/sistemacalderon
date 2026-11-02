@@ -29,6 +29,9 @@ export const parsearPuntos = (v: unknown): PuntoRuta[] =>
 /** La ruta de una carga del chofer (ops.fn_mis_cargas → ruta). */
 export interface RutaChofer {
   id: number;
+  /** Migración 158: «ruta k de n». */
+  orden: number;
+  total: number;
   nombre: string;
   notas: string | null;
   linea: string;
@@ -41,6 +44,8 @@ export const parsearRutaChofer = (v: unknown): RutaChofer | null => {
   if (puntos.length < 2) return null;
   return {
     id: Number(o.id),
+    orden: Number(o.orden ?? 1),
+    total: Number(o.total ?? 1),
     nombre: typeof o.nombre === 'string' ? o.nombre : '',
     notas: typeof o.notas === 'string' && o.notas ? o.notas : null,
     linea: typeof o.linea === 'string' ? o.linea : '',
@@ -203,7 +208,8 @@ export interface OperacionRuta {
   presentacion: string | null;
   tractor: string | null;
   chofer: string | null;
-  ruta: { puntos: number; partida: string; destino: string; notas: string | null } | null;
+  /** Migración 158: total de rutas, cuántas hechas y cuál está en curso (null: terminó todas). */
+  ruta: { puntos: number; partida: string; destino: string; notas: string | null; total: number; hechas: number; orden: number | null } | null;
   desvio: { km: number; minutos: number; alerta: boolean } | null;
 }
 const txt = (v: unknown) => (typeof v === 'string' ? v : '');
@@ -223,7 +229,17 @@ export const parsearOperacionesRuta = (v: unknown): OperacionRuta[] =>
       presentacion: txtN(o.fecha_presentacion),
       tractor: txtN(o.tractor),
       chofer: txtN(o.chofer),
-      ruta: r ? { puntos: Number(r.puntos), partida: txt(r.partida), destino: txt(r.destino), notas: txtN(r.notas) } : null,
+      ruta: r
+        ? {
+            puntos: Number(r.puntos ?? 0),
+            partida: txt(r.partida),
+            destino: txt(r.destino),
+            notas: txtN(r.notas),
+            total: Number(r.total ?? 1),
+            hechas: Number(r.hechas ?? 0),
+            orden: r.orden === undefined ? 1 : r.orden === null ? null : Number(r.orden),
+          }
+        : null,
       desvio: d ? { km: Number(d.km), minutos: Number(d.minutos), alerta: d.alerta === true } : null,
     };
   });

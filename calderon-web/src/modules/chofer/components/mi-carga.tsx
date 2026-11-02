@@ -120,7 +120,7 @@ export function TarjetaCarga({ c }: { c: CargaAsignada }) {
       )}
 
       {/* Migración 135: la ruta para Google Maps, desde donde esté */}
-      {c.ruta && <RutaDelChofer ruta={c.ruta} />}
+      {c.ruta && <RutaDelChofer ruta={c.ruta} servicioId={c.servicioId} />}
 
       <ul className="divide-y divide-borde">
         <FilaLugar titulo="Retirar el contenedor en" l={c.retiro} />

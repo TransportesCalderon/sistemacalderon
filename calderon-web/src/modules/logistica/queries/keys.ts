@@ -17,6 +17,13 @@ export const logisticaQueries = {
       queryFn: () => rutasRepository(db).deOperacion(servicio),
       staleTime: FRESCURA.transaccional,
     }),
+  /** Migración 158: todas las rutas de una operación. */
+  rutasTramo: (db: Db, servicio: number) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'tramos', servicio] as const,
+      queryFn: () => rutasRepository(db).todas(servicio),
+      staleTime: FRESCURA.transaccional,
+    }),
   /** Migración 156: pantalla «Rutas para choferes» y avisos de desvío. */
   rutasOperaciones: (db: Db) =>
     queryOptions({

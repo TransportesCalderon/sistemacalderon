@@ -66,6 +66,9 @@ export const useSugerenciaCliente = (cliente: number | null) =>
 export const useLineas = () => useQuery(q.lineas(browserDb()));
 export const useAgentesTransporte = (todos = false) => useQuery(q.agentes(browserDb(), todos));
 export const useRutaOperacion = (servicio: number) => useQuery(q.rutaOperacion(browserDb(), servicio));
+/** Migración 158: todas las rutas de la operación (cada minuto: el GPS puede pasar a la siguiente). */
+export const useRutasTramo = (servicio: number, activo = true) =>
+  useQuery({ ...q.rutasTramo(browserDb(), servicio), enabled: activo, refetchInterval: 60_000 });
 /** Migración 156: pantalla «Rutas para choferes» (cada minuto, para ver los desvíos). */
 export const useRutasOperaciones = () => useQuery({ ...q.rutasOperaciones(browserDb()), refetchInterval: 60_000 });
 /** Migración 156: ventana emergente de desvíos (cada minuto). */

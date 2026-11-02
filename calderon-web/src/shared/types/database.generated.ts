@@ -1197,6 +1197,13 @@ export type Database = {
       fn_ruta_de_servicio: { Args: { p_servicio: number }; Returns: Json };
       /** Migración 156 */
       fn_rutas_operaciones: { Args: Record<string, never>; Returns: Json };
+      /** Migración 158 */
+      fn_rutas_de_servicio: { Args: { p_servicio: number }; Returns: Json };
+      fn_guardar_ruta_tramo: { Args: { p_servicio: number; p_id: number | null; p_version: number | null; p_datos: Json }; Returns: number };
+      fn_quitar_ruta_tramo: { Args: { p_id: number; p_version: number }; Returns: undefined };
+      fn_mover_ruta_tramo: { Args: { p_id: number; p_dir: number }; Returns: undefined };
+      fn_llegada_ruta: { Args: { p_servicio: number; p_llego: boolean }; Returns: undefined };
+      fn_llegue_destino: { Args: { p_servicio: number }; Returns: Json };
       fn_guardar_ruta_operacion: { Args: { p_servicio: number; p_version: number | null; p_datos: Json }; Returns: undefined };
       fn_quitar_ruta_operacion: { Args: { p_servicio: number; p_version: number }; Returns: undefined };
       // Módulo del chofer (60)
