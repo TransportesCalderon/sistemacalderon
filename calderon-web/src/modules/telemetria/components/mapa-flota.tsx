@@ -3,18 +3,49 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Map as MapaLeaflet, LayerGroup } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { Group, Maximize2, Minimize2, Ungroup } from 'lucide-react';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { NIVEL_HEX } from '@/shared/ui/niveles';
 import { FUENTE_CONSUMO_MES, haceTexto, minutosDesde, senalDe, type CamionEnVivo, type DetalleMapa, type EstadoMotor } from '../domain/flota.types';
 import { RankingMapa } from './ranking-mapa';
+import { ubicarEtiquetas } from '../domain/ubicar-etiquetas';
 
 /** Migración 112: verde en marcha, rojo apagado, gris sin señal o sin dato del motor (el estado lo decide la base). */
 const COLOR: Record<EstadoMotor, string> = { en_marcha: '#16a34a', apagado: '#dc2626', sin_senal: '#94a3b8', sin_dato: '#94a3b8' };
 const ESTELA = '#22c55e';
 /** Camiones a menos de esta distancia en la pantalla (px) se juntan en un círculo con la cantidad. */
 const RADIO_GRUPO = 48;
+
+/** Dónde va un camión en la vista desagrupada (posición del punto y de su nombre, en px respecto del punto). */
+type Lugar = { pos: [number, number]; lx: number; ly: number; guia: boolean; w: number; h: number };
+
+const ETIQUETA_CAMION = 'font:600 11px/1 system-ui;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25);white-space:nowrap';
+const ETIQUETA_CELULAR = 'font:600 11px/1 system-ui;background:#f5f3ff;color:#5b21b6;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25);white-space:nowrap';
+const textoCelular = (c: CelularEnMapa) => `${c.chofer}${c.numeroOperacion ? ` · Op. ${c.numeroOperacion}` : ''} (celular)`;
+
+/** Ancho del nombre en pantalla (px), con la misma letra que la etiqueta. */
+let lienzo: CanvasRenderingContext2D | null = null;
+function anchoTexto(t: string): number {
+  if (typeof document === 'undefined') return t.length * 6.5;
+  lienzo ??= document.createElement('canvas').getContext('2d');
+  if (!lienzo) return t.length * 6.5;
+  lienzo.font = '600 11px system-ui, sans-serif';
+  return Math.ceil(lienzo.measureText(t).width);
+}
+
+/** Punto y nombre separados (vista desagrupada); con una línea guía si el nombre quedó lejos. */
+function htmlEnLugar(punto: string, mitad: number, etiqueta: string, estilo: string, l: Lugar): string {
+  const ax = l.lx < 0 ? l.lx + l.w : l.lx;
+  const ay = l.ly + l.h / 2;
+  const linea = l.guia
+    ? `<svg width="1" height="1" style="position:absolute;left:0;top:0;overflow:visible;pointer-events:none"><line x1="0" y1="0" x2="${ax}" y2="${ay}" stroke="#475569" stroke-width="1.2" opacity=".8"/></svg>`
+    : '';
+  return `<div style="position:relative;width:0;height:0">${linea}
+            <div style="position:absolute;left:${-mitad}px;top:${-mitad}px;display:flex">${punto}</div>
+            <span style="position:absolute;left:${l.lx}px;top:${l.ly}px;box-sizing:border-box;width:${l.w}px;height:${l.h}px;${estilo}">${etiqueta}</span>
+          </div>`;
+}
 
 const escapar = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -81,6 +112,8 @@ export function MapaFlota({
   // Para redibujar al hacer zoom con los datos de ahora (los camiones juntos se apilan según el zoom)
   const redibujar = useRef<(L: typeof import('leaflet')) => void>(() => undefined);
   const [completa, setCompleta] = useState(false);
+  // Agrupados (círculo con la cantidad) o desagrupados (cada camión en su lugar, sin pisarse)
+  const [agrupar, setAgrupar] = useState(true);
   const [rankingAbierto, setRankingAbierto] = useState(false);
   const alternarRanking = () => setRankingAbierto((a) => !a);
 
@@ -120,7 +153,7 @@ export function MapaFlota({
     if (!mapa.current) return;
     void import('leaflet').then((L) => dibujar(L));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camiones, detalles, celulares, seleccionado]);
+  }, [camiones, detalles, celulares, seleccionado, agrupar]);
 
   // Pantalla completa: la del navegador si se puede; si no (algunos celulares), el mapa ocupa toda la ventana
   useEffect(() => {
@@ -261,6 +294,16 @@ export function MapaFlota({
       ...camiones.filter((c) => c.latitud !== null && c.longitud !== null).map((c) => ({ lat: c.latitud!, lng: c.longitud!, camion: c })),
       ...celulares.map((c) => ({ lat: c.latitud, lng: c.longitud, celular: c })),
     ];
+    if (!agrupar) {
+      dibujarEstelas(L, g, porCamion);
+      dibujarDesagrupados(L, m, g, items, porCamion);
+      for (const it of items) puntos.push([it.lat, it.lng]);
+      if (!encuadrado.current && puntos.length > 0) {
+        encuadrado.current = true;
+        m.fitBounds(L.latLngBounds(puntos), { padding: [40, 40], maxZoom: 11 });
+      }
+      return;
+    }
     const grupos: { x: number; y: number; items: Item[] }[] = [];
     // Se juntan si están cerca o si sus nombres se pisarían (el nombre va a la derecha del punto)
     const seTocan = (a: { x: number; y: number }, b: { x: number; y: number }) =>
@@ -274,18 +317,7 @@ export function MapaFlota({
       else grupos.push({ x: p.x, y: p.y, items: [it] });
     }
 
-    // Estelas: de dónde viene cada camión (más transparente cuanto más vieja). Con un camión elegido, solo la suya
-    for (const c of camiones) {
-      if (c.latitud === null || c.longitud === null) continue;
-      const elegido = c.camionId === seleccionado;
-      if (seleccionado !== null && !elegido) continue;
-      const tramo: [number, number][] = (porCamion.get(c.camionId)?.estela ?? []).map((p) => [p.lat, p.lng]);
-      const ultimo = tramo[tramo.length - 1];
-      if (!ultimo || ultimo[0] !== c.latitud || ultimo[1] !== c.longitud) tramo.push([c.latitud, c.longitud]);
-      for (let i = 1; i < tramo.length; i++) {
-        L.polyline([tramo[i - 1]!, tramo[i]!], { color: ESTELA, weight: elegido ? 6 : 4, opacity: 0.25 + (0.75 * i) / (tramo.length - 1), lineCap: 'round' }).addTo(g);
-      }
-    }
+    dibujarEstelas(L, g, porCamion);
 
     for (const grupo of grupos) {
       if (grupo.items.length > 1) {
@@ -300,6 +332,54 @@ export function MapaFlota({
       encuadrado.current = true;
       m.fitBounds(L.latLngBounds(puntos), { padding: [40, 40], maxZoom: 11 });
     }
+  }
+
+  /** Estelas: de dónde viene cada camión (más transparente cuanto más vieja). Con un camión elegido, solo la suya. */
+  function dibujarEstelas(L: typeof import('leaflet'), g: LayerGroup, porCamion: Map<number, DetalleMapa>) {
+    for (const c of camiones) {
+      if (c.latitud === null || c.longitud === null) continue;
+      const elegido = c.camionId === seleccionado;
+      if (seleccionado !== null && !elegido) continue;
+      const tramo: [number, number][] = (porCamion.get(c.camionId)?.estela ?? []).map((p) => [p.lat, p.lng]);
+      const ultimo = tramo[tramo.length - 1];
+      if (!ultimo || ultimo[0] !== c.latitud || ultimo[1] !== c.longitud) tramo.push([c.latitud, c.longitud]);
+      for (let i = 1; i < tramo.length; i++) {
+        L.polyline([tramo[i - 1]!, tramo[i]!], { color: ESTELA, weight: elegido ? 6 : 4, opacity: 0.25 + (0.75 * i) / (tramo.length - 1), lineCap: 'round' }).addTo(g);
+      }
+    }
+  }
+
+  /**
+   * Vista desagrupada: cada camión (y celular) en su lugar con su nombre, sin que se pisen. Los que
+   * están en el mismo lugar se abren en ronda con una línea hasta la posición real; los nombres que no
+   * entran al lado del punto van un poco más lejos, con una línea guía. Se recalcula con cada zoom.
+   */
+  function dibujarDesagrupados(
+    L: typeof import('leaflet'),
+    m: MapaLeaflet,
+    g: LayerGroup,
+    items: { lat: number; lng: number; camion?: CamionEnVivo; celular?: CelularEnMapa }[],
+    porCamion: Map<number, DetalleMapa>,
+  ) {
+    const cajas = items.map((it, i) => {
+      const p = m.latLngToLayerPoint([it.lat, it.lng]);
+      const texto = it.camion ? partesCamion(it.camion, porCamion.get(it.camion.camionId)).texto : textoCelular(it.celular!);
+      return { id: String(i), x: p.x, y: p.y, w: anchoTexto(texto) + 10, h: 17 };
+    });
+    const lugares = ubicarEtiquetas(cajas);
+    items.forEach((it, i) => {
+      const u = lugares[i]!;
+      const caja = cajas[i]!;
+      const pos = m.layerPointToLatLng([caja.x + u.dx, caja.y + u.dy]);
+      const lugar: Lugar = { pos: [pos.lat, pos.lng], lx: u.lx, ly: u.ly, guia: u.guia, w: caja.w, h: caja.h };
+      if (u.dx !== 0 || u.dy !== 0) {
+        // Dónde está de verdad: un puntito y una línea fina hasta el punto corrido
+        L.polyline([[it.lat, it.lng], lugar.pos], { color: '#475569', weight: 1.5, opacity: 0.7, dashArray: '3 3', interactive: false }).addTo(g);
+        L.circleMarker([it.lat, it.lng], { radius: 3, color: '#475569', weight: 1, fillColor: '#475569', fillOpacity: 1, interactive: false }).addTo(g);
+      }
+      if (it.camion) dibujarCamion(L, m, g, it.camion, porCamion.get(it.camion.camionId), lugar);
+      else if (it.celular) dibujarCelular(L, g, it.celular, lugar);
+    });
   }
 
   /** Un círculo con la cantidad. Al tocarlo acerca el mapa; si ya no se puede separar, muestra la lista. */
@@ -347,8 +427,8 @@ export function MapaFlota({
     });
   }
 
-  function dibujarCamion(L: typeof import('leaflet'), m: MapaLeaflet, g: LayerGroup, c: CamionEnVivo, d: DetalleMapa | undefined) {
-    if (c.latitud === null || c.longitud === null) return;
+  /** El punto (color del motor, rumbo y uso abusivo) y el nombre de un camión. */
+  function partesCamion(c: CamionEnVivo, d: DetalleMapa | undefined) {
     const elegido = c.camionId === seleccionado;
     // Migración 112: el color dice el motor; el uso abusivo se marca con «!»
     const color = COLOR[d?.estadoMotor?.estado ?? 'sin_dato'];
@@ -360,19 +440,30 @@ export function MapaFlota({
       anda && c.rumbo !== null
         ? `<span style="position:absolute;left:3px;top:-9px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid ${color};transform-origin:5px 17px;transform:rotate(${c.rumbo}deg)"></span>`
         : '';
-    const etiqueta = `${escapar(c.patente)}${d?.chofer ? ` · ${escapar(d.chofer.split(',')[0] ?? d.chofer)}` : ''}${anda ? ` (${formatearNumero(c.velocidadKmh ?? 0, 0)} km/h)` : ''}${
-      // Migración 103: consumo del mes del chofer
-      d?.consumoMes?.l100km != null ? ` · <span style="color:#0f5fa8">${formatearNumero(d.consumoMes.l100km, 1)} L/100</span>` : ''
-    }`;
+    const chofer = d?.chofer ? (d.chofer.split(',')[0] ?? d.chofer) : null;
+    const velocidad = anda ? ` (${formatearNumero(c.velocidadKmh ?? 0, 0)} km/h)` : '';
+    // Migración 103: consumo del mes del chofer
+    const consumo = d?.consumoMes?.l100km != null ? `${formatearNumero(d.consumoMes.l100km, 1)} L/100` : null;
+    const etiqueta = `${escapar(c.patente)}${chofer ? ` · ${escapar(chofer)}` : ''}${velocidad}${consumo ? ` · <span style="color:#0f5fa8">${consumo}</span>` : ''}`;
+    const texto = `${c.patente}${chofer ? ` · ${chofer}` : ''}${velocidad}${consumo ? ` · ${consumo}` : ''}`;
+    const punto = `<span style="position:relative;flex:none;display:inline-block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 ${elegido ? 3 : 1}px ${elegido ? '#0f5fa8' : 'rgba(0,0,0,.3)'}">${flecha}${abusivo}</span>`;
+    return { elegido, punto, etiqueta, texto };
+  }
+
+  function dibujarCamion(L: typeof import('leaflet'), m: MapaLeaflet, g: LayerGroup, c: CamionEnVivo, d: DetalleMapa | undefined, lugar?: Lugar) {
+    if (c.latitud === null || c.longitud === null) return;
+    const { elegido, punto, etiqueta } = partesCamion(c, d);
     const icono = L.divIcon({
       className: '',
       iconSize: [0, 0],
-      html: `<div style="transform:translate(-8px,-8px);display:flex;align-items:center;gap:4px;white-space:nowrap">
-               <span style="position:relative;flex:none;display:inline-block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 ${elegido ? 3 : 1}px ${elegido ? '#0f5fa8' : 'rgba(0,0,0,.3)'}">${flecha}${abusivo}</span>
-               <span style="font:600 11px/1 system-ui;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${etiqueta}</span>
+      html: lugar
+        ? htmlEnLugar(punto, 8, etiqueta, ETIQUETA_CAMION, lugar)
+        : `<div style="transform:translate(-8px,-8px);display:flex;align-items:center;gap:4px;white-space:nowrap">
+               ${punto}
+               <span style="${ETIQUETA_CAMION}">${etiqueta}</span>
              </div>`,
     });
-    const marcador = L.marker([c.latitud, c.longitud], { icon: icono, zIndexOffset: elegido ? 1000 : 0 })
+    const marcador = L.marker(lugar ? lugar.pos : [c.latitud, c.longitud], { icon: icono, zIndexOffset: elegido ? 1000 : 0 })
       .bindPopup(ficha(c, d), { maxWidth: 320, autoPan: false })
       .on('click', () => alElegir.current(c.camionId))
       .on('popupopen', () => (abierto.current = c.camionId))
@@ -390,17 +481,20 @@ export function MapaFlota({
     if (abierto.current === c.camionId) marcador.openPopup();
   }
 
-  function dibujarCelular(L: typeof import('leaflet'), g: LayerGroup, c: CelularEnMapa) {
-    const texto = `${c.chofer}${c.numeroOperacion ? ` · Op. ${c.numeroOperacion}` : ''} (celular)`;
+  function dibujarCelular(L: typeof import('leaflet'), g: LayerGroup, c: CelularEnMapa, lugar?: Lugar) {
+    const punto = `<span style="flex:none;display:inline-block;width:14px;height:14px;border-radius:3px;background:${senalDe(minutosDesde(c.ts)) === 'vivo' ? '#7c3aed' : '#a78bfa'};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)"></span>`;
+    const etiqueta = escapar(textoCelular(c));
     const icono = L.divIcon({
       className: '',
       iconSize: [0, 0],
-      html: `<div style="transform:translate(-7px,-7px);display:flex;align-items:center;gap:4px;white-space:nowrap">
-               <span style="flex:none;display:inline-block;width:14px;height:14px;border-radius:3px;background:${senalDe(minutosDesde(c.ts)) === 'vivo' ? '#7c3aed' : '#a78bfa'};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)"></span>
-               <span style="font:600 11px/1 system-ui;background:#f5f3ff;color:#5b21b6;padding:2px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${escapar(texto)}</span>
+      html: lugar
+        ? htmlEnLugar(punto, 7, etiqueta, ETIQUETA_CELULAR, lugar)
+        : `<div style="transform:translate(-7px,-7px);display:flex;align-items:center;gap:4px;white-space:nowrap">
+               ${punto}
+               <span style="${ETIQUETA_CELULAR}">${etiqueta}</span>
              </div>`,
     });
-    L.marker([c.latitud, c.longitud], { icon: icono }).addTo(g);
+    L.marker(lugar ? lugar.pos : [c.latitud, c.longitud], { icon: icono }).addTo(g);
   }
 
   redibujar.current = dibujar;
@@ -429,6 +523,15 @@ export function MapaFlota({
             Ver la estela de todos
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => setAgrupar((a) => !a)}
+          className="inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs font-medium text-tinta shadow hover:bg-white"
+          title={agrupar ? 'Ver cada camión en su lugar, con su nombre' : 'Juntar los camiones cercanos en un círculo con la cantidad'}
+        >
+          {agrupar ? <Ungroup className="size-4" /> : <Group className="size-4" />}
+          {agrupar ? 'Desagrupar' : 'Agrupar'}
+        </button>
         <label className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
           Estela
           <select
