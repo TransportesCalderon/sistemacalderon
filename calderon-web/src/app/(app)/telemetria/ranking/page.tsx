@@ -6,7 +6,7 @@ import { RankingMensualPantalla } from '@/modules/telemetria/components/ranking-
 
 export const metadata: Metadata = { title: 'Ranking de choferes' };
 
-/** Viajes › Ranking de choferes: los mejores choferes de cada mes por Puntaje Calderón (migración 103). */
+/** Viajes › Ranking de choferes: los mejores choferes de cada mes por Puntaje IronTrack (migración 103). */
 export default async function Pagina() {
   await requirePermiso('telemetria.sesiones:ver');
   return (

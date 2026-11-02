@@ -90,7 +90,7 @@ const moverMes = (mes: string, n: number) => {
   const d = new Date(Date.UTC(a ?? 2026, (m ?? 1) - 1 + n, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 };
-/** Ficha del chofer: subpuntuaciones del mes como Optifleet y las partes del Puntaje Calderón. */
+/** Ficha del chofer: subpuntuaciones del mes como Optifleet y las partes del Puntaje IronTrack. */
 function Ficha({ c }: { c: ChoferMes }) {
   return (
     <div className="grid gap-4 bg-[#0f172a] p-4 lg:grid-cols-[2fr_1fr]">
@@ -99,7 +99,7 @@ function Ficha({ c }: { c: ChoferMes }) {
         <Subpuntuaciones subpuntajes={c.subpuntajes} />
       </div>
       <div>
-        <p className="mb-2 text-xs font-semibold tracking-wider text-white/60 uppercase">Puntaje Calderón por parte</p>
+        <p className="mb-2 text-xs font-semibold tracking-wider text-white/60 uppercase">Puntaje IronTrack por parte</p>
         <PartesCalderon partes={c.partes} />
       </div>
     </div>
@@ -107,7 +107,7 @@ function Ficha({ c }: { c: ChoferMes }) {
 }
 
 /**
- * Viajes › Ranking de choferes (migraciones 103 y 107): campeonato del mes. Puesto por Puntaje Calderón de los viajes
+ * Viajes › Ranking de choferes (migraciones 103 y 107): campeonato del mes. Puesto por Puntaje IronTrack de los viajes
  * aprobados, con puestos ganados o perdidos contra el mes anterior, y la ficha de cada chofer con todo lo del mes.
  */
 export function RankingMensualPantalla() {
@@ -271,7 +271,7 @@ export function RankingMensualPantalla() {
             </table>
           </div>
           <p className="border-t border-borde px-4 py-2.5 text-xs text-tinta-suave">
-            Puesto: Puntaje Calderón (0 a 100) de los viajes cerrados y aprobados del mes, ponderado por km. Consumo: medido por el motor o, en los camiones
+            Puesto: Puntaje IronTrack (0 a 100) de los viajes cerrados y aprobados del mes, ponderado por km. Consumo: medido por el motor o, en los camiones
             sin esos datos, de los cierres de viaje. Eco y subpuntuaciones: los de la marca de los días que manejó cada chofer, ponderados por km. «No compite»: su camión solo manda la posición, sin los datos del motor; aparece sin puesto hasta tenerlos.
           </p>
         </section>

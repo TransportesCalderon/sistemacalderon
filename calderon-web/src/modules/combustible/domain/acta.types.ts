@@ -41,7 +41,7 @@ export interface ActaExtra {
   vsObjetivo: { litros: number; pct: number; nivel: 'normal' | 'naranja' | 'rojo'; naranjaPct: number; rojoPct: number } | null;
   /** Migración 85: Eco Score de Volvo Connect / Renault Optifleet entre la salida y la llegada. */
   ecoScore: EcoScore | null;
-  /** Migración 90: Puntaje Calderón del viaje (0-100, igual para toda la flota). */
+  /** Migración 90: Puntaje IronTrack del viaje (0-100, igual para toda la flota). */
   puntajeCalderon: PuntajeCalderon | null;
   /** Migración 87: color de cada dato, decidido por la base. */
   colores: {
