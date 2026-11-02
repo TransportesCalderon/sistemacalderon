@@ -109,6 +109,9 @@ export const useSiiEstado = (activo = true) => useQuery({ queryKey: [...CLAVE, '
 export const useGuardarClienteSii = () => useEscritura(guardarClienteSii);
 export const useEmitirSii = () => useEscritura(emitirSii);
 export const useGuardarGlosaSii = () => useEscritura(guardarGlosaSii);
+/** Migración 154: datos del cliente para la factura (ficha del cliente). */
+export const useClienteSii = (clienteId: number, activo = true) =>
+  useQuery({ queryKey: [...CLAVE, 'cliente-sii', clienteId], queryFn: () => repo().clienteSii(clienteId), enabled: activo });
 /** Migración 138: vista previa de la factura electrónica (con la fecha con que se va a emitir). */
 export const useSiiVistaPrevia = (id: number, fecha: string, activo: boolean) =>
   useQuery({ queryKey: [...CLAVE, 'sii-vista', id, fecha], queryFn: () => repo().siiVistaPrevia(id, fecha), enabled: activo });

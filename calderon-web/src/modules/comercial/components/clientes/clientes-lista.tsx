@@ -193,7 +193,10 @@ export function ClientesLista() {
                         {c.codigo}
                       </NombreEnlazado>
                     </td>
-                    <td className="px-3 py-2.5 font-medium text-tinta">{c.razonSocial}</td>
+                    <td className="px-3 py-2.5 font-medium text-tinta">
+                      {c.razonSocial}
+                      {c.nombreFantasia && <span className="block text-xs font-normal text-tinta-suave">{c.nombreFantasia}</span>}
+                    </td>
                     <td className="px-3 py-2.5 font-mono whitespace-nowrap">{formatearIdentificadorFiscal(c.pais, c.identificadorFiscal)}</td>
                     <td className="px-3 py-2.5">{c.pais}</td>
                     <td className="px-3 py-2.5">{c.monedaFacturacion}</td>
@@ -266,7 +269,7 @@ function BuscadorTexto({ valor, onCambiar }: { valor: string; onCambiar: (texto:
         type="search"
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
-        placeholder="Buscar código, razón social o CUIT/RUT…"
+        placeholder="Buscar código, razón social, nombre de fantasía o CUIT/RUT…"
         className={cn(CONTROL_FILTRO, 'w-full pl-8')}
       />
     </label>

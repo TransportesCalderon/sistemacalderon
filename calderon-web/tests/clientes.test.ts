@@ -112,3 +112,19 @@ describe('identificador guardado (edición)', () => {
     expect(clienteEdicionSchema.parse({ ...base, identificadorGuardado: 'CL|76100001-1' })).not.toHaveProperty('identificadorGuardado');
   });
 });
+
+describe('nombre de fantasía (migración 154)', () => {
+  it('es opcional: vacío = null, sin mandar = no se toca', () => {
+    expect(clienteAltaSchema.parse({ ...alta(), nombreFantasia: '  WPB   Cargo ' }).nombreFantasia).toBe('WPB Cargo');
+    expect(clienteAltaSchema.parse({ ...alta(), nombreFantasia: '   ' }).nombreFantasia).toBeNull();
+    const { nombreFantasia: _sin, ...sinFantasia } = alta();
+    void _sin;
+    expect(aFilaCliente(clienteAltaSchema.parse(sinFantasia))).not.toHaveProperty('nombre_fantasia');
+    expect(aFilaCliente(clienteAltaSchema.parse({ ...alta(), nombreFantasia: 'ZZ' }))).toMatchObject({ nombre_fantasia: 'ZZ' });
+  });
+
+  it('la búsqueda incluye el nombre de fantasía solo si la base lo tiene', () => {
+    expect(filtrosClientePostgrest({ texto: 'zz' }, true).or[0]).toContain('nombre_fantasia.ilike.*zz*');
+    expect(filtrosClientePostgrest({ texto: 'zz' }).or[0]).not.toContain('nombre_fantasia');
+  });
+});

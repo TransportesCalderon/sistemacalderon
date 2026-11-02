@@ -19,6 +19,13 @@ const camposCliente = z.object({
     .string()
     .transform(normalizarRazonSocial)
     .pipe(z.string().min(1, 'Ingresá la razón social.').max(200, 'Máximo 200 caracteres.')),
+  /** Migración 154: opcional; vacío = sin nombre de fantasía. No se manda si la base es anterior. */
+  nombreFantasia: z
+    .string()
+    .transform(normalizarRazonSocial)
+    .pipe(z.string().max(120, 'Máximo 120 caracteres.'))
+    .transform((v) => (v === '' ? null : v))
+    .optional(),
   pais: z.string().regex(/^[A-Z]{2}$/, 'Elegí el país.'),
   identificadorFiscal: z.string().max(30, 'Máximo 30 caracteres.'),
   monedaFacturacion: z.string().regex(/^[A-Z]{3}$/, 'Elegí la moneda de facturación.'),
@@ -85,6 +92,7 @@ export function valoresAltaCliente(pais = 'AR', moneda = 'ARS'): ClienteFormInpu
   return {
     codigo: '',
     razonSocial: '',
+    nombreFantasia: '',
     pais,
     identificadorFiscal: '',
     monedaFacturacion: moneda,
@@ -98,6 +106,7 @@ export function valoresEdicionCliente(c: Cliente): ClienteFormInput {
   return {
     codigo: c.codigo,
     razonSocial: c.razonSocial,
+    nombreFantasia: c.nombreFantasia ?? '',
     pais: c.pais,
     identificadorFiscal: c.identificadorFiscal,
     monedaFacturacion: c.monedaFacturacion,

@@ -228,3 +228,21 @@ export const clienteSiiSchema = z.object({
 export type ClienteSiiEntrada = z.infer<typeof clienteSiiSchema>;
 /** Migración 138: la leyenda (null = la automática; vacía = sin leyenda). */
 export const glosaSiiSchema = z.object({ id, glosa: z.string().max(300).nullable() });
+
+/** Migración 154: datos del cliente para la factura electrónica (ficha del cliente). */
+export const VERSION_CLIENTE_SII = 154;
+export interface DatosSiiCliente {
+  clienteId: number;
+  pais: string;
+  giro: string;
+  direccion: string;
+  comuna: string;
+  ciudad: string;
+  correo: string;
+}
+export function parsearDatosSiiCliente(raw: unknown): DatosSiiCliente | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const j = raw as Record<string, unknown>;
+  const t = (v: unknown) => (typeof v === 'string' ? v : '');
+  return { clienteId: Number(j.cliente_id), pais: t(j.pais), giro: t(j.giro), direccion: t(j.direccion), comuna: t(j.comuna), ciudad: t(j.ciudad), correo: t(j.correo) };
+}

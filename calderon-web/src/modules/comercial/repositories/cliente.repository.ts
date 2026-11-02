@@ -19,11 +19,9 @@ import {
  * - Parecidos: ILIKE por palabra sobre razón social (acelerado por el índice
  *   trgm_cliente_razon_social), para avisar posibles duplicados al escribir.
  */
-const COLS_CLIENTE =
-  'id, codigo, razon_social, identificador_fiscal, pais, moneda_facturacion, condicion_pago_dias, segmento, estado, creado_en, creado_por, actualizado_en, actualizado_por, eliminado_en, version_fila';
-
-const COLS_RESUMEN =
-  'id, codigo, razon_social, identificador_fiscal, pais, moneda_facturacion, condicion_pago_dias, segmento, estado, eliminado_en, version_fila';
+// «*»: así trae nombre_fantasia (migración 154) cuando la base ya lo tiene, sin romper con una anterior.
+const COLS_CLIENTE = '*';
+const COLS_RESUMEN = '*';
 
 type FilaCliente = Database['mae']['Tables']['cliente']['Row'];
 type FilaSeleccion = Omit<FilaCliente, 'eliminado_por'>;
@@ -34,6 +32,7 @@ export function aClienteResumen(f: FilaResumen): ClienteResumen {
     id: f.id as ClienteId,
     codigo: f.codigo,
     razonSocial: f.razon_social,
+    nombreFantasia: f.nombre_fantasia ?? null,
     identificadorFiscal: f.identificador_fiscal,
     pais: f.pais.trim(),
     monedaFacturacion: f.moneda_facturacion.trim(),
@@ -66,15 +65,17 @@ export function aFilaCliente(d: ClienteDatos) {
     condicion_pago_dias: d.condicionPagoDias,
     segmento: d.segmento,
     estado: d.estado,
+    // Migración 154: solo si el formulario lo manda (base con la columna)
+    ...(d.nombreFantasia !== undefined ? { nombre_fantasia: d.nombreFantasia } : {}),
   } satisfies Database['mae']['Tables']['cliente']['Insert'];
 }
 
 /**
  * Filtros de la lista traducidos a PostgREST (función pura). Cada palabra debe aparecer
- * en código, razón social o identificador fiscal (este último también sin guiones,
+ * en código, razón social, nombre de fantasía (migración 154) o identificador fiscal (este último también sin guiones,
  * para encontrar "30-71234567-1" escribiendo "3071234567").
  */
-export function filtrosClientePostgrest(f: ClienteFiltros): { eq: [string, string][]; or: string[] } {
+export function filtrosClientePostgrest(f: ClienteFiltros, conFantasia = false): { eq: [string, string][]; or: string[] } {
   const eq: [string, string][] = [];
   if (f.estado) eq.push(['estado', f.estado]);
   if (f.pais) eq.push(['pais', f.pais]);
@@ -85,6 +86,7 @@ export function filtrosClientePostgrest(f: ClienteFiltros): { eq: [string, strin
   const palabras = t ? t.split(' ').filter(Boolean).slice(0, 4) : [];
   const or = palabras.map((p) => {
     const condiciones = [`codigo.ilike.*${p}*`, `razon_social.ilike.*${p}*`, `identificador_fiscal.ilike.*${p}*`];
+    if (conFantasia) condiciones.push(`nombre_fantasia.ilike.*${p}*`);
     const sinSeparadores = p.replace(/[-.]/g, '');
     if (sinSeparadores !== p && sinSeparadores.length > 0) condiciones.push(`identificador_fiscal.ilike.*${sinSeparadores}*`);
     return condiciones.join(',');
@@ -128,16 +130,20 @@ export const clienteRepository = (db: Db): ClienteRepository => ({
     const [desde, hasta] = rangoPagina(p.pagina, TAMANO_PAGINA_CLIENTES);
     // La vista v_cliente tiene las mismas columnas que la tabla (SELECT * … WHERE eliminado_en IS NULL).
     const origen = (p.incluirEliminados ? 'cliente' : 'v_cliente') as 'cliente';
-    let q = db.schema('mae').from(origen).select(COLS_RESUMEN, { count: 'exact' });
-
-    const { eq, or } = filtrosClientePostgrest(p);
-    for (const [col, valor] of eq) q = q.eq(col as 'estado', valor);
-    for (const condicion of or) q = q.or(condicion);
-
-    const { data, count, error } = await q
-      .order(p.orden, { ascending: p.dir === 'asc', nullsFirst: false })
-      .order('id', { ascending: true })
-      .range(desde, hasta);
+    const consultar = (conFantasia: boolean) => {
+      let q = db.schema('mae').from(origen).select(COLS_RESUMEN, { count: 'exact' });
+      const { eq, or } = filtrosClientePostgrest(p, conFantasia);
+      for (const [col, valor] of eq) q = q.eq(col as 'estado', valor);
+      for (const condicion of or) q = q.or(condicion);
+      return q
+        .order(p.orden, { ascending: p.dir === 'asc', nullsFirst: false })
+        .order('id', { ascending: true })
+        .range(desde, hasta);
+    };
+    // También busca por nombre de fantasía (migración 154); con una base anterior, sin esa columna.
+    let r = await consultar(!!p.texto?.trim());
+    if (r.error?.code === '42703' && p.texto?.trim()) r = await consultar(false);
+    const { data, count, error } = r;
     if (error) throw new RepoError(error);
     return { filas: (data as FilaResumen[]).map(aClienteResumen), total: count };
   },
