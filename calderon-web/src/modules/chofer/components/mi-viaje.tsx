@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, Gauge, Navigation, Package, Receipt } from 'lucide-react';
+import { ChevronRight, Gauge, Package, Receipt } from 'lucide-react';
 import { Cargando, Chip, ErrorLectura } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
 import { importeACobrar } from '@/modules/liquidacion/components/mis-liquidaciones';
@@ -12,7 +12,6 @@ import { AvisoCargaChofer } from '@/modules/telemetria/components/aviso-carga-ch
 import { cn } from '@/shared/lib/cn';
 import { TARJETA } from '@/shared/ui/clases';
 import { nombrePeriodo } from '../domain/chofer.types';
-import { enlaceMapa } from '../domain/chofer.types';
 import { useMiFondo, useMiRuta, useMisCargas } from '../queries/hooks';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { RutaDelChofer } from './ruta-chofer';
@@ -40,7 +39,6 @@ export function MiViaje() {
   if (isError || !data) return <ErrorLectura texto="No se pudo leer tu viaje." onReintentar={() => void refetch()} />;
   const [actual, ...despues] = data.cargas;
   const ruta = porChofer ? (miRuta.data ?? null) : null;
-  const destino = actual?.entrega ?? null;
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
@@ -51,22 +49,8 @@ export function MiViaje() {
 
       <AvisoCargaChofer />
 
-      {/* 1 · Lo de ahora: la ruta (o, si no hay, ir al destino) */}
-      {ruta ? (
-        <RutaDelChofer ruta={{ ...ruta, orden: 1 }} />
-      ) : (
-        porChofer &&
-        destino && (
-          <a
-            href={destino.latitud !== null && destino.longitud !== null ? enlaceMapa(destino.latitud, destino.longitud) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destino.nombre)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-marca px-4 py-4 text-base font-semibold text-white shadow-sm active:opacity-90"
-          >
-            <Navigation className="size-5" /> Ir a {destino.nombre}
-          </a>
-        )
-      )}
+      {/* 1 · Lo de ahora: la ruta que le cargó Telemetría (solo la en curso; si no hay, nada) */}
+      {ruta && <RutaDelChofer ruta={ruta} />}
 
       <CompartirUbicacion habilitado={data.compartirUbicacion} intervaloS={data.intervaloS} viaje={data.cargas.map((c) => c.servicioId).join(',')} />
 

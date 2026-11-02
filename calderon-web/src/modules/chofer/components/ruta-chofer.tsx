@@ -21,9 +21,6 @@ export interface RutaParaChofer {
   nombre: string;
   notas: string | null;
   puntos: PuntoRuta[];
-  /** Cuántas le quedan contando esta (161) o «ruta k de n» (158). */
-  orden?: number;
-  total?: number;
 }
 
 export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofer; servicioId?: number | null }) {
@@ -106,8 +103,8 @@ export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofe
       )}
       {sinUbicacion && <p className="text-xs text-error">No se pudo saber dónde estás: permití la ubicación o elegí desde qué parada seguir.</p>}
 
-      {/* Migración 158: al llegar al destino aparece la ruta siguiente (también la detecta el GPS) */}
-      <LlegueAlDestino servicioId={servicioId} ultima={(ruta.orden ?? 1) >= (ruta.total ?? 1)} />
+      {/* Migración 158: al llegar al destino (también lo detecta el GPS). El chofer no ve si hay otras rutas cargadas. */}
+      <LlegueAlDestino servicioId={servicioId} />
 
       <button type="button" onClick={() => setVerParadas((v) => !v)} className="flex items-center gap-1 text-sm text-tinta-suave">
         <ChevronDown className={cn('size-4 transition-transform', verParadas && 'rotate-180')} /> {verParadas ? 'Ocultar' : 'Ver'} las paradas ({ruta.puntos.length})
@@ -135,7 +132,7 @@ export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofe
   );
 }
 
-function LlegueAlDestino({ servicioId, ultima }: { servicioId: number | null; ultima: boolean }) {
+function LlegueAlDestino({ servicioId }: { servicioId: number | null }) {
   const hay = useBaseTiene(158);
   const porChofer = useBaseTiene(161);
   const invalidar = useInvalidar();
@@ -156,7 +153,7 @@ function LlegueAlDestino({ servicioId, ultima }: { servicioId: number | null; ul
     <div className="space-y-2">
       {confirmar ? (
         <div className="flex flex-wrap items-center gap-2 rounded-md bg-panel px-3 py-2 text-sm">
-          <span className="flex-1">{ultima ? '¿Llegaste al destino final?' : '¿Llegaste al destino? Te vamos a mostrar la ruta siguiente.'}</span>
+          <span className="flex-1">¿Llegaste al destino?</span>
           <button type="button" disabled={ocupado} onClick={() => void enviar()} className="rounded-md bg-marca px-3 py-1.5 font-medium text-white disabled:opacity-60">
             Sí, llegué
           </button>

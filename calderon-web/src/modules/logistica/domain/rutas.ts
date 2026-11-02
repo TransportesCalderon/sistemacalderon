@@ -328,13 +328,11 @@ export interface MiRuta {
   nombre: string;
   notas: string | null;
   puntos: PuntoRuta[];
-  /** Cuántas le quedan contando esta. */
-  total: number;
 }
 export const parsearMiRuta = (v: unknown): MiRuta | null => {
   if (!v || typeof v !== 'object') return null;
   const o = v as Obj;
   const puntos = parsearPuntos(o.puntos);
   if (puntos.length < 2) return null;
-  return { id: Number(o.id), servicioId: numN(o.servicio_id), numero: numN(o.numero), nombre: txt(o.nombre), notas: txtN(o.notas), puntos, total: Number(o.total ?? 1) };
+  return { id: Number(o.id), servicioId: numN(o.servicio_id), numero: numN(o.numero), nombre: txt(o.nombre), notas: txtN(o.notas), puntos };
 };

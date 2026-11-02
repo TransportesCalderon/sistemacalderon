@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight, FileText, FileUp, Gauge, MapPin, Navigation, Package, Receipt, Truck } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, FileUp, Gauge, MapPin, Package, Receipt, Truck } from 'lucide-react';
 import { Cargando, ErrorLectura } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
-import { deDondeADonde, enlaceMapa, lugaresUnicos, observacionParaChofer, type CargaAsignada, type Lugar } from '../domain/chofer.types';
+import { deDondeADonde, lugaresUnicos, observacionParaChofer, type CargaAsignada } from '../domain/chofer.types';
 import { useMisCargas } from '../queries/hooks';
 import { AvisoCargaChofer } from '@/modules/telemetria/components/aviso-carga-chofer';
 import { CompartirUbicacion } from './compartir-ubicacion';
@@ -70,15 +70,6 @@ export function MiCarga() {
   );
 }
 
-function BotonMapa({ l }: { l: Lugar }) {
-  const href = l.latitud !== null && l.longitud !== null ? enlaceMapa(l.latitud, l.longitud) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.nombre)}`;
-  return (
-    <a href={href} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 rounded-md border border-borde px-3 py-2 text-sm text-marca">
-      <Navigation className="size-4" /> Mapa
-    </a>
-  );
-}
-
 function Dato({ etiqueta, valor, mono }: { etiqueta: string; valor: string | null | undefined; mono?: boolean }) {
   if (!valor) return null;
   return (
@@ -133,7 +124,6 @@ export function TarjetaCarga({ c, conRuta = true }: { c: CargaAsignada; conRuta?
               <p className="text-xs text-tinta-suave">{g.titulo}</p>
               <p className="font-medium text-tinta">{g.lugar.nombre}</p>
             </div>
-            <BotonMapa l={g.lugar} />
           </li>
         ))}
       </ul>

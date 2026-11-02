@@ -36,8 +36,9 @@ describe('rutas por chofer (migración 161)', () => {
   });
 
   it('lee la ruta en curso del chofer (movimiento)', () => {
-    const r = parsearMiRuta({ id: 9, servicio_id: null, nombre: 'Movimiento', puntos: [{ nombre: 'A', lat: 1, lng: 2 }, { nombre: 'B', lat: 3, lng: 4 }], total: 3 });
-    expect(r).toMatchObject({ id: 9, servicioId: null, nombre: 'Movimiento', total: 3 });
+    const r = parsearMiRuta({ id: 9, servicio_id: null, nombre: 'Movimiento', puntos: [{ nombre: 'A', lat: 1, lng: 2 }, { nombre: 'B', lat: 3, lng: 4 }] });
+    expect(r).toMatchObject({ id: 9, servicioId: null, nombre: 'Movimiento' });
+    expect(r).not.toHaveProperty('total');
     expect(parsearMiRuta(null)).toBeNull();
   });
 });
