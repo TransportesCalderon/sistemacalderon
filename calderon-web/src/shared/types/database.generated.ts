@@ -1569,6 +1569,8 @@ export type Database = {
       };
       fn_fondo_chofer: { Args: { p_chofer: number; p_desde?: string | null; p_hasta?: string | null }; Returns: Json };
       fn_gastos_por_revisar: { Args: Record<string, never>; Returns: Json };
+      /** Migración 164 */
+      fn_apelar_gasto: { Args: { p_gasto: number; p_explicacion: string }; Returns: undefined };
       fn_entregar_fondo: {
         Args: { p_chofer: number; p_moneda: string; p_importe: number; p_fecha: string; p_detalle?: string | null; p_servicio?: number | null; p_cuenta?: number | null };
         Returns: number;

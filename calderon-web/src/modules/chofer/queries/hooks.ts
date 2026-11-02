@@ -18,8 +18,7 @@ import {
   revisarGasto,
   subirDocumentoChofer,
   subirDocumentoOficina,
-  subirGasto,
-} from '../actions/chofer.actions';
+  subirGasto, apelarGasto } from '../actions/chofer.actions';
 import { choferRepository } from '../repositories/chofer.repository';
 import { invalidar } from '@/shared/query/invalidar';
 
@@ -67,6 +66,7 @@ export const useSubirDocumentoOficina = () => useEscritura(subirDocumentoOficina
 export const useQuitarDocumentoOficina = () => useEscritura(quitarDocumentoOficina);
 export const useSubirGasto = () => useEscritura(subirGasto);
 export const useRetirarGasto = () => useEscritura(retirarGasto);
+export const useApelarGasto = () => useEscritura(apelarGasto);
 export const useRegistrarEntrega = () => useEscritura(registrarEntregaFondo);
 export const useCargarGastoOficina = () => useEscritura(cargarGastoOficina);
 export const useRevisarGasto = () => useEscritura(revisarGasto);

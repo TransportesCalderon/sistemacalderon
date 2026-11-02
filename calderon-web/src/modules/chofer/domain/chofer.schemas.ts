@@ -65,6 +65,8 @@ export const subirGastoSchema = z.object({
 export type SubirGasto = z.infer<typeof subirGastoSchema>;
 
 export const retirarGastoSchema = z.object({ gastoId: id });
+/** Migración 164: el chofer apela un gasto rechazado (la base controla el largo y si se puede). */
+export const apelarGastoSchema = z.object({ gastoId: id, explicacion: z.string().max(500) });
 
 export const entregaSchema = z.object({
   tipo: z.enum(['entrega', 'devolucion']),

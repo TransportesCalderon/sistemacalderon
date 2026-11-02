@@ -187,7 +187,7 @@ export const enlaceMapa = (lat: number, lon: number) => `https://www.google.com/
  * Fondo fijo y gastos (migración 61)
  * ------------------------------------------------------------------------- */
 export type TipoMovimiento = 'entrega' | 'devolucion' | 'gasto' | 'cierre';
-export type EstadoMovimiento = 'registrado' | 'por_revisar' | 'aprobado' | 'rechazado' | 'anulado';
+export type EstadoMovimiento = 'registrado' | 'por_revisar' | 'aprobado' | 'rechazado' | 'anulado' | 'apelado';
 
 export const ETIQUETA_MOVIMIENTO: Record<TipoMovimiento, string> = {
   entrega: 'Entrega de dinero',
@@ -201,6 +201,7 @@ export const ETIQUETA_ESTADO: Record<EstadoMovimiento, string> = {
   aprobado: 'Aprobado',
   rechazado: 'Rechazado',
   anulado: 'Anulado',
+  apelado: 'Apelado: en revisión',
 };
 
 export interface Saldo {
@@ -230,6 +231,11 @@ export interface Movimiento {
   viaje: string | null;
   tractor: string | null;
   revisadoPor: string | null;
+  /** Migración 164: apelación de un gasto rechazado. */
+  apelacion: string | null;
+  motivoRechazo: string | null;
+  rechazoDefinitivo: boolean;
+  puedeApelar: boolean;
 }
 export const parsearMovimientos = (v: unknown): Movimiento[] =>
   arr(v).map((m) => {
@@ -255,6 +261,10 @@ export const parsearMovimientos = (v: unknown): Movimiento[] =>
       viaje: s(x.viaje),
       tractor: s(x.tractor),
       revisadoPor: s(x.revisado_por),
+      apelacion: s(x.apelacion),
+      motivoRechazo: s(x.motivo_rechazo),
+      rechazoDefinitivo: x.rechazo_definitivo === true,
+      puedeApelar: x.puede_apelar === true,
     };
   });
 
@@ -309,6 +319,10 @@ export interface GastoPorRevisar {
   operacion: number | null;
   tractor: string | null;
   repetido: boolean;
+  /** Migración 164: el chofer apeló el rechazo (con su explicación y el motivo del rechazo). */
+  apelado: boolean;
+  apelacion: string | null;
+  motivoRechazo: string | null;
 }
 export const parsearGastosPorRevisar = (v: Json | unknown): GastoPorRevisar[] =>
   arr(v).map((g) => {
@@ -328,6 +342,9 @@ export const parsearGastosPorRevisar = (v: Json | unknown): GastoPorRevisar[] =>
       operacion: n(x.operacion),
       tractor: s(x.tractor),
       repetido: x.repetido === true,
+      apelado: x.apelado === true,
+      apelacion: s(x.apelacion),
+      motivoRechazo: s(x.motivo_rechazo),
     };
   });
 

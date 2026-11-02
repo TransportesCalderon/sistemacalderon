@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Camera, ChevronLeft, ExternalLink, LoaderCircle, Plus, Undo2 } from 'lucide-react';
+import { Camera, ChevronLeft, ExternalLink, LoaderCircle, MessageSquareText, Plus, Undo2 } from 'lucide-react';
 import { Cargando, Chip, ErrorBase, ErrorLectura, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
@@ -11,7 +11,7 @@ import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { dinero, ETIQUETA_ESTADO, ETIQUETA_MOVIMIENTO, nombrePeriodo, type EstadoMovimiento, type MiFondo, type Movimiento, type Saldo } from '../domain/chofer.types';
-import { useMiFondo, useRetirarGasto, useSubirGasto } from '../queries/hooks';
+import { useApelarGasto, useMiFondo, useRetirarGasto, useSubirGasto } from '../queries/hooks';
 import { abrirArchivo, borrarArchivo, posicionActual, subirArchivo } from './archivos';
 import { AvisoIA } from '@/modules/ia/aviso-ia';
 import { useLectorIA } from '@/modules/ia/use-lector-ia';
@@ -22,6 +22,7 @@ export const TONO_ESTADO: Record<EstadoMovimiento, Tono> = {
   aprobado: 'exito',
   rechazado: 'error',
   anulado: 'neutro',
+  apelado: 'alerta',
 };
 
 /** Qué significa el saldo, dicho simple. */
@@ -121,7 +122,20 @@ function FilaMovimiento({ m }: { m: Movimiento }) {
         </div>
       </div>
       {m.detalle && <p className="text-tinta-suave">{m.detalle}</p>}
-      {m.motivo && (m.estado === 'rechazado' || m.estado === 'anulado') && <p className="text-error">Motivo: {m.motivo}</p>}
+      {m.motivo && (m.estado === 'rechazado' || m.estado === 'anulado') && (
+        <p className="text-error">
+          {m.rechazoDefinitivo ? 'Rechazado definitivamente' : 'Motivo'}: {m.motivo}
+        </p>
+      )}
+      {/* Migración 164: apelación */}
+      {m.estado === 'apelado' && (
+        <p className="rounded-md bg-alerta-suave px-2 py-1 text-xs text-tinta">
+          Lo apelaste: «{m.apelacion}». Administración lo vuelve a revisar.
+          {m.motivoRechazo && <span className="block text-tinta-suave">Te lo habían rechazado por: {m.motivoRechazo}</span>}
+        </p>
+      )}
+      {m.rechazoDefinitivo && m.apelacion && <p className="text-xs text-tinta-suave">Tu explicación: «{m.apelacion}»</p>}
+      {m.puedeApelar && <Apelar gastoId={m.id} />}
       <div className="flex gap-4">
         {m.comprobante && (
           <button
@@ -282,5 +296,54 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
         </button>
       </div>
     </section>
+  );
+}
+
+/** Migración 164: apelar un gasto rechazado (una vez), explicando de qué es. */
+function Apelar({ gastoId }: { gastoId: number }) {
+  const apelar = useApelarGasto();
+  const [abierto, setAbierto] = useState(false);
+  const [texto, setTexto] = useState('');
+  const [error, setError] = useState<ErrorAccion | null>(null);
+  if (!abierto) {
+    return (
+      <button type="button" onClick={() => setAbierto(true)} className="inline-flex items-center gap-1 font-medium text-marca">
+        <MessageSquareText className="size-4" /> Apelar: explicar de qué es
+      </button>
+    );
+  }
+  return (
+    <div className="space-y-2 rounded-md border border-borde p-2">
+      <label className="block space-y-1">
+        <span className="text-sm font-medium text-tinta">¿De qué es este gasto?</span>
+        <textarea
+          className="min-h-20 w-full rounded-md border border-borde bg-panel px-3 py-2 text-sm outline-none focus:border-marca"
+          value={texto}
+          maxLength={500}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="Ej.: es el peaje de Uspallata, el ticket salió borroso"
+        />
+      </label>
+      <p className="text-xs text-tinta-suave">Se puede apelar una sola vez. Administración decide si lo acepta.</p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          className="rounded-md bg-marca px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+          disabled={apelar.isPending}
+          onClick={async () => {
+            setError(null);
+            const r = await apelar.mutateAsync({ gastoId, explicacion: texto });
+            if (!r.ok) setError(r.error);
+            else setAbierto(false);
+          }}
+        >
+          Enviar
+        </button>
+        <button type="button" className="px-2 text-sm text-tinta-suave" onClick={() => setAbierto(false)}>
+          Cancelar
+        </button>
+      </div>
+      <ErrorBase error={error} />
+    </div>
   );
 }
