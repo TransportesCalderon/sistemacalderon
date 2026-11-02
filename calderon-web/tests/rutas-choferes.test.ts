@@ -30,25 +30,26 @@ describe('rutas para los choferes (migración 135)', () => {
   });
 
   it('retoma desde donde está el chofer: saltea las paradas que ya pasó', () => {
-    expect(siguientePunto(ruta, null)).toBe(1);
+    expect(siguientePunto(ruta, null)).toBe(0); // sin ubicación: desde la partida
+    expect(siguientePunto(ruta, { lat: -33.0, lng: -72.3 })).toBe(0); // todavía no llegó a la partida
     expect(siguientePunto(ruta, { lat: -33.5, lng: -71.1 })).toBe(1); // entre el puerto y Santiago
     expect(siguientePunto(ruta, { lat: -33.1, lng: -70.63 })).toBe(2); // pasó Santiago
     expect(siguientePunto(ruta, { lat: -32.86, lng: -69.7 })).toBe(3); // cruzando a Mendoza
+    // Desde «Tu ubicación» pasando por TODOS los puntos que faltan hasta el último (formato que respeta el celular)
     const l = linkDesde(ruta, 2)!;
-    expect(l.url).toContain('destination=-32.89%2C-68.84');
-    expect(l.url).toContain('waypoints=-32.83%2C-70.6');
-    expect(l.url).not.toContain('origin=');
+    expect(l.url).toBe('https://www.google.com/maps/dir//-32.83,-70.6/-32.89,-68.84');
     expect(l.tramoFinal).toBe(true);
+    expect(linkDesde(ruta, 0)!.url).toBe('https://www.google.com/maps/dir//-33.59,-71.61/-33.45,-70.66/-32.83,-70.6/-32.89,-68.84');
   });
 
-  it('con más de 9 paradas el link llega hasta la 10.ª y se sigue por tramos', () => {
+  it('con más de 10 puntos el link llega hasta el 10.º y se sigue por tramos', () => {
     const larga = Array.from({ length: 14 }, (_, i) => P(`P${i}`, -33 + i * 0.01, -70));
     const l = linkDesde(larga, 1)!;
     expect(l.paradas).toBe(9);
     expect(l.hasta.nombre).toBe('P10');
     expect(l.tramoFinal).toBe(false);
     expect(linkDesde(larga, 11)!.tramoFinal).toBe(true);
-    expect(linkCompleto(ruta)).toContain('origin=-33.59%2C-71.61');
+    expect(linkCompleto(ruta)).toBe('https://www.google.com/maps/dir/-33.59,-71.61/-33.45,-70.66/-32.83,-70.6/-32.89,-68.84');
   });
 
   it('el chofer recibe la ruta con su carga; sin puntos no hay ruta', () => {

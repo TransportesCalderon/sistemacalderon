@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 import { CheckCheck, Navigation, TriangleAlert } from 'lucide-react';
 import { ErrorBase } from '@/modules/combustible/components/comun/ui';
 import { llegueDestino, llegueMiDestino } from '@/modules/logistica/actions/rutas.actions';
@@ -46,8 +46,27 @@ export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofe
     return () => clearInterval(t);
   }, [ubicar]);
 
+  const [buscando, setBuscando] = useState(false);
   const link = linkDesde(ruta.puntos, siguientePunto(ruta.puntos, pos));
   if (!link) return null;
+
+  /** Al tocar: la posición de ESTE momento, y Google Maps desde ahí hasta el último punto. */
+  const continuar = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return; // sigue el link con la última posición
+    e.preventDefault();
+    setBuscando(true);
+    const abrir = (p: Pos | null) => {
+      setBuscando(false);
+      if (p) setPos(p);
+      const l = linkDesde(ruta.puntos, siguientePunto(ruta.puntos, p ?? pos)) ?? link;
+      window.location.assign(l.url);
+    };
+    navigator.geolocation.getCurrentPosition(
+      (g) => abrir({ lat: g.coords.latitude, lng: g.coords.longitude }),
+      () => abrir(null),
+      { enableHighAccuracy: true, timeout: 5_000, maximumAge: 0 },
+    );
+  };
 
   return (
     <section className="space-y-3 rounded-lg border border-marca/40 bg-marca-suave/40 p-3">
@@ -64,12 +83,16 @@ export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofe
         href={link.url}
         target="_blank"
         rel="noreferrer"
-        onClick={() => setTimeout(ubicar, 2_000)}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-marca px-4 py-4 text-base font-semibold text-white shadow-sm active:opacity-90"
+        onClick={continuar}
+        aria-busy={buscando}
+        className={cn(
+          'flex w-full items-center justify-center gap-2 rounded-xl bg-marca px-4 py-4 text-base font-semibold text-white shadow-sm active:opacity-90',
+          buscando && 'opacity-70',
+        )}
       >
-        <Navigation className="size-5" /> Continuar viaje
+        <Navigation className="size-5" /> {buscando ? 'Buscando dónde estás…' : 'Continuar viaje'}
       </a>
-      <p className="text-xs text-tinta-suave">Si se cerró Google Maps, tocá «Continuar viaje» de nuevo: sigue desde donde estás.</p>
+      <p className="text-xs text-tinta-suave">Te lleva desde donde estás hasta el final de la ruta. Si se cerró Google Maps, tocá «Continuar viaje» de nuevo.</p>
 
       {/* Migración 158: al llegar al destino (también lo detecta el GPS). El chofer no ve si hay otras rutas cargadas. */}
       <LlegueAlDestino servicioId={servicioId} />

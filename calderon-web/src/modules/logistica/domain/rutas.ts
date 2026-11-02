@@ -129,36 +129,45 @@ export function esLinkDeMaps(link: string): boolean {
 const ubicado = (p: PuntoRuta): p is PuntoRuta & { lat: number; lng: number } => p.lat !== null && p.lng !== null;
 const coord = (p: PuntoRuta) => `${p.lat},${p.lng}`;
 
-/** Distancia (en metros, aproximada) de un punto al tramo a→b. */
-function distanciaATramo(p: { lat: number; lng: number }, a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+/** Distancia (en metros, aproximada) de un punto al tramo a→b, y dónde cae sobre el tramo (0 = en a, 1 = en b; menor que 0 = antes de a). */
+function medirTramo(p: { lat: number; lng: number }, a: { lat: number; lng: number }, b: { lat: number; lng: number }): { d: number; t: number } {
   const k = Math.cos((p.lat * Math.PI) / 180);
   const ax = a.lng * k, ay = a.lat, bx = b.lng * k, by = b.lat, px = p.lng * k, py = p.lat;
   const dx = bx - ax, dy = by - ay;
   const largo = dx * dx + dy * dy;
-  const t = largo === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / largo));
+  const tLibre = largo === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / largo;
+  const t = Math.max(0, Math.min(1, tLibre));
   const x = ax + t * dx - px, y = ay + t * dy - py;
-  return Math.sqrt(x * x + y * y) * 111_320;
+  return { d: Math.sqrt(x * x + y * y) * 111_320, t: tLibre };
 }
 
+/** A menos de esto de un punto se lo da por alcanzado (no se lo vuelve a mandar como parada). */
+const ALCANZADO_M = 1_500;
+
 /**
- * Índice del próximo punto al que tiene que ir el chofer según dónde está: busca el tramo de la
- * ruta más cercano y devuelve el punto donde termina ese tramo. Sin ubicación, el primero después
- * de la partida.
+ * Índice del próximo punto al que tiene que ir el chofer según dónde está: busca el tramo de la ruta
+ * más cercano y devuelve el punto donde termina ese tramo. Si todavía no llegó a la partida (está
+ * antes del primer tramo y lejos de la partida), devuelve 0: la ruta arranca en la partida.
+ * Sin ubicación, desde la partida.
  */
 export function siguientePunto(puntos: PuntoRuta[], pos: { lat: number; lng: number } | null): number {
-  if (puntos.length < 2) return puntos.length - 1;
-  if (!pos) return 1;
+  if (puntos.length < 2) return Math.max(0, puntos.length - 1);
+  if (!pos) return 0;
   let mejor = 1;
   let menor = Infinity;
+  let tMejor = 0;
   for (let i = 0; i < puntos.length - 1; i++) {
     const a = puntos[i], b = puntos[i + 1];
     if (!a || !b || !ubicado(a) || !ubicado(b)) continue;
-    const d = distanciaATramo(pos, a, b);
-    if (d < menor) {
-      menor = d;
+    const m = medirTramo(pos, a, b);
+    if (m.d < menor) {
+      menor = m.d;
       mejor = i + 1;
+      tMejor = m.t;
     }
   }
+  const p0 = puntos[0];
+  if (mejor === 1 && tMejor <= 0 && p0 && ubicado(p0) && medirTramo(pos, p0, p0).d > ALCANZADO_M) return 0;
   return mejor;
 }
 
@@ -171,29 +180,30 @@ export interface LinkNavegacion {
 }
 
 /**
- * Link de Google Maps desde la ubicación del teléfono, pasando por los puntos que faltan (desde
- * «desde») hasta el destino. Si hay más de 9 paradas, el link llega hasta la 10.ª y al llegar se
- * vuelve a tocar «Retomar».
+ * Link de Google Maps desde la ubicación del teléfono («Tu ubicación»), pasando por TODOS los puntos
+ * que faltan (desde «desde») hasta el último. Formato /maps/dir//a/b/c: la app de Google Maps del
+ * celular respeta todas las paradas (el formato api=1 en el celular se queda con la primera). Entran
+ * hasta 10 puntos; si la ruta tiene más, el link llega hasta el 10.º y al volver a tocar «Continuar
+ * viaje» sigue desde donde esté.
  */
 export function linkDesde(puntos: PuntoRuta[], desde: number): LinkNavegacion | null {
-  const faltan = puntos.slice(Math.max(1, Math.min(desde, puntos.length - 1))).filter(ubicado);
+  const faltan = puntos.slice(Math.max(0, Math.min(desde, puntos.length - 1))).filter(ubicado);
   if (faltan.length === 0) return null;
   const tramo = faltan.slice(0, MAX_PARADAS_LINK + 1);
   const destino = tramo[tramo.length - 1]!;
-  const paradas = tramo.slice(0, -1);
-  const q = new URLSearchParams({ api: '1', destination: coord(destino), travelmode: 'driving' });
-  if (paradas.length > 0) q.set('waypoints', paradas.map(coord).join('|'));
-  return { url: `https://www.google.com/maps/dir/?${q.toString()}`, hasta: destino, tramoFinal: tramo.length === faltan.length, paradas: paradas.length };
+  return {
+    url: `https://www.google.com/maps/dir//${tramo.map(coord).join('/')}`,
+    hasta: destino,
+    tramoFinal: tramo.length === faltan.length,
+    paradas: tramo.length - 1,
+  };
 }
 
 /** Link con la ruta completa desde la partida (para que telemetría la pruebe). */
 export function linkCompleto(puntos: PuntoRuta[]): string | null {
   const ok = puntos.filter(ubicado);
   if (ok.length < 2) return null;
-  const q = new URLSearchParams({ api: '1', origin: coord(ok[0]!), destination: coord(ok[ok.length - 1]!), travelmode: 'driving' });
-  const medio = ok.slice(1, -1);
-  if (medio.length > 0) q.set('waypoints', medio.slice(0, MAX_PARADAS_LINK).map(coord).join('|'));
-  return `https://www.google.com/maps/dir/?${q.toString()}`;
+  return `https://www.google.com/maps/dir/${ok.slice(0, MAX_PARADAS_LINK + 2).map(coord).join('/')}`;
 }
 
 /** Migración 156: pantalla «Rutas para choferes» (operaciones abiertas, con ruta o sin ruta). */
