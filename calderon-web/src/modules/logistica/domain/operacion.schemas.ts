@@ -71,6 +71,9 @@ export const operacionSchema = z.object({
   mic: texto(60),
   guia: texto(60).optional(),
   observacion: texto(2000),
+  /** Migración 166: precio del viaje (la base lo valida); sin la clave, la base no lo toca. */
+  precioViaje: z.string().max(30).optional(),
+  precioMoneda: z.string().max(3).optional(),
 });
 export type OperacionEntrada = z.input<typeof operacionSchema>;
 export type OperacionDatos = z.output<typeof operacionSchema>;

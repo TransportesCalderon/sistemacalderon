@@ -75,6 +75,13 @@ export const logisticaQueries = {
       queryFn: () => operacionesRepository(db).obtener(servicio),
       staleTime: FRESCURA.transaccional,
     }),
+  /** Migración 166: precio del viaje cargado. */
+  precioOperacion: (db: Db, servicio: number) =>
+    queryOptions({
+      queryKey: ['logistica', 'operacion', servicio, 'precio'] as const,
+      queryFn: () => operacionesRepository(db).precio(servicio),
+      staleTime: 0,
+    }),
   tramos: (db: Db, servicio: number) =>
     queryOptions({
       queryKey: ['logistica', 'tramos', servicio] as const,

@@ -1197,6 +1197,8 @@ export type Database = {
       fn_ruta_de_servicio: { Args: { p_servicio: number }; Returns: Json };
       /** Migración 156 */
       fn_rutas_operaciones: { Args: Record<string, never>; Returns: Json };
+      /** Migración 166 */
+      fn_precio_de_operacion: { Args: { p_servicio: number }; Returns: Json };
       /** Migración 158 */
       fn_rutas_de_servicio: { Args: { p_servicio: number }; Returns: Json };
       fn_guardar_ruta_tramo: { Args: { p_servicio: number; p_id: number | null; p_version: number | null; p_datos: Json }; Returns: number };

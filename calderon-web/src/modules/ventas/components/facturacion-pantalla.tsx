@@ -191,8 +191,25 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
       else n.add(id);
       return n;
     });
+  // Migración 166: cuánto dinero hay sin facturar (precio cargado en la operación o tarifa de la línea)
+  const conPrecio = data.filter((o) => o.precio.importe !== null);
+  const totalSinFacturar = conPrecio.reduce((t, o) => t + (o.precio.importe ?? 0), 0);
+  const totalEntregadas = conPrecio.filter((o) => o.entregada).reduce((t, o) => t + (o.precio.importe ?? 0), 0);
+  const sinPrecio = data.length - conPrecio.length;
   return (
     <div className="space-y-4">
+      <div className={cn(TARJETA, 'flex flex-wrap items-end gap-x-8 gap-y-2 p-4')}>
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-tinta-suave uppercase">Sin facturar</p>
+          <p className="text-2xl font-semibold text-tinta tabular-nums">{usd(totalSinFacturar)}</p>
+          <p className="text-xs text-tinta-suave">{data.length} operación(es) abiertas o entregadas</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-tinta-suave uppercase">De eso, ya entregado</p>
+          <p className="text-xl font-semibold text-[#b54708] tabular-nums">{usd(totalEntregadas)}</p>
+        </div>
+        {sinPrecio > 0 && <p className="text-sm text-alerta">{sinPrecio} operación(es) sin precio: cargalo en la operación o en la tarifa de la línea.</p>}
+      </div>
       <ErrorBase error={envio.error} />
       {grupos.map(([clienteId, g]) => {
         const elegidas = g.ops.filter((o) => marcadas.has(o.servicioId));

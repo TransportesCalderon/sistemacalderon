@@ -47,6 +47,7 @@ import {
   useGensetsOperacion,
   useAgentesTransporte,
   useGuardarOperacion,
+  usePrecioOperacion,
   useLineas,
   useOperaciones,
   useOpcionesViaje,
@@ -63,6 +64,10 @@ import { SeguimientoOperacion } from '@/modules/chofer/components/seguimiento-op
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { RutaOperacion } from './rutas/ruta-operacion';
 import { VERSION_RUTAS_PANTALLA } from '../domain/rutas';
+
+/** Migración 166: precio del viaje en la operación. */
+const VERSION_PRECIO_VIAJE = 166;
+const MONEDAS_PRECIO = ['USD', 'CLP', 'ARS'] as const;
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 
 export type Abierto =
@@ -802,6 +807,9 @@ const vacioForm = (zona: string) => ({
   guia: '',
   agenteTransporteId: '',
   observacion: '',
+  // Migración 166
+  precioViaje: '',
+  precioMoneda: 'USD',
 });
 type Form = ReturnType<typeof vacioForm>;
 const MAS_DATOS: (keyof Form)[] = [
@@ -876,6 +884,15 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
     };
   });
   const [mas, setMas] = useState(editar);
+  // Migración 166: precio del viaje (al modificar o duplicar se trae el cargado)
+  const conPrecio = useBaseTiene(VERSION_PRECIO_VIAJE);
+  const { data: precio } = usePrecioOperacion(base?.servicioId ?? null, conPrecio);
+  const precioCargado = useRef(false);
+  useEffect(() => {
+    if (!precio || precioCargado.current) return;
+    precioCargado.current = true;
+    setF((p) => ({ ...p, precioViaje: p.precioViaje || precio.precio.replace('.', ','), precioMoneda: precio.moneda }));
+  }, [precio]);
   const set = (k: keyof Form) => (val: string) => setF((p) => ({ ...p, [k]: val }));
   const ev = (k: keyof Form) => (e: { target: { value: string } }) => set(k)(e.target.value);
 
@@ -934,8 +951,10 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
   const ocupado = alta.isPending || guardar.isPending;
 
   const enviarForm = () => {
+    const { precioViaje, precioMoneda, ...resto } = f;
     const comun = {
-      ...f,
+      ...resto,
+      ...(conPrecio ? { precioViaje, precioMoneda } : {}),
       tipoOperacion: f.tipoOperacion as AltaEntrada['tipoOperacion'],
       fechaPresentacion: aIso(f.fechaPresentacion, zona),
       fechaEntrega: aIso(f.fechaEntrega, zona),
@@ -998,6 +1017,30 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
         <Campo label="Tipo de carga" error={campo('tipoContenedor')} ayuda="A granel, pallet, contenedor 40 RF…">
           <SelectTipoCarga value={f.tipoContenedor} onValor={(v) => setF((p) => ({ ...p, tipoContenedor: v }))} />
         </Campo>
+        {conPrecio && (
+          <Campo
+            label="Precio del viaje"
+            error={campo('precioViaje')}
+            ayuda={varias ? 'Para cada una de las operaciones. Vacío: se usa la tarifa de la línea.' : 'Vacío: se usa la tarifa de la línea.'}
+          >
+            <div className="flex gap-2">
+              <input
+                inputMode="decimal"
+                className="min-w-0 flex-1"
+                value={f.precioViaje}
+                onChange={ev('precioViaje')}
+                placeholder="Ej.: 1.850"
+              />
+              <select className="w-24" value={f.precioMoneda} onChange={ev('precioMoneda')} aria-label="Moneda del precio">
+                {MONEDAS_PRECIO.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Campo>
+        )}
         <label className="flex items-center gap-2 self-center text-sm text-tinta">
           <input type="checkbox" checked={f.contenedorVacio} onChange={(e) => setF((p) => ({ ...p, contenedorVacio: e.target.checked }))} />
           Va con el contenedor vacío (sin mercadería)

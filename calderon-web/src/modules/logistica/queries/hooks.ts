@@ -86,6 +86,9 @@ export function useDesvioVisto() {
 }
 export const useTramosOperacion = (servicio: number) => useQuery(q.tramos(browserDb(), servicio));
 export const useOperacion = (servicio: number) => useQuery(q.operacion(browserDb(), servicio));
+/** Migración 166: el precio del viaje (al modificar o duplicar). */
+export const usePrecioOperacion = (servicio: number | null, activo: boolean) =>
+  useQuery({ ...q.precioOperacion(browserDb(), servicio ?? 0), enabled: activo && !!servicio });
 export const useTransportistas = () => useQuery(q.transportistas(browserDb()));
 
 /** El mismo aviso de tiempo real de la Pizarra («cambió la pizarra») refresca también la lista de Logística. */
