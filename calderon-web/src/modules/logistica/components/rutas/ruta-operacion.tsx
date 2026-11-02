@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, CheckCheck, ExternalLink, Import, LoaderCircle, Map as MapaIcono, MapPin, Pencil, Plus, Save, Trash2, TriangleAlert, Undo2, X } from 'lucide-react';
 import { ErrorBase } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
-import type { ErrorAccion } from '@/server/actions/result';
+import type { ActionResult, ErrorAccion } from '@/server/actions/result';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
@@ -218,18 +218,36 @@ function RutaUnica({ servicioId, abierta }: { servicioId: number; abierta: boole
   );
 }
 
-function EditorRuta({
+/** Datos que arma el editor (los guarda quien lo usa: por operación o por chofer). */
+export interface DatosEditorRuta {
+  notas: string;
+  puntos: PuntoRuta[];
+  linkOriginal: string | null;
+}
+
+export function EditorRuta({
   servicioId,
   ruta,
   onCerrar,
   multiple = false,
   titulo = 'Ruta para el chofer',
+  onGuardar,
+  onQuitar,
+  extra,
+  onOtra,
 }: {
   servicioId: number;
   ruta: Ruta | null;
   onCerrar: () => void;
   multiple?: boolean;
   titulo?: string;
+  /** Migración 161: guardar por chofer (si no viene, se guarda por operación). */
+  onGuardar?: (d: DatosEditorRuta) => Promise<ActionResult<unknown>>;
+  onQuitar?: () => Promise<ActionResult<unknown>>;
+  /** Campos de más arriba del aviso (por ejemplo, a qué operación va). */
+  extra?: ReactNode;
+  /** «Guardar y cargar otra»: después de guardar, abre una ruta nueva en blanco. */
+  onOtra?: () => void;
 }) {
   const qc = useQueryClient();
   const [notas, setNotas] = useState(ruta?.notas ?? '');
@@ -292,23 +310,26 @@ function EditorRuta({
       return n;
     });
 
-  const guardar = async () => {
+  const guardar = async (otra = false) => {
     setError(null);
     setOcupado('guardar');
-    const r = multiple
+    const r = onGuardar
+      ? await onGuardar({ notas, puntos, linkOriginal })
+      : multiple
       ? await guardarRutaTramo({ servicioId, id: ruta?.id ?? null, version: ruta?.version ?? null, notas, puntos, linkOriginal })
       : await guardarRutaOperacion({ servicioId, version: ruta?.version ?? null, notas, puntos, linkOriginal });
     setOcupado(null);
     if (!r.ok) return setError(r.error);
     await invalidar(qc, 'operacion');
-    onCerrar();
+    if (otra && onOtra) onOtra();
+    else onCerrar();
   };
 
   const quitar = async () => {
     if (!ruta) return;
     setError(null);
     setOcupado('quitar');
-    const r = multiple ? await quitarRutaTramo({ id: ruta.id, version: ruta.version }) : await quitarRutaOperacion({ servicioId, version: ruta.version });
+    const r = onQuitar ? await onQuitar() : multiple ? await quitarRutaTramo({ id: ruta.id, version: ruta.version }) : await quitarRutaOperacion({ servicioId, version: ruta.version });
     setOcupado(null);
     if (!r.ok) return setError(r.error);
     await invalidar(qc, 'operacion');
@@ -384,6 +405,8 @@ function EditorRuta({
       {sel !== null && <p className="text-sm text-marca">Tocá el mapa donde va el punto {sel + 1}.</p>}
       {sinUbicar > 0 && <p className="text-sm text-error">{sinUbicar} punto(s) sin ubicación: elegilos y tocá el mapa.</p>}
 
+      {extra}
+
       <label className="block space-y-1 text-sm">
         <span className="font-medium text-tinta">Aviso para el chofer (opcional)</span>
         <textarea
@@ -400,6 +423,11 @@ function EditorRuta({
         <button type="button" className={BOTON_PRIMARIO} onClick={() => void guardar()} disabled={ocupado !== null}>
           {ocupado === 'guardar' ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />} Guardar ruta
         </button>
+        {onOtra && !ruta && (
+          <button type="button" className={BOTON_SECUNDARIO} onClick={() => void guardar(true)} disabled={ocupado !== null}>
+            <Plus className="size-4" /> Guardar y cargar otra
+          </button>
+        )}
         {prueba && (
           <a href={prueba} target="_blank" rel="noreferrer" className={BOTON_SECUNDARIO}>
             <ExternalLink className="size-4" /> Probar en Google Maps

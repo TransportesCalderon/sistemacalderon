@@ -277,3 +277,64 @@ export const parsearAvisosDesvio = (v: unknown): AvisoDesvio[] =>
       lng: num(o.longitud),
     };
   });
+
+/** Migración 161: «Rutas para choferes» por chofer (tabla de choferes activos). */
+export const VERSION_RUTAS_CHOFER = 161;
+export interface OperacionChofer {
+  servicioId: number;
+  numero: number;
+  estado: string;
+  cliente: string;
+  origen: string;
+  destino: string;
+}
+export interface ChoferRutas {
+  choferId: number;
+  chofer: string;
+  camionId: number | null;
+  tractor: string | null;
+  operaciones: OperacionChofer[];
+  /** Rutas que le faltan (incluida la en curso). */
+  pendientes: number;
+  ruta: { id: number; servicioId: number | null; numero: number | null; partida: string; destino: string } | null;
+  desvio: { km: number; minutos: number; alerta: boolean } | null;
+}
+const numN = (v: unknown) => (v === null || v === undefined || v === '' ? null : Number(v));
+export const parsearChoferesRutas = (v: unknown): ChoferRutas[] =>
+  (Array.isArray(v) ? v : []).map((x) => {
+    const o = (x ?? {}) as Obj;
+    const r = o.ruta && typeof o.ruta === 'object' ? (o.ruta as Obj) : null;
+    const d = o.desvio && typeof o.desvio === 'object' ? (o.desvio as Obj) : null;
+    return {
+      choferId: Number(o.chofer_id),
+      chofer: txt(o.chofer),
+      camionId: numN(o.camion_id),
+      tractor: txtN(o.tractor),
+      operaciones: (Array.isArray(o.operaciones) ? o.operaciones : []).map((y) => {
+        const p = (y ?? {}) as Obj;
+        return { servicioId: Number(p.servicio_id), numero: Number(p.numero), estado: txt(p.estado), cliente: txt(p.cliente), origen: txt(p.origen), destino: txt(p.destino) };
+      }),
+      pendientes: Number(o.pendientes ?? 0),
+      ruta: r ? { id: Number(r.id), servicioId: numN(r.servicio_id), numero: numN(r.numero), partida: txt(r.partida), destino: txt(r.destino) } : null,
+      desvio: d ? { km: Number(d.km), minutos: Number(d.minutos), alerta: d.alerta === true } : null,
+    };
+  });
+
+/** Migración 161: la ruta en curso del chofer (con operación o movimiento). */
+export interface MiRuta {
+  id: number;
+  servicioId: number | null;
+  numero: number | null;
+  nombre: string;
+  notas: string | null;
+  puntos: PuntoRuta[];
+  /** Cuántas le quedan contando esta. */
+  total: number;
+}
+export const parsearMiRuta = (v: unknown): MiRuta | null => {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Obj;
+  const puntos = parsearPuntos(o.puntos);
+  if (puntos.length < 2) return null;
+  return { id: Number(o.id), servicioId: numN(o.servicio_id), numero: numN(o.numero), nombre: txt(o.nombre), notas: txtN(o.notas), puntos, total: Number(o.total ?? 1) };
+};

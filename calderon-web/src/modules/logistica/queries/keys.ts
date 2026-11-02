@@ -17,6 +17,19 @@ export const logisticaQueries = {
       queryFn: () => rutasRepository(db).deOperacion(servicio),
       staleTime: FRESCURA.transaccional,
     }),
+  /** Migración 161: tabla de choferes y la fila de rutas de cada uno. */
+  rutasChoferes: (db: Db) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'choferes'] as const,
+      queryFn: () => rutasRepository(db).choferes(),
+      staleTime: FRESCURA.transaccional,
+    }),
+  rutasDeChofer: (db: Db, chofer: number) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'chofer', chofer] as const,
+      queryFn: () => rutasRepository(db).deChofer(chofer),
+      staleTime: FRESCURA.transaccional,
+    }),
   /** Migración 158: todas las rutas de una operación. */
   rutasTramo: (db: Db, servicio: number) =>
     queryOptions({

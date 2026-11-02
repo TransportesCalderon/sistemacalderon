@@ -1204,6 +1204,15 @@ export type Database = {
       fn_mover_ruta_tramo: { Args: { p_id: number; p_dir: number }; Returns: undefined };
       fn_llegada_ruta: { Args: { p_servicio: number; p_llego: boolean }; Returns: undefined };
       fn_llegue_destino: { Args: { p_servicio: number }; Returns: Json };
+      /** Migración 161 */
+      fn_rutas_choferes: { Args: Record<string, never>; Returns: Json };
+      fn_rutas_de_chofer: { Args: { p_chofer: number }; Returns: Json };
+      fn_guardar_ruta_chofer: { Args: { p_chofer: number; p_id: number | null; p_version: number | null; p_servicio: number | null; p_datos: Json }; Returns: number };
+      fn_quitar_ruta_chofer: { Args: { p_chofer: number; p_id: number; p_version: number }; Returns: undefined };
+      fn_mover_ruta_chofer: { Args: { p_chofer: number; p_id: number; p_dir: number }; Returns: undefined };
+      fn_llegada_ruta_chofer: { Args: { p_chofer: number; p_llego: boolean }; Returns: undefined };
+      fn_mi_ruta: { Args: Record<string, never>; Returns: Json };
+      fn_llegue_mi_destino: { Args: Record<string, never>; Returns: Json };
       fn_guardar_ruta_operacion: { Args: { p_servicio: number; p_version: number | null; p_datos: Json }; Returns: undefined };
       fn_quitar_ruta_operacion: { Args: { p_servicio: number; p_version: number }; Returns: undefined };
       // Módulo del chofer (60)

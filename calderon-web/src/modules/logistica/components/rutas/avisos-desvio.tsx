@@ -41,9 +41,7 @@ export function AvisosDesvio() {
           <dt className="text-tinta-suave">Chofer</dt>
           <dd className="text-tinta">{a.chofer ?? '—'}</dd>
           <dt className="text-tinta-suave">Operación</dt>
-          <dd className="text-tinta">
-            {a.numero} · {a.cliente}
-          </dd>
+          <dd className="text-tinta">{a.numero ? `${a.numero} · ${a.cliente}` : 'Movimiento (sin operación)'}</dd>
           <dt className="text-tinta-suave">Fuera desde</dt>
           <dd className="text-tinta">
             {formatearFechaHora(a.desde, zonaHoraria)} ({a.minutos} min)

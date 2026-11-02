@@ -421,3 +421,55 @@ export const nombrePeriodo = (periodo: string) => {
 
 export const dinero = (v: number | null | undefined, moneda?: string) =>
   v === null || v === undefined ? '—' : `${moneda ? `${moneda} ` : ''}${v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/* ----------------------------------------------------------------------------
+ * Mi viaje más simple (02/11/2026): lugares sin repetir y observación sin lo interno
+ * ------------------------------------------------------------------------- */
+export interface LugarAgrupado {
+  /** «Retirar el contenedor, cargar y aduana» */
+  titulo: string;
+  lugar: Lugar;
+}
+
+const QUE: Record<'retiro' | 'carga' | 'aduana' | 'entrega', string> = {
+  retiro: 'retirar el contenedor',
+  carga: 'cargar',
+  aduana: 'aduana',
+  entrega: 'entregar',
+};
+
+const unir = (partes: string[]) => (partes.length <= 1 ? (partes[0] ?? '') : `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`);
+
+/** Los lugares de la carga en orden, sin repetir: si retiro, carga y aduana son el mismo, va una sola vez. Función pura. */
+export function lugaresUnicos(c: Pick<CargaAsignada, 'retiro' | 'carga' | 'aduana' | 'entrega'>): LugarAgrupado[] {
+  const grupos: { clave: string; que: string[]; lugar: Lugar }[] = [];
+  for (const k of ['retiro', 'carga', 'aduana', 'entrega'] as const) {
+    const l = c[k];
+    if (!l) continue;
+    const clave = l.nombre.trim().toUpperCase();
+    const g = grupos.find((x) => x.clave === clave);
+    if (g) g.que.push(QUE[k]);
+    else grupos.push({ clave, que: [QUE[k]], lugar: l });
+  }
+  return grupos.map((g) => {
+    const t = unir(g.que);
+    return { titulo: t.charAt(0).toUpperCase() + t.slice(1), lugar: g.lugar };
+  });
+}
+
+/** De dónde a dónde va (el primer lugar y el de entrega). */
+export function deDondeADonde(c: Pick<CargaAsignada, 'retiro' | 'carga' | 'aduana' | 'entrega'>): { desde: string | null; hasta: string | null } {
+  const desde = (c.retiro ?? c.carga ?? c.aduana)?.nombre ?? null;
+  return { desde, hasta: c.entrega?.nombre ?? null };
+}
+
+/** La observación sin las líneas internas de Redline (el chofer no las necesita). */
+export function observacionParaChofer(texto: string | null): string | null {
+  if (!texto) return null;
+  const limpio = texto
+    .split(/\r?\n/)
+    .filter((l) => !/^\s*redline\s+n[°º]/i.test(l))
+    .join('\n')
+    .trim();
+  return limpio || null;
+}

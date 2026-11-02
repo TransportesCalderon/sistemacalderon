@@ -8,9 +8,10 @@ import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { TARJETA } from '@/shared/ui/clases';
-import { VERSION_RUTAS_PANTALLA, type OperacionRuta } from '../../domain/rutas';
+import { VERSION_RUTAS_CHOFER, VERSION_RUTAS_PANTALLA, type OperacionRuta } from '../../domain/rutas';
 import { useRutasOperaciones } from '../../queries/hooks';
 import { RutaOperacion } from './ruta-operacion';
+import { TablaChoferes } from './rutas-choferes';
 
 type Filtro = 'sin' | 'con' | 'todas';
 const FILTROS: { id: Filtro; texto: string }[] = [
@@ -34,7 +35,23 @@ export function RutasPantalla() {
       </div>
     );
   }
-  return <Lista />;
+  return <PorChofer />;
+}
+
+/** Migración 161: por chofer (tabla de choferes activos); con una base anterior, la lista por operación. */
+function PorChofer() {
+  const porChofer = useBaseTiene(VERSION_RUTAS_CHOFER);
+  if (!porChofer) return <Lista />;
+  return (
+    <div className="space-y-5">
+      <Encabezado titulo="Rutas para choferes" subtitulo="Viajes" />
+      <p className="text-sm text-tinta-suave">
+        Los choferes activos. Tocá uno para cargarle rutas en orden: las de su operación y también movimientos sin operación. El chofer ve solo
+        la que está en curso y, si el camión se aleja de ella, aparece un aviso de desvío.
+      </p>
+      <TablaChoferes />
+    </div>
+  );
 }
 
 function Lista() {

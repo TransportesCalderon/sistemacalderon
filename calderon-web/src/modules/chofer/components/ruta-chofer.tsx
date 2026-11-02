@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCheck, ChevronDown, LocateFixed, Navigation, TriangleAlert } from 'lucide-react';
 import { ErrorBase } from '@/modules/combustible/components/comun/ui';
-import { llegueDestino } from '@/modules/logistica/actions/rutas.actions';
+import { llegueDestino, llegueMiDestino } from '@/modules/logistica/actions/rutas.actions';
 import type { ErrorAccion } from '@/server/actions/result';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { useInvalidar } from '@/shared/query/invalidar';
-import { linkDesde, siguientePunto, type RutaChofer } from '@/modules/logistica/domain/rutas';
+import { linkDesde, siguientePunto, type PuntoRuta } from '@/modules/logistica/domain/rutas';
 import { cn } from '@/shared/lib/cn';
 
 type Pos = { lat: number; lng: number };
@@ -16,7 +16,17 @@ type Pos = { lat: number; lng: number };
  * Migración 135: la ruta del chofer para Google Maps. El botón abre Google Maps desde donde está
  * el chofer, con las paradas que le faltan (si cerró Google Maps, vuelve a tocar el mismo botón).
  */
-export function RutaDelChofer({ ruta, servicioId }: { ruta: RutaChofer; servicioId: number }) {
+/** Lo que necesita para mostrarse: la de una carga (158) o la ruta en curso del chofer (161). */
+export interface RutaParaChofer {
+  nombre: string;
+  notas: string | null;
+  puntos: PuntoRuta[];
+  /** Cuántas le quedan contando esta (161) o «ruta k de n» (158). */
+  orden?: number;
+  total?: number;
+}
+
+export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofer; servicioId?: number | null }) {
   const [pos, setPos] = useState<Pos | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [sinUbicacion, setSinUbicacion] = useState(false);
@@ -63,7 +73,6 @@ export function RutaDelChofer({ ruta, servicioId }: { ruta: RutaChofer; servicio
         <h3 className="flex items-center gap-2 text-sm font-semibold text-tinta">
           <Navigation className="size-4 text-marca" /> Tu ruta · {ruta.nombre}
         </h3>
-        <p className="text-xs text-tinta-suave">Seguí esta ruta: está pensada para el camión (altura, tránsito pesado y tipo de carga).</p>
       </div>
       {ruta.notas && (
         <p className="flex gap-2 rounded-md bg-alerta-suave px-3 py-2 text-sm text-alerta">
@@ -82,8 +91,8 @@ export function RutaDelChofer({ ruta, servicioId }: { ruta: RutaChofer; servicio
       <p className="text-xs text-tinta-suave">
         {pos
           ? `Sale desde donde estás, hacia «${ruta.puntos[desde]?.nombre ?? ''}»${link.paradas > 0 ? ` y ${link.paradas} parada(s) más` : ''}.`
-          : 'Sale desde donde estás, con todas las paradas.'}{' '}
-        Si cerraste Google Maps, volvé acá y tocá el botón de nuevo: sigue desde donde estés.
+          : 'Sale desde donde estás.'}{' '}
+        Si cerraste Google Maps, tocá el botón de nuevo.
       </p>
       {!link.tramoFinal && (
         <p className="rounded-md bg-panel px-3 py-2 text-xs text-tinta">
@@ -92,13 +101,13 @@ export function RutaDelChofer({ ruta, servicioId }: { ruta: RutaChofer; servicio
       )}
       {!pos && (
         <button type="button" onClick={ubicar} disabled={buscando} className="inline-flex items-center gap-1.5 text-sm font-medium text-marca disabled:opacity-60">
-          <LocateFixed className={cn('size-4', buscando && 'animate-pulse')} /> {buscando ? 'Buscando dónde estás…' : 'Usar mi ubicación para saltear las paradas que ya pasé'}
+          <LocateFixed className={cn('size-4', buscando && 'animate-pulse')} /> {buscando ? 'Buscando dónde estás…' : 'Saltear las paradas que ya pasé'}
         </button>
       )}
       {sinUbicacion && <p className="text-xs text-error">No se pudo saber dónde estás: permití la ubicación o elegí desde qué parada seguir.</p>}
 
       {/* Migración 158: al llegar al destino aparece la ruta siguiente (también la detecta el GPS) */}
-      <LlegueAlDestino servicioId={servicioId} ultima={ruta.orden >= ruta.total} />
+      <LlegueAlDestino servicioId={servicioId} ultima={(ruta.orden ?? 1) >= (ruta.total ?? 1)} />
 
       <button type="button" onClick={() => setVerParadas((v) => !v)} className="flex items-center gap-1 text-sm text-tinta-suave">
         <ChevronDown className={cn('size-4 transition-transform', verParadas && 'rotate-180')} /> {verParadas ? 'Ocultar' : 'Ver'} las paradas ({ruta.puntos.length})
@@ -126,17 +135,18 @@ export function RutaDelChofer({ ruta, servicioId }: { ruta: RutaChofer; servicio
   );
 }
 
-function LlegueAlDestino({ servicioId, ultima }: { servicioId: number; ultima: boolean }) {
+function LlegueAlDestino({ servicioId, ultima }: { servicioId: number | null; ultima: boolean }) {
   const hay = useBaseTiene(158);
+  const porChofer = useBaseTiene(161);
   const invalidar = useInvalidar();
   const [confirmar, setConfirmar] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<ErrorAccion | null>(null);
-  if (!hay) return null;
+  if (!hay || (!porChofer && servicioId === null)) return null;
   const enviar = async () => {
     setError(null);
     setOcupado(true);
-    const r = await llegueDestino({ servicioId });
+    const r = porChofer || servicioId === null ? await llegueMiDestino({}) : await llegueDestino({ servicioId });
     setOcupado(false);
     if (!r.ok) return setError(r.error);
     setConfirmar(false);

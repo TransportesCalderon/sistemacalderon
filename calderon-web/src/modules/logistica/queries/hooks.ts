@@ -66,6 +66,9 @@ export const useSugerenciaCliente = (cliente: number | null) =>
 export const useLineas = () => useQuery(q.lineas(browserDb()));
 export const useAgentesTransporte = (todos = false) => useQuery(q.agentes(browserDb(), todos));
 export const useRutaOperacion = (servicio: number) => useQuery(q.rutaOperacion(browserDb(), servicio));
+/** Migración 161: tabla de choferes (cada minuto) y la fila de rutas de un chofer. */
+export const useRutasChoferes = (activo = true) => useQuery({ ...q.rutasChoferes(browserDb()), enabled: activo, refetchInterval: 60_000 });
+export const useRutasDeChofer = (chofer: number) => useQuery({ ...q.rutasDeChofer(browserDb(), chofer), refetchInterval: 60_000 });
 /** Migración 158: todas las rutas de la operación (cada minuto: el GPS puede pasar a la siguiente). */
 export const useRutasTramo = (servicio: number, activo = true) =>
   useQuery({ ...q.rutasTramo(browserDb(), servicio), enabled: activo, refetchInterval: 60_000 });
