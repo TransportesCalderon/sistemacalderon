@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { CheckCheck, ChevronDown, LocateFixed, Navigation, TriangleAlert } from 'lucide-react';
+import { CheckCheck, Navigation, TriangleAlert } from 'lucide-react';
 import { ErrorBase } from '@/modules/combustible/components/comun/ui';
 import { llegueDestino, llegueMiDestino } from '@/modules/logistica/actions/rutas.actions';
 import type { ErrorAccion } from '@/server/actions/result';
@@ -23,54 +23,37 @@ export interface RutaParaChofer {
   puntos: PuntoRuta[];
 }
 
+/**
+ * La ruta en curso del chofer (cargada por Telemetría). Un solo botón: «Continuar viaje». El sistema
+ * ve dónde está el chofer y abre Google Maps desde ahí, con las paradas que le faltan (no se muestran).
+ */
 export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofer; servicioId?: number | null }) {
   const [pos, setPos] = useState<Pos | null>(null);
-  const [buscando, setBuscando] = useState(false);
-  const [sinUbicacion, setSinUbicacion] = useState(false);
-  const [verParadas, setVerParadas] = useState(false);
 
   const ubicar = useCallback(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return setSinUbicacion(true);
-    setBuscando(true);
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (p) => {
-        setPos({ lat: p.coords.latitude, lng: p.coords.longitude });
-        setSinUbicacion(false);
-        setBuscando(false);
-      },
-      () => {
-        setSinUbicacion(true);
-        setBuscando(false);
-      },
+      (p) => setPos({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => undefined,
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 120_000 },
     );
   }, []);
 
-  // Si el teléfono ya dio permiso (comparte la ubicación del viaje), se ubica solo
+  // Se ubica solo al abrir y cada minuto (el chofer ya comparte la ubicación del viaje)
   useEffect(() => {
-    let vivo = true;
-    void navigator.permissions
-      ?.query({ name: 'geolocation' as PermissionName })
-      .then((r) => {
-        if (vivo && r.state === 'granted') ubicar();
-      })
-      .catch(() => undefined);
-    return () => {
-      vivo = false;
-    };
+    ubicar();
+    const t = setInterval(ubicar, 60_000);
+    return () => clearInterval(t);
   }, [ubicar]);
 
-  const desde = siguientePunto(ruta.puntos, pos);
-  const link = linkDesde(ruta.puntos, desde);
+  const link = linkDesde(ruta.puntos, siguientePunto(ruta.puntos, pos));
   if (!link) return null;
 
   return (
     <section className="space-y-3 rounded-lg border border-marca/40 bg-marca-suave/40 p-3">
-      <div>
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-tinta">
-          <Navigation className="size-4 text-marca" /> Tu ruta · {ruta.nombre}
-        </h3>
-      </div>
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-tinta">
+        <Navigation className="size-4 text-marca" /> Tu ruta · {ruta.nombre}
+      </h3>
       {ruta.notas && (
         <p className="flex gap-2 rounded-md bg-alerta-suave px-3 py-2 text-sm text-alerta">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" /> {ruta.notas}
@@ -81,53 +64,15 @@ export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofe
         href={link.url}
         target="_blank"
         rel="noreferrer"
+        onClick={() => setTimeout(ubicar, 2_000)}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-marca px-4 py-4 text-base font-semibold text-white shadow-sm active:opacity-90"
       >
-        <Navigation className="size-5" /> Abrir la ruta en Google Maps
+        <Navigation className="size-5" /> Continuar viaje
       </a>
-      <p className="text-xs text-tinta-suave">
-        {pos
-          ? `Sale desde donde estás, hacia «${ruta.puntos[desde]?.nombre ?? ''}»${link.paradas > 0 ? ` y ${link.paradas} parada(s) más` : ''}.`
-          : 'Sale desde donde estás.'}{' '}
-        Si cerraste Google Maps, tocá el botón de nuevo.
-      </p>
-      {!link.tramoFinal && (
-        <p className="rounded-md bg-panel px-3 py-2 text-xs text-tinta">
-          La ruta es larga: este tramo llega hasta «{link.hasta.nombre}». Al llegar, volvé y tocá el botón otra vez.
-        </p>
-      )}
-      {!pos && (
-        <button type="button" onClick={ubicar} disabled={buscando} className="inline-flex items-center gap-1.5 text-sm font-medium text-marca disabled:opacity-60">
-          <LocateFixed className={cn('size-4', buscando && 'animate-pulse')} /> {buscando ? 'Buscando dónde estás…' : 'Saltear las paradas que ya pasé'}
-        </button>
-      )}
-      {sinUbicacion && <p className="text-xs text-error">No se pudo saber dónde estás: permití la ubicación o elegí desde qué parada seguir.</p>}
+      <p className="text-xs text-tinta-suave">Si se cerró Google Maps, tocá «Continuar viaje» de nuevo: sigue desde donde estás.</p>
 
       {/* Migración 158: al llegar al destino (también lo detecta el GPS). El chofer no ve si hay otras rutas cargadas. */}
       <LlegueAlDestino servicioId={servicioId} />
-
-      <button type="button" onClick={() => setVerParadas((v) => !v)} className="flex items-center gap-1 text-sm text-tinta-suave">
-        <ChevronDown className={cn('size-4 transition-transform', verParadas && 'rotate-180')} /> {verParadas ? 'Ocultar' : 'Ver'} las paradas ({ruta.puntos.length})
-      </button>
-      {verParadas && (
-        <ol className="space-y-1">
-          {ruta.puntos.map((p, i) => {
-            const pasada = pos !== null && i < desde;
-            const l = i > 0 ? linkDesde(ruta.puntos, i) : null;
-            return (
-              <li key={i} className={cn('flex items-center gap-2 rounded-md bg-panel px-2 py-1.5 text-sm', pasada && 'text-tinta-suave line-through')}>
-                <span className="w-5 text-right text-xs font-semibold tabular-nums">{i + 1}</span>
-                <span className="flex-1">{p.nombre}</span>
-                {l && (
-                  <a href={l.url} target="_blank" rel="noreferrer" className="text-xs font-medium text-marca no-underline">
-                    Seguir desde acá
-                  </a>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      )}
     </section>
   );
 }
