@@ -1309,6 +1309,24 @@ export type Database = {
         Args: { p_servicio: number; p_camion: number; p_chofer: number; p_ts?: string | null; p_odometro_km?: number | null };
         Returns: number;
       };
+      // Migración 174: pasa a un fletero en ruta (trasbordo)
+      fn_pasar_a_fletero: {
+        Args: {
+          p_servicio: number;
+          p_lugar: number;
+          p_transportista: number;
+          p_chofer?: string | null;
+          p_tractor?: string | null;
+          p_semi?: string | null;
+          p_ts?: string | null;
+          p_odometro_km?: number | null;
+          p_costo_trasbordo?: number | null;
+          p_moneda_trasbordo?: string | null;
+          p_costo_fletero?: number | null;
+          p_moneda_fletero?: string | null;
+        };
+        Returns: number;
+      };
       // Migración 173: cambio de tractor en ruta (sin dejar en la base)
       fn_cambiar_tractor_en_ruta: {
         Args: {

@@ -141,6 +141,23 @@ export const tractorEnRutaSchema = z.object({
   odometroEntra: odometroOpcional,
 });
 export type TractorEnRutaDatos = z.output<typeof tractorEnRutaSchema>;
+
+/** Migración 174: pasa a un fletero en ruta, con trasbordo y sus costos (la base valida todo). */
+export const fleteroSchema = z.object({
+  servicioId: z.number().int().positive(),
+  lugarId: id('Elegí dónde se hace el trasbordo.'),
+  transportistaId: id('Elegí el transportista.'),
+  chofer: texto(120),
+  tractor: texto(20),
+  semi: texto(20),
+  momento: momentoOpcional,
+  odometroKm: odometroOpcional,
+  costoTrasbordo: numero('Escribí el costo en números (o dejalo vacío).'),
+  monedaTrasbordo: z.string().max(3),
+  costoFletero: numero('Escribí lo que cobra en números (o dejalo vacío).'),
+  monedaFletero: z.string().max(3),
+});
+export type FleteroDatos = z.output<typeof fleteroSchema>;
 export type EnBaseDatos = z.output<typeof enBaseSchema>;
 export type SeguirDatos = z.output<typeof seguirSchema>;
 

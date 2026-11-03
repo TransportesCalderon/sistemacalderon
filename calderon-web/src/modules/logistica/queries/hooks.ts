@@ -35,6 +35,7 @@ import {
   registrarHito,
   seguirConOtroTractor,
   cambiarTractorEnRuta,
+  pasarAFletero,
   terminarDemora,
   volverPaso,
 } from '../actions/operaciones.actions';
@@ -144,6 +145,7 @@ export const useAvanzarOperacion = () => useEscritura(avanzarOperacion);
 export const useDejarEnBase = () => useEscritura(dejarEnBase);
 export const useSeguirConOtroTractor = () => useEscritura(seguirConOtroTractor);
 export const useCambiarTractorEnRuta = () => useEscritura(cambiarTractorEnRuta);
+export const usePasarAFletero = () => useEscritura(pasarAFletero);
 export const useBasesOperativas = (activo = true) =>
   useQuery({ queryKey: ['logistica', 'bases-operativas'] as const, queryFn: () => operacionesRepository(browserDb()).basesOperativas(), enabled: activo, staleTime: 300_000 });
 

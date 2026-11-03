@@ -11,6 +11,7 @@ import {
   enBaseSchema,
   seguirSchema,
   tractorEnRutaSchema,
+  fleteroSchema,
   equipoSchema,
   gensetOperacionSchema,
   hitoSchema,
@@ -158,6 +159,13 @@ export const dejarEnBase = createAction({
   permiso: PERMISO,
   schema: enBaseSchema,
   handler: (d, { db }) => operacionesRepository(db).dejarEnBase(d),
+  invalida: rutas,
+});
+/** Migración 174: pasa a un fletero en ruta (la base exige Operaciones o TI). */
+export const pasarAFletero = createAction({
+  permiso: PERMISO,
+  schema: fleteroSchema,
+  handler: (d, { db }) => operacionesRepository(db).pasarAFletero(d),
   invalida: rutas,
 });
 /** Migración 173: cambio de tractor en ruta, en un paso (la base exige Operaciones o TI). */

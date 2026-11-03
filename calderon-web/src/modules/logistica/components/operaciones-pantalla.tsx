@@ -44,6 +44,7 @@ import {
   useBasesOperativas,
   useCambiarChofer,
   useCambiarTractorEnRuta,
+  usePasarAFletero,
   useCancelarOperacion,
   useDejarEnBase,
   useGensetsOperacion,
@@ -67,6 +68,10 @@ import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { RutaOperacion } from './rutas/ruta-operacion';
 import { VERSION_RUTAS_PANTALLA } from '../domain/rutas';
 
+/** Migración 174: pasa a un fletero en ruta (trasbordo). */
+const VERSION_FLETERO = 174;
+const RELEVO_PASOS: readonly PasoOperacion[] = ['en_base', 'seguir'];
+const MONEDAS_COSTO = ['USD', 'CLP', 'ARS'] as const;
 /** Migración 173: cambio de tractor en ruta (relevo sin dejar en la base). */
 const VERSION_TRACTOR_EN_RUTA = 173;
 /** Migración 172: tara del contenedor (TARA CNTR). */
@@ -429,6 +434,9 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
   const { data: extra } = usePrecioOperacion(o.servicioId, useBaseTiene(VERSION_TARA_CNTR));
   // Relevo de chofer desde la operación (el mismo de Viajes; la base controla todo)
   const puedeRelevo = useCan('operacion.tramos:editar') && !!o.tramoId && !o.transportistaId && o.estado === 'en_curso';
+  // Todos los relevos (chofer, tractor, base, fletero) se hacen desde «Relevo»: no van como botones sueltos
+  const pasosVisibles = o.posibles.filter((p) => !RELEVO_PASOS.includes(p));
+  const enBase = o.posibles.includes('seguir');
 
   // Solo lo que tiene dato: la ficha corta se lee de un vistazo.
   const datos: [string, ReactNode, boolean?][] = (
@@ -530,9 +538,17 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       <QuienLaLlevo servicioId={o.servicioId} />
       <TramosDeLaOperacion servicioId={o.servicioId} />
 
-      {puede && o.posibles.length > 0 && (
+      {puedeRelevo && enBase && tipo !== 'relevo' && (
+        <p className="text-sm text-tinta">
+          El semi está en la base esperando otro tractor.{' '}
+          <button type="button" className="font-medium text-marca hover:underline" onClick={() => onAbrir({ tipo: 'relevo', o })}>
+            Relevo: elegir el tractor que sigue
+          </button>
+        </p>
+      )}
+      {puede && pasosVisibles.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          {o.posibles.map((p) => (
+          {pasosVisibles.map((p) => (
             <BotonPaso key={p} paso={p} principal={p === o.siguiente} enCurso={enCurso} onClick={() => void hacer(p)} />
           ))}
           {o.posibles.some((p) => !PASOS_CON_PANEL.includes(p)) && (
@@ -570,7 +586,12 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       {tipo === 'seguir' && <PanelSeguir o={o} zona={zona} onCerrar={cerrar} />}
       {tipo === 'tercero' && <PanelTercero o={o} onCerrar={cerrar} />}
       {tipo === 'cancelar' && <PanelCancelar o={o} onCerrar={cerrar} />}
-      {tipo === 'relevo' && <PanelRelevo o={o} zona={zona} onCerrar={cerrar} onTractor={() => onAbrir({ tipo: 'en_base', o })} />}
+      {tipo === 'relevo' &&
+        (enBase ? (
+          <PanelSeguir o={o} zona={zona} onCerrar={cerrar} />
+        ) : (
+          <PanelRelevo o={o} zona={zona} onCerrar={cerrar} onTractor={() => onAbrir({ tipo: 'en_base', o })} />
+        ))}
 
       {o.hitos.length > 0 && (
         <ul className="flex flex-wrap gap-1.5 text-xs">
@@ -1332,28 +1353,56 @@ function PanelSeguir({ o, zona, onCerrar }: { o: Operacion; zona: string; onCerr
 function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: string; onCerrar: () => void; onTractor: () => void }) {
   const chofer = useCambiarChofer();
   const tractor = useCambiarTractorEnRuta();
+  const fletero = usePasarAFletero();
   const enRuta = useBaseTiene(VERSION_TRACTOR_EN_RUTA);
+  const conFletero = useBaseTiene(VERSION_FLETERO);
+  const { data: transportistas } = useTransportistas();
   const { data: op } = useOpcionesViaje();
   const { error, enviar, campo, setError } = useEnvio();
-  const [modo, setModo] = useState<'chofer' | 'tractor'>('chofer');
+  const [modo, setModo] = useState<'chofer' | 'tractor' | 'fletero' | 'base'>('chofer');
   const [f, setF] = useState({ choferId: '', desde: '', camionId: '', lugarId: '', odometroSale: '', odometroEntra: '' });
+  // Migración 174: el fletero que sigue y los costos
+  const [x, setX] = useState({ transportistaId: '', chofer: '', tractor: '', semi: '', costoTrasbordo: '', monedaTrasbordo: 'USD', costoFletero: '', monedaFletero: 'USD' });
+  const setx = (k: keyof typeof x) => (v: string) => setX((p) => ({ ...p, [k]: v }));
+  const aFletero = conFletero && modo === 'fletero';
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const cambiaTractor = enRuta && modo === 'tractor';
+  const opTransportistas = transportistas?.filter((t) => t.activo).map((t) => ({ id: t.id, nombre: t.razonSocial }));
   const puedeTractor = o.posibles.includes('en_base');
   return (
     <Panel
       titulo={`Relevo · Op. ${o.numero}`}
       explicacion={
-        cambiaTractor
+        aFletero
+          ? `La carga se trasborda al semi del fletero y la operación sigue a su nombre hasta la entrega. Nuestro tractor ${o.tractor ?? ''} termina su parte ahí (semi, tractor y chofer quedan libres). El trasbordo y lo que cobra el fletero quedan como costos de la operación.`
+          : cambiaTractor
           ? `El semi ${o.semi ?? ''} pasa del tractor ${o.tractor ?? ''} al tractor nuevo, con su chofer, en el lugar y momento que indiques. Cada chofer cobra su parte.`
           : `Sigue el mismo tractor ${o.tractor ?? ''} con otro chofer. Queda registrado quién manejó cada parte del viaje (y cada uno cobra la suya).`
       }
       error={error}
-      ocupado={chofer.isPending || tractor.isPending}
+      ocupado={chofer.isPending || tractor.isPending || fletero.isPending}
       textoBoton="Hacer el relevo"
       onCerrar={onCerrar}
       onConfirmar={() =>
-        cambiaTractor
+        aFletero
+          ? enviar(
+              fletero.mutateAsync({
+                servicioId: o.servicioId,
+                lugarId: f.lugarId,
+                transportistaId: x.transportistaId,
+                chofer: x.chofer,
+                tractor: x.tractor,
+                semi: x.semi,
+                momento: aIso(f.desde, zona),
+                odometroKm: f.odometroSale,
+                costoTrasbordo: x.costoTrasbordo,
+                monedaTrasbordo: x.monedaTrasbordo,
+                costoFletero: x.costoFletero,
+                monedaFletero: x.monedaFletero,
+              }),
+              onCerrar,
+            )
+          : cambiaTractor
           ? enviar(
               tractor.mutateAsync({
                 servicioId: o.servicioId,
@@ -1386,8 +1435,80 @@ function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: str
             Pasa el semi a otro tractor
             {!puedeTractor && <span className="text-xs">(después de que cargó)</span>}
           </label>
+          {conFletero && (
+            <label className={cn('inline-flex items-center gap-2', !puedeTractor && 'text-tinta-suave')}>
+              <input
+                type="radio"
+                name={`relevo-${o.servicioId}`}
+                checked={modo === 'fletero'}
+                disabled={!puedeTractor}
+                onChange={() => (setModo('fletero'), setError(null))}
+              />
+              Pasa a un fletero (trasbordo)
+            </label>
+          )}
+          <label className={cn('inline-flex items-center gap-2', !puedeTractor && 'text-tinta-suave')}>
+            <input
+              type="radio"
+              name={`relevo-${o.servicioId}`}
+              checked={modo === 'base'}
+              disabled={!puedeTractor}
+              onChange={() => {
+                setModo('chofer');
+                setError(null);
+                onTractor();
+              }}
+            />
+            Deja el semi en la base (otro tractor sigue después)
+          </label>
         </div>
       )}
+      {aFletero ? (
+        <>
+          <Campo label="Transportista *" error={campo('transportistaId')}>
+            <Lista valor={x.transportistaId} opciones={opTransportistas} onCambiar={setx('transportistaId')} />
+          </Campo>
+          <Campo label="Chofer del fletero" error={campo('chofer')}>
+            <input className="uppercase" maxLength={120} value={x.chofer} onChange={(e) => setx('chofer')(e.target.value)} />
+          </Campo>
+          <Campo label="Patente camión del fletero" error={campo('tractor')}>
+            <input className="uppercase" maxLength={20} value={x.tractor} onChange={(e) => setx('tractor')(e.target.value)} />
+          </Campo>
+          <Campo label="Patente remolque del fletero" error={campo('semi')}>
+            <input className="uppercase" maxLength={20} value={x.semi} onChange={(e) => setx('semi')(e.target.value)} />
+          </Campo>
+          <Campo label="Dónde se hace el trasbordo *" error={campo('lugarId')}>
+            <Lista valor={f.lugarId} opciones={op?.lugares} onCambiar={set('lugarId')} />
+          </Campo>
+          <Campo label="Fecha y hora del trasbordo" error={campo('momento')} ayuda="Vacío = ahora.">
+            <input type="datetime-local" value={f.desde} onChange={(e) => setF({ ...f, desde: e.target.value })} />
+          </Campo>
+          <Campo label={`Odómetro de nuestro tractor ${o.tractor ?? ''} (km)`} error={campo('odometroKm')} ayuda="Solo si no hay telemetría.">
+            <input inputMode="decimal" value={f.odometroSale} onChange={(e) => setF({ ...f, odometroSale: e.target.value })} />
+          </Campo>
+          <Campo label="Costo del trasbordo" error={campo('costoTrasbordo')} ayuda="Vacío si no tuvo costo.">
+            <span className="flex gap-2">
+              <input inputMode="decimal" className="min-w-0 flex-1" value={x.costoTrasbordo} onChange={(e) => setx('costoTrasbordo')(e.target.value)} />
+              <select className="w-24" value={x.monedaTrasbordo} onChange={(e) => setx('monedaTrasbordo')(e.target.value)} aria-label="Moneda del trasbordo">
+                {MONEDAS_COSTO.map((m) => (
+                  <option key={m}>{m}</option>
+                ))}
+              </select>
+            </span>
+          </Campo>
+          <Campo label="Lo que cobra el fletero" error={campo('costoFletero')} ayuda="Por su parte del viaje.">
+            <span className="flex gap-2">
+              <input inputMode="decimal" className="min-w-0 flex-1" value={x.costoFletero} onChange={(e) => setx('costoFletero')(e.target.value)} />
+              <select className="w-24" value={x.monedaFletero} onChange={(e) => setx('monedaFletero')(e.target.value)} aria-label="Moneda del fletero">
+                {MONEDAS_COSTO.map((m) => (
+                  <option key={m}>{m}</option>
+                ))}
+              </select>
+            </span>
+          </Campo>
+        </>
+      ) : (
+      <>
       <Campo label={cambiaTractor ? 'Tractor y chofer que vienen' : 'Chofer que maneja ahora'}>
         <input value={cambiaTractor ? `${o.tractor ?? '—'} · ${o.chofer ?? '—'}` : (o.chofer ?? '—')} readOnly disabled />
       </Campo>
@@ -1416,6 +1537,8 @@ function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: str
             <input inputMode="decimal" value={f.odometroEntra} onChange={(e) => setF({ ...f, odometroEntra: e.target.value })} />
           </Campo>
         </>
+      )}
+      </>
       )}
       {!enRuta && puedeTractor && (
         <p className="self-end pb-1 text-sm text-tinta-suave">

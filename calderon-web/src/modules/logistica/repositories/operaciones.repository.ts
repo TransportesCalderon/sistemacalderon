@@ -7,6 +7,7 @@ import type {
   EnBaseDatos,
   SeguirDatos,
   TractorEnRutaDatos,
+  FleteroDatos,
   EliminarDatos,
   EquipoDatos,
   HitoDatos,
@@ -187,6 +188,24 @@ export const operacionesRepository = (db: Db) => {
     },
     dejarEnBase: (d: EnBaseDatos) =>
       llamar(ops().rpc('fn_dejar_en_base', { p_servicio: d.servicioId, p_base: d.baseId, p_ts: d.momento, p_odometro_km: d.odometroKm })),
+    /** Migración 174: la operación pasa a un fletero en ruta (trasbordo y costos). */
+    pasarAFletero: (d: FleteroDatos) =>
+      llamar(
+        ops().rpc('fn_pasar_a_fletero', {
+          p_servicio: d.servicioId,
+          p_lugar: d.lugarId,
+          p_transportista: d.transportistaId,
+          p_chofer: d.chofer,
+          p_tractor: d.tractor,
+          p_semi: d.semi,
+          p_ts: d.momento,
+          p_odometro_km: d.odometroKm,
+          p_costo_trasbordo: d.costoTrasbordo,
+          p_moneda_trasbordo: d.monedaTrasbordo,
+          p_costo_fletero: d.costoFletero,
+          p_moneda_fletero: d.monedaFletero,
+        }),
+      ),
     /** Migración 173: el semi pasa de un tractor a otro en ruta. */
     cambiarTractorEnRuta: (d: TractorEnRutaDatos) =>
       llamar(

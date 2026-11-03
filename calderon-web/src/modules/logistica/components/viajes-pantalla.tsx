@@ -48,7 +48,7 @@ function accionesDe(v: ViajeAbierto): { accion: Accion; etiqueta: string; princi
       return [
         { accion: 'iniciar_carga', etiqueta: 'Empezar carga', principal: true },
         { accion: 'reprogramar', etiqueta: 'Reprogramar descarga' },
-        { accion: 'chofer', etiqueta: 'Relevo de chofer' },
+        ...(v.numeroOperacion ? [] : [{ accion: 'chofer' as const, etiqueta: 'Relevo de chofer' }]),
       ];
     case 'cargando':
       return [{ accion: 'terminar_carga', etiqueta: 'Terminar carga', principal: true }];
@@ -56,7 +56,7 @@ function accionesDe(v: ViajeAbierto): { accion: Accion; etiqueta: string; princi
       return [
         { accion: 'iniciar_descarga', etiqueta: 'Empezar descarga', principal: true },
         { accion: 'reprogramar', etiqueta: 'Reprogramar descarga' },
-        { accion: 'chofer', etiqueta: 'Relevo de chofer' },
+        ...(v.numeroOperacion ? [] : [{ accion: 'chofer' as const, etiqueta: 'Relevo de chofer' }]),
       ];
     case 'descargando':
       return [{ accion: 'terminar_descarga', etiqueta: 'Terminar descarga', principal: true }];
@@ -297,6 +297,12 @@ function FilaViaje({
           {v.conCarga ? diaHora(v.fechaDescarga, zona) : '—'}
         </td>
         <td className={cn(TD, 'text-right whitespace-nowrap')}>
+          {/* Los relevos de un viaje con operación se hacen todos desde la operación («Relevo») */}
+          {v.enCurso && v.numeroOperacion && (
+            <Link href={`/operacion/operaciones?op=${v.numeroOperacion}`} className="ml-2 text-xs font-medium text-marca hover:underline">
+              Relevo
+            </Link>
+          )}
           {acciones.map((a) => (
             <button
               key={a.accion}
