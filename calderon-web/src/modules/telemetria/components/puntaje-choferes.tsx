@@ -135,7 +135,7 @@ const finDelMesAnterior = (d: string) => {
 /**
  * Flota › Choferes › Puntaje de manejo (migraciones 49 y 108), en formato campeonato: podio, tabla de posiciones con
  * los puestos ganados o perdidos contra el período anterior, cada parte con su color y la ficha de cada chofer con las
- * subpuntuaciones de la marca (como Optifleet), su Puntaje Calderón y el día por día. Todo lo calcula la base.
+ * subpuntuaciones de la marca (como Optifleet), su Puntaje IronTrack y el día por día. Todo lo calcula la base.
  */
 export function PuntajeChoferesPantalla() {
   const { zonaHoraria } = useSesion();
@@ -223,8 +223,8 @@ export function PuntajeChoferesPantalla() {
                   <th className="px-2 py-2 text-left">vs. antes</th>
                   <th className="px-3 py-2 text-left">Chofer</th>
                   <th className="w-44 px-3 py-2 text-left">Puntaje</th>
-                  <th className="px-2 py-2 text-center" title="Puntaje Calderón de sus viajes aprobados">
-                    Calderón
+                  <th className="px-2 py-2 text-center" title="Puntaje IronTrack de sus viajes aprobados">
+                    IronTrack
                   </th>
                   <th className="px-2 py-2 text-right">Km</th>
                   <th className="px-2 py-2 text-right">L/100</th>
@@ -339,7 +339,7 @@ export function PuntajeChoferesPantalla() {
   );
 }
 
-/** Ficha del chofer: subpuntuaciones de la marca como Optifleet, Puntaje Calderón y el día por día. */
+/** Ficha del chofer: subpuntuaciones de la marca como Optifleet, Puntaje IronTrack y el día por día. */
 function FichaCorredor({ c, desde, hasta }: { c: Corredor; desde: string; hasta: string }) {
   return (
     <div className="space-y-4 bg-[#0f172a] p-4">
@@ -350,7 +350,7 @@ function FichaCorredor({ c, desde, hasta }: { c: Corredor; desde: string; hasta:
         </div>
         <div>
           <p className="mb-2 text-xs font-semibold tracking-wider text-white/60 uppercase">
-            Puntaje Calderón{c.calderon ? ` · ${c.calderon.viajes} ${c.calderon.viajes === 1 ? 'viaje aprobado' : 'viajes aprobados'}` : ''}
+            Puntaje IronTrack{c.calderon ? ` · ${c.calderon.viajes} ${c.calderon.viajes === 1 ? 'viaje aprobado' : 'viajes aprobados'}` : ''}
           </p>
           {c.calderon ? <PartesCalderon partes={c.calderon.partes} /> : <p className="text-sm text-white/60">Sin viajes aprobados en el período.</p>}
         </div>

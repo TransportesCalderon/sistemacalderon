@@ -233,7 +233,7 @@ const PARTES_CALDERON: { codigo: string; nombre: string }[] = [
   { codigo: 'marca', nombre: 'Puntaje de la marca' },
 ];
 
-/** Barras de las partes del Puntaje Calderón (% de los puntos de cada parte). */
+/** Barras de las partes del Puntaje IronTrack (% de los puntos de cada parte). */
 export function PartesCalderon({ partes }: { partes: Record<string, number> }) {
   return (
     <div className="space-y-2 rounded-lg bg-[#1e293b] p-3">

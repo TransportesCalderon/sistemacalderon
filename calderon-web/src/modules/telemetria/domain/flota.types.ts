@@ -70,7 +70,7 @@ export interface ConduccionHoy {
   eco: { fecha: string; hoy: boolean; total: number; escala: number; marca: string; nivel: NivelHoy | null } | null;
   /** Migración 100: uso abusivo según el Eco Score de la marca (lo decide la base). */
   abusivo: { activo: boolean; texto: string; fecha: string; hoy: boolean; puntaje: number | null; escala: number } | null;
-  /** Migración 107: ralentí de hoy (% del tiempo de motor) y Puntaje Calderón del día (0 a 100). */
+  /** Migración 107: ralentí de hoy (% del tiempo de motor) y Puntaje IronTrack del día (0 a 100). */
   ralenti: { pct: number; horas: number | null; nivel: NivelHoy | null } | null;
   puntaje: { total: number; nivel: NivelHoy | null } | null;
   /** Migración 111: compite en el ranking de hoy (lo manejado hoy tiene datos del motor; lo decide la base). */

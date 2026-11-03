@@ -17,6 +17,39 @@ export const logisticaQueries = {
       queryFn: () => rutasRepository(db).deOperacion(servicio),
       staleTime: FRESCURA.transaccional,
     }),
+  /** Migración 161: tabla de choferes y la fila de rutas de cada uno. */
+  rutasChoferes: (db: Db) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'choferes'] as const,
+      queryFn: () => rutasRepository(db).choferes(),
+      staleTime: FRESCURA.transaccional,
+    }),
+  rutasDeChofer: (db: Db, chofer: number) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'chofer', chofer] as const,
+      queryFn: () => rutasRepository(db).deChofer(chofer),
+      staleTime: FRESCURA.transaccional,
+    }),
+  /** Migración 158: todas las rutas de una operación. */
+  rutasTramo: (db: Db, servicio: number) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'tramos', servicio] as const,
+      queryFn: () => rutasRepository(db).todas(servicio),
+      staleTime: FRESCURA.transaccional,
+    }),
+  /** Migración 156: pantalla «Rutas para choferes» y avisos de desvío. */
+  rutasOperaciones: (db: Db) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'lista'] as const,
+      queryFn: () => rutasRepository(db).operaciones(),
+      staleTime: FRESCURA.transaccional,
+    }),
+  avisosDesvio: (db: Db) =>
+    queryOptions({
+      queryKey: ['logistica', 'rutas', 'avisos'] as const,
+      queryFn: () => rutasRepository(db).avisosDesvio(),
+      staleTime: 0,
+    }),
   abiertos: (db: Db) =>
     queryOptions({
       queryKey: ['logistica', 'abiertos'] as const,
@@ -41,6 +74,13 @@ export const logisticaQueries = {
       queryKey: ['logistica', 'operacion', servicio] as const,
       queryFn: () => operacionesRepository(db).obtener(servicio),
       staleTime: FRESCURA.transaccional,
+    }),
+  /** Migración 166: precio del viaje cargado. */
+  precioOperacion: (db: Db, servicio: number) =>
+    queryOptions({
+      queryKey: ['logistica', 'operacion', servicio, 'precio'] as const,
+      queryFn: () => operacionesRepository(db).precio(servicio),
+      staleTime: 0,
     }),
   tramos: (db: Db, servicio: number) =>
     queryOptions({

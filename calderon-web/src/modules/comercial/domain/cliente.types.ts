@@ -28,6 +28,8 @@ export interface Cliente extends Auditable {
   id: ClienteId;
   codigo: string;
   razonSocial: string;
+  /** Migración 154: nombre con el que se lo conoce (opcional). */
+  nombreFantasia: string | null;
   /** CUIT (AR) / RUT (CL), normalizado. Único por país. */
   identificadorFiscal: string;
   pais: string;
@@ -52,7 +54,7 @@ export interface ClienteParecido {
 }
 
 export interface ClienteFiltros {
-  /** Busca en código, razón social e identificador fiscal. */
+  /** Busca en código, razón social, nombre de fantasía e identificador fiscal. */
   texto?: string;
   estado?: EstadoCliente;
   pais?: string;

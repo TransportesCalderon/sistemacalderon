@@ -27,7 +27,7 @@ import type {
   TarifaEntrada,
 } from '../domain/ventas.schemas';
 import { parsearDetalleCliente } from '../domain/detalle';
-import { parsearEstadoSii, parsearResultadoSii, parsearSiiFactura, parsearVistaPrevia, type ClienteSiiEntrada } from '../domain/sii';
+import { parsearEstadoSii, parsearResultadoSii, parsearSiiFactura, parsearVistaPrevia, type ClienteSiiEntrada, parsearDatosSiiCliente, type DatosSiiCliente } from '../domain/sii';
 
 /** Ventas (migraciones 67 y 68). Todo pasa por funciones de la base; su mensaje se muestra tal cual. */
 export const ventasRepository = (db: Db) => {
@@ -309,6 +309,10 @@ export const ventasRepository = (db: Db) => {
     },
     async siiFactura(id: number) {
       return parsearSiiFactura(await leer(ven().rpc('fn_ven_sii_factura', { p_id: id })));
+    },
+    /** Migración 154: datos del cliente para la factura (ficha del cliente). */
+    async clienteSii(clienteId: number): Promise<DatosSiiCliente | null> {
+      return parsearDatosSiiCliente(await leer(ven().rpc('fn_ven_cliente_sii', { p_cliente: clienteId })));
     },
     async guardarClienteSii(d: ClienteSiiEntrada) {
       await leer(

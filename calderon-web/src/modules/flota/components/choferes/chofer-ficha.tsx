@@ -1,6 +1,7 @@
 'use client';
 
 import { ActasDelChofer } from '@/modules/actas/components/actas-del-chofer';
+import { HistorialChofer } from '@/modules/logistica/components/historial/historial';
 import { useState, type ReactNode } from 'react';
 import type { ErrorAccion } from '@/server/actions/result';
 import Link from 'next/link';
@@ -177,6 +178,9 @@ export function ChoferFicha({ id }: { id: ChoferId }) {
           <Dato etiqueta="Versión">{chofer.versionFila}</Dato>
         </Seccion>
       </div>
+
+      {/* Migración 153: qué llevó, con qué equipo y cuándo */}
+      <HistorialChofer choferId={chofer.id} />
 
       {/* Migración 122: su historial de actas de infracción */}
       <ActasDelChofer choferId={chofer.id} />

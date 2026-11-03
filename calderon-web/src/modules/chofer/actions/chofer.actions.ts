@@ -9,6 +9,7 @@ import {
   posicionSchema,
   quitarDocumentoSchema,
   reabrirFondoSchema,
+  apelarGastoSchema,
   retirarGastoSchema,
   revisarGastoSchema,
   subirDocumentoSchema,
@@ -66,6 +67,14 @@ export const retirarGasto = createAction({
   permiso: 'chofer.mis_gastos:editar',
   schema: retirarGastoSchema,
   handler: (d, { db }) => choferRepository(db).retirarGasto(d.gastoId),
+  invalida: rutasChofer,
+});
+
+/** Migración 164: apelar un gasto rechazado. */
+export const apelarGasto = createAction({
+  permiso: 'chofer.mis_gastos:editar',
+  schema: apelarGastoSchema,
+  handler: (d, { db }) => choferRepository(db).apelarGasto(d.gastoId, d.explicacion),
   invalida: rutasChofer,
 });
 

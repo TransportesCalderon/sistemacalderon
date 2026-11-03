@@ -255,19 +255,19 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
   );
 }
 
-/** Migración 90: Puntaje Calderón (0-100, igual para toda la flota) y de dónde salen sus puntos. */
+/** Migración 90: Puntaje IronTrack (0-100, igual para toda la flota) y de dónde salen sus puntos. */
 function BloqueCalderon({ p }: { p: PuntajeCalderon | null }) {
   if (!p || p.total === null) {
     return (
       <p className="mt-2 text-neutral-600">
-        <b className="text-black">Puntaje Calderón:</b> faltan datos del viaje para calcularlo.
+        <b className="text-black">Puntaje IronTrack:</b> faltan datos del viaje para calcularlo.
       </p>
     );
   }
   return (
     <div className={cn('mt-2 flex items-center gap-3 rounded border-l-4 py-1 pl-2', p.nivel ? FONDO[p.nivel] : 'border-neutral-400')}>
       <div className="w-[22mm] shrink-0 text-center">
-        <p className="text-[9px] leading-tight tracking-wide text-neutral-600 uppercase">Puntaje Calderón</p>
+        <p className="text-[9px] leading-tight tracking-wide text-neutral-600 uppercase">Puntaje IronTrack</p>
         <p className={cn('text-2xl leading-none font-bold tabular-nums', p.nivel && TEXTO[p.nivel])}>{formatearNumero(p.total, 0)}</p>
         <p className="text-[9px] text-neutral-600">de 100</p>
       </div>

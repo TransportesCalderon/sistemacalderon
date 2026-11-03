@@ -1,5 +1,6 @@
 'use client';
 
+import { QuienLaLlevo } from './historial/historial';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ChevronRight, ClipboardList, Copy, LoaderCircle, Plus, Search, Snowflake, Undo2, X } from 'lucide-react';
@@ -46,6 +47,7 @@ import {
   useGensetsOperacion,
   useAgentesTransporte,
   useGuardarOperacion,
+  usePrecioOperacion,
   useLineas,
   useOperaciones,
   useOpcionesViaje,
@@ -61,6 +63,12 @@ import { Lista } from './viajes-pantalla';
 import { SeguimientoOperacion } from '@/modules/chofer/components/seguimiento-operacion';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { RutaOperacion } from './rutas/ruta-operacion';
+import { VERSION_RUTAS_PANTALLA } from '../domain/rutas';
+
+/** Migración 166: precio del viaje en la operación. */
+const VERSION_PRECIO_VIAJE = 166;
+const MONEDAS_PRECIO = ['USD', 'CLP', 'ARS'] as const;
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 
 export type Abierto =
   | { tipo: 'nueva'; base?: Operacion }
@@ -404,6 +412,7 @@ function Dato({ label, children, mono }: { label: string; children: ReactNode; m
 /** Sprint 1: se exporta para la ficha de la operación en el panel (operacion-ficha.tsx). */
 export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: string; puede: boolean; abierto: Abierto; onAbrir: (a: Abierto) => void }) {
   const { hacer, enCurso } = useUnClic(o, onAbrir);
+  const rutasAparte = useBaseTiene(VERSION_RUTAS_PANTALLA);
   const anular = useAnularHito();
   const envioAnular = useEnvio();
   const cerrar = () => onAbrir({ tipo: 'detalle', o });
@@ -503,6 +512,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
         </div>
       </div>
 
+      {/* Migración 153: quién la llevó y quién la trajo */}
+      <QuienLaLlevo servicioId={o.servicioId} />
       <TramosDeLaOperacion servicioId={o.servicioId} />
 
       {puede && o.posibles.length > 0 && (
@@ -534,8 +545,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       )}
 
       {puede && (o.estado !== 'cancelado' || o.gensetId) && <GensetOperacion o={o} />}
-      {/* Migración 136: la ruta que recibe el chofer (una por operación) */}
-      <RutaOperacion servicioId={o.servicioId} abierta={!cerrada} />
+      {/* Migración 136: la ruta que recibe el chofer. Desde la 156 se carga en Viajes › Rutas para choferes */}
+      {!rutasAparte && <RutaOperacion servicioId={o.servicioId} abierta={!cerrada} />}
       {puede && o.puedeVolver && <VolverPaso o={o} />}
 
       {tipo === 'paso' && abierto?.tipo === 'paso' && <PanelPaso o={o} paso={abierto.paso} errorInicial={abierto.error ?? null} zona={zona} onCerrar={cerrar} />}
@@ -796,6 +807,9 @@ const vacioForm = (zona: string) => ({
   guia: '',
   agenteTransporteId: '',
   observacion: '',
+  // Migración 166
+  precioViaje: '',
+  precioMoneda: 'USD',
 });
 type Form = ReturnType<typeof vacioForm>;
 const MAS_DATOS: (keyof Form)[] = [
@@ -870,6 +884,15 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
     };
   });
   const [mas, setMas] = useState(editar);
+  // Migración 166: precio del viaje (al modificar o duplicar se trae el cargado)
+  const conPrecio = useBaseTiene(VERSION_PRECIO_VIAJE);
+  const { data: precio } = usePrecioOperacion(base?.servicioId ?? null, conPrecio);
+  const precioCargado = useRef(false);
+  useEffect(() => {
+    if (!precio || precioCargado.current) return;
+    precioCargado.current = true;
+    setF((p) => ({ ...p, precioViaje: p.precioViaje || precio.precio.replace('.', ','), precioMoneda: precio.moneda }));
+  }, [precio]);
   const set = (k: keyof Form) => (val: string) => setF((p) => ({ ...p, [k]: val }));
   const ev = (k: keyof Form) => (e: { target: { value: string } }) => set(k)(e.target.value);
 
@@ -928,8 +951,10 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
   const ocupado = alta.isPending || guardar.isPending;
 
   const enviarForm = () => {
+    const { precioViaje, precioMoneda, ...resto } = f;
     const comun = {
-      ...f,
+      ...resto,
+      ...(conPrecio ? { precioViaje, precioMoneda } : {}),
       tipoOperacion: f.tipoOperacion as AltaEntrada['tipoOperacion'],
       fechaPresentacion: aIso(f.fechaPresentacion, zona),
       fechaEntrega: aIso(f.fechaEntrega, zona),
@@ -992,6 +1017,30 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
         <Campo label="Tipo de carga" error={campo('tipoContenedor')} ayuda="A granel, pallet, contenedor 40 RF…">
           <SelectTipoCarga value={f.tipoContenedor} onValor={(v) => setF((p) => ({ ...p, tipoContenedor: v }))} />
         </Campo>
+        {conPrecio && (
+          <Campo
+            label="Precio del viaje"
+            error={campo('precioViaje')}
+            ayuda={varias ? 'Para cada una de las operaciones. Vacío: se usa la tarifa de la línea.' : 'Vacío: se usa la tarifa de la línea.'}
+          >
+            <div className="flex gap-2">
+              <input
+                inputMode="decimal"
+                className="min-w-0 flex-1"
+                value={f.precioViaje}
+                onChange={ev('precioViaje')}
+                placeholder="Ej.: 1.850"
+              />
+              <select className="w-24" value={f.precioMoneda} onChange={ev('precioMoneda')} aria-label="Moneda del precio">
+                {MONEDAS_PRECIO.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Campo>
+        )}
         <label className="flex items-center gap-2 self-center text-sm text-tinta">
           <input type="checkbox" checked={f.contenedorVacio} onChange={(e) => setF((p) => ({ ...p, contenedorVacio: e.target.checked }))} />
           Va con el contenedor vacío (sin mercadería)

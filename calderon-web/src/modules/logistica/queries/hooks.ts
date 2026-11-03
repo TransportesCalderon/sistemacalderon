@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { browserDb } from '@/shared/supabase/browser';
 import { agregarGastoViaje, anularGastoViaje } from '../actions/costos.actions';
+import { marcarDesvioVisto } from '../actions/rutas.actions';
 import { costosRepository } from '../repositories/costos.repository';
 import { usePizarraEnVivo } from '@/modules/pizarra/queries/hooks';
 import {
@@ -37,6 +38,7 @@ import {
   volverPaso,
 } from '../actions/operaciones.actions';
 import { operacionesRepository } from '../repositories/operaciones.repository';
+import { viajesChoferRepository } from '../repositories/viajes-chofer.repository';
 import {
   agregarItemViaje,
   ajustarItemViaje,
@@ -64,8 +66,29 @@ export const useSugerenciaCliente = (cliente: number | null) =>
 export const useLineas = () => useQuery(q.lineas(browserDb()));
 export const useAgentesTransporte = (todos = false) => useQuery(q.agentes(browserDb(), todos));
 export const useRutaOperacion = (servicio: number) => useQuery(q.rutaOperacion(browserDb(), servicio));
+/** Migración 161: tabla de choferes (cada minuto) y la fila de rutas de un chofer. */
+export const useRutasChoferes = (activo = true) => useQuery({ ...q.rutasChoferes(browserDb()), enabled: activo, refetchInterval: 60_000 });
+export const useRutasDeChofer = (chofer: number) => useQuery({ ...q.rutasDeChofer(browserDb(), chofer), refetchInterval: 60_000 });
+/** Migración 158: todas las rutas de la operación (cada minuto: el GPS puede pasar a la siguiente). */
+export const useRutasTramo = (servicio: number, activo = true) =>
+  useQuery({ ...q.rutasTramo(browserDb(), servicio), enabled: activo, refetchInterval: 60_000 });
+/** Migración 156: pantalla «Rutas para choferes» (cada minuto, para ver los desvíos). */
+export const useRutasOperaciones = () => useQuery({ ...q.rutasOperaciones(browserDb()), refetchInterval: 60_000 });
+/** Migración 156: ventana emergente de desvíos (cada minuto). */
+export const useAvisosDesvio = (activo: boolean) =>
+  useQuery({ ...q.avisosDesvio(browserDb()), enabled: activo, refetchInterval: activo ? 60_000 : false });
+export function useDesvioVisto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: marcarDesvioVisto,
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'desvio') : undefined),
+  });
+}
 export const useTramosOperacion = (servicio: number) => useQuery(q.tramos(browserDb(), servicio));
 export const useOperacion = (servicio: number) => useQuery(q.operacion(browserDb(), servicio));
+/** Migración 166: el precio del viaje (al modificar o duplicar). */
+export const usePrecioOperacion = (servicio: number | null, activo: boolean) =>
+  useQuery({ ...q.precioOperacion(browserDb(), servicio ?? 0), enabled: activo && !!servicio });
 export const useTransportistas = () => useQuery(q.transportistas(browserDb()));
 
 /** El mismo aviso de tiempo real de la Pizarra («cambió la pizarra») refresca también la lista de Logística. */
@@ -126,6 +149,17 @@ export const useBasesOperativas = (activo = true) =>
 export const useTractores = () => useQuery({ ...q.tractores(browserDb()), refetchInterval: 60_000 });
 export const useViajesChofer = (desde: FechaDia | null, hasta: FechaDia | null) => useQuery(q.viajesChofer(browserDb(), desde, hasta));
 export const useViajeChofer = (id: number) => useQuery(q.viajeChofer(browserDb(), id));
+// Migración 153: lo que hizo cada chofer y quién llevó cada operación
+export const useTramosDelViaje = (id: number, activo = true) =>
+  useQuery({ queryKey: ['logistica', 'viaje-chofer', id, 'tramos'], queryFn: () => viajesChoferRepository(browserDb()).tramosDelViaje(id), enabled: activo });
+export const useHistorialChofer = (chofer: number, desde: FechaDia, hasta: FechaDia, activo = true) =>
+  useQuery({
+    queryKey: ['logistica', 'historial-chofer', chofer, desde, hasta],
+    queryFn: () => viajesChoferRepository(browserDb()).historialChofer(chofer, desde, hasta),
+    enabled: activo,
+  });
+export const useHistorialOperacion = (servicio: number, activo = true) =>
+  useQuery({ queryKey: ['logistica', 'historial-operacion', servicio], queryFn: () => viajesChoferRepository(browserDb()).historialOperacion(servicio), enabled: activo });
 export const useAsignarTractor = () => useEscritura(asignarTractor);
 export const useIniciarViajeChofer = () => useEscritura(iniciarViajeChofer);
 export const useAgregarItemViaje = () => useEscritura(agregarItemViaje);

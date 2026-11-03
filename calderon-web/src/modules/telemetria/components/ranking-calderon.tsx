@@ -54,7 +54,7 @@ async function leer(desde: string, hasta: string) {
 const tono = (v: number | null | undefined) => (v == null ? 'text-tinta-suave' : v >= 90 ? 'text-exito' : v >= 80 ? 'text-[#ca8a04]' : 'text-error');
 
 /**
- * Migración 90: Puntaje Calderón por chofer (viajes aprobados del período, ponderado por km). Igual para
+ * Migración 90: Puntaje IronTrack por chofer (viajes aprobados del período, ponderado por km). Igual para
  * todas las marcas: consumo contra el objetivo, ralentí, programador, velocidad y el puntaje de la marca.
  */
 export function RankingCalderon({ desde, hasta }: { desde: string; hasta: string }) {
@@ -62,7 +62,7 @@ export function RankingCalderon({ desde, hasta }: { desde: string; hasta: string
   return (
     <section className="space-y-2">
       <h2 className="flex items-center gap-2 text-lg font-semibold text-tinta">
-        <Trophy className="size-5 text-marca" /> Puntaje Calderón
+        <Trophy className="size-5 text-marca" /> Puntaje IronTrack
         {data?.flota != null && <span className="text-sm font-normal text-tinta-suave">· flota {formatearNumero(data.flota, 0)}</span>}
       </h2>
       <p className="max-w-3xl text-sm text-tinta-suave">

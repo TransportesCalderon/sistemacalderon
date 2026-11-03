@@ -102,6 +102,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/pizarra', etiqueta: 'Pizarra Azul' },
       // El mapa de flota con la misma importancia que la Pizarra (es su vista Mapa)
       { href: '/pizarra/mapa', etiqueta: 'Mapa de flota' },
+      // Migración 156: las rutas para los choferes, aparte de la operación (más simple para Telemetría)
+      { href: '/pizarra/rutas', etiqueta: 'Rutas para choferes' },
       // Migración 103: los mejores choferes de cada mes
       { href: '/analisis/ranking', etiqueta: 'Ranking de choferes', incluye: ['/analisis/ranking/periodo'] },
     ],

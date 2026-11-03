@@ -33,6 +33,7 @@ import { Lista } from './viajes-pantalla';
 import { SelectorItems, SituacionViajeChoferChip, formatoImporte, formatoNumero, type ItemElegido } from './viaje-chofer-comun';
 import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import { AsignadosDelViaje } from './historial/historial';
 
 type Resultado = { ok: true } | { ok: false; error: ErrorAccion };
 
@@ -547,6 +548,9 @@ function Agregar({ v, onCerrar }: { v: ViajeChofer; onCerrar: () => void }) {
         Para agregar otro tramo de una operación que ya está en el viaje, elegila de nuevo y marcá el tramo (por ejemplo MZA-BSAS). O usá «Continúa a…» en
         la operación.
       </p>
+      {/* Migración 153: primero lo que el chofer tenía asignado en el período del viaje */}
+      <AsignadosDelViaje viajeId={v.id} onListo={onCerrar} />
+      <p className="text-sm font-medium text-tinta">¿Hizo otra operación o una vuelta vacía? Buscala acá:</p>
       <SelectorItems camionId={v.camion.id} elegidos={items} onCambiar={setItems} />
       <ErrorBase error={error} />
       <div className="flex gap-2">

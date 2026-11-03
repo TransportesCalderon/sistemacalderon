@@ -44,7 +44,18 @@ const datosOperacion = (d: OperacionDatos) => ({
   guia: d.guia,
   agente_transporte_id: d.agenteTransporteId ?? null,
   observacion: d.observacion,
+  // Migración 166: solo si la pantalla lo manda
+  ...(d.precioViaje !== undefined ? { precio_viaje: numeroAPunto(d.precioViaje), precio_moneda: d.precioMoneda ?? 'USD' } : {}),
 });
+
+/** «1.850,50» o «1850.5» → «1850.50» para la base (solo formato; la base valida). */
+export function numeroAPunto(v: string): string {
+  const t = v.trim().replace(/\s/g, '');
+  if (t.includes(',')) return t.replace(/\./g, '').replace(',', '.');
+  // «1.850» o «12.500.000»: el punto separa los miles
+  if (/^\d{1,3}(\.\d{3})+$/.test(t)) return t.replace(/\./g, '');
+  return t;
+}
 
 /** Operaciones de Logística (migraciones 41 y 42). Cada acción es una función de la base; su mensaje se muestra tal cual. */
 /** Fila de ops.fn_operaciones / ops.fn_operacion (mismas columnas) como la usa la web. */
@@ -224,6 +235,13 @@ export const operacionesRepository = (db: Db) => {
       };
     },
 
+    /** Migración 166: el precio del viaje cargado (para «Modificar»). */
+    async precio(servicio: number): Promise<{ precio: string; moneda: string } | null> {
+      const { data, error } = await ops().rpc('fn_precio_de_operacion', { p_servicio: servicio });
+      if (error) throw new RepoError(error);
+      const o = (data ?? null) as { precio?: number | string | null; moneda?: string | null } | null;
+      return o && o.precio !== null && o.precio !== undefined ? { precio: String(o.precio), moneda: o.moneda ?? 'USD' } : null;
+    },
     async guardar(d: OperacionDatos): Promise<number> {
       const { data, error } = await ops().rpc('fn_guardar_operacion', {
         p_servicio: d.servicioId,

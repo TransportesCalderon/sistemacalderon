@@ -145,6 +145,14 @@ function FilaRevisar({ g }: { g: GastoPorRevisar }) {
           {g.tractor && ` · ${g.tractor}`} · {g.numero}
         </p>
         {g.detalle && <p className="text-tinta-suave">{g.detalle}</p>}
+        {/* Migración 164: el chofer apeló el rechazo */}
+        {g.apelado && (
+          <div className="mt-1 space-y-0.5 rounded-md bg-alerta-suave px-2 py-1.5 text-xs">
+            <p className="font-semibold text-alerta">Apelado por el chofer</p>
+            {g.motivoRechazo && <p className="text-tinta-suave">Se rechazó por: {g.motivoRechazo}</p>}
+            <p className="text-tinta">Explicación: «{g.apelacion}»</p>
+          </div>
+        )}
         {g.repetido && (
           <p className="mt-1 inline-flex items-center gap-1 text-xs text-alerta">
             <AlertTriangle className="size-3.5" /> Hay otro gasto del mismo día, moneda e importe
@@ -180,13 +188,18 @@ function FilaRevisar({ g }: { g: GastoPorRevisar }) {
                 else setAviso(r.data.aviso);
               }}
             >
-              {revisar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Aprobar
+              {revisar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}{' '}
+              {g.apelado ? 'Aceptar la explicación' : 'Aprobar'}
             </button>
             <AccionConMotivo
-              etiqueta="Rechazar"
+              etiqueta={g.apelado ? 'Rechazar definitivamente' : 'Rechazar'}
               icono={<X className="size-4" />}
-              titulo="Rechazar el gasto"
-              explicacion="El chofer va a ver el motivo. No resta de su fondo."
+              titulo={g.apelado ? 'Rechazar definitivamente' : 'Rechazar el gasto'}
+              explicacion={
+                g.apelado
+                  ? 'El chofer va a ver el motivo y ya no podrá volver a apelar. No resta de su fondo.'
+                  : 'El chofer va a ver el motivo y puede apelar una vez explicando de qué es. No resta de su fondo.'
+              }
               ocupado={revisar.isPending}
               error={error}
               onConfirmar={async (motivo) => {

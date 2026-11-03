@@ -144,6 +144,8 @@ type ClienteRow = {
   id: number;
   codigo: string;
   razon_social: string;
+  /** Migración 154 (opcional). */
+  nombre_fantasia?: string | null;
   identificador_fiscal: string;
   pais: string;
   moneda_facturacion: string;
@@ -1131,6 +1133,8 @@ export type Database = {
       fn_ven_anular_cotizacion: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_ven_duplicar_cotizacion: { Args: { p_id: number }; Returns: number };
       fn_ven_crear_factura: { Args: { p_cliente: number; p_servicios: number[] }; Returns: number };
+      /** Migración 154: datos del cliente para la factura electrónica. */
+      fn_ven_cliente_sii: { Args: { p_cliente: number }; Returns: Json };
       /** Migración 144: factura sin operación. */
       fn_ven_crear_factura_libre: { Args: { p_cliente: number; p_renglones: Json; p_observacion?: string | null }; Returns: number };
       fn_ven_guardar_factura: { Args: { p_id: number; p_version: number; p_renglones: Json; p_observacion?: string | null }; Returns: undefined };
@@ -1191,6 +1195,26 @@ export type Database = {
       fn_agentes_transporte: { Args: { p_todos?: boolean }; Returns: Json };
       fn_guardar_agente_transporte: { Args: { p_id: number | null; p_version: number | null; p_nombre: string; p_activo?: boolean }; Returns: number };
       fn_ruta_de_servicio: { Args: { p_servicio: number }; Returns: Json };
+      /** Migración 156 */
+      fn_rutas_operaciones: { Args: Record<string, never>; Returns: Json };
+      /** Migración 166 */
+      fn_precio_de_operacion: { Args: { p_servicio: number }; Returns: Json };
+      /** Migración 158 */
+      fn_rutas_de_servicio: { Args: { p_servicio: number }; Returns: Json };
+      fn_guardar_ruta_tramo: { Args: { p_servicio: number; p_id: number | null; p_version: number | null; p_datos: Json }; Returns: number };
+      fn_quitar_ruta_tramo: { Args: { p_id: number; p_version: number }; Returns: undefined };
+      fn_mover_ruta_tramo: { Args: { p_id: number; p_dir: number }; Returns: undefined };
+      fn_llegada_ruta: { Args: { p_servicio: number; p_llego: boolean }; Returns: undefined };
+      fn_llegue_destino: { Args: { p_servicio: number }; Returns: Json };
+      /** Migración 161 */
+      fn_rutas_choferes: { Args: Record<string, never>; Returns: Json };
+      fn_rutas_de_chofer: { Args: { p_chofer: number }; Returns: Json };
+      fn_guardar_ruta_chofer: { Args: { p_chofer: number; p_id: number | null; p_version: number | null; p_servicio: number | null; p_datos: Json }; Returns: number };
+      fn_quitar_ruta_chofer: { Args: { p_chofer: number; p_id: number; p_version: number }; Returns: undefined };
+      fn_mover_ruta_chofer: { Args: { p_chofer: number; p_id: number; p_dir: number }; Returns: undefined };
+      fn_llegada_ruta_chofer: { Args: { p_chofer: number; p_llego: boolean }; Returns: undefined };
+      fn_mi_ruta: { Args: Record<string, never>; Returns: Json };
+      fn_llegue_mi_destino: { Args: Record<string, never>; Returns: Json };
       fn_guardar_ruta_operacion: { Args: { p_servicio: number; p_version: number | null; p_datos: Json }; Returns: undefined };
       fn_quitar_ruta_operacion: { Args: { p_servicio: number; p_version: number }; Returns: undefined };
       // Módulo del chofer (60)
@@ -1239,6 +1263,10 @@ export type Database = {
       fn_sugerencia_cliente: { Args: { p_cliente: number }; Returns: Json };
       /** Migración 81. */
       fn_tramos_de_operacion: { Args: { p_servicio: number }; Returns: Json };
+      /** Migración 153: lo que hizo cada chofer y quién llevó cada operación. */
+      fn_tramos_del_viaje: { Args: { p_viaje: number }; Returns: Json };
+      fn_historial_chofer: { Args: { p_chofer: number; p_desde: string; p_hasta: string }; Returns: Json };
+      fn_historial_operacion: { Args: { p_servicio: number }; Returns: Json };
       fn_guardar_operacion: { Args: { p_servicio: number | null; p_version: number | null; p_datos: Json }; Returns: number };
       fn_confirmar_operacion: { Args: { p_servicio: number }; Returns: undefined };
       fn_asignar_equipo: {
@@ -1543,6 +1571,8 @@ export type Database = {
       };
       fn_fondo_chofer: { Args: { p_chofer: number; p_desde?: string | null; p_hasta?: string | null }; Returns: Json };
       fn_gastos_por_revisar: { Args: Record<string, never>; Returns: Json };
+      /** Migración 164 */
+      fn_apelar_gasto: { Args: { p_gasto: number; p_explicacion: string }; Returns: undefined };
       fn_entregar_fondo: {
         Args: { p_chofer: number; p_moneda: string; p_importe: number; p_fecha: string; p_detalle?: string | null; p_servicio?: number | null; p_cuenta?: number | null };
         Returns: number;
@@ -1740,6 +1770,9 @@ export type Database = {
       fn_trackerway_datos_motor: { Args: { p_dias?: number }; Returns: Json };
       // Migración 72: equipos GPS de Trackerway
       fn_trackerway_panel: { Args: Record<string, never>; Returns: Json };
+      /** Migración 156 */
+      fn_avisos_desvio: { Args: Record<string, never>; Returns: Json };
+      fn_desvio_visto: { Args: { p_desvio: number }; Returns: undefined };
       fn_trackerway_buscar: { Args: Record<string, never>; Returns: Json };
       fn_trackerway_enlazar: { Args: { p_imei: string; p_camion: number | null }; Returns: undefined };
       fn_trackerway_importar: { Args: { p_imei: string; p_importar: boolean }; Returns: undefined };

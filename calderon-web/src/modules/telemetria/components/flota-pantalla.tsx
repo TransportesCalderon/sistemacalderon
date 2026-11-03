@@ -24,7 +24,7 @@ const SENAL: Record<Senal, { texto: string; tono: 'exito' | 'alerta' | 'neutro' 
 };
 
 /** Telemetría > Mapa de flota: última posición, velocidad y combustible de cada camión con la estela de por dónde viene y el chofer. */
-export function FlotaPantalla({ enPizarra = false }: { enPizarra?: boolean } = {}) {
+export function FlotaPantalla({ enPizarra = false, pantallaCompleta = false }: { enPizarra?: boolean; pantallaCompleta?: boolean } = {}) {
   const { zonaHoraria } = useSesion();
   const esTi = useCan('configuracion.catalogos:editar');
   const puedeAltaCamion = useCan('flota.camiones:editar');
@@ -97,6 +97,9 @@ export function FlotaPantalla({ enPizarra = false }: { enPizarra?: boolean } = {
         />
       ) : (
         <>
+          {/* El mapa queda fijo arriba y lo que se desplaza es la lista de camiones (debajo de la barra superior;
+              en la pizarra a pantalla completa no hay barra) */}
+          <div className={cn('sticky z-10 -mx-1 bg-fondo px-1 pb-2', pantallaCompleta ? 'top-0 pt-2' : 'top-14 pt-2')}>
           <MapaFlota
             camiones={data}
             celulares={celulares.data ?? []}
@@ -107,6 +110,7 @@ export function FlotaPantalla({ enPizarra = false }: { enPizarra?: boolean } = {
             seleccionado={elegido}
             onSeleccionar={setElegido}
           />
+          </div>
           {mapa.isError && (
             <p className="rounded-md bg-alerta-suave px-3 py-2 text-sm text-alerta">
               No se pudieron traer el chofer, el combustible y lo del día de los camiones: {mapa.error instanceof Error ? mapa.error.message : 'error de la base'}

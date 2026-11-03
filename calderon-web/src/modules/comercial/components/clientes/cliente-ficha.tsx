@@ -13,6 +13,7 @@ import { AYUDA_ESTADO_CLIENTE, textoCondicionPago } from '../../domain/cliente.t
 import { formatearIdentificadorFiscal, nombreIdentificador } from '../../domain/identificador-fiscal';
 import { useCatalogosComercial, useCliente } from '../../queries/hooks';
 import { EstadoClienteChip } from './estado-cliente';
+import { ClienteDatosSii } from './cliente-datos-sii';
 import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
 
 /** Pestañas de la ficha según la especificación (P-CLI-01). Solo Datos está disponible en esta etapa. */
@@ -71,6 +72,7 @@ export function ClienteFicha({ id }: { id: ClienteId }) {
             <h1 className="text-2xl font-semibold text-tinta">{cliente.razonSocial}</h1>
             <EstadoClienteChip estado={cliente.estado} eliminado={eliminado} />
           </div>
+          {cliente.nombreFantasia && <p className="text-base text-tinta">{cliente.nombreFantasia}</p>}
           <p className="text-sm text-tinta-suave">
             Código <span className="font-medium text-tinta">{cliente.codigo}</span> · {nombreIdentificador(cliente.pais)}{' '}
             <span className="font-mono text-tinta">{identificador}</span> · {pais}
@@ -124,6 +126,7 @@ export function ClienteFicha({ id }: { id: ClienteId }) {
         <Seccion titulo="Identificación">
           <Dato etiqueta="Código">{cliente.codigo}</Dato>
           <Dato etiqueta="Razón social">{cliente.razonSocial}</Dato>
+          <Dato etiqueta="Nombre de fantasía">{cliente.nombreFantasia}</Dato>
           <Dato etiqueta={nombreIdentificador(cliente.pais)}>
             <span className="font-mono">{identificador}</span>
           </Dato>
@@ -152,6 +155,8 @@ export function ClienteFicha({ id }: { id: ClienteId }) {
           <Dato etiqueta="Última modificación">{formatearFechaHora(cliente.actualizadoEn, zonaHoraria)}</Dato>
           <Dato etiqueta="Versión">{cliente.versionFila}</Dato>
         </Seccion>
+
+        <ClienteDatosSii clienteId={cliente.id} editable={!eliminado} />
       </div>
     </div>
   );

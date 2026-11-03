@@ -1,5 +1,7 @@
 'use client';
 
+import { rutasRepository } from '@/modules/logistica/repositories/rutas.repository';
+
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ActionResult } from '@/server/actions/result';
 import { browserDb } from '@/shared/supabase/browser';
@@ -16,8 +18,7 @@ import {
   revisarGasto,
   subirDocumentoChofer,
   subirDocumentoOficina,
-  subirGasto,
-} from '../actions/chofer.actions';
+  subirGasto, apelarGasto } from '../actions/chofer.actions';
 import { choferRepository } from '../repositories/chofer.repository';
 import { invalidar } from '@/shared/query/invalidar';
 
@@ -25,6 +26,9 @@ const CLAVE = ['chofer'] as const;
 const repo = () => choferRepository(browserDb());
 
 /* Lecturas */
+/** Migración 161: la ruta en curso del chofer (con operación o movimiento). */
+export const useMiRuta = (activo: boolean) =>
+  useQuery({ queryKey: [...CLAVE, 'mi-ruta'], queryFn: () => rutasRepository(browserDb()).miRuta(), enabled: activo, refetchInterval: 120_000 });
 export const useMisCargas = () => useQuery({ queryKey: [...CLAVE, 'mis-cargas'], queryFn: () => repo().misCargas(), refetchInterval: 120_000 });
 export const useDocumentosOperacion = (servicioId: number) =>
   useQuery({ queryKey: [...CLAVE, 'documentos', servicioId], queryFn: () => repo().documentos(servicioId), staleTime: 30_000 });
@@ -62,6 +66,7 @@ export const useSubirDocumentoOficina = () => useEscritura(subirDocumentoOficina
 export const useQuitarDocumentoOficina = () => useEscritura(quitarDocumentoOficina);
 export const useSubirGasto = () => useEscritura(subirGasto);
 export const useRetirarGasto = () => useEscritura(retirarGasto);
+export const useApelarGasto = () => useEscritura(apelarGasto);
 export const useRegistrarEntrega = () => useEscritura(registrarEntregaFondo);
 export const useCargarGastoOficina = () => useEscritura(cargarGastoOficina);
 export const useRevisarGasto = () => useEscritura(revisarGasto);

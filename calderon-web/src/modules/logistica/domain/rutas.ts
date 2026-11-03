@@ -29,6 +29,9 @@ export const parsearPuntos = (v: unknown): PuntoRuta[] =>
 /** La ruta de una carga del chofer (ops.fn_mis_cargas → ruta). */
 export interface RutaChofer {
   id: number;
+  /** Migración 158: «ruta k de n». */
+  orden: number;
+  total: number;
   nombre: string;
   notas: string | null;
   linea: string;
@@ -41,6 +44,8 @@ export const parsearRutaChofer = (v: unknown): RutaChofer | null => {
   if (puntos.length < 2) return null;
   return {
     id: Number(o.id),
+    orden: Number(o.orden ?? 1),
+    total: Number(o.total ?? 1),
     nombre: typeof o.nombre === 'string' ? o.nombre : '',
     notas: typeof o.notas === 'string' && o.notas ? o.notas : null,
     linea: typeof o.linea === 'string' ? o.linea : '',
@@ -124,36 +129,45 @@ export function esLinkDeMaps(link: string): boolean {
 const ubicado = (p: PuntoRuta): p is PuntoRuta & { lat: number; lng: number } => p.lat !== null && p.lng !== null;
 const coord = (p: PuntoRuta) => `${p.lat},${p.lng}`;
 
-/** Distancia (en metros, aproximada) de un punto al tramo a→b. */
-function distanciaATramo(p: { lat: number; lng: number }, a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+/** Distancia (en metros, aproximada) de un punto al tramo a→b, y dónde cae sobre el tramo (0 = en a, 1 = en b; menor que 0 = antes de a). */
+function medirTramo(p: { lat: number; lng: number }, a: { lat: number; lng: number }, b: { lat: number; lng: number }): { d: number; t: number } {
   const k = Math.cos((p.lat * Math.PI) / 180);
   const ax = a.lng * k, ay = a.lat, bx = b.lng * k, by = b.lat, px = p.lng * k, py = p.lat;
   const dx = bx - ax, dy = by - ay;
   const largo = dx * dx + dy * dy;
-  const t = largo === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / largo));
+  const tLibre = largo === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / largo;
+  const t = Math.max(0, Math.min(1, tLibre));
   const x = ax + t * dx - px, y = ay + t * dy - py;
-  return Math.sqrt(x * x + y * y) * 111_320;
+  return { d: Math.sqrt(x * x + y * y) * 111_320, t: tLibre };
 }
 
+/** A menos de esto de un punto se lo da por alcanzado (no se lo vuelve a mandar como parada). */
+const ALCANZADO_M = 1_500;
+
 /**
- * Índice del próximo punto al que tiene que ir el chofer según dónde está: busca el tramo de la
- * ruta más cercano y devuelve el punto donde termina ese tramo. Sin ubicación, el primero después
- * de la partida.
+ * Índice del próximo punto al que tiene que ir el chofer según dónde está: busca el tramo de la ruta
+ * más cercano y devuelve el punto donde termina ese tramo. Si todavía no llegó a la partida (está
+ * antes del primer tramo y lejos de la partida), devuelve 0: la ruta arranca en la partida.
+ * Sin ubicación, desde la partida.
  */
 export function siguientePunto(puntos: PuntoRuta[], pos: { lat: number; lng: number } | null): number {
-  if (puntos.length < 2) return puntos.length - 1;
-  if (!pos) return 1;
+  if (puntos.length < 2) return Math.max(0, puntos.length - 1);
+  if (!pos) return 0;
   let mejor = 1;
   let menor = Infinity;
+  let tMejor = 0;
   for (let i = 0; i < puntos.length - 1; i++) {
     const a = puntos[i], b = puntos[i + 1];
     if (!a || !b || !ubicado(a) || !ubicado(b)) continue;
-    const d = distanciaATramo(pos, a, b);
-    if (d < menor) {
-      menor = d;
+    const m = medirTramo(pos, a, b);
+    if (m.d < menor) {
+      menor = m.d;
       mejor = i + 1;
+      tMejor = m.t;
     }
   }
+  const p0 = puntos[0];
+  if (mejor === 1 && tMejor <= 0 && p0 && ubicado(p0) && medirTramo(pos, p0, p0).d > ALCANZADO_M) return 0;
   return mejor;
 }
 
@@ -166,27 +180,169 @@ export interface LinkNavegacion {
 }
 
 /**
- * Link de Google Maps desde la ubicación del teléfono, pasando por los puntos que faltan (desde
- * «desde») hasta el destino. Si hay más de 9 paradas, el link llega hasta la 10.ª y al llegar se
- * vuelve a tocar «Retomar».
+ * Link de Google Maps desde la ubicación del teléfono («Tu ubicación»), pasando por TODOS los puntos
+ * que faltan (desde «desde») hasta el último. Formato /maps/dir//a/b/c: la app de Google Maps del
+ * celular respeta todas las paradas (el formato api=1 en el celular se queda con la primera). Entran
+ * hasta 10 puntos; si la ruta tiene más, el link llega hasta el 10.º y al volver a tocar «Continuar
+ * viaje» sigue desde donde esté.
  */
 export function linkDesde(puntos: PuntoRuta[], desde: number): LinkNavegacion | null {
-  const faltan = puntos.slice(Math.max(1, Math.min(desde, puntos.length - 1))).filter(ubicado);
+  const faltan = puntos.slice(Math.max(0, Math.min(desde, puntos.length - 1))).filter(ubicado);
   if (faltan.length === 0) return null;
   const tramo = faltan.slice(0, MAX_PARADAS_LINK + 1);
   const destino = tramo[tramo.length - 1]!;
-  const paradas = tramo.slice(0, -1);
-  const q = new URLSearchParams({ api: '1', destination: coord(destino), travelmode: 'driving' });
-  if (paradas.length > 0) q.set('waypoints', paradas.map(coord).join('|'));
-  return { url: `https://www.google.com/maps/dir/?${q.toString()}`, hasta: destino, tramoFinal: tramo.length === faltan.length, paradas: paradas.length };
+  return {
+    url: `https://www.google.com/maps/dir//${tramo.map(coord).join('/')}`,
+    hasta: destino,
+    tramoFinal: tramo.length === faltan.length,
+    paradas: tramo.length - 1,
+  };
 }
 
 /** Link con la ruta completa desde la partida (para que telemetría la pruebe). */
 export function linkCompleto(puntos: PuntoRuta[]): string | null {
   const ok = puntos.filter(ubicado);
   if (ok.length < 2) return null;
-  const q = new URLSearchParams({ api: '1', origin: coord(ok[0]!), destination: coord(ok[ok.length - 1]!), travelmode: 'driving' });
-  const medio = ok.slice(1, -1);
-  if (medio.length > 0) q.set('waypoints', medio.slice(0, MAX_PARADAS_LINK).map(coord).join('|'));
-  return `https://www.google.com/maps/dir/?${q.toString()}`;
+  return `https://www.google.com/maps/dir/${ok.slice(0, MAX_PARADAS_LINK + 2).map(coord).join('/')}`;
 }
+
+/** Migración 156: pantalla «Rutas para choferes» (operaciones abiertas, con ruta o sin ruta). */
+export const VERSION_RUTAS_PANTALLA = 156;
+export interface OperacionRuta {
+  servicioId: number;
+  numero: number;
+  cliente: string;
+  origen: string;
+  destino: string;
+  estado: string;
+  presentacion: string | null;
+  tractor: string | null;
+  chofer: string | null;
+  /** Migración 158: total de rutas, cuántas hechas y cuál está en curso (null: terminó todas). */
+  ruta: { puntos: number; partida: string; destino: string; notas: string | null; total: number; hechas: number; orden: number | null } | null;
+  desvio: { km: number; minutos: number; alerta: boolean } | null;
+}
+const txt = (v: unknown) => (typeof v === 'string' ? v : '');
+const txtN = (v: unknown) => (typeof v === 'string' && v ? v : null);
+export const parsearOperacionesRuta = (v: unknown): OperacionRuta[] =>
+  (Array.isArray(v) ? v : []).map((x) => {
+    const o = (x ?? {}) as Obj;
+    const r = o.ruta && typeof o.ruta === 'object' ? (o.ruta as Obj) : null;
+    const d = o.desvio && typeof o.desvio === 'object' ? (o.desvio as Obj) : null;
+    return {
+      servicioId: Number(o.servicio_id),
+      numero: Number(o.numero_operacion),
+      cliente: txt(o.cliente),
+      origen: txt(o.origen),
+      destino: txt(o.destino),
+      estado: txt(o.estado),
+      presentacion: txtN(o.fecha_presentacion),
+      tractor: txtN(o.tractor),
+      chofer: txtN(o.chofer),
+      ruta: r
+        ? {
+            puntos: Number(r.puntos ?? 0),
+            partida: txt(r.partida),
+            destino: txt(r.destino),
+            notas: txtN(r.notas),
+            total: Number(r.total ?? 1),
+            hechas: Number(r.hechas ?? 0),
+            orden: r.orden === undefined ? 1 : r.orden === null ? null : Number(r.orden),
+          }
+        : null,
+      desvio: d ? { km: Number(d.km), minutos: Number(d.minutos), alerta: d.alerta === true } : null,
+    };
+  });
+
+/** Migración 156: un desvío de la ruta para la ventana emergente. */
+export interface AvisoDesvio {
+  id: number;
+  servicioId: number;
+  numero: number;
+  cliente: string;
+  tractor: string;
+  chofer: string | null;
+  desde: string;
+  minutos: number;
+  km: number;
+  kmMax: number;
+  lat: number | null;
+  lng: number | null;
+}
+export const parsearAvisosDesvio = (v: unknown): AvisoDesvio[] =>
+  (Array.isArray(v) ? v : []).map((x) => {
+    const o = (x ?? {}) as Obj;
+    return {
+      id: Number(o.id),
+      servicioId: Number(o.servicio_id),
+      numero: Number(o.numero_operacion),
+      cliente: txt(o.cliente),
+      tractor: txt(o.tractor),
+      chofer: txtN(o.chofer),
+      desde: txt(o.desde),
+      minutos: Number(o.minutos ?? 0),
+      km: Number(o.km ?? 0),
+      kmMax: Number(o.km_max ?? 0),
+      lat: num(o.latitud),
+      lng: num(o.longitud),
+    };
+  });
+
+/** Migración 161: «Rutas para choferes» por chofer (tabla de choferes activos). */
+export const VERSION_RUTAS_CHOFER = 161;
+export interface OperacionChofer {
+  servicioId: number;
+  numero: number;
+  estado: string;
+  cliente: string;
+  origen: string;
+  destino: string;
+}
+export interface ChoferRutas {
+  choferId: number;
+  chofer: string;
+  camionId: number | null;
+  tractor: string | null;
+  operaciones: OperacionChofer[];
+  /** Rutas que le faltan (incluida la en curso). */
+  pendientes: number;
+  ruta: { id: number; servicioId: number | null; numero: number | null; partida: string; destino: string } | null;
+  desvio: { km: number; minutos: number; alerta: boolean } | null;
+}
+const numN = (v: unknown) => (v === null || v === undefined || v === '' ? null : Number(v));
+export const parsearChoferesRutas = (v: unknown): ChoferRutas[] =>
+  (Array.isArray(v) ? v : []).map((x) => {
+    const o = (x ?? {}) as Obj;
+    const r = o.ruta && typeof o.ruta === 'object' ? (o.ruta as Obj) : null;
+    const d = o.desvio && typeof o.desvio === 'object' ? (o.desvio as Obj) : null;
+    return {
+      choferId: Number(o.chofer_id),
+      chofer: txt(o.chofer),
+      camionId: numN(o.camion_id),
+      tractor: txtN(o.tractor),
+      operaciones: (Array.isArray(o.operaciones) ? o.operaciones : []).map((y) => {
+        const p = (y ?? {}) as Obj;
+        return { servicioId: Number(p.servicio_id), numero: Number(p.numero), estado: txt(p.estado), cliente: txt(p.cliente), origen: txt(p.origen), destino: txt(p.destino) };
+      }),
+      pendientes: Number(o.pendientes ?? 0),
+      ruta: r ? { id: Number(r.id), servicioId: numN(r.servicio_id), numero: numN(r.numero), partida: txt(r.partida), destino: txt(r.destino) } : null,
+      desvio: d ? { km: Number(d.km), minutos: Number(d.minutos), alerta: d.alerta === true } : null,
+    };
+  });
+
+/** Migración 161: la ruta en curso del chofer (con operación o movimiento). */
+export interface MiRuta {
+  id: number;
+  servicioId: number | null;
+  numero: number | null;
+  nombre: string;
+  notas: string | null;
+  puntos: PuntoRuta[];
+}
+export const parsearMiRuta = (v: unknown): MiRuta | null => {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Obj;
+  const puntos = parsearPuntos(o.puntos);
+  if (puntos.length < 2) return null;
+  return { id: Number(o.id), servicioId: numN(o.servicio_id), numero: numN(o.numero), nombre: txt(o.nombre), notas: txtN(o.notas), puntos };
+};

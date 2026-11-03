@@ -162,7 +162,7 @@ export function PizarraPantalla({ vista: pedida = 'tabla' }: { vista?: 'tabla' |
 
       {vista === 'mapa' ? (
         <main className="flex-1 px-4 py-4 sm:px-6 lg:px-8">
-          <PizarraMapa enPizarra />
+          <PizarraMapa enPizarra pantallaCompleta={completa} />
         </main>
       ) : (
         <>

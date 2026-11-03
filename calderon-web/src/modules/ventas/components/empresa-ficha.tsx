@@ -41,6 +41,8 @@ import {
 import { ChipCotizacion, ChipEtapa, ChipFactura, PAISES } from './comun';
 import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import { ClienteDatosSii } from '@/modules/comercial/components/clientes/cliente-datos-sii';
+import { ClienteFantasia } from '@/modules/comercial/components/clientes/cliente-fantasia';
 
 /** Ventas › ficha de una empresa: datos, contactos, negocios, actividades, cotizaciones y facturas. */
 export function EmpresaFicha({ id }: { id: number }) {
@@ -77,6 +79,7 @@ export function EmpresaFicha({ id }: { id: number }) {
               {e.cliente.razonSocial} · {e.cliente.identificadorFiscal} · paga a {e.cliente.condicionPagoDias} días
             </p>
           )}
+          {e.clienteId && <ClienteFantasia clienteId={e.clienteId} />}
         </div>
         <div className="flex flex-wrap gap-2">
           {puedeCotizar && (
@@ -94,6 +97,8 @@ export function EmpresaFicha({ id }: { id: number }) {
       {editando && <FormDatos e={e} onListo={() => setEditando(false)} />}
       {e.notas && !editando && <p className="rounded-lg bg-fondo/60 p-3 text-sm whitespace-pre-line text-tinta">{e.notas}</p>}
       {!e.clienteId && puede && <PasarACliente e={e} />}
+      {/* Migración 154: datos para la factura electrónica, editables desde acá */}
+      {e.clienteId && <ClienteDatosSii clienteId={e.clienteId} editable />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Actividades e={e} puede={puede} />

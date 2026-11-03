@@ -61,6 +61,8 @@ const PAGINAS: readonly Ruta[] = [
   { prefijo: '/pizarra', pantalla: 'flota.pizarra', titulo: 'Pizarra Azul' },
   // El mapa de flota, con su propia entrada (vista Mapa de la Pizarra)
   { prefijo: '/pizarra/mapa', pantalla: 'telemetria.mapa', titulo: 'Mapa de flota' },
+  // Migración 156: la ruta para el chofer de cada operación, en su propia pantalla (Telemetría)
+  { prefijo: '/pizarra/rutas', pantalla: 'operacion.rutas', titulo: 'Rutas para choferes' },
   { prefijo: '/telemetria/mapa', pantalla: 'telemetria.mapa', titulo: 'Mapa de flota' },
   { prefijo: '/telemetria/ranking', pantalla: 'telemetria.sesiones', titulo: 'Ranking de choferes' },
   { prefijo: '/operacion/viajes-chofer', pantalla: 'operacion.tramos', titulo: 'Viajes de chofer' },

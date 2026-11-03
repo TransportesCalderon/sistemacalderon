@@ -38,7 +38,7 @@ const vacio = <span className="text-tinta-suave">—</span>;
 
 /**
  * Migraciones 103 y 107: botón dentro del mapa (abajo a la izquierda, también en pantalla completa) que despliega
- * el ranking de HOY con todas las categorías a la vista, ordenado por el puntaje general del día (Puntaje Calderón
+ * el ranking de HOY con todas las categorías a la vista, ordenado por el puntaje general del día (Puntaje IronTrack
  * de hoy). Tocar un chofer lleva a su camión.
  */
 export function RankingMapa({
@@ -99,7 +99,7 @@ export function RankingMapa({
                   <tr>
                     <th className="px-2 py-1.5 text-left">#</th>
                     <th className="px-2 py-1.5 text-left">Chofer</th>
-                    <th className="px-2 py-1.5 text-right" title="Puntaje Calderón de hoy (0 a 100)">
+                    <th className="px-2 py-1.5 text-right" title="Puntaje IronTrack de hoy (0 a 100)">
                       Puntaje
                     </th>
                     <th className="px-2 py-1.5 text-right">Eco</th>

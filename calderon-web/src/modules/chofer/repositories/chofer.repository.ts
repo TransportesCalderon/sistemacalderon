@@ -101,6 +101,9 @@ export const choferRepository = (db: Db) => {
         }),
       );
     },
+    async apelarGasto(gastoId: number, explicacion: string) {
+      await leer(fin().rpc('fn_apelar_gasto', { p_gasto: gastoId, p_explicacion: explicacion }));
+    },
     async retirarGasto(gastoId: number) {
       return leer(fin().rpc('fn_retirar_gasto', { p_gasto: gastoId }));
     },

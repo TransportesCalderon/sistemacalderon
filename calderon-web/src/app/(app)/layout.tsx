@@ -7,6 +7,7 @@ import { SessionProvider } from '@/modules/core/session/session-provider';
 import { AppShell } from '@/modules/core/layout/app-shell';
 import { AvisoMonedaBase } from '@/modules/core/layout/aviso-moneda-base';
 import { PanelFicha } from '@/modules/core/fichas/panel-ficha';
+import { AvisosDesvio } from '@/modules/logistica/components/rutas/avisos-desvio';
 
 /**
  * Layout de la aplicación (Server Component): resuelve la sesión una vez, filtra el menú
@@ -27,6 +28,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <Suspense fallback={null}>
         <PanelFicha />
       </Suspense>
+      {/* Migración 156: aviso de camión fuera de la ruta (Analista de control y Gerencia) */}
+      <AvisosDesvio />
     </SessionProvider>
   );
 }

@@ -1,19 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, ExternalLink, Import, LoaderCircle, Map as MapaIcono, MapPin, Pencil, Plus, Save, Trash2, TriangleAlert, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, CheckCheck, ExternalLink, Import, LoaderCircle, Map as MapaIcono, MapPin, Pencil, Plus, Save, Trash2, TriangleAlert, Undo2, X } from 'lucide-react';
 import { ErrorBase } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
-import type { ErrorAccion } from '@/server/actions/result';
+import type { ActionResult, ErrorAccion } from '@/server/actions/result';
+import { useSesion } from '@/modules/core/session/session-provider';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
+import { formatearFechaHora } from '@/shared/lib/fechas';
 import { invalidar } from '@/shared/query/invalidar';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
-import { abrirLinkCorto, guardarRutaOperacion, quitarRutaOperacion } from '../../actions/rutas.actions';
+import {
+  abrirLinkCorto,
+  guardarRutaOperacion,
+  guardarRutaTramo,
+  llegadaRuta,
+  moverRutaTramo,
+  quitarRutaOperacion,
+  quitarRutaTramo,
+} from '../../actions/rutas.actions';
 import { esLinkCorto, esLinkDeMaps, leerLinkMaps, linkCompleto, MAX_PUNTOS, type PuntoRuta } from '../../domain/rutas';
-import { useRutaOperacion } from '../../queries/hooks';
-import type { RutaOperacion as Ruta } from '../../repositories/rutas.repository';
+import { useRutaOperacion, useRutasTramo } from '../../queries/hooks';
+import type { RutaOperacion as Ruta, RutaTramo } from '../../repositories/rutas.repository';
 
 const MapaRuta = dynamic(() => import('./mapa-ruta').then((m) => m.MapaRuta), {
   ssr: false,
@@ -27,6 +38,148 @@ const INPUT = 'h-9 w-full rounded-md border border-borde bg-panel px-3 text-sm o
  * por eso va en cada operación). Telemetría pega el link de Google Maps de siempre.
  */
 export function RutaOperacion({ servicioId, abierta }: { servicioId: number; abierta: boolean }) {
+  // Migración 158: varias rutas por operación
+  const varias = useBaseTiene(VERSION_VARIAS_RUTAS);
+  if (varias) return <RutasVarias servicioId={servicioId} abierta={abierta} />;
+  return <RutaUnica servicioId={servicioId} abierta={abierta} />;
+}
+
+const VERSION_VARIAS_RUTAS = 158;
+const POR: Record<string, string> = { gps: 'por GPS', chofer: 'avisó el chofer', oficina: 'a mano' };
+
+/**
+ * Migración 158 · Todas las rutas de la operación, en orden. El chofer ve solo la «en curso»; pasa a la
+ * siguiente al llegar al destino (GPS o «Llegué al destino»), o la oficina la pasa a mano.
+ */
+function RutasVarias({ servicioId, abierta }: { servicioId: number; abierta: boolean }) {
+  const { zonaHoraria } = useSesion();
+  const qc = useQueryClient();
+  const ver = useCan('operacion.rutas:ver');
+  const puede = useCan('operacion.rutas:editar') && abierta;
+  const { data: rutas, isPending } = useRutasTramo(servicioId, ver);
+  const [editando, setEditando] = useState<RutaTramo | 'nueva' | null>(null);
+  const [error, setError] = useState<ErrorAccion | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  if (!ver || isPending) return null;
+  const lista = rutas ?? [];
+
+  const correr = async (p: Promise<{ ok: true } | { ok: false; error: ErrorAccion }>) => {
+    setError(null);
+    setOcupado(true);
+    const r = await p;
+    setOcupado(false);
+    if (!r.ok) return setError(r.error);
+    await invalidar(qc, 'operacion');
+  };
+
+  if (editando) {
+    const ruta = editando === 'nueva' ? null : editando;
+    return (
+      <EditorRuta
+        servicioId={servicioId}
+        ruta={ruta}
+        multiple
+        titulo={ruta ? `Ruta ${ruta.orden}` : `Ruta ${lista.length + 1} (nueva)`}
+        onCerrar={() => setEditando(null)}
+      />
+    );
+  }
+
+  const enCurso = lista.find((r) => r.estado === 'en_curso');
+  const hayHechas = lista.some((r) => r.estado === 'hecha');
+
+  return (
+    <div className="space-y-2 text-sm">
+      <p className="flex items-center gap-2 font-medium text-tinta">
+        <MapaIcono className="size-4 text-marca" /> Rutas para el chofer
+        <span className="font-normal text-tinta-suave">· el chofer ve solo la que está en curso</span>
+      </p>
+      {lista.length === 0 && !puede && <p className="text-tinta-suave">Sin ruta para el chofer.</p>}
+      {lista.length > 0 && (
+        <ol className="space-y-1">
+          {lista.map((r, i) => {
+            const link = linkCompleto(r.puntos);
+            const pendiente = r.estado === 'pendiente';
+            return (
+              <li
+                key={r.id}
+                className={cn(
+                  'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border px-2 py-1.5',
+                  r.estado === 'en_curso' ? 'border-marca bg-marca-suave/50' : 'border-borde',
+                  r.estado === 'hecha' && 'text-tinta-suave',
+                )}
+              >
+                <span className="w-14 shrink-0 font-semibold">Ruta {r.orden}</span>
+                <span className="min-w-0 flex-1">
+                  {r.puntos[0]?.nombre} → {r.puntos[r.puntos.length - 1]?.nombre}
+                  <span className="text-xs text-tinta-suave"> · {r.puntos.length} puntos</span>
+                  {r.notas && <span className="block text-xs text-alerta">{r.notas}</span>}
+                </span>
+                {r.estado === 'en_curso' && <span className="rounded-full bg-marca px-2 py-0.5 text-xs font-medium text-white">En curso</span>}
+                {r.estado === 'pendiente' && <span className="rounded-full bg-fondo px-2 py-0.5 text-xs text-tinta-suave">Después</span>}
+                {r.estado === 'hecha' && (
+                  <span className="text-xs">
+                    Llegó {r.llegadaEn ? formatearFechaHora(r.llegadaEn, zonaHoraria) : ''} {r.llegadaPor ? `(${POR[r.llegadaPor]})` : ''}
+                  </span>
+                )}
+                {link && (
+                  <a href={link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-marca hover:underline">
+                    <ExternalLink className="size-3.5" /> Maps
+                  </a>
+                )}
+                {puede && (
+                  <span className="flex items-center gap-0.5">
+                    <button type="button" onClick={() => setEditando(r)} className="rounded p-1 text-marca hover:bg-hover" title="Editar">
+                      <Pencil className="size-3.5" />
+                    </button>
+                    {pendiente && i > 0 && lista[i - 1]?.estado !== 'hecha' && (
+                      <button type="button" disabled={ocupado} onClick={() => void correr(moverRutaTramo({ id: r.id, dir: -1 }))} className="rounded p-1 text-tinta-suave hover:bg-hover" title="Subir">
+                        <ArrowUp className="size-3.5" />
+                      </button>
+                    )}
+                    {r.estado !== 'hecha' && i < lista.length - 1 && (
+                      <button type="button" disabled={ocupado} onClick={() => void correr(moverRutaTramo({ id: r.id, dir: 1 }))} className="rounded p-1 text-tinta-suave hover:bg-hover" title="Bajar">
+                        <ArrowDown className="size-3.5" />
+                      </button>
+                    )}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {lista.length > 0 && !enCurso && <p className="text-xs text-exito">El chofer terminó todas las rutas.</p>}
+      {puede && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <button type="button" onClick={() => setEditando('nueva')} className="inline-flex items-center gap-1 font-medium text-marca hover:underline">
+            <Plus className="size-4" /> {lista.length === 0 ? 'Cargar la ruta para el chofer' : 'Agregar otra ruta'}
+          </button>
+          {enCurso && lista.length > 1 && (
+            <button
+              type="button"
+              disabled={ocupado}
+              onClick={() => void correr(llegadaRuta({ servicioId, llego: true }))}
+              className="inline-flex items-center gap-1 text-xs text-tinta-suave hover:underline"
+              title="Si el GPS no lo detectó y el chofer no avisó"
+            >
+              <CheckCheck className="size-3.5" /> Llegó al destino de la ruta {enCurso.orden}: pasar a la siguiente
+            </button>
+          )}
+          {hayHechas && (
+            <button type="button" disabled={ocupado} onClick={() => void correr(llegadaRuta({ servicioId, llego: false }))} className="inline-flex items-center gap-1 text-xs text-tinta-suave hover:underline">
+              <Undo2 className="size-3.5" /> Volver a la ruta anterior
+            </button>
+          )}
+        </div>
+      )}
+      <ErrorBase error={error} />
+    </div>
+  );
+}
+
+/** Hasta la migración 157: una sola ruta por operación. */
+function RutaUnica({ servicioId, abierta }: { servicioId: number; abierta: boolean }) {
   const ver = useCan('operacion.rutas:ver');
   const puede = useCan('operacion.rutas:editar') && abierta;
   const { data: ruta, isPending } = useRutaOperacion(servicioId);
@@ -65,7 +218,37 @@ export function RutaOperacion({ servicioId, abierta }: { servicioId: number; abi
   );
 }
 
-function EditorRuta({ servicioId, ruta, onCerrar }: { servicioId: number; ruta: Ruta | null; onCerrar: () => void }) {
+/** Datos que arma el editor (los guarda quien lo usa: por operación o por chofer). */
+export interface DatosEditorRuta {
+  notas: string;
+  puntos: PuntoRuta[];
+  linkOriginal: string | null;
+}
+
+export function EditorRuta({
+  servicioId,
+  ruta,
+  onCerrar,
+  multiple = false,
+  titulo = 'Ruta para el chofer',
+  onGuardar,
+  onQuitar,
+  extra,
+  onOtra,
+}: {
+  servicioId: number;
+  ruta: Ruta | null;
+  onCerrar: () => void;
+  multiple?: boolean;
+  titulo?: string;
+  /** Migración 161: guardar por chofer (si no viene, se guarda por operación). */
+  onGuardar?: (d: DatosEditorRuta) => Promise<ActionResult<unknown>>;
+  onQuitar?: () => Promise<ActionResult<unknown>>;
+  /** Campos de más arriba del aviso (por ejemplo, a qué operación va). */
+  extra?: ReactNode;
+  /** «Guardar y cargar otra»: después de guardar, abre una ruta nueva en blanco. */
+  onOtra?: () => void;
+}) {
   const qc = useQueryClient();
   const [notas, setNotas] = useState(ruta?.notas ?? '');
   const [puntos, setPuntos] = useState<PuntoRuta[]>(ruta?.puntos ?? []);
@@ -127,21 +310,26 @@ function EditorRuta({ servicioId, ruta, onCerrar }: { servicioId: number; ruta: 
       return n;
     });
 
-  const guardar = async () => {
+  const guardar = async (otra = false) => {
     setError(null);
     setOcupado('guardar');
-    const r = await guardarRutaOperacion({ servicioId, version: ruta?.version ?? null, notas, puntos, linkOriginal });
+    const r = onGuardar
+      ? await onGuardar({ notas, puntos, linkOriginal })
+      : multiple
+      ? await guardarRutaTramo({ servicioId, id: ruta?.id ?? null, version: ruta?.version ?? null, notas, puntos, linkOriginal })
+      : await guardarRutaOperacion({ servicioId, version: ruta?.version ?? null, notas, puntos, linkOriginal });
     setOcupado(null);
     if (!r.ok) return setError(r.error);
     await invalidar(qc, 'operacion');
-    onCerrar();
+    if (otra && onOtra) onOtra();
+    else onCerrar();
   };
 
   const quitar = async () => {
     if (!ruta) return;
     setError(null);
     setOcupado('quitar');
-    const r = await quitarRutaOperacion({ servicioId, version: ruta.version });
+    const r = onQuitar ? await onQuitar() : multiple ? await quitarRutaTramo({ id: ruta.id, version: ruta.version }) : await quitarRutaOperacion({ servicioId, version: ruta.version });
     setOcupado(null);
     if (!r.ok) return setError(r.error);
     await invalidar(qc, 'operacion');
@@ -154,7 +342,7 @@ function EditorRuta({ servicioId, ruta, onCerrar }: { servicioId: number; ruta: 
     <div className="space-y-3 rounded-lg border border-marca bg-panel p-3">
       <div className="flex items-center justify-between">
         <p className="flex items-center gap-2 font-medium text-tinta">
-          <MapaIcono className="size-4 text-marca" /> Ruta para el chofer
+          <MapaIcono className="size-4 text-marca" /> {titulo}
         </p>
         <button type="button" onClick={onCerrar} className="rounded-md p-1 text-tinta-suave hover:bg-hover" aria-label="Cerrar">
           <X className="size-4" />
@@ -217,6 +405,8 @@ function EditorRuta({ servicioId, ruta, onCerrar }: { servicioId: number; ruta: 
       {sel !== null && <p className="text-sm text-marca">Tocá el mapa donde va el punto {sel + 1}.</p>}
       {sinUbicar > 0 && <p className="text-sm text-error">{sinUbicar} punto(s) sin ubicación: elegilos y tocá el mapa.</p>}
 
+      {extra}
+
       <label className="block space-y-1 text-sm">
         <span className="font-medium text-tinta">Aviso para el chofer (opcional)</span>
         <textarea
@@ -233,6 +423,11 @@ function EditorRuta({ servicioId, ruta, onCerrar }: { servicioId: number; ruta: 
         <button type="button" className={BOTON_PRIMARIO} onClick={() => void guardar()} disabled={ocupado !== null}>
           {ocupado === 'guardar' ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />} Guardar ruta
         </button>
+        {onOtra && !ruta && (
+          <button type="button" className={BOTON_SECUNDARIO} onClick={() => void guardar(true)} disabled={ocupado !== null}>
+            <Plus className="size-4" /> Guardar y cargar otra
+          </button>
+        )}
         {prueba && (
           <a href={prueba} target="_blank" rel="noreferrer" className={BOTON_SECUNDARIO}>
             <ExternalLink className="size-4" /> Probar en Google Maps

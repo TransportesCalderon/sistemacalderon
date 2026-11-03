@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, FileUp, Gauge, Package, Receipt } from 'lucide-react';
+import { ChevronRight, Gauge, Package, Receipt } from 'lucide-react';
 import { Cargando, Chip, ErrorLectura } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
 import { importeACobrar } from '@/modules/liquidacion/components/mis-liquidaciones';
@@ -12,13 +12,15 @@ import { AvisoCargaChofer } from '@/modules/telemetria/components/aviso-carga-ch
 import { cn } from '@/shared/lib/cn';
 import { TARJETA } from '@/shared/ui/clases';
 import { nombrePeriodo } from '../domain/chofer.types';
-import { useMiFondo, useMisCargas } from '../queries/hooks';
+import { useMiFondo, useMiRuta, useMisCargas } from '../queries/hooks';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { RutaDelChofer } from './ruta-chofer';
 import { CompartirUbicacion } from './compartir-ubicacion';
-import { TarjetaCarga } from './mi-carga';
+import { CargaSiguiente, TarjetaCarga } from './mi-carga';
 import { TextoSaldo } from './mis-gastos';
 
-const BOTON_GRANDE =
-  'flex flex-col items-center justify-center gap-1.5 rounded-xl text-center border border-borde bg-panel px-2 py-4 text-sm font-medium text-tinta shadow-sm active:bg-hover disabled:opacity-50';
+const BOTON_CHICO =
+  'flex items-center justify-center gap-2 rounded-xl border border-borde bg-panel px-3 py-3 text-sm font-medium text-tinta shadow-sm active:bg-hover';
 
 /**
  * Sprint 7 · Mi viaje: lo único que usa el chofer, en una pantalla. Arriba tres botones (documento,
@@ -29,10 +31,14 @@ export function MiViaje() {
   const { data, isLoading, isError, refetch } = useMisCargas();
   const verGastos = useCan('chofer.mis_gastos:ver');
   const verLiquidaciones = useCan('chofer.mis_liquidaciones:ver');
+  // Migración 161: la ruta en curso es del chofer (puede ser un movimiento sin operación): va arriba de todo
+  const porChofer = useBaseTiene(161);
+  const miRuta = useMiRuta(porChofer);
 
   if (isLoading) return <Cargando texto="Buscando tu viaje…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudo leer tu viaje." onReintentar={() => void refetch()} />;
-  const primera = data.cargas[0];
+  const [actual, ...despues] = data.cargas;
+  const ruta = porChofer ? (miRuta.data ?? null) : null;
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
@@ -43,23 +49,41 @@ export function MiViaje() {
 
       <AvisoCargaChofer />
 
-      <div className="grid grid-cols-3 gap-2">
-        <button
-          type="button"
-          className={BOTON_GRANDE}
-          disabled={!primera}
-          title={primera ? undefined : 'Cuando tengas una carga asignada'}
-          onClick={() => primera && document.getElementById(`documentos-${primera.servicioId}`)?.scrollIntoView({ behavior: 'smooth' })}
-        >
-          <FileUp className="size-6 text-marca" /> Documento
-        </button>
+      {/* 1 · Lo de ahora: la ruta que le cargó Telemetría (solo la en curso; si no hay, nada) */}
+      {ruta && <RutaDelChofer ruta={ruta} />}
+
+      <CompartirUbicacion habilitado={data.compartirUbicacion} intervaloS={data.intervaloS} viaje={data.cargas.map((c) => c.servicioId).join(',')} />
+
+      {/* 2 · El viaje de ahora */}
+      {!actual ? (
+        <div className={cn(TARJETA, 'space-y-2 p-6 text-center')}>
+          <Package className="mx-auto size-8 text-tinta-suave" />
+          <p className="font-medium text-tinta">No tenés ninguna carga asignada.</p>
+          <p className="text-sm text-tinta-suave">Cuando Logística te asigne una, aparece acá.</p>
+        </div>
+      ) : (
+        <TarjetaCarga c={actual} conRuta={!porChofer} />
+      )}
+
+      {/* 3 · Lo que viene después, chiquito */}
+      {despues.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-tinta-suave">Después</h2>
+          {despues.map((c) => (
+            <CargaSiguiente key={c.servicioId} c={c} />
+          ))}
+        </section>
+      )}
+
+      {/* 4 · Lo demás: gasto, tablero, fondo y lo que va a cobrar */}
+      <div className="grid grid-cols-2 gap-2">
         {verGastos && (
-          <Link href="/mi-viaje?ver=gastos&nuevo=1" className={BOTON_GRANDE}>
-            <Receipt className="size-6 text-marca" /> Gasto
+          <Link href="/mi-viaje?ver=gastos&nuevo=1" className={BOTON_CHICO}>
+            <Receipt className="size-5 text-marca" /> Cargar gasto
           </Link>
         )}
-        <Link href="/mi-viaje?ver=tablero" className={BOTON_GRANDE}>
-          <Gauge className="size-6 text-marca" /> Foto del tablero
+        <Link href="/mi-viaje?ver=tablero" className={cn(BOTON_CHICO, !verGastos && 'col-span-2')}>
+          <Gauge className="size-5 text-marca" /> Foto del tablero
         </Link>
       </div>
 
@@ -68,18 +92,6 @@ export function MiViaje() {
           {verGastos && <TarjetaFondo />}
           {verLiquidaciones && <TarjetaACobrar />}
         </div>
-      )}
-
-      <CompartirUbicacion habilitado={data.compartirUbicacion} intervaloS={data.intervaloS} viaje={data.cargas.map((c) => c.servicioId).join(',')} />
-
-      {data.cargas.length === 0 ? (
-        <div className={cn(TARJETA, 'space-y-2 p-6 text-center')}>
-          <Package className="mx-auto size-8 text-tinta-suave" />
-          <p className="font-medium text-tinta">No tenés ninguna carga asignada.</p>
-          <p className="text-sm text-tinta-suave">Cuando Logística te asigne una, aparece acá.</p>
-        </div>
-      ) : (
-        data.cargas.map((c) => <TarjetaCarga key={c.servicioId} c={c} />)
       )}
     </div>
   );
