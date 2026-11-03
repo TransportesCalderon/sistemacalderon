@@ -42,6 +42,7 @@ import {
   useAsignarTercero,
   useAvanzarOperacion,
   useBasesOperativas,
+  useCambiarChofer,
   useCancelarOperacion,
   useDejarEnBase,
   useGensetsOperacion,
@@ -72,7 +73,7 @@ import { useBaseTiene } from '@/shared/hooks/use-version-base';
 
 export type Abierto =
   | { tipo: 'nueva'; base?: Operacion }
-  | { tipo: 'detalle' | 'modificar' | 'equipo' | 'tercero' | 'cancelar' | 'en_base' | 'seguir'; o: Operacion }
+  | { tipo: 'detalle' | 'modificar' | 'equipo' | 'tercero' | 'cancelar' | 'en_base' | 'seguir' | 'relevo'; o: Operacion }
   | { tipo: 'paso'; o: Operacion; paso: PasoOperacion; error?: ErrorAccion | null }
   | null;
 
@@ -419,6 +420,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
   const tipo = abierto?.tipo;
   const abiertaOp = esAbierta(o);
   const cerrada = ['entregado', 'facturado', 'cancelado'].includes(o.estado);
+  // Relevo de chofer desde la operación (el mismo de Viajes; la base controla todo)
+  const puedeRelevo = useCan('operacion.tramos:editar') && !!o.tramoId && !o.transportistaId && o.estado === 'en_curso';
 
   // Solo lo que tiene dato: la ficha corta se lee de un vistazo.
   const datos: [string, ReactNode, boolean?][] = (
@@ -455,7 +458,9 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
     ] as [string, ReactNode, boolean?][]
   ).filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== false);
 
-  const acciones: { id: 'modificar' | 'tercero' | 'cancelar'; etiqueta: string }[] = puede
+  const acciones: { id: 'modificar' | 'tercero' | 'cancelar' | 'relevo'; etiqueta: string }[] = [
+    ...(puedeRelevo ? [{ id: 'relevo' as const, etiqueta: 'Relevo' }] : []),
+    ...(puede
     ? [
         // Migración 137: se modifica mientras no esté facturada ni cancelada
         ...(!['facturado', 'cancelado'].includes(o.estado) ? [{ id: 'modificar' as const, etiqueta: 'Modificar' }] : []),
@@ -464,7 +469,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
           : []),
         ...(abiertaOp ? [{ id: 'cancelar' as const, etiqueta: 'Cancelar' }] : []),
       ]
-    : [];
+    : []),
+  ];
 
   return (
     <div className="space-y-3 rounded-lg border border-borde bg-fondo/40 p-4" onClick={(e) => e.stopPropagation()}>
@@ -556,6 +562,7 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       {tipo === 'seguir' && <PanelSeguir o={o} zona={zona} onCerrar={cerrar} />}
       {tipo === 'tercero' && <PanelTercero o={o} onCerrar={cerrar} />}
       {tipo === 'cancelar' && <PanelCancelar o={o} onCerrar={cerrar} />}
+      {tipo === 'relevo' && <PanelRelevo o={o} zona={zona} onCerrar={cerrar} onTractor={() => onAbrir({ tipo: 'en_base', o })} />}
 
       {o.hitos.length > 0 && (
         <ul className="flex flex-wrap gap-1.5 text-xs">
@@ -1288,6 +1295,48 @@ function PanelSeguir({ o, zona, onCerrar }: { o: Operacion; zona: string; onCerr
       <Campo label="Odómetro del tractor (km)" error={campo('odometroKm')} ayuda="Solo si no hay telemetría.">
         <input inputMode="decimal" value={f.odometroKm} onChange={(e) => setF({ ...f, odometroKm: e.target.value })} />
       </Campo>
+    </Panel>
+  );
+}
+
+/**
+ * Relevo desde la operación: cambia el chofer del viaje en curso (mismo tractor; queda quién manejó
+ * cada parte) o, si cambia también el tractor, deja el semi en la base para que lo siga otro.
+ * Usa las mismas funciones que Viajes (ops.fn_cambiar_chofer / fn_dejar_en_base): la base decide.
+ */
+function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: string; onCerrar: () => void; onTractor: () => void }) {
+  const hacer = useCambiarChofer();
+  const { data: op } = useOpcionesViaje();
+  const { error, enviar, campo } = useEnvio();
+  const [f, setF] = useState({ choferId: '', desde: '' });
+  const conTractor = o.posibles.includes('en_base');
+  return (
+    <Panel
+      titulo={`Relevo · Op. ${o.numero}`}
+      explicacion={`Sigue el mismo tractor ${o.tractor ?? ''} con otro chofer. Queda registrado quién manejó cada parte del viaje (y cada uno cobra la suya).`}
+      error={error}
+      ocupado={hacer.isPending}
+      textoBoton="Hacer el relevo"
+      onCerrar={onCerrar}
+      onConfirmar={() => enviar(hacer.mutateAsync({ tramoId: o.tramoId ?? 0, choferId: f.choferId, desde: aIso(f.desde, zona) }), onCerrar)}
+    >
+      <Campo label="Chofer que maneja ahora">
+        <input value={o.chofer ?? '—'} readOnly disabled />
+      </Campo>
+      <Campo label="Chofer nuevo *" error={campo('choferId')}>
+        <Lista valor={f.choferId} opciones={op?.choferes.filter((c) => c.id !== o.choferId)} onCambiar={(x) => setF({ ...f, choferId: x })} />
+      </Campo>
+      <Campo label="Desde" error={campo('desde')} ayuda="Vacío = ahora.">
+        <input type="datetime-local" value={f.desde} onChange={(e) => setF({ ...f, desde: e.target.value })} />
+      </Campo>
+      {conTractor && (
+        <p className="self-end pb-1 text-sm text-tinta-suave">
+          ¿Cambia también el tractor?{' '}
+          <button type="button" className="font-medium text-marca hover:underline" onClick={onTractor}>
+            Dejar el semi en la base
+          </button>
+        </p>
+      )}
     </Panel>
   );
 }
