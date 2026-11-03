@@ -71,6 +71,17 @@ export interface DetalleAlerta {
   historial: { estado: string; anterior: string | null; en: FechaISO; usuario: string | null; justificacion: string | null }[];
   comentarios: { texto: string; en: FechaISO; usuario: string | null }[];
   carga: { id: number; fechaHora: FechaISO; litros: number; estacion: string | null } | null;
+  /** Migración 175: exceso de velocidad: en qué horario pasó y el trayecto (para el mapa). */
+  velocidad: { limiteKmh: number; tramos: TramoVelocidad[] } | null;
+}
+
+export interface TramoVelocidad {
+  desde: FechaISO;
+  hasta: FechaISO;
+  minutos: number;
+  velocidadMax: number | null;
+  /** Posiciones en orden: [lat, lng, km/h, momento]. */
+  puntos: { lat: number; lng: number; kmh: number | null; ts: FechaISO }[];
 }
 
 export interface Regla {
@@ -92,6 +103,7 @@ export function parsearDetalle(d: unknown): DetalleAlerta {
   const x = obj(d);
   const r = obj(x.regla);
   const c = x.carga ? obj(x.carga) : null;
+  const v = x.velocidad ? obj(x.velocidad) : null;
   return {
     regla: { codigo: txt(r.codigo) ?? '', nombre: txt(r.nombre) ?? '', descripcion: txt(r.descripcion), version: Number(r.version ?? 1), parametros: obj(r.parametros) },
     historial: arr(x.historial).map((h) => ({
@@ -103,6 +115,20 @@ export function parsearDetalle(d: unknown): DetalleAlerta {
     })),
     comentarios: arr(x.comentarios).map((k) => ({ texto: txt(k.texto) ?? '', en: (txt(k.en) ?? '') as FechaISO, usuario: txt(k.usuario) })),
     carga: c ? { id: Number(c.id), fechaHora: (txt(c.fecha_hora) ?? '') as FechaISO, litros: Number(c.litros), estacion: txt(c.estacion) } : null,
+    velocidad: v
+      ? {
+          limiteKmh: Number(v.limite_kmh ?? 80),
+          tramos: arr(v.tramos).map((t) => ({
+            desde: (txt(t.desde) ?? '') as FechaISO,
+            hasta: (txt(t.hasta) ?? '') as FechaISO,
+            minutos: Number(t.minutos ?? 0),
+            velocidadMax: t.velocidad_max === null || t.velocidad_max === undefined ? null : Number(t.velocidad_max),
+            puntos: (Array.isArray(t.puntos) ? (t.puntos as unknown[][]) : [])
+              .map((p) => ({ lat: Number(p[0]), lng: Number(p[1]), kmh: p[2] === null || p[2] === undefined ? null : Number(p[2]), ts: String(p[3] ?? '') as FechaISO }))
+              .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)),
+          })),
+        }
+      : null,
   };
 }
 

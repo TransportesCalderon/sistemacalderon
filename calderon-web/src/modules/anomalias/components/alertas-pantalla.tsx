@@ -31,6 +31,10 @@ import {
 } from '../domain/alerta.types';
 import { useBandejaAlertas, useComentarAlerta, useDetalleAlerta, useReabrirAlerta, useResolverAlerta, useTomarAlerta } from '../queries/hooks';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import dynamic from 'next/dynamic';
+
+// Migración 175: el mapa del trayecto se carga solo cuando hace falta
+const MapaTrayecto = dynamic(() => import('./mapa-trayecto').then((m) => ({ default: m.MapaTrayecto })), { ssr: false });
 
 const TONO_SEVERIDAD: Record<string, Tono> = { alta: 'error', media: 'alerta', baja: 'neutro' };
 const TONO_ESTADO: Record<string, Tono> = { nueva: 'marca', en_revision: 'alerta', explicada: 'exito', descartada: 'neutro', confirmada_operativa: 'error' };
@@ -225,6 +229,25 @@ function DetalleFila({ a }: { a: Alerta }) {
         <a className="inline-flex items-center gap-1 text-sm text-marca hover:underline" href={`https://www.google.com/maps?q=${lat},${lon}`} target="_blank" rel="noreferrer">
           <MapPin className="size-4" /> Ver dónde estaba el camión
         </a>
+      )}
+      {/* Migración 175: exceso de velocidad: en qué horario pasó y por dónde */}
+      {d?.velocidad && d.velocidad.tramos.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-tinta">Cuándo pasó (sobre {formatearNumero(d.velocidad.limiteKmh, 0)} km/h)</p>
+          <ul className="space-y-0.5 text-sm text-tinta">
+            {d.velocidad.tramos.map((t, i) => (
+              <li key={i}>
+                {formatearFechaHora(t.desde, zonaHoraria)} → {formatearFechaHora(t.hasta, zonaHoraria)} · {formatearNumero(t.minutos, Number.isInteger(t.minutos) ? 0 : 1)} min
+                {t.velocidadMax !== null && ` · máx. ${formatearNumero(t.velocidadMax, 0)} km/h`}
+              </li>
+            ))}
+          </ul>
+          {d.velocidad.tramos.some((t) => t.puntos.length > 0) ? (
+            <MapaTrayecto tramos={d.velocidad.tramos} limite={d.velocidad.limiteKmh} zona={zonaHoraria} />
+          ) : (
+            <p className="text-xs text-tinta-suave">Sin posiciones del camión en esos horarios para mostrar el mapa.</p>
+          )}
+        </div>
       )}
       {Array.isArray(a.evidencia.detalle) && a.evidencia.detalle.length > 0 && (
         <ul className="space-y-0.5 text-sm text-tinta-suave">
