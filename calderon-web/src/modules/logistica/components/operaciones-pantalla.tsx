@@ -66,6 +66,8 @@ import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { RutaOperacion } from './rutas/ruta-operacion';
 import { VERSION_RUTAS_PANTALLA } from '../domain/rutas';
 
+/** Migración 172: tara del contenedor (TARA CNTR). */
+const VERSION_TARA_CNTR = 172;
 /** Migración 166: precio del viaje en la operación. */
 const VERSION_PRECIO_VIAJE = 166;
 const MONEDAS_PRECIO = ['USD', 'CLP', 'ARS'] as const;
@@ -420,6 +422,8 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
   const tipo = abierto?.tipo;
   const abiertaOp = esAbierta(o);
   const cerrada = ['entregado', 'facturado', 'cancelado'].includes(o.estado);
+  // Migración 172: la tara del contenedor (se lee aparte, como el precio)
+  const { data: extra } = usePrecioOperacion(o.servicioId, useBaseTiene(VERSION_TARA_CNTR));
   // Relevo de chofer desde la operación (el mismo de Viajes; la base controla todo)
   const puedeRelevo = useCan('operacion.tramos:editar') && !!o.tramoId && !o.transportistaId && o.estado === 'en_curso';
 
@@ -439,6 +443,7 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       ['Buque', o.buque],
       ['Precinto', o.precinto, true],
       ['Peso bruto', o.pesoKg !== null && `${o.pesoKg.toLocaleString('es-AR')} kg`],
+      ['Tara CNTR', extra?.tara != null && `${extra.tara.toLocaleString('es-AR')} kg`],
       ['Tara que pide', o.taraMaxDias && `${o.taraMaxDias} días`],
       ['CRT', o.crt, true],
       ['MIC', o.mic, true],
@@ -817,6 +822,8 @@ const vacioForm = (zona: string) => ({
   // Migración 166
   precioViaje: '',
   precioMoneda: 'USD',
+  // Migración 172
+  taraContenedorKg: '',
 });
 type Form = ReturnType<typeof vacioForm>;
 const MAS_DATOS: (keyof Form)[] = [
@@ -831,6 +838,7 @@ const MAS_DATOS: (keyof Form)[] = [
   'buque',
   'precinto',
   'pesoKg',
+  'taraContenedorKg',
   'taraMaxDias',
   'crt',
   'mic',
@@ -893,12 +901,18 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
   const [mas, setMas] = useState(editar);
   // Migración 166: precio del viaje (al modificar o duplicar se trae el cargado)
   const conPrecio = useBaseTiene(VERSION_PRECIO_VIAJE);
+  const conTara = useBaseTiene(VERSION_TARA_CNTR);
   const { data: precio } = usePrecioOperacion(base?.servicioId ?? null, conPrecio);
   const precioCargado = useRef(false);
   useEffect(() => {
     if (!precio || precioCargado.current) return;
     precioCargado.current = true;
-    setF((p) => ({ ...p, precioViaje: p.precioViaje || precio.precio.replace('.', ','), precioMoneda: precio.moneda }));
+    setF((p) => ({
+      ...p,
+      ...(precio.precio !== null ? { precioViaje: p.precioViaje || precio.precio.replace('.', ','), precioMoneda: precio.moneda } : {}),
+      // Migración 172: la tara del contenedor (al duplicar, la misma)
+      ...(precio.tara !== null ? { taraContenedorKg: p.taraContenedorKg || String(precio.tara).replace('.', ',') } : {}),
+    }));
   }, [precio]);
   const set = (k: keyof Form) => (val: string) => setF((p) => ({ ...p, [k]: val }));
   const ev = (k: keyof Form) => (e: { target: { value: string } }) => set(k)(e.target.value);
@@ -958,10 +972,11 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
   const ocupado = alta.isPending || guardar.isPending;
 
   const enviarForm = () => {
-    const { precioViaje, precioMoneda, ...resto } = f;
+    const { precioViaje, precioMoneda, taraContenedorKg, ...resto } = f;
     const comun = {
       ...resto,
       ...(conPrecio ? { precioViaje, precioMoneda } : {}),
+      ...(conTara ? { taraContenedorKg } : {}),
       tipoOperacion: f.tipoOperacion as AltaEntrada['tipoOperacion'],
       fechaPresentacion: aIso(f.fechaPresentacion, zona),
       fechaEntrega: aIso(f.fechaEntrega, zona),
@@ -1129,6 +1144,11 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
           <Campo label="Peso bruto (kg)" error={campo('pesoKg')}>
             <input inputMode="decimal" value={f.pesoKg} onChange={ev('pesoKg')} />
           </Campo>
+          {conTara && (
+            <Campo label="Tara CNTR (kg)" error={campo('taraContenedorKg')} ayuda="Tara del contenedor.">
+              <input inputMode="decimal" value={f.taraContenedorKg} onChange={ev('taraContenedorKg')} />
+            </Campo>
+          )}
           <Campo label="Tara que pide (días)" error={campo('taraMaxDias')} ayuda="Vacío si no pide.">
             <input inputMode="numeric" value={f.taraMaxDias} onChange={ev('taraMaxDias')} />
           </Campo>

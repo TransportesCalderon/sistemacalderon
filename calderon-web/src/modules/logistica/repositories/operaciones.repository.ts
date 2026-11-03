@@ -46,6 +46,7 @@ const datosOperacion = (d: OperacionDatos) => ({
   observacion: d.observacion,
   // Migración 166: solo si la pantalla lo manda
   ...(d.precioViaje !== undefined ? { precio_viaje: numeroAPunto(d.precioViaje), precio_moneda: d.precioMoneda ?? 'USD' } : {}),
+  ...(d.taraContenedorKg !== undefined ? { tara_contenedor_kg: numeroAPunto(d.taraContenedorKg) } : {}),
 });
 
 /** «1.850,50» o «1850.5» → «1850.50» para la base (solo formato; la base valida). */
@@ -235,12 +236,14 @@ export const operacionesRepository = (db: Db) => {
       };
     },
 
-    /** Migración 166: el precio del viaje cargado (para «Modificar»). */
-    async precio(servicio: number): Promise<{ precio: string; moneda: string } | null> {
+    /** Migraciones 166 y 172: el precio del viaje y la tara del contenedor cargados (para «Modificar» y la ficha). */
+    async precio(servicio: number): Promise<{ precio: string | null; moneda: string; tara: number | null } | null> {
       const { data, error } = await ops().rpc('fn_precio_de_operacion', { p_servicio: servicio });
       if (error) throw new RepoError(error);
-      const o = (data ?? null) as { precio?: number | string | null; moneda?: string | null } | null;
-      return o && o.precio !== null && o.precio !== undefined ? { precio: String(o.precio), moneda: o.moneda ?? 'USD' } : null;
+      const o = (data ?? null) as { precio?: number | string | null; moneda?: string | null; tara_contenedor_kg?: number | string | null } | null;
+      if (!o) return null;
+      const tara = o.tara_contenedor_kg === null || o.tara_contenedor_kg === undefined ? null : Number(o.tara_contenedor_kg);
+      return { precio: o.precio === null || o.precio === undefined ? null : String(o.precio), moneda: o.moneda ?? 'USD', tara };
     },
     async guardar(d: OperacionDatos): Promise<number> {
       const { data, error } = await ops().rpc('fn_guardar_operacion', {
