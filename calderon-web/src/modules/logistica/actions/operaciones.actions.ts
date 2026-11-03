@@ -10,6 +10,7 @@ import {
   eliminarSchema,
   enBaseSchema,
   seguirSchema,
+  tractorEnRutaSchema,
   equipoSchema,
   gensetOperacionSchema,
   hitoSchema,
@@ -157,6 +158,13 @@ export const dejarEnBase = createAction({
   permiso: PERMISO,
   schema: enBaseSchema,
   handler: (d, { db }) => operacionesRepository(db).dejarEnBase(d),
+  invalida: rutas,
+});
+/** Migración 173: cambio de tractor en ruta, en un paso (la base exige Operaciones o TI). */
+export const cambiarTractorEnRuta = createAction({
+  permiso: PERMISO,
+  schema: tractorEnRutaSchema,
+  handler: (d, { db }) => operacionesRepository(db).cambiarTractorEnRuta(d),
   invalida: rutas,
 });
 export const seguirConOtroTractor = createAction({

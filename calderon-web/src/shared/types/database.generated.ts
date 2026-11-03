@@ -1309,6 +1309,19 @@ export type Database = {
         Args: { p_servicio: number; p_camion: number; p_chofer: number; p_ts?: string | null; p_odometro_km?: number | null };
         Returns: number;
       };
+      // Migración 173: cambio de tractor en ruta (sin dejar en la base)
+      fn_cambiar_tractor_en_ruta: {
+        Args: {
+          p_servicio: number;
+          p_lugar: number;
+          p_camion: number;
+          p_chofer: number;
+          p_ts?: string | null;
+          p_odometro_sale?: number | null;
+          p_odometro_entra?: number | null;
+        };
+        Returns: number;
+      };
       fn_cancelar_operacion: { Args: { p_servicio: number; p_motivo: string }; Returns: undefined };
       fn_pizarra_totales: {
         Args: Record<string, never>;

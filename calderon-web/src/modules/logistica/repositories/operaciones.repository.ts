@@ -6,6 +6,7 @@ import type {
   AvanzarDatos,
   EnBaseDatos,
   SeguirDatos,
+  TractorEnRutaDatos,
   EliminarDatos,
   EquipoDatos,
   HitoDatos,
@@ -186,6 +187,19 @@ export const operacionesRepository = (db: Db) => {
     },
     dejarEnBase: (d: EnBaseDatos) =>
       llamar(ops().rpc('fn_dejar_en_base', { p_servicio: d.servicioId, p_base: d.baseId, p_ts: d.momento, p_odometro_km: d.odometroKm })),
+    /** Migración 173: el semi pasa de un tractor a otro en ruta. */
+    cambiarTractorEnRuta: (d: TractorEnRutaDatos) =>
+      llamar(
+        ops().rpc('fn_cambiar_tractor_en_ruta', {
+          p_servicio: d.servicioId,
+          p_lugar: d.lugarId,
+          p_camion: d.camionId,
+          p_chofer: d.choferId,
+          p_ts: d.momento,
+          p_odometro_sale: d.odometroSale,
+          p_odometro_entra: d.odometroEntra,
+        }),
+      ),
     seguirConOtroTractor: (d: SeguirDatos) =>
       llamar(
         ops().rpc('fn_seguir_con_otro_tractor', {

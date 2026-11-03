@@ -17,4 +17,10 @@ describe('relevo desde la operación', () => {
     expect(pantalla).toMatch(/function PanelRelevo[\s\S]*useCambiarChofer\(\)/);
     expect(pantalla).toContain("{tipo === 'relevo' && <PanelRelevo");
   });
+
+  it('migración 173: también pasa el semi a otro tractor en ruta, sin dejarlo en la base', () => {
+    expect(pantalla).toMatch(/function PanelRelevo[\s\S]*useCambiarTractorEnRuta\(\)/);
+    expect(pantalla).toContain('Pasa el semi a otro tractor');
+    expect(pantalla).toContain('label="Dónde se hace el cambio *"');
+  });
 });

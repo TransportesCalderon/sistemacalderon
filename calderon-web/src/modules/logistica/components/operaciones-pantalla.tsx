@@ -43,6 +43,7 @@ import {
   useAvanzarOperacion,
   useBasesOperativas,
   useCambiarChofer,
+  useCambiarTractorEnRuta,
   useCancelarOperacion,
   useDejarEnBase,
   useGensetsOperacion,
@@ -66,6 +67,8 @@ import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { RutaOperacion } from './rutas/ruta-operacion';
 import { VERSION_RUTAS_PANTALLA } from '../domain/rutas';
 
+/** Migración 173: cambio de tractor en ruta (relevo sin dejar en la base). */
+const VERSION_TRACTOR_EN_RUTA = 173;
 /** Migración 172: tara del contenedor (TARA CNTR). */
 const VERSION_TARA_CNTR = 172;
 /** Migración 166: precio del viaje en la operación. */
@@ -1320,36 +1323,101 @@ function PanelSeguir({ o, zona, onCerrar }: { o: Operacion; zona: string; onCerr
 }
 
 /**
- * Relevo desde la operación: cambia el chofer del viaje en curso (mismo tractor; queda quién manejó
- * cada parte) o, si cambia también el tractor, deja el semi en la base para que lo siga otro.
- * Usa las mismas funciones que Viajes (ops.fn_cambiar_chofer / fn_dejar_en_base): la base decide.
+ * Relevo desde la operación, dos formas:
+ *  · Solo el chofer: sigue el mismo tractor con otro chofer (ops.fn_cambiar_chofer; queda quién manejó cada parte).
+ *  · Pasa a otro tractor: el semi pasa directo de un tractor a otro (y su chofer) en cualquier lugar, sin
+ *    dejarlo en la base (migración 173, ops.fn_cambiar_tractor_en_ruta). Cada chofer cobra su parte.
+ * La base decide si se puede y con qué datos; acá solo se muestra su mensaje.
  */
 function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: string; onCerrar: () => void; onTractor: () => void }) {
-  const hacer = useCambiarChofer();
+  const chofer = useCambiarChofer();
+  const tractor = useCambiarTractorEnRuta();
+  const enRuta = useBaseTiene(VERSION_TRACTOR_EN_RUTA);
   const { data: op } = useOpcionesViaje();
-  const { error, enviar, campo } = useEnvio();
-  const [f, setF] = useState({ choferId: '', desde: '' });
-  const conTractor = o.posibles.includes('en_base');
+  const { error, enviar, campo, setError } = useEnvio();
+  const [modo, setModo] = useState<'chofer' | 'tractor'>('chofer');
+  const [f, setF] = useState({ choferId: '', desde: '', camionId: '', lugarId: '', odometroSale: '', odometroEntra: '' });
+  const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+  const cambiaTractor = enRuta && modo === 'tractor';
+  const puedeTractor = o.posibles.includes('en_base');
   return (
     <Panel
       titulo={`Relevo · Op. ${o.numero}`}
-      explicacion={`Sigue el mismo tractor ${o.tractor ?? ''} con otro chofer. Queda registrado quién manejó cada parte del viaje (y cada uno cobra la suya).`}
+      explicacion={
+        cambiaTractor
+          ? `El semi ${o.semi ?? ''} pasa del tractor ${o.tractor ?? ''} al tractor nuevo, con su chofer, en el lugar y momento que indiques. Cada chofer cobra su parte.`
+          : `Sigue el mismo tractor ${o.tractor ?? ''} con otro chofer. Queda registrado quién manejó cada parte del viaje (y cada uno cobra la suya).`
+      }
       error={error}
-      ocupado={hacer.isPending}
+      ocupado={chofer.isPending || tractor.isPending}
       textoBoton="Hacer el relevo"
       onCerrar={onCerrar}
-      onConfirmar={() => enviar(hacer.mutateAsync({ tramoId: o.tramoId ?? 0, choferId: f.choferId, desde: aIso(f.desde, zona) }), onCerrar)}
+      onConfirmar={() =>
+        cambiaTractor
+          ? enviar(
+              tractor.mutateAsync({
+                servicioId: o.servicioId,
+                lugarId: f.lugarId,
+                camionId: f.camionId,
+                choferId: f.choferId,
+                momento: aIso(f.desde, zona),
+                odometroSale: f.odometroSale,
+                odometroEntra: f.odometroEntra,
+              }),
+              onCerrar,
+            )
+          : enviar(chofer.mutateAsync({ tramoId: o.tramoId ?? 0, choferId: f.choferId, desde: aIso(f.desde, zona) }), onCerrar)
+      }
     >
-      <Campo label="Chofer que maneja ahora">
-        <input value={o.chofer ?? '—'} readOnly disabled />
+      {enRuta && (
+        <div className="flex flex-wrap gap-4 text-sm sm:col-span-full">
+          <label className="inline-flex items-center gap-2">
+            <input type="radio" name={`relevo-${o.servicioId}`} checked={modo === 'chofer'} onChange={() => (setModo('chofer'), setError(null))} />
+            Solo el chofer (mismo tractor)
+          </label>
+          <label className={cn('inline-flex items-center gap-2', !puedeTractor && 'text-tinta-suave')}>
+            <input
+              type="radio"
+              name={`relevo-${o.servicioId}`}
+              checked={modo === 'tractor'}
+              disabled={!puedeTractor}
+              onChange={() => (setModo('tractor'), setError(null))}
+            />
+            Pasa el semi a otro tractor
+            {!puedeTractor && <span className="text-xs">(después de que cargó)</span>}
+          </label>
+        </div>
+      )}
+      <Campo label={cambiaTractor ? 'Tractor y chofer que vienen' : 'Chofer que maneja ahora'}>
+        <input value={cambiaTractor ? `${o.tractor ?? '—'} · ${o.chofer ?? '—'}` : (o.chofer ?? '—')} readOnly disabled />
       </Campo>
+      {cambiaTractor && (
+        <Campo label="Tractor nuevo *" error={campo('camionId')}>
+          <Lista valor={f.camionId} opciones={op?.tractores.filter((t) => t.id !== o.camionId)} onCambiar={set('camionId')} />
+        </Campo>
+      )}
       <Campo label="Chofer nuevo *" error={campo('choferId')}>
-        <Lista valor={f.choferId} opciones={op?.choferes.filter((c) => c.id !== o.choferId)} onCambiar={(x) => setF({ ...f, choferId: x })} />
+        <Lista valor={f.choferId} opciones={op?.choferes.filter((c) => c.id !== o.choferId)} onCambiar={set('choferId')} />
       </Campo>
-      <Campo label="Desde" error={campo('desde')} ayuda="Vacío = ahora.">
+      {cambiaTractor && (
+        <Campo label="Dónde se hace el cambio *" error={campo('lugarId')}>
+          <Lista valor={f.lugarId} opciones={op?.lugares} onCambiar={set('lugarId')} />
+        </Campo>
+      )}
+      <Campo label={cambiaTractor ? 'Fecha y hora del cambio' : 'Desde'} error={campo(cambiaTractor ? 'momento' : 'desde')} ayuda="Vacío = ahora.">
         <input type="datetime-local" value={f.desde} onChange={(e) => setF({ ...f, desde: e.target.value })} />
       </Campo>
-      {conTractor && (
+      {cambiaTractor && (
+        <>
+          <Campo label="Odómetro del tractor que viene (km)" error={campo('odometroSale')} ayuda="Solo si no hay telemetría.">
+            <input inputMode="decimal" value={f.odometroSale} onChange={(e) => setF({ ...f, odometroSale: e.target.value })} />
+          </Campo>
+          <Campo label="Odómetro del tractor nuevo (km)" error={campo('odometroEntra')} ayuda="Solo si no hay telemetría.">
+            <input inputMode="decimal" value={f.odometroEntra} onChange={(e) => setF({ ...f, odometroEntra: e.target.value })} />
+          </Campo>
+        </>
+      )}
+      {!enRuta && puedeTractor && (
         <p className="self-end pb-1 text-sm text-tinta-suave">
           ¿Cambia también el tractor?{' '}
           <button type="button" className="font-medium text-marca hover:underline" onClick={onTractor}>

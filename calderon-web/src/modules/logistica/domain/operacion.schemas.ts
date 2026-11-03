@@ -130,6 +130,17 @@ export const seguirSchema = z.object({
   momento: momentoOpcional,
   odometroKm: odometroOpcional,
 });
+/** Migración 173: el semi pasa de un tractor a otro en ruta (la base valida todo). */
+export const tractorEnRutaSchema = z.object({
+  servicioId: z.number().int().positive(),
+  lugarId: id('Elegí dónde se hace el cambio.'),
+  camionId: id('Elegí el tractor nuevo.'),
+  choferId: id('Elegí el chofer nuevo.'),
+  momento: momentoOpcional,
+  odometroSale: odometroOpcional,
+  odometroEntra: odometroOpcional,
+});
+export type TractorEnRutaDatos = z.output<typeof tractorEnRutaSchema>;
 export type EnBaseDatos = z.output<typeof enBaseSchema>;
 export type SeguirDatos = z.output<typeof seguirSchema>;
 
