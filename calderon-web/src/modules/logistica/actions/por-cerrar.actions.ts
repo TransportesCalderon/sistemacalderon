@@ -8,7 +8,8 @@ import { porCerrarRepository } from '../repositories/por-cerrar.repository';
 const rutas = () => ({ paths: ['/operacion/por-cerrar', '/pizarra', '/operacion/viajes-chofer', '/combustible/cierres', '/pendientes'] });
 
 export const aprobarVariosCierres = createAction({
-  permiso: 'combustible.cierre_viaje:transicionar',
+  // Migración 170: quién aprueba lo decide la base (autorizados por TI, nunca quien lo preparó)
+  permiso: 'combustible.cierre_viaje:ver',
   schema: z.object({ viajes: z.array(z.number().int().positive()).min(1, 'Marcá al menos un viaje.').max(200) }),
   handler: (d, { db }) => porCerrarRepository(db).aprobarVarios(d.viajes),
   invalida: rutas,

@@ -13,7 +13,7 @@ import { FRESCURA } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { Campo } from '@/shared/ui/campo';
 import { useChoferesCombustible } from '@/modules/combustible/queries/hooks';
-import { crearUsuario, guardarUsuario } from '../usuarios.actions';
+import { crearUsuario, guardarUsuario, marcarAprobadorCierre } from '../usuarios.actions';
 import { BOTON_PRIMARIO } from '@/shared/ui/clases';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { usuariosRepository, type Usuario } from '../usuarios.repository';
@@ -24,6 +24,7 @@ const ROLES_ASIGNABLES = ROLES_APP;
 
 /** Migración 150: desde esta versión TI crea la cuenta de acceso desde acá. */
 const VERSION_CREAR = 150;
+const VERSION_APROBADORES = 170;
 
 /**
  * Configuración > Usuarios y roles (migración 34). Migración 150: «Nuevo usuario» crea la cuenta de
@@ -45,6 +46,14 @@ export function UsuariosPantalla() {
   });
   const [abierto, setAbierto] = useState<string | null>(null);
   const puedeCrear = useBaseTiene(VERSION_CREAR);
+  // Migración 170: quién aprueba cierres de viaje
+  const hayAprobadores = useBaseTiene(VERSION_APROBADORES);
+  const aprobadores = useQuery({
+    queryKey: ['usuarios', 'aprobadores-cierre'],
+    queryFn: () => usuariosRepository(db).aprobadoresCierre(),
+    enabled: hayAprobadores,
+    staleTime: FRESCURA.maestro,
+  });
 
   return (
     <div className="space-y-5">
@@ -120,6 +129,7 @@ export function UsuariosPantalla() {
                   <th className={TH}>Roles</th>
                   <th className={TH}>Último ingreso</th>
                   <th className={TH}>Estado</th>
+                  {hayAprobadores && <th className={TH}>Aprueba cierres de viaje</th>}
                   <th className={TH} />
                 </tr>
               </thead>
@@ -144,6 +154,11 @@ export function UsuariosPantalla() {
                         {u.ultimoIngreso ? formatearFechaHora(u.ultimoIngreso, zonaHoraria) : 'Nunca'}
                       </td>
                       <td className={TD}>{u.activo ? <Chip tono="exito">Activo</Chip> : <Chip tono="neutro">Desactivado</Chip>}</td>
+                      {hayAprobadores && (
+                        <td className={TD}>
+                          <AprobadorCierre usuario={u.id} marcado={(aprobadores.data ?? []).includes(u.id)} cargando={aprobadores.isPending} />
+                        </td>
+                      )}
                       <td className={cn(TD, 'text-right')}>
                         {u.email && (
                           <button
@@ -158,7 +173,7 @@ export function UsuariosPantalla() {
                     </tr>
                     {abierto === `u:${u.id}` && u.email && (
                       <tr>
-                        <td colSpan={5} className="px-3 pb-3">
+                        <td colSpan={hayAprobadores ? 6 : 5} className="px-3 pb-3">
                           <FormUsuario email={u.email} usuario={u} onCerrar={() => setAbierto(null)} />
                         </td>
                       </tr>
@@ -171,6 +186,31 @@ export function UsuariosPantalla() {
         )}
       </section>
     </div>
+  );
+}
+
+/** Migración 170: TI marca quién aprueba cierres de viaje (quien lo preparó nunca lo aprueba: lo controla la base). */
+function AprobadorCierre({ usuario, marcado, cargando }: { usuario: number; marcado: boolean; cargando: boolean }) {
+  const qc = useQueryClient();
+  const envio = useEnvio();
+  const marcar = useMutation({
+    mutationFn: marcarAprobadorCierre,
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'usuario') : undefined),
+  });
+  return (
+    <span className="inline-flex flex-col">
+      <label className="inline-flex items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          className="size-4 accent-marca"
+          checked={marcado}
+          disabled={cargando || marcar.isPending}
+          onChange={(e) => void envio.enviar(marcar.mutateAsync({ usuario, aprueba: e.target.checked }), () => undefined)}
+        />
+        {marcado ? 'Sí' : 'No'}
+      </label>
+      {envio.error && <span className="text-xs text-error">{envio.error.mensaje}</span>}
+    </span>
   );
 }
 

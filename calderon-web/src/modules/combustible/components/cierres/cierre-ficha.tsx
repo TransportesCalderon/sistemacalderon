@@ -1,5 +1,6 @@
 'use client';
 
+import { usePuedeAprobarCierres } from '../../queries/puede-aprobar';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -363,6 +364,7 @@ function Acciones({ cierre, onRecargar }: { cierre: CierreViaje; onRecargar: () 
   const ficha = useFicha();
   const puedeEditar = useCan('combustible.cierre_viaje:editar');
   const puedeTransicionar = useCan('combustible.cierre_viaje:transicionar');
+  const puedeAprobar = usePuedeAprobarCierres();
   const limites = useActualizarLimites();
   const aprobar = useAprobarCierre();
   const anular = useAnularCierre();
@@ -390,7 +392,7 @@ function Acciones({ cierre, onRecargar }: { cierre: CierreViaje; onRecargar: () 
       </button>,
     );
   }
-  if (cierre.estado === 'borrador' && puedeTransicionar) {
+  if (cierre.estado === 'borrador' && puedeAprobar) {
     botones.push(
       <AccionConMotivo
         key="aprobar"

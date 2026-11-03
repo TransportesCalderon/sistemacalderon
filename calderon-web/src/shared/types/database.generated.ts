@@ -1446,6 +1446,9 @@ export type Database = {
         }[];
       };
       fn_cuentas_sin_vincular: { Args: Record<string, never>; Returns: { email: string; creada_en: string }[] };
+      // Migración 170: quién aprueba cierres de viaje (TI)
+      fn_aprobadores_cierre: { Args: Record<string, never>; Returns: number[] };
+      fn_marcar_aprobador_cierre: { Args: { p_usuario: number; p_aprueba: boolean }; Returns: undefined };
       fn_guardar_usuario: { Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean; p_chofer?: number | null }; Returns: number };
       /** Migración 150: crea la cuenta de acceso (Supabase Auth, con la llave de Vault) y el usuario. Solo TI. */
       fn_crear_usuario: {
@@ -1873,6 +1876,8 @@ export type Database = {
       fn_ranking_mensual: { Args: { p_mes: string }; Returns: Json };
       fn_verificar_cierre: { Args: { p_id: number }; Returns: Json };
       fn_aprobar_cierre: { Args: { p_id: number; p_version: number }; Returns: CierreViajeRow };
+      // Migración 170: ¿el usuario puede aprobar cierres?
+      fn_puedo_aprobar_cierres: { Args: Record<string, never>; Returns: boolean };
       fn_anular_cierre: { Args: { p_id: number; p_version: number; p_motivo: string }; Returns: CierreViajeRow };
       fn_solicitar_anulacion_carga: { Args: { p_carga: number; p_motivo: string }; Returns: number };
       /** Migración 44: elimina del todo una carga cargada por error; devuelve los archivos del ticket. */

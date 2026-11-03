@@ -1,5 +1,6 @@
 'use client';
 
+import { usePuedeAprobarCierres } from '@/modules/combustible/queries/puede-aprobar';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Ban, Calculator, ChevronDown, CircleAlert, Flag, Fuel, LoaderCircle, Lock, Pencil, Plus, RotateCcw, Stamp, Trash2, TriangleAlert } from 'lucide-react';
@@ -587,7 +588,7 @@ function Agregar({ v, onCerrar }: { v: ViajeChofer; onCerrar: () => void }) {
 // ------------------------------------------------------------------- acciones
 function Acciones({ v }: { v: ViajeChofer }) {
   const puede = useCan('operacion.tramos:transicionar');
-  const puedeAprobar = useCan('combustible.cierre_viaje:transicionar');
+  const puedeAprobar = usePuedeAprobarCierres();
   const cerrarYAprobar = useCerrarYAprobarViaje();
   const combustiblePorAprobar = v.cierre !== null && v.cierre.estado === 'borrador';
   // Migración 82: si al viaje del chofer le faltan operaciones, canon o km, el combustible se aprueba igual y el viaje queda abierto

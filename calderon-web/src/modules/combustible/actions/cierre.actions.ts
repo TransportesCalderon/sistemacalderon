@@ -36,7 +36,8 @@ export const actualizarLimitesCierre = createAction({
 });
 
 export const aprobarCierre = createAction({
-  permiso: 'combustible.cierre_viaje:transicionar',
+  // Migración 170: quién aprueba lo decide la base (autorizados por TI, nunca quien lo preparó)
+  permiso: 'combustible.cierre_viaje:ver',
   schema: aprobarCierreSchema,
   handler: ({ id, versionFila }, { db }) => cierreService(db).aprobar(id, versionFila),
   invalida: ({ id }) => rutas(id),

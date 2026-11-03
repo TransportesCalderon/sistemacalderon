@@ -1,5 +1,6 @@
 'use client';
 
+import { usePuedeAprobarCierres } from '@/modules/combustible/queries/puede-aprobar';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -47,7 +48,7 @@ const litros = (v: number | null) => (v === null ? '—' : `${v.toLocaleString('
 /** Viajes › Cierres por hacer: todos los viajes sin el combustible aprobado, qué les falta y aprobar varios de una vez. */
 export function PorCerrarPantalla() {
   const { zonaHoraria } = useSesion();
-  const puedeAprobar = useCan('combustible.cierre_viaje:transicionar');
+  const puedeAprobar = usePuedeAprobarCierres();
   const puedeEditar = useCan('operacion.tramos:editar');
   const qc = useQueryClient();
   const { data, isLoading, isError, refetch } = useQuery({

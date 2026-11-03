@@ -34,6 +34,16 @@ export const usuariosRepository = (db: Db) => ({
       ultimoIngreso: u.ultimo_ingreso as FechaISO | null,
     }));
   },
+  /** Migración 170: ids de quienes aprueban cierres de viaje. */
+  async aprobadoresCierre(): Promise<number[]> {
+    const { data, error } = await db.schema('seg').rpc('fn_aprobadores_cierre');
+    if (error) throw new RepoError(error);
+    return (data ?? []).map(Number);
+  },
+  async marcarAprobadorCierre(usuario: number, aprueba: boolean): Promise<void> {
+    const { error } = await db.schema('seg').rpc('fn_marcar_aprobador_cierre', { p_usuario: usuario, p_aprueba: aprueba });
+    if (error) throw new RepoError(error);
+  },
   async sinVincular(): Promise<CuentaSinVincular[]> {
     const { data, error } = await db.schema('seg').rpc('fn_cuentas_sin_vincular');
     if (error) throw new RepoError(error);

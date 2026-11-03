@@ -33,3 +33,10 @@ export const crearUsuario = createAction({
   handler: (d, { db }) => usuariosRepository(db).crear(d),
   invalida: () => ({ paths: ['/configuracion/usuarios'] }),
 });
+
+/** Migración 170: marcar quién aprueba cierres de viaje (aprobación cruzada). Solo TI. */
+export const marcarAprobadorCierre = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
+  handler: (d, { db }) => usuariosRepository(db).marcarAprobadorCierre(d.usuario, d.aprueba),
+});

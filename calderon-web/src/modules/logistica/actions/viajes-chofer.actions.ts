@@ -102,7 +102,8 @@ export const anularViajeChofer = createAction({
 
 /** Migración 55: el mismo usuario cierra el viaje y aprueba su cierre de combustible, todo junto. */
 export const cerrarYAprobarViaje = createAction({
-  permiso: 'combustible.cierre_viaje:transicionar',
+  // Migración 170: quién aprueba lo decide la base (autorizados por TI, nunca quien lo preparó)
+  permiso: 'combustible.cierre_viaje:ver',
   schema: cerrarViajeSchema,
   handler: (d, { db }) => viajesChoferRepository(db).cerrarYAprobar(d.viajeId, d.versionFila),
   invalida: () => ({ paths: ['/pizarra', '/operacion/viajes-chofer', '/combustible/viajes', '/combustible/cierres', '/pendientes'] }),
