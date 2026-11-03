@@ -40,7 +40,8 @@ export const abrirLinkCorto = createAction({
 
 /** Migración 156: «Entendido» en la ventana emergente de un desvío (no vuelve a aparecer para ese usuario). */
 export const marcarDesvioVisto = createAction({
-  permiso: 'anomalias.alertas:ver',
+  // Migración 168: los mismos que reciben la ventana (Analista de control y Gerencia) ven las rutas
+  permiso: 'operacion.rutas:ver',
   schema: z.object({ id: z.number().int().positive() }),
   handler: (d, { db }) => rutasRepository(db).desvioVisto(d.id),
 });
