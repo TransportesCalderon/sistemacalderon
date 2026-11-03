@@ -289,6 +289,12 @@ function traducirSinCampo(error: unknown): ErrorAccion {
       return { codigo: 'inmutable', mensaje: base ?? 'Este dato ya no se modifica: usá Anular y reemplazar o Nueva versión.' };
     case '22001':
       return { codigo: 'validacion', mensaje: 'Uno de los textos es demasiado largo.' };
+    // Validaciones de las funciones de la base (giro muy largo, correo mal escrito, falta un dato…)
+    case '22023':
+    case '23502':
+      return { codigo: 'validacion', mensaje: base ?? 'Revisá los datos.' };
+    case '54000':
+      return { codigo: 'regla_negocio', mensaje: base ?? 'Se llegó a un tope del sistema.' };
     case '42501':
       return { codigo: 'sin_permiso', mensaje: base ?? 'No tenés permiso para esta acción.' };
     case 'P0001':
