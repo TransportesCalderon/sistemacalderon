@@ -63,6 +63,8 @@ export function PizarraPantalla({ vista: pedida = 'tabla' }: { vista?: 'tabla' |
   const [abierto, setAbierto] = useState<number | null>(null);
   const [grande, setGrande] = useState(false);
   const [verAccesorios, setVerAccesorios] = useState(true);
+  // Migración 176: «Ver lo que está en aduana»
+  const [soloAduana, setSoloAduana] = useState(false);
   const [ahora, setAhora] = useState(() => Date.now());
   const buscador = useRef<HTMLInputElement>(null);
   const recientes = useRecientes(data);
@@ -87,7 +89,11 @@ export function PizarraPantalla({ vista: pedida = 'tabla' }: { vista?: 'tabla' |
   }, []);
 
   const filas = useMemo(() => data ?? [], [data]);
-  const visibles = useMemo(() => filtrar(filas, f, zonaHoraria, new Date(ahora)), [filas, f, zonaHoraria, ahora]);
+  const visibles = useMemo(() => {
+    const v = filtrar(filas, f, zonaHoraria, new Date(ahora));
+    return soloAduana ? v.filter((x) => x.enAduana !== null) : v;
+  }, [filas, f, zonaHoraria, ahora, soloAduana]);
+  const enAduana = useMemo(() => filas.filter((x) => x.enAduana !== null).length, [filas]);
   const criticas = filas.flatMap((x) =>
     x.alertas.filter((a) => a.nivel === 'critico').map((a) => ({ patente: x.patente, id: x.semiId, texto: a.texto })),
   );
@@ -141,6 +147,9 @@ export function PizarraPantalla({ vista: pedida = 'tabla' }: { vista?: 'tabla' |
         </nav>
         {vista === 'tabla' && (
           <>
+            <Interruptor activo={soloAduana} onCambiar={setSoloAduana}>
+              Ver lo que está en aduana ({enAduana})
+            </Interruptor>
             <Interruptor activo={verAccesorios} onCambiar={setVerAccesorios}>
               Accesorios
             </Interruptor>

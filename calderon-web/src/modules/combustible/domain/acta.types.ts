@@ -11,6 +11,9 @@ export interface ActaExtra {
   cargas: { fecha: FechaISO; estacion: string | null; litros: number; corte: boolean; lleno: boolean }[];
   movimientos: { fecha: FechaISO; tipo: string; litros: number; motivo: string | null }[];
   km: number | null;
+  /** Migración 176: odómetro del camión al salir y al llegar (km). */
+  odometroSalida: number | null;
+  odometroLlegada: number | null;
   fuenteKm: string | null;
   consumoMotorL: number | null;
   fuenteConsumo: string | null;
@@ -159,6 +162,8 @@ export function parsearActa(d: unknown): ActaExtra {
     })),
     movimientos: a(x.movimientos).map((m) => ({ fecha: (t(m.fecha_hora) ?? '') as FechaISO, tipo: t(m.tipo) ?? '', litros: Number(m.litros), motivo: t(m.motivo) })),
     km: n(x.km),
+    odometroSalida: n(x.odometro_salida),
+    odometroLlegada: n(x.odometro_llegada),
     fuenteKm: t(x.fuente_km),
     consumoMotorL: n(x.consumo_motor_l),
     fuenteConsumo: t(x.fuente_consumo),

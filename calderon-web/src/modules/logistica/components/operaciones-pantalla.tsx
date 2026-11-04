@@ -44,6 +44,7 @@ import {
   useBasesOperativas,
   useCambiarChofer,
   useCambiarTractorEnRuta,
+  useChoferDeTractor,
   usePasarAFletero,
   useCancelarOperacion,
   useDejarEnBase,
@@ -66,8 +67,11 @@ import { Lista } from './viajes-pantalla';
 import { SeguimientoOperacion } from '@/modules/chofer/components/seguimiento-operacion';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { RutaOperacion } from './rutas/ruta-operacion';
+import { ConformeDescarga } from './conforme-descarga';
 import { VERSION_RUTAS_PANTALLA } from '../domain/rutas';
 
+/** Migración 176: conforme de descarga, aduanas y chofer del tractor en el relevo. */
+const VERSION_CONFORME = 176;
 /** Migración 174: pasa a un fletero en ruta (trasbordo). */
 const VERSION_FLETERO = 174;
 const RELEVO_PASOS: readonly PasoOperacion[] = ['en_base', 'seguir'];
@@ -432,6 +436,7 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
   const cerrada = ['entregado', 'facturado', 'cancelado'].includes(o.estado);
   // Migración 172: la tara del contenedor (se lee aparte, como el precio)
   const { data: extra } = usePrecioOperacion(o.servicioId, useBaseTiene(VERSION_TARA_CNTR));
+  const conConforme = useBaseTiene(VERSION_CONFORME);
   // Relevo de chofer desde la operación (el mismo de Viajes; la base controla todo)
   const puedeRelevo = useCan('operacion.tramos:editar') && !!o.tramoId && !o.transportistaId && o.estado === 'en_curso';
   // Todos los relevos (chofer, tractor, base, fletero) se hacen desde «Relevo»: no van como botones sueltos
@@ -574,6 +579,10 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
         </div>
       )}
 
+      {/* Migración 176: la tilde del conforme de descarga */}
+      {conConforme && extra && o.estado !== 'cancelado' && o.estado !== 'sin_confirmar' && (
+        <ConformeDescarga servicioId={o.servicioId} conformeEn={extra.conformeEn} conformePor={extra.conformePor} zona={zona} />
+      )}
       {puede && (o.estado !== 'cancelado' || o.gensetId) && <GensetOperacion o={o} />}
       {/* Migración 136: la ruta que recibe el chofer. Desde la 156 se carga en Viajes › Rutas para choferes */}
       {!rutasAparte && <RutaOperacion servicioId={o.servicioId} abierta={!cerrada} />}
@@ -1262,27 +1271,47 @@ function PanelEquipo({ o, onCerrar }: { o: Operacion; onCerrar: () => void }) {
  */
 function PanelEnBase({ o, zona, onCerrar }: { o: Operacion; zona: string; onCerrar: () => void }) {
   const dejar = useDejarEnBase();
-  const { data: bases } = useBasesOperativas();
+  const { data: lugares } = useBasesOperativas();
   const { error, enviar, campo } = useEnvio();
+  // Migración 176: el semi queda en una base o en una aduana
+  const [donde, setDonde] = useState<'base' | 'aduana'>('base');
+  const bases = lugares?.filter((b) => b.tipo === donde);
   const [f, setF] = useState({ baseId: '', momento: '', odometroKm: '' });
   useEffect(() => {
     if (bases?.length === 1 && !f.baseId) setF((p) => ({ ...p, baseId: String(bases[0]!.id) }));
   }, [bases, f.baseId]);
+  const enAduana = donde === 'aduana';
   return (
     <Panel
-      titulo={`Dejar el semi en la base · Op. ${o.numero}`}
-      explicacion={`El tractor ${o.tractor ?? ''} deja el semi ${o.semi ?? ''} en la base y queda libre. Después elegís el tractor y el chofer que siguen el viaje.`}
+      titulo={`Dejar el semi ${enAduana ? 'en una aduana' : 'en la base'} · Op. ${o.numero}`}
+      explicacion={`El tractor ${o.tractor ?? ''} deja el semi ${o.semi ?? ''} ${enAduana ? 'en la aduana' : 'en la base'} y queda libre. Después, en «Relevo», elegís el tractor y el chofer que siguen el viaje.`}
       error={error}
       ocupado={dejar.isPending}
-      textoBoton="Dejar en la base"
+      textoBoton={enAduana ? 'Dejar en la aduana' : 'Dejar en la base'}
       onCerrar={onCerrar}
       onConfirmar={() =>
         enviar(dejar.mutateAsync({ servicioId: o.servicioId, baseId: Number(f.baseId) || 0, momento: aIso(f.momento, zona), odometroKm: f.odometroKm }), onCerrar)
       }
     >
-      <Campo label="Base operativa *" error={campo('baseId')}>
+      <div className="flex flex-wrap gap-4 text-sm sm:col-span-full">
+        {(['base', 'aduana'] as const).map((d) => (
+          <label key={d} className="inline-flex items-center gap-2">
+            <input
+              type="radio"
+              name={`donde-${o.servicioId}`}
+              checked={donde === d}
+              onChange={() => {
+                setDonde(d);
+                setF((p) => ({ ...p, baseId: '' }));
+              }}
+            />
+            {d === 'base' ? 'En la base' : 'En una aduana'}
+          </label>
+        ))}
+      </div>
+      <Campo label={enAduana ? 'Aduana *' : 'Base operativa *'} error={campo('baseId')}>
         <select value={f.baseId} onChange={(e) => setF({ ...f, baseId: e.target.value })}>
-          <option value="">Elegí la base…</option>
+          <option value="">{enAduana ? 'Elegí la aduana…' : 'Elegí la base…'}</option>
           {(bases ?? []).map((b) => (
             <option key={b.id} value={b.id}>
               {b.nombre}
@@ -1290,7 +1319,7 @@ function PanelEnBase({ o, zona, onCerrar }: { o: Operacion; zona: string; onCerr
           ))}
         </select>
       </Campo>
-      <Campo label="Fecha y hora de llegada a la base" error={campo('momento')} ayuda="Vacío = ahora.">
+      <Campo label={enAduana ? 'Fecha y hora de llegada a la aduana' : 'Fecha y hora de llegada a la base'} error={campo('momento')} ayuda="Vacío = ahora.">
         <input type="datetime-local" value={f.momento} onChange={(e) => setF({ ...f, momento: e.target.value })} />
       </Campo>
       <Campo label="Odómetro del tractor (km)" error={campo('odometroKm')} ayuda="Solo si no hay telemetría.">
@@ -1367,6 +1396,11 @@ function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: str
   const aFletero = conFletero && modo === 'fletero';
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const cambiaTractor = enRuta && modo === 'tractor';
+  // Migración 176: al elegir el tractor nuevo se propone su chofer asignado (se puede cambiar)
+  const { data: choferDelTractor } = useChoferDeTractor(cambiaTractor && f.camionId ? Number(f.camionId) : null);
+  useEffect(() => {
+    if (cambiaTractor && choferDelTractor) setF((p) => ({ ...p, choferId: String(choferDelTractor) }));
+  }, [cambiaTractor, choferDelTractor, f.camionId]);
   const opTransportistas = transportistas?.filter((t) => t.activo).map((t) => ({ id: t.id, nombre: t.razonSocial }));
   const puedeTractor = o.posibles.includes('en_base');
   return (
@@ -1459,7 +1493,7 @@ function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: str
                 onTractor();
               }}
             />
-            Deja el semi en la base (otro tractor sigue después)
+            Deja el semi en la base o en una aduana (otro tractor sigue después)
           </label>
         </div>
       )}

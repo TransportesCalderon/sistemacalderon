@@ -889,6 +889,9 @@ type PizarraRow = {
   observacion_en: string | null;
   alertas: Json;
   version_fila: number;
+  // Migración 176
+  numero_operacion: number | null;
+  en_aduana: string | null;
 };
 
 type Vista<Row> = { Row: { [K in keyof Row]: Row[K] | null }; Relationships: [] };
@@ -1309,6 +1312,8 @@ export type Database = {
         Args: { p_servicio: number; p_camion: number; p_chofer: number; p_ts?: string | null; p_odometro_km?: number | null };
         Returns: number;
       };
+      // Migración 176: llegó el conforme de descarga
+      fn_marcar_conforme: { Args: { p_servicio: number; p_llego: boolean }; Returns: Json };
       // Migración 174: pasa a un fletero en ruta (trasbordo)
       fn_pasar_a_fletero: {
         Args: {

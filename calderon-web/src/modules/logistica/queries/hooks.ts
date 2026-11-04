@@ -36,6 +36,7 @@ import {
   seguirConOtroTractor,
   cambiarTractorEnRuta,
   pasarAFletero,
+  marcarConforme,
   terminarDemora,
   volverPaso,
 } from '../actions/operaciones.actions';
@@ -146,6 +147,29 @@ export const useDejarEnBase = () => useEscritura(dejarEnBase);
 export const useSeguirConOtroTractor = () => useEscritura(seguirConOtroTractor);
 export const useCambiarTractorEnRuta = () => useEscritura(cambiarTractorEnRuta);
 export const usePasarAFletero = () => useEscritura(pasarAFletero);
+/** Migración 176: el conforme de descarga (se ve en Operaciones y en Facturación). */
+export function useMarcarConforme() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: marcarConforme,
+    onSuccess: async (r) => {
+      if (!r.ok) return;
+      await Promise.all([invalidar(qc, 'operacion'), invalidar(qc, 'venta')]);
+    },
+  });
+}
+/** Migración 176: el chofer asignado a un tractor (para proponerlo en un relevo). */
+export const useChoferDeTractor = (camionId: number | null) =>
+  useQuery({
+    queryKey: ['logistica', 'chofer-de-tractor', camionId] as const,
+    enabled: !!camionId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await browserDb().schema('mae').rpc('fn_chofer_de_tractor', { p_camion: camionId ?? 0 });
+      if (error) throw error;
+      return (data ?? null) as number | null;
+    },
+  });
 export const useBasesOperativas = (activo = true) =>
   useQuery({ queryKey: ['logistica', 'bases-operativas'] as const, queryFn: () => operacionesRepository(browserDb()).basesOperativas(), enabled: activo, staleTime: 300_000 });
 

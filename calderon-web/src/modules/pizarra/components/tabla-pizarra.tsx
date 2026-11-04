@@ -288,6 +288,9 @@ const Fila = memo(function Fila({
         >
           {info.etiqueta}
         </span>
+        {/* Migración 176: en qué aduana está */}
+        {f.enAduana && f.estado !== 'en_aduana' && <span className="ml-1 text-[11px] text-[#713b12]">Aduana</span>}
+        {f.enAduana && <span className="block text-[11px] leading-tight text-[#713b12]">{f.enAduana}</span>}
       </td>
       {conSigue && (
         <td className="px-2 py-1 whitespace-nowrap">
@@ -333,7 +336,11 @@ const Fila = memo(function Fila({
           }
         />
       </td>
-      <td className={cn(TD, 'font-semibold')}>{f.cliente ?? '—'}</td>
+      <td className={cn(TD, 'font-semibold')}>
+        {/* Migración 176: el número de operación que lleva */}
+        {f.numeroOperacion !== null && <span className="mr-1 font-mono text-xs font-normal text-tinta-suave">{f.numeroOperacion}</span>}
+        {f.cliente ?? '—'}
+      </td>
       <td className={TD}>{f.producto ?? '—'}</td>
       <td className={cn(TD, 'font-mono text-xs')}>{f.contenedor ?? '—'}</td>
       <td className={cn(TD, claseAlerta(aSalida))} title={aSalida?.texto}>
@@ -384,7 +391,7 @@ function DetalleUnidad({
   return (
     <div className="grid gap-4 text-[13px] lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.3fr)]">
       <Bloque titulo="Viaje">
-        <Dato e="Servicio">{f.numeroServicio ?? 'Sin viaje asignado'}</Dato>
+        <Dato e="Operación">{f.numeroOperacion ?? f.numeroServicio ?? 'Sin viaje asignado'}</Dato>
         <Dato e="Salida">{f.salidaTs ? `${diaHora(f.salidaTs, zona)} · ${f.salidaLugar ?? ''}` : '—'}</Dato>
         <Dato e="Destino">{f.destino ?? '—'}</Dato>
         <Dato e="Descarga">{diaHora(f.descarga, zona)}</Dato>
@@ -552,7 +559,7 @@ function EnlacesLogistica({ f }: { f: FilaPizarra }) {
       {/* Sprint 6: la operación se abre en el panel; un tramo sin operación (vuelta vacía), en Logística */}
       {f.servicioId ? (
         <NombreEnlazado tipo="operacion" id={f.servicioId} alternativa={`/operacion/viajes?tramo=${f.tramoId ?? ''}`} className={clase}>
-          Ver la operación {f.numeroServicio}
+          Ver la operación {f.numeroOperacion ?? f.numeroServicio}
         </NombreEnlazado>
       ) : (
         f.tramoId && (

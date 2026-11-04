@@ -21,6 +21,8 @@ export function coincide(f: FilaPizarra, q: string): boolean {
     f.cliente,
     f.gensetCodigo,
     f.numeroServicio,
+    f.numeroOperacion === null ? null : String(f.numeroOperacion),
+    f.enAduana,
     f.proxima?.cliente,
   ].some((c) => normalizar(c).includes(n));
 }

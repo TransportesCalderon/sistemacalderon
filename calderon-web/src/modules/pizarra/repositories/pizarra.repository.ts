@@ -92,6 +92,8 @@ export const pizarraRepository = (db: Db) => {
         tractor: f.tractor_patente,
         chofer: f.chofer_nombre,
         numeroServicio: f.numero_servicio,
+        numeroOperacion: f.numero_operacion ?? null,
+        enAduana: f.en_aduana ?? null,
         cliente: f.cliente,
         producto: f.producto,
         contenedor: f.contenedor,

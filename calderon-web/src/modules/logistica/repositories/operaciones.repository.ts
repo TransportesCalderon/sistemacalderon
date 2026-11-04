@@ -181,10 +181,15 @@ export const operacionesRepository = (db: Db) => {
       ),
 
     // Migración 125: cambio de tractor en la base operativa
-    async basesOperativas(): Promise<{ id: number; nombre: string }[]> {
+    /** Bases operativas y (migración 176) aduanas: donde puede quedar el semi esperando otro tractor. */
+    async basesOperativas(): Promise<{ id: number; nombre: string; tipo: 'base' | 'aduana' }[]> {
       const { data, error } = await ops().rpc('fn_bases_operativas');
       if (error) throw new RepoError(error);
-      return (Array.isArray(data) ? (data as { id: number; nombre: string }[]) : []).map((b) => ({ id: Number(b.id), nombre: String(b.nombre) }));
+      return (Array.isArray(data) ? (data as { id: number; nombre: string; tipo?: string }[]) : []).map((b) => ({
+        id: Number(b.id),
+        nombre: String(b.nombre),
+        tipo: b.tipo === 'aduana' ? 'aduana' : 'base',
+      }));
     },
     dejarEnBase: (d: EnBaseDatos) =>
       llamar(ops().rpc('fn_dejar_en_base', { p_servicio: d.servicioId, p_base: d.baseId, p_ts: d.momento, p_odometro_km: d.odometroKm })),
@@ -270,14 +275,31 @@ export const operacionesRepository = (db: Db) => {
     },
 
     /** Migraciones 166 y 172: el precio del viaje y la tara del contenedor cargados (para «Modificar» y la ficha). */
-    async precio(servicio: number): Promise<{ precio: string | null; moneda: string; tara: number | null } | null> {
+    async precio(
+      servicio: number,
+    ): Promise<{ precio: string | null; moneda: string; tara: number | null; conformeEn: FechaISO | null; conformePor: string | null } | null> {
       const { data, error } = await ops().rpc('fn_precio_de_operacion', { p_servicio: servicio });
       if (error) throw new RepoError(error);
-      const o = (data ?? null) as { precio?: number | string | null; moneda?: string | null; tara_contenedor_kg?: number | string | null } | null;
+      const o = (data ?? null) as {
+        precio?: number | string | null;
+        moneda?: string | null;
+        tara_contenedor_kg?: number | string | null;
+        conforme_en?: string | null;
+        conforme_por?: string | null;
+      } | null;
       if (!o) return null;
       const tara = o.tara_contenedor_kg === null || o.tara_contenedor_kg === undefined ? null : Number(o.tara_contenedor_kg);
-      return { precio: o.precio === null || o.precio === undefined ? null : String(o.precio), moneda: o.moneda ?? 'USD', tara };
+      return {
+        precio: o.precio === null || o.precio === undefined ? null : String(o.precio),
+        moneda: o.moneda ?? 'USD',
+        tara,
+        // Migración 176: el conforme de descarga
+        conformeEn: (o.conforme_en ?? null) as FechaISO | null,
+        conformePor: o.conforme_por ?? null,
+      };
     },
+    /** Migración 176: llegó (o no) el conforme de descarga. */
+    marcarConforme: (servicioId: number, llego: boolean) => llamar(ops().rpc('fn_marcar_conforme', { p_servicio: servicioId, p_llego: llego })),
     async guardar(d: OperacionDatos): Promise<number> {
       const { data, error } = await ops().rpc('fn_guardar_operacion', {
         p_servicio: d.servicioId,

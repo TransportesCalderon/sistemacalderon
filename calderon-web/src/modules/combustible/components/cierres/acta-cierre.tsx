@@ -96,16 +96,27 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
         <Dato etiqueta="Salida">
           {fecha(x.salida.fecha ?? cierre.salidaTs)}
           {x.salida.estacion && <span className="block font-normal text-neutral-600">{x.salida.estacion}</span>}
+          {x.odometroSalida !== null && <span className="block font-normal text-neutral-600">Odómetro {formatearNumero(x.odometroSalida, 0)} km</span>}
         </Dato>
         <Dato etiqueta="Llegada">
           {fecha(x.llegada.fecha ?? cierre.llegadaTs)}
           {x.llegada.estacion && <span className="block font-normal text-neutral-600">{x.llegada.estacion}</span>}
+          {x.odometroLlegada !== null && <span className="block font-normal text-neutral-600">Odómetro {formatearNumero(x.odometroLlegada, 0)} km</span>}
         </Dato>
       </section>
 
       {/* Lo crucial */}
       <section className="mt-2 grid grid-cols-5 gap-1.5 break-inside-avoid">
-        <Cifra etiqueta="Km recorridos" valor={x.km === null ? '—' : formatearNumero(x.km, 0)} unidad="km" />
+        <Cifra
+          etiqueta="Km recorridos"
+          valor={x.km === null ? '—' : formatearNumero(x.km, 0)}
+          unidad="km"
+          nota={
+            x.odometroSalida !== null && x.odometroLlegada !== null
+              ? `Odómetro ${formatearNumero(x.odometroSalida, 0)} → ${formatearNumero(x.odometroLlegada, 0)}`
+              : undefined
+          }
+        />
         <Cifra
           etiqueta="Consumió el motor"
           valor={x.consumoMotorL === null ? '—' : formatearNumero(x.consumoMotorL, 0)}

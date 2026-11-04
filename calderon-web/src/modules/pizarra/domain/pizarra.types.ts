@@ -11,6 +11,9 @@ export const ESTADOS_UNIDAD = [
   'en_viaje',
   'descargando',
   'vacio',
+  // Migración 176: cargado, esperando otro tractor en una base o en una aduana
+  'en_base',
+  'en_aduana',
   'taller',
   'fuera_servicio',
 ] as const;
@@ -26,6 +29,8 @@ export const ESTADO_INFO: Record<EstadoUnidad, { etiqueta: string; corta: string
   en_viaje: { etiqueta: 'En viaje', corta: 'Viaje', clase: 'bg-[#dbe8f7] text-[#0b4a85]' },
   descargando: { etiqueta: 'Descargando', corta: 'Desc.', clase: 'bg-[#ebe4fa] text-[#4b2c91]' },
   vacio: { etiqueta: 'Vacío', corta: 'Vacío', clase: 'bg-white text-[#344054] border border-dashed border-[#667085]' },
+  en_base: { etiqueta: 'Cargado en base', corta: 'Base', clase: 'bg-[#dbe8f7] text-[#0b4a85] border border-dashed border-[#2e90fa]' },
+  en_aduana: { etiqueta: 'En aduana', corta: 'Aduana', clase: 'bg-[#fef7c3] text-[#713b12] border border-[#fac515]' },
   taller: { etiqueta: 'Taller', corta: 'Taller', clase: 'bg-[#3d4654] text-white' },
   fuera_servicio: {
     etiqueta: 'Fuera de servicio',
@@ -63,6 +68,9 @@ export interface FilaPizarra {
   tractor: string | null;
   chofer: string | null;
   numeroServicio: string | null;
+  /** Migración 176: el número de operación que lleva (y en qué aduana está, si está en una). */
+  numeroOperacion: number | null;
+  enAduana: string | null;
   cliente: string | null;
   producto: string | null;
   contenedor: string | null;

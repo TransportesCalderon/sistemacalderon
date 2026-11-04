@@ -587,6 +587,10 @@ export interface PorFacturar {
   /** Migración 101: también se facturan antes de entregarse (programadas o en curso). */
   estado: string;
   entregada: boolean;
+  /** Migración 176: cuándo llegó el conforme de descarga (null = falta). */
+  conformeEn: string | null;
+  /** Migración 176: la base ya manda el dato (si no, no se muestra la columna). */
+  conConforme: boolean;
 }
 
 /** Migración 101: los números del módulo de Finanzas › Facturación y cobranzas. */
@@ -634,6 +638,8 @@ export const parsearPorFacturar = (v: Json | unknown): PorFacturar[] =>
       precio: { unidad: s(p.unidad), cantidad: n(p.cantidad), precio: n(p.precio), importe: n(p.importe), falta: s(p.falta) },
       estado: s(y.estado) ?? 'entregado',
       entregada: y.entregada === undefined ? true : y.entregada === true,
+      conformeEn: s(y.conforme_en),
+      conConforme: y.conforme_descarga !== undefined,
     };
   });
 

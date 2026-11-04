@@ -35,6 +35,8 @@ const fila = (p: Partial<FilaPizarra>): FilaPizarra => ({
   tractor: 'GCSC93',
   chofer: 'Marcelo Reta',
   numeroServicio: 'SC-00000001',
+  numeroOperacion: null,
+  enAduana: null,
   cliente: 'TUCAPEL',
   producto: 'Arroz',
   contenedor: 'MSKU4829130',
@@ -182,5 +184,14 @@ describe('«Lo que sigue» de la fila (Sprint 6 · migración 118)', async () =>
     expect(puedeIniciarViaje(parsearSigue([{ ...base, situacion_tractor: 'taller' }]).get(1)!)).toBe(false);
     expect(puedeIniciarViaje(parsearSigue([{ ...base, camion_id: null }]).get(1)!)).toBe(false);
     expect(parsearSigue([{ ...base, continua: { hasta: 'X' } }]).get(1)!.continua).toBeNull(); // sin ítem no hay «Continúa»
+  });
+});
+
+describe('pizarra: operación y aduana (migración 176)', () => {
+  it('la búsqueda encuentra por número de operación y por aduana', () => {
+    const f = fila({ numeroOperacion: 6223, enAduana: 'Aduana Palmira', estado: 'en_aduana' });
+    expect(coincide(f, '6223')).toBe(true);
+    expect(coincide(f, 'palmira')).toBe(true);
+    expect(coincide(fila({}), 'palmira')).toBe(false);
   });
 });

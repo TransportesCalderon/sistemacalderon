@@ -33,6 +33,8 @@ import { ElegirDetalle } from './detalle-factura';
 import { FacturaLibre, VERSION_FACTURA_LIBRE } from './factura-libre';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { CampoComprobante, ComprobanteCobro, useAdjuntarComprobante } from './comprobante-cobro';
+import { ConformeDescarga } from '@/modules/logistica/components/conforme-descarga';
+import type { FechaISO } from '@/shared/types/dominio';
 
 /** Migración 101: «por cobrar» = emitidas sin cobrar (con las vencidas). */
 type FiltroFactura = EstadoFactura | 'por_cobrar' | null;
@@ -162,6 +164,9 @@ function ResumenFacturacion({ onPorFacturar, onFacturas }: { onPorFacturar: () =
 
 function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
   const { data, isLoading, isError, error, refetch } = usePorFacturar();
+  const { zonaHoraria } = useSesion();
+  // Migración 176: columna del conforme de descarga
+  const conConforme = (data ?? []).some((o) => o.conConforme);
   const puede = useCan('ventas.facturacion:editar');
   const crear = useCrearFactura();
   const abrirFicha = useAbrirFicha();
@@ -252,6 +257,7 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
                     <th className={TH}>Operación</th>
                     <th className={TH}>Estado · fecha</th>
                     <th className={TH}>Ruta</th>
+                    {conConforme && <th className={cn(TH, 'text-center')} title="Llegó el conforme de descarga">Conforme</th>}
                     <th className={cn(TH, 'text-right')}>Precio</th>
                   </tr>
                 </thead>
@@ -278,6 +284,11 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
                         {formatearFechaDia(o.fecha)}
                       </td>
                       <td className={TD}>{o.linea ?? '—'}</td>
+                      {conConforme && (
+                        <td className={cn(TD, 'text-center')}>
+                          <ConformeDescarga servicioId={o.servicioId} conformeEn={o.conformeEn as FechaISO | null} zona={zonaHoraria} compacto />
+                        </td>
+                      )}
                       <td className={cn(TD, 'text-right tabular-nums')}>
                         {o.precio.importe !== null ? (
                           <>
