@@ -57,6 +57,33 @@ describe('clima en el mapa (migración 182)', () => {
   it('el mapa tiene las capas y la barra de horas; la clave no llega al navegador', () => {
     const c = readFileSync('src/modules/telemetria/components/mapa-flota.tsx', 'utf8');
     expect(c).toContain('BarraClima');
+    expect(c).toContain('iniciarVientoAnimado');
     expect(c).not.toMatch(/open-meteo\.com|apikey/i);
+  });
+});
+
+describe('viento animado (ráfagas)', () => {
+  it('el vector apunta hacia donde sopla y se interpola entre los puntos de la grilla', async () => {
+    const { vectorViento, grillaViento, vientoEn, colorEscalaViento } = await import('@/modules/telemetria/domain/clima.types');
+    const w = vectorViento(40, 270); // viene del oeste → sopla hacia el este
+    expect(Math.round(w.u)).toBe(40);
+    expect(Math.round(w.v)).toBe(0);
+    const g = grillaViento(
+      parsearClima({
+        paso: 1,
+        horas: ['x'],
+        puntos: [
+          { lat: -33, lng: -70, v: [20], d: [270] },
+          { lat: -33, lng: -69, v: [40], d: [270] },
+          { lat: -32, lng: -70, v: [20], d: [270] },
+          { lat: -32, lng: -69, v: [40], d: [270] },
+        ],
+      }),
+      0,
+    );
+    expect(Math.round(vientoEn(g, -32.5, -69.5)!.u)).toBe(30);
+    expect(vientoEn(g, -10, -50)).toBeNull();
+    expect(colorEscalaViento(0)).toEqual([37, 52, 148]);
+    expect(colorEscalaViento(100)).toEqual([215, 48, 39]);
   });
 });

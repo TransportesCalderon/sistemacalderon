@@ -12,10 +12,11 @@ import { FUENTE_CONSUMO_MES, haceTexto, minutosDesde, senalDe, type CamionEnVivo
 import { RankingMapa } from './ranking-mapa';
 import {
   CAPAS_CLIMA,
+  ESCALA_VIENTO,
   climaCercano,
   colorPrecipitacion,
   colorTemperatura,
-  colorViento,
+  grillaViento,
   redondearZona,
   textoClima,
   VERSION_CLIMA_MAPA,
@@ -24,6 +25,7 @@ import {
   type ZonaMapa,
 } from '../domain/clima.types';
 import { useClimaMapa } from '../queries/hooks';
+import { iniciarVientoAnimado } from './viento-animado';
 import { ubicarEtiquetas } from '../domain/ubicar-etiquetas';
 
 /** Migración 112: verde en marcha, rojo apagado, gris sin señal o sin dato del motor (el estado lo decide la base). */
@@ -134,12 +136,17 @@ export function MapaFlota({
   const conClima = useBaseTiene(VERSION_CLIMA_MAPA);
   const [capaClima, setCapaClima] = useState<CapaClima>('');
   const [horaClima, setHoraClima] = useState(0);
+  const [fondoViento, setFondoViento] = useState(false);
   const [zona, setZona] = useState<ZonaMapa | null>(null);
   const climaCapa = useRef<LayerGroup | null>(null);
   const capaClimaRef = useRef<CapaClima>('');
   capaClimaRef.current = capaClima;
   const clima = useClimaMapa(capaClima ? zona : null);
   const climaRef = useRef<ClimaMapa | null>(null);
+  // Con el viento animado no hay flechas para tocar: el clima del lugar donde está el mouse va en la barra
+  const [aqui, setAqui] = useState<string | null>(null);
+  const horaRef = useRef(0);
+  horaRef.current = horaClima;
   climaRef.current = capaClima ? (clima.data ?? null) : null;
   const leerZona = (m: MapaLeaflet) => {
     const b = m.getBounds();
@@ -166,6 +173,12 @@ export function MapaFlota({
       m.on('moveend', () => {
         if (capaClimaRef.current) leerZona(m);
       });
+      m.on('mousemove', (e) => {
+        if (!capaClimaRef.current) return;
+        const p = climaCercano(climaRef.current, e.latlng.lat, e.latlng.lng);
+        setAqui(p ? textoClima(p, horaRef.current) : null);
+      });
+      m.on('mouseout', () => setAqui(null));
       // Tocar el mapa (fuera de un camión) vuelve a mostrar las estelas de todos
       m.on('click', () => {
         centrado.current = null;
@@ -206,27 +219,18 @@ export function MapaFlota({
     g.clearLayers();
     const datos = clima.data;
     if (!capaClima || !datos) return;
+    // Viento: ráfagas animadas (no flechas)
+    if (capaClima === 'viento') {
+      if (!mapa.current) return;
+      return iniciarVientoAnimado(mapa.current, grillaViento(datos, Math.min(horaClima, Math.max(0, datos.horas.length - 1))), fondoViento);
+    }
     void import('leaflet').then((L) => {
       if (!climaCapa.current) return;
       const h = Math.min(horaClima, Math.max(0, datos.horas.length - 1));
       const medio = datos.paso / 2;
       for (const p of datos.puntos) {
         const texto = textoClima(p, h);
-        if (capaClima === 'viento') {
-          const v = p.viento[h], d = p.direccion[h];
-          if (v === null || v === undefined || d === null || d === undefined) continue;
-          const color = colorViento(v);
-          // La flecha apunta hacia donde sopla (la dirección es de dónde viene)
-          const flecha = `<div style="transform:rotate(${(d + 180) % 360}deg);width:26px;height:26px"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 2 L18 12 H14 V22 H10 V12 H6 Z" fill="${color}" stroke="#fff" stroke-width="1.2"/></svg></div>`;
-          L.marker([p.lat, p.lng], {
-            pane: 'clima',
-            interactive: true,
-            icon: L.divIcon({ html: `${flecha}<span style="position:absolute;top:24px;left:2px;font:600 10px system-ui;color:${color};text-shadow:0 0 2px #fff">${Math.round(v)}</span>`, className: '', iconSize: [26, 26], iconAnchor: [13, 13] }),
-          })
-            .bindTooltip(texto)
-            .addTo(climaCapa.current);
-        } else {
-          const color =
+        const color =
             capaClima === 'lluvia'
               ? colorPrecipitacion(p.lluvia[h] ?? null, p.nieve[h] ?? null)
               : p.temperatura[h] !== null && p.temperatura[h] !== undefined
@@ -242,10 +246,9 @@ export function MapaFlota({
           )
             .bindTooltip(texto)
             .addTo(climaCapa.current);
-        }
       }
     });
-  }, [clima.data, capaClima, horaClima]);
+  }, [clima.data, capaClima, horaClima, fondoViento]);
 
   // Pantalla completa: la del navegador si se puede; si no (algunos celulares), el mapa ocupa toda la ventana
   useEffect(() => {
@@ -678,6 +681,9 @@ export function MapaFlota({
           hora={horaClima}
           onHora={setHoraClima}
           cargando={clima.isFetching}
+          aqui={aqui}
+          fondo={fondoViento}
+          onFondo={setFondoViento}
           error={clima.data?.error ?? (clima.error instanceof Error ? clima.error.message : null)}
           zonaHoraria={zonaHoraria}
         />
@@ -708,6 +714,9 @@ function BarraClima({
   hora,
   onHora,
   cargando,
+  aqui,
+  fondo,
+  onFondo,
   error,
   zonaHoraria,
 }: {
@@ -716,6 +725,9 @@ function BarraClima({
   hora: number;
   onHora: (h: number) => void;
   cargando: boolean;
+  aqui: string | null;
+  fondo: boolean;
+  onFondo: (v: boolean) => void;
   error: string | null;
   zonaHoraria: string;
 }) {
@@ -723,7 +735,7 @@ function BarraClima({
   const actual = horas[Math.min(hora, max)];
   const referencias: [string, string][] =
     capa === 'viento'
-      ? [['#16a34a', '< 20 km/h'], ['#ca8a04', '20–40'], ['#ea580c', '40–60'], ['#dc2626', '60 o más']]
+      ? []
       : capa === 'lluvia'
         ? [['#93c5fd', '< 1 mm'], ['#3b82f6', '1–4'], ['#1d4ed8', '4–10'], ['#1e3a8a', '10 o más'], ['#c084fc', 'nieve'], ['#7c3aed', 'nieve 1 cm o más']]
         : [['#6366f1', 'helada (0 °C o menos)'], ['#60a5fa', '0–10 °C'], ['#34d399', '10–20'], ['#fbbf24', '20–30'], ['#ef4444', '30 o más']];
@@ -745,7 +757,28 @@ function BarraClima({
         />
         {cargando && <span className="text-tinta-suave">Cargando…</span>}
       </div>
+      {capa === 'viento' && fondo && (
+        <div>
+          <div
+            className="h-2.5 rounded-sm"
+            style={{ background: `linear-gradient(to right, ${ESCALA_VIENTO.map(([k, c]) => `rgb(${c.join(',')}) ${(k / 80) * 100}%`).join(', ')})` }}
+          />
+          <div className="relative h-3.5 text-[10px] text-tinta-suave">
+            {ESCALA_VIENTO.map(([k]) => (
+              <span key={k} className="absolute -translate-x-1/2" style={{ left: `${(k / 80) * 100}%` }}>
+                {k}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {capa === 'viento' && <span>Viento en km/h · los trazos muestran hacia dónde sopla</span>}
+        {capa === 'viento' && (
+          <label className="inline-flex items-center gap-1">
+            <input type="checkbox" className="accent-marca" checked={fondo} onChange={(e) => onFondo(e.target.checked)} /> Fondo con la escala
+          </label>
+        )}
         {referencias.map(([color, texto]) => (
           <span key={texto} className="inline-flex items-center gap-1">
             <span className="inline-block size-3 rounded-sm" style={{ background: color }} /> {texto}
@@ -753,6 +786,7 @@ function BarraClima({
         ))}
         <span className="ml-auto text-tinta-suave">Datos: Open-Meteo</span>
       </div>
+      <p className="min-h-4 text-tinta-suave">{aqui ? `Acá: ${aqui}` : 'Pasá el mouse por el mapa para ver el clima de ese lugar.'}</p>
       {error && <p className="text-error">{error}</p>}
     </div>
   );

@@ -121,3 +121,62 @@ export function textoClima(p: PuntoClima, hora: number): string {
   if (t !== null && t !== undefined) partes.push(`${Math.round(t)} °C${t <= 0 ? ' (helada)' : ''}`);
   return partes.join(' · ');
 }
+
+/** Hacia dónde sopla (u = este, v = norte), en km/h, a partir de la velocidad y de dónde viene. */
+export function vectorViento(kmh: number, desdeGrados: number): { u: number; v: number } {
+  const hacia = ((desdeGrados + 180) * Math.PI) / 180;
+  return { u: kmh * Math.sin(hacia), v: kmh * Math.cos(hacia) };
+}
+
+/** Grilla de viento de una hora, para interpolar rápido en cualquier lugar del mapa. */
+export interface GrillaViento {
+  paso: number;
+  celdas: Map<string, { u: number; v: number }>;
+}
+const claveCelda = (i: number, j: number) => `${i}:${j}`;
+
+export function grillaViento(c: ClimaMapa, hora: number): GrillaViento {
+  const celdas = new Map<string, { u: number; v: number }>();
+  for (const p of c.puntos) {
+    const kmh = p.viento[hora], d = p.direccion[hora];
+    if (kmh === null || kmh === undefined || d === null || d === undefined) continue;
+    celdas.set(claveCelda(Math.round(p.lat / c.paso), Math.round(p.lng / c.paso)), vectorViento(kmh, d));
+  }
+  return { paso: c.paso, celdas };
+}
+
+/** Viento en un lugar (interpolación bilineal entre los 4 puntos de la grilla); null fuera de la grilla. */
+export function vientoEn(g: GrillaViento, lat: number, lng: number): { u: number; v: number } | null {
+  if (!g.paso) return null;
+  const y = lat / g.paso, x = lng / g.paso;
+  const i0 = Math.floor(y), j0 = Math.floor(x), fy = y - i0, fx = x - j0;
+  const a = g.celdas.get(claveCelda(i0, j0)), b = g.celdas.get(claveCelda(i0, j0 + 1));
+  const c = g.celdas.get(claveCelda(i0 + 1, j0)), d = g.celdas.get(claveCelda(i0 + 1, j0 + 1));
+  if (!a || !b || !c || !d) return null;
+  const mezcla = (k: 'u' | 'v') => (a[k] * (1 - fx) + b[k] * fx) * (1 - fy) + (c[k] * (1 - fx) + d[k] * fx) * fy;
+  return { u: mezcla('u'), v: mezcla('v') };
+}
+
+/** Escala del viento (como Ventusky): azul calmo → verde → amarillo → naranja → rojo fuerte. */
+export const ESCALA_VIENTO: [number, [number, number, number]][] = [
+  [0, [37, 52, 148]],
+  [10, [44, 127, 184]],
+  [20, [65, 182, 196]],
+  [30, [127, 205, 120]],
+  [45, [237, 222, 80]],
+  [60, [244, 140, 50]],
+  [80, [215, 48, 39]],
+];
+/** Color del fondo para una velocidad (interpolado en la escala). */
+export function colorEscalaViento(kmh: number): [number, number, number] {
+  const e = ESCALA_VIENTO;
+  if (kmh <= e[0]![0]) return e[0]![1];
+  for (let i = 1; i < e.length; i++) {
+    const [k1, c1] = e[i]!, [k0, c0] = e[i - 1]!;
+    if (kmh <= k1) {
+      const f = (kmh - k0) / (k1 - k0);
+      return [0, 1, 2].map((j) => Math.round(c0[j]! + (c1[j]! - c0[j]!) * f)) as [number, number, number];
+    }
+  }
+  return e[e.length - 1]![1];
+}
