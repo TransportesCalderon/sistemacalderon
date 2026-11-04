@@ -50,6 +50,12 @@ export const logisticaQueries = {
       queryFn: () => rutasRepository(db).avisosDesvio(),
       staleTime: 0,
     }),
+  avisosTanqueBajo: (db: Db) =>
+    queryOptions({
+      queryKey: ['logistica', 'tanque_bajo'] as const,
+      queryFn: () => rutasRepository(db).avisosTanqueBajo(),
+      staleTime: 0,
+    }),
   abiertos: (db: Db) =>
     queryOptions({
       queryKey: ['logistica', 'abiertos'] as const,

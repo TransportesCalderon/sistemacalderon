@@ -66,6 +66,8 @@ export const OBJETOS = {
   operacion: [['logistica'], ['pizarra'], ['combustible'], ['pendientes']],
   /** Migración 156: «Entendido» en el aviso de desvío de ruta (solo la ventana emergente). */
   desvio: [['logistica', 'rutas', 'avisos']],
+  /** Migración 177: «Entendido» en el aviso de tanque bajo. */
+  tanque_bajo: [['logistica', 'tanque_bajo']],
   /** Ventas: emitir o cobrar cambia también Finanzas y los viajes. */
   venta: [['ventas'], ['finanzas'], ['logistica']],
   /** Finanzas: un cobro cambia también Ventas › Facturación. */

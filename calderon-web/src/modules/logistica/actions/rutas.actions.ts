@@ -46,6 +46,13 @@ export const marcarDesvioVisto = createAction({
   handler: (d, { db }) => rutasRepository(db).desvioVisto(d.id),
 });
 
+/** Migración 177: «Entendido» en la ventana de tanque bajo (no vuelve a aparecer para ese usuario). */
+export const marcarTanqueBajoVisto = createAction({
+  permiso: 'telemetria.mapa:ver',
+  schema: z.object({ id: z.number().int().positive() }),
+  handler: (d, { db }) => rutasRepository(db).tanqueBajoVisto(d.id),
+});
+
 // Migración 158: varias rutas por operación
 const datosTramo = z.object({
   servicioId: z.number().int().positive(),
@@ -124,7 +131,9 @@ export const llegadaRutaChofer = createAction({
 /** El chofer: «Llegué al destino» de su ruta en curso. */
 export const llegueMiDestino = createAction({
   permiso: 'chofer.mi_carga:editar',
-  schema: z.object({}),
-  handler: (_d, { db }) => rutasRepository(db).llegueMiDestino(),
+  // Migración 177: la ubicación del celular (si el chofer la dio); la base decide si está en el destino
+  schema: z.object({ lat: z.number().min(-90).max(90).nullish(), lng: z.number().min(-180).max(180).nullish() }),
+  handler: (d, { db }) =>
+    rutasRepository(db).llegueMiDestino(d.lat != null && d.lng != null ? { lat: d.lat, lng: d.lng } : null),
   invalida: rutas,
 });

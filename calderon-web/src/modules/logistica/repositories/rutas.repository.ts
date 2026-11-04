@@ -1,7 +1,7 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/database.generated';
 import {
-  parsearAvisosDesvio,
+  parsearAvisosDesvio, parsearAvisosTanqueBajo, type AvisoTanqueBajo,
   parsearChoferesRutas,
   parsearMiRuta,
   parsearOperacionesRuta,
@@ -173,8 +173,9 @@ export const rutasRepository = (db: Db) => {
       if (error) throw new RepoError(error);
       return parsearMiRuta(data);
     },
-    async llegueMiDestino(): Promise<void> {
-      const { error } = await ops().rpc('fn_llegue_mi_destino');
+    /** Migración 177: con la ubicación del celular (la base controla que esté en el destino). */
+    async llegueMiDestino(pos?: { lat: number; lng: number } | null): Promise<void> {
+      const { error } = await ops().rpc('fn_llegue_mi_destino', pos ? { p_lat: pos.lat, p_lng: pos.lng } : {});
       if (error) throw new RepoError(error);
     },
     /** Migración 156: operaciones abiertas con su ruta (o sin ruta) y si hay un desvío. */
@@ -188,6 +189,16 @@ export const rutasRepository = (db: Db) => {
       const { data, error } = await db.schema('tel').rpc('fn_avisos_desvio');
       if (error) throw new RepoError(error);
       return parsearAvisosDesvio(data);
+    },
+    /** Migración 177: avisos de tanque bajo para este usuario (Telemetría y los que marque TI). */
+    async avisosTanqueBajo(): Promise<AvisoTanqueBajo[]> {
+      const { data, error } = await db.schema('tel').rpc('fn_avisos_tanque_bajo');
+      if (error) throw new RepoError(error);
+      return parsearAvisosTanqueBajo(data);
+    },
+    async tanqueBajoVisto(id: number): Promise<void> {
+      const { error } = await db.schema('tel').rpc('fn_tanque_bajo_visto', { p_aviso: id });
+      if (error) throw new RepoError(error);
     },
     async desvioVisto(id: number): Promise<void> {
       const { error } = await db.schema('tel').rpc('fn_desvio_visto', { p_desvio: id });

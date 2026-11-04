@@ -40,3 +40,10 @@ export const marcarAprobadorCierre = createAction({
   schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
   handler: (d, { db }) => usuariosRepository(db).marcarAprobadorCierre(d.usuario, d.aprueba),
 });
+
+/** Migración 177: marcar quién recibe la ventana de tanque bajo (además de Telemetría). Solo TI. */
+export const marcarAvisoTanqueBajo = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
+  handler: (d, { db }) => usuariosRepository(db).marcarAvisoTanqueBajo(d.usuario, d.aprueba),
+});

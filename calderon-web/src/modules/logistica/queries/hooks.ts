@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { browserDb } from '@/shared/supabase/browser';
 import { agregarGastoViaje, anularGastoViaje } from '../actions/costos.actions';
-import { marcarDesvioVisto } from '../actions/rutas.actions';
+import { marcarDesvioVisto, marcarTanqueBajoVisto } from '../actions/rutas.actions';
 import { costosRepository } from '../repositories/costos.repository';
 import { usePizarraEnVivo } from '@/modules/pizarra/queries/hooks';
 import {
@@ -85,6 +85,16 @@ export function useDesvioVisto() {
   return useMutation({
     mutationFn: marcarDesvioVisto,
     onSuccess: (r) => (r.ok ? invalidar(qc, 'desvio') : undefined),
+  });
+}
+/** Migración 177: ventana emergente de tanque bajo (cada minuto). */
+export const useAvisosTanqueBajo = (activo: boolean) =>
+  useQuery({ ...q.avisosTanqueBajo(browserDb()), enabled: activo, refetchInterval: activo ? 60_000 : false });
+export function useTanqueBajoVisto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: marcarTanqueBajoVisto,
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'tanque_bajo') : undefined),
   });
 }
 export const useTramosOperacion = (servicio: number) => useQuery(q.tramos(browserDb(), servicio));

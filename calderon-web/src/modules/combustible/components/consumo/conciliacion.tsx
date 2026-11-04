@@ -1,6 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { Gauge } from 'lucide-react';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { VERSION_COMITE } from '../../domain/comite.types';
+import { ComiteMensual } from '../comite/comite-mensual';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
@@ -20,6 +24,33 @@ const suma = (l: (number | null)[]) => l.reduce<number>((a, b) => a + (b ?? 0), 
  * consumió el motor según la telemetría. Positivo = falta combustible. Ordenado por llegada.
  */
 export function ConciliacionPantalla() {
+  // Migración 179: el comité mensual de consumo, en la misma pantalla
+  const conComite = useBaseTiene(VERSION_COMITE);
+  const [vista, setVista] = useState<'viajes' | 'comite'>('viajes');
+  return (
+    <div className="space-y-5">
+      {conComite && (
+        <div className="flex gap-1 print:hidden" role="tablist">
+          {(['viajes', 'comite'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={vista === v}
+              onClick={() => setVista(v)}
+              className={cn('rounded-md px-3 py-1.5 text-sm', vista === v ? 'bg-marca text-white' : 'bg-panel text-tinta-suave hover:text-tinta')}
+            >
+              {v === 'viajes' ? 'Por viaje' : 'Comité del mes'}
+            </button>
+          ))}
+        </div>
+      )}
+      {vista === 'comite' && conComite ? <ComiteMensual /> : <ViajesConciliados />}
+    </div>
+  );
+}
+
+function ViajesConciliados() {
   const { zonaHoraria } = useSesion();
   const [p, setP] = usePeriodo('/combustible/conciliacion');
   const { data, isPending, isError, error, isFetching, refetch } = useConciliacionViajes(p);

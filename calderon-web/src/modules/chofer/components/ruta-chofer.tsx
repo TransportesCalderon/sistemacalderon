@@ -103,6 +103,7 @@ export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofe
 function LlegueAlDestino({ servicioId }: { servicioId: number | null }) {
   const hay = useBaseTiene(158);
   const porChofer = useBaseTiene(161);
+  const conUbicacion = useBaseTiene(177);
   const invalidar = useInvalidar();
   const [confirmar, setConfirmar] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -111,7 +112,9 @@ function LlegueAlDestino({ servicioId }: { servicioId: number | null }) {
   const enviar = async () => {
     setError(null);
     setOcupado(true);
-    const r = porChofer || servicioId === null ? await llegueMiDestino({}) : await llegueDestino({ servicioId });
+    // Migración 177: la base controla que esté en el destino (GPS del camión o, si no manda, el celular)
+    const pos = conUbicacion ? await ubicacionCelular() : null;
+    const r = porChofer || servicioId === null ? await llegueMiDestino(pos ?? {}) : await llegueDestino({ servicioId });
     setOcupado(false);
     if (!r.ok) return setError(r.error);
     setConfirmar(false);
@@ -140,5 +143,17 @@ function LlegueAlDestino({ servicioId }: { servicioId: number | null }) {
       )}
       <ErrorBase error={error} />
     </div>
+  );
+}
+
+/** La ubicación del celular para «Llegué a destino» (null si no la da o tarda). */
+function ubicacionCelular(): Promise<{ lat: number; lng: number } | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(null);
+  return new Promise((ok) =>
+    navigator.geolocation.getCurrentPosition(
+      (g) => ok({ lat: g.coords.latitude, lng: g.coords.longitude }),
+      () => ok(null),
+      { enableHighAccuracy: true, timeout: 8_000, maximumAge: 60_000 },
+    ),
   );
 }

@@ -16,6 +16,8 @@ import {
 } from '../actions/base.actions';
 import { adjuntarDocumento, quitarDocumento, validarCarga } from '../actions/documento.actions';
 import { crearCarga, editarCarga, eliminarCarga, resolverSolicitudCarga, retirarSolicitudCarga, solicitarAnulacionCarga } from '../actions/carga.actions';
+import { cerrarComite, revisarEquipoMes } from '../actions/comite.actions';
+import { comiteRepository } from '../repositories/comite.repository';
 import { actualizarLimitesCierre, anularCierre, aprobarCierre, crearBorradorCierre, guardarBorradorCierre } from '../actions/cierre.actions';
 import {
   registrarDescarga,
@@ -96,6 +98,11 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
 }
 
 export const useCrearCarga = () => useEscritura(crearCarga);
+/** Migración 179 · Comité mensual de consumo. */
+export const useComite = (mes: string, activo: boolean) =>
+  useQuery({ queryKey: ['combustible', 'comite', mes], queryFn: () => comiteRepository(browserDb()).mes(mes), enabled: activo, placeholderData: keepPreviousData });
+export const useRevisarEquipoMes = () => useEscritura(revisarEquipoMes);
+export const useCerrarComite = () => useEscritura(cerrarComite);
 export const useEditarCarga = () => useEscritura(editarCarga);
 /** Migración 47: odómetro de la telemetría para la hora de la carga (se propone en el formulario). */
 export const useOdometroTelemetria = (camionId: number | null, fechaHora: string | null) =>

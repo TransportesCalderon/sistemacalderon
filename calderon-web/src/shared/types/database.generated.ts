@@ -1217,7 +1217,7 @@ export type Database = {
       fn_mover_ruta_chofer: { Args: { p_chofer: number; p_id: number; p_dir: number }; Returns: undefined };
       fn_llegada_ruta_chofer: { Args: { p_chofer: number; p_llego: boolean }; Returns: undefined };
       fn_mi_ruta: { Args: Record<string, never>; Returns: Json };
-      fn_llegue_mi_destino: { Args: Record<string, never>; Returns: Json };
+      fn_llegue_mi_destino: { Args: { p_lat?: number | null; p_lng?: number | null }; Returns: Json };
       fn_guardar_ruta_operacion: { Args: { p_servicio: number; p_version: number | null; p_datos: Json }; Returns: undefined };
       fn_quitar_ruta_operacion: { Args: { p_servicio: number; p_version: number }; Returns: undefined };
       // Módulo del chofer (60)
@@ -1485,6 +1485,8 @@ export type Database = {
       // Migración 170: quién aprueba cierres de viaje (TI)
       fn_aprobadores_cierre: { Args: Record<string, never>; Returns: number[] };
       fn_marcar_aprobador_cierre: { Args: { p_usuario: number; p_aprueba: boolean }; Returns: undefined };
+      fn_avisados_tanque_bajo: { Args: Record<string, never>; Returns: number[] };
+      fn_marcar_aviso_tanque_bajo: { Args: { p_usuario: number; p_recibe: boolean }; Returns: undefined };
       fn_guardar_usuario: { Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean; p_chofer?: number | null }; Returns: number };
       /** Migración 150: crea la cuenta de acceso (Supabase Auth, con la llave de Vault) y el usuario. Solo TI. */
       fn_crear_usuario: {
@@ -1812,6 +1814,8 @@ export type Database = {
       /** Migración 156 */
       fn_avisos_desvio: { Args: Record<string, never>; Returns: Json };
       fn_desvio_visto: { Args: { p_desvio: number }; Returns: undefined };
+      fn_avisos_tanque_bajo: { Args: Record<string, never>; Returns: Json };
+      fn_tanque_bajo_visto: { Args: { p_aviso: number }; Returns: undefined };
       fn_trackerway_buscar: { Args: Record<string, never>; Returns: Json };
       fn_trackerway_enlazar: { Args: { p_imei: string; p_camion: number | null }; Returns: undefined };
       fn_trackerway_importar: { Args: { p_imei: string; p_importar: boolean }; Returns: undefined };
@@ -2023,6 +2027,12 @@ export type Database = {
       };
       fn_quitar_documento_carga: { Args: { p_documento: number }; Returns: undefined };
       // Control del consumo (36)
+      fn_comite_consumo: { Args: { p_mes: string }; Returns: Json };
+      fn_revisar_equipo_mes: {
+        Args: { p_mes: string; p_tipo: string; p_equipo: number; p_revisado: boolean; p_comentario?: string | null; p_accion?: string | null };
+        Returns: undefined;
+      };
+      fn_cerrar_comite: { Args: { p_mes: string; p_participantes: string; p_conclusiones: string | null }; Returns: Json };
       fn_conciliacion_viajes: {
         Args: { p_desde: string; p_hasta: string; p_camion?: number | null };
         Returns: {

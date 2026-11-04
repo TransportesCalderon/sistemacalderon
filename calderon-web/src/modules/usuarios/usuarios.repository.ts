@@ -44,6 +44,16 @@ export const usuariosRepository = (db: Db) => ({
     const { error } = await db.schema('seg').rpc('fn_marcar_aprobador_cierre', { p_usuario: usuario, p_aprueba: aprueba });
     if (error) throw new RepoError(error);
   },
+  /** Migración 177: ids de quienes reciben el aviso de tanque bajo (además de Telemetría). */
+  async avisadosTanqueBajo(): Promise<number[]> {
+    const { data, error } = await db.schema('seg').rpc('fn_avisados_tanque_bajo');
+    if (error) throw new RepoError(error);
+    return (data ?? []).map(Number);
+  },
+  async marcarAvisoTanqueBajo(usuario: number, recibe: boolean): Promise<void> {
+    const { error } = await db.schema('seg').rpc('fn_marcar_aviso_tanque_bajo', { p_usuario: usuario, p_recibe: recibe });
+    if (error) throw new RepoError(error);
+  },
   async sinVincular(): Promise<CuentaSinVincular[]> {
     const { data, error } = await db.schema('seg').rpc('fn_cuentas_sin_vincular');
     if (error) throw new RepoError(error);

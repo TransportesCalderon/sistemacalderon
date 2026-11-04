@@ -13,7 +13,7 @@ import { FRESCURA } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { Campo } from '@/shared/ui/campo';
 import { useChoferesCombustible } from '@/modules/combustible/queries/hooks';
-import { crearUsuario, guardarUsuario, marcarAprobadorCierre } from '../usuarios.actions';
+import { crearUsuario, guardarUsuario, marcarAprobadorCierre, marcarAvisoTanqueBajo } from '../usuarios.actions';
 import { BOTON_PRIMARIO } from '@/shared/ui/clases';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { usuariosRepository, type Usuario } from '../usuarios.repository';
@@ -54,6 +54,15 @@ export function UsuariosPantalla() {
     enabled: hayAprobadores,
     staleTime: FRESCURA.maestro,
   });
+  // Migración 177: quién recibe el aviso de tanque bajo
+  const hayAvisoTanque = useBaseTiene(177);
+  const avisados = useQuery({
+    queryKey: ['usuarios', 'aviso-tanque-bajo'],
+    queryFn: () => usuariosRepository(db).avisadosTanqueBajo(),
+    enabled: hayAvisoTanque,
+    staleTime: FRESCURA.maestro,
+  });
+  const columnas = 5 + (hayAprobadores ? 1 : 0) + (hayAvisoTanque ? 1 : 0);
 
   return (
     <div className="space-y-5">
@@ -130,6 +139,7 @@ export function UsuariosPantalla() {
                   <th className={TH}>Último ingreso</th>
                   <th className={TH}>Estado</th>
                   {hayAprobadores && <th className={TH}>Aprueba cierres de viaje</th>}
+                  {hayAvisoTanque && <th className={TH} title="Además de Telemetría">Aviso de tanque bajo</th>}
                   <th className={TH} />
                 </tr>
               </thead>
@@ -159,6 +169,16 @@ export function UsuariosPantalla() {
                           <AprobadorCierre usuario={u.id} marcado={(aprobadores.data ?? []).includes(u.id)} cargando={aprobadores.isPending} />
                         </td>
                       )}
+                      {hayAvisoTanque && (
+                        <td className={TD}>
+                          <AprobadorCierre
+                            usuario={u.id}
+                            marcado={(avisados.data ?? []).includes(u.id)}
+                            cargando={avisados.isPending}
+                            accion={marcarAvisoTanqueBajo}
+                          />
+                        </td>
+                      )}
                       <td className={cn(TD, 'text-right')}>
                         {u.email && (
                           <button
@@ -173,7 +193,7 @@ export function UsuariosPantalla() {
                     </tr>
                     {abierto === `u:${u.id}` && u.email && (
                       <tr>
-                        <td colSpan={hayAprobadores ? 6 : 5} className="px-3 pb-3">
+                        <td colSpan={columnas} className="px-3 pb-3">
                           <FormUsuario email={u.email} usuario={u} onCerrar={() => setAbierto(null)} />
                         </td>
                       </tr>
@@ -190,11 +210,22 @@ export function UsuariosPantalla() {
 }
 
 /** Migración 170: TI marca quién aprueba cierres de viaje (quien lo preparó nunca lo aprueba: lo controla la base). */
-function AprobadorCierre({ usuario, marcado, cargando }: { usuario: number; marcado: boolean; cargando: boolean }) {
+/** Migración 177: la misma casilla sirve para «Aviso de tanque bajo» (otra acción). */
+function AprobadorCierre({
+  usuario,
+  marcado,
+  cargando,
+  accion = marcarAprobadorCierre,
+}: {
+  usuario: number;
+  marcado: boolean;
+  cargando: boolean;
+  accion?: typeof marcarAprobadorCierre;
+}) {
   const qc = useQueryClient();
   const envio = useEnvio();
   const marcar = useMutation({
-    mutationFn: marcarAprobadorCierre,
+    mutationFn: accion,
     onSuccess: (r) => (r.ok ? invalidar(qc, 'usuario') : undefined),
   });
   return (

@@ -269,6 +269,33 @@ export interface AvisoDesvio {
   lat: number | null;
   lng: number | null;
 }
+/** Migración 177: tanque bajo (sensor en 20 % o menos) para la ventana emergente. */
+export interface AvisoTanqueBajo {
+  id: number;
+  tractor: string;
+  chofer: string | null;
+  desde: string;
+  pct: number;
+  litros: number | null;
+  ultimoPct: number;
+  lat: number | null;
+  lng: number | null;
+}
+export const parsearAvisosTanqueBajo = (v: unknown): AvisoTanqueBajo[] =>
+  (Array.isArray(v) ? v : []).map((x) => {
+    const o = (x ?? {}) as Obj;
+    return {
+      id: Number(o.id),
+      tractor: txt(o.tractor),
+      chofer: txtN(o.chofer),
+      desde: txt(o.desde),
+      pct: Number(o.pct ?? 0),
+      litros: num(o.litros),
+      ultimoPct: Number(o.ultimo_pct ?? o.pct ?? 0),
+      lat: num(o.latitud),
+      lng: num(o.longitud),
+    };
+  });
 export const parsearAvisosDesvio = (v: unknown): AvisoDesvio[] =>
   (Array.isArray(v) ? v : []).map((x) => {
     const o = (x ?? {}) as Obj;
