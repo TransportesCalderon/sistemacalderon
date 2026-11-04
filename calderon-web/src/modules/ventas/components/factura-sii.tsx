@@ -110,7 +110,7 @@ export function FacturaSii({ facturaId, version, estado, fecha }: { facturaId: n
       {s.documentos.length > 0 && (
         <ul className="divide-y divide-borde text-sm">
           {s.documentos.map((d) => (
-            <FilaDocumento key={d.id} d={d} puedeAnular={s.puedeAnular && d.estado === 'aceptado' && (d.tipo === 34 || d.tipo === 110)} />
+            <FilaDocumento key={d.id} d={d} facturaId={facturaId} puedeAnular={s.puedeAnular && d.estado === 'aceptado' && (d.tipo === 34 || d.tipo === 110)} />
           ))}
         </ul>
       )}
@@ -118,7 +118,7 @@ export function FacturaSii({ facturaId, version, estado, fecha }: { facturaId: n
   );
 }
 
-function FilaDocumento({ d, puedeAnular }: { d: DocumentoSii; puedeAnular: boolean }) {
+function FilaDocumento({ d, facturaId, puedeAnular }: { d: DocumentoSii; facturaId: number; puedeAnular: boolean }) {
   const nc = useNotaCreditoSii();
   const envio = useEnvio();
   const [error, setError] = useState<string | null>(null);
@@ -135,12 +135,13 @@ function FilaDocumento({ d, puedeAnular }: { d: DocumentoSii; puedeAnular: boole
           {d.creadoPor && ` · ${d.creadoPor}`}
         </span>
         {d.urlOriginal && (
-          <a className="inline-flex items-center gap-1 text-marca hover:underline" href={d.urlOriginal} target="_blank" rel="noreferrer">
+          // 04/11/2026: el link de Facturacion.cl es http (el navegador lo bloquea): lo baja IronTrack
+          <a className="inline-flex items-center gap-1 text-marca hover:underline" href={`/ventas/facturacion/pdf/${d.id}?factura=${facturaId}`} target="_blank" rel="noreferrer">
             <FileText className="size-4" /> PDF
           </a>
         )}
         {d.urlCedible && (
-          <a className="inline-flex items-center gap-1 text-marca hover:underline" href={d.urlCedible} target="_blank" rel="noreferrer">
+          <a className="inline-flex items-center gap-1 text-marca hover:underline" href={`/ventas/facturacion/pdf/${d.id}?factura=${facturaId}&cual=cedible`} target="_blank" rel="noreferrer">
             <FileText className="size-4" /> Cedible
           </a>
         )}
