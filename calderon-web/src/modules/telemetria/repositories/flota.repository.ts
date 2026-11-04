@@ -1,5 +1,6 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { FechaISO } from '@/shared/types/dominio';
+import { parsearClima, type ClimaMapa, type ZonaMapa } from '../domain/clima.types';
 import { parsearMapa, type CamionEnVivo, type CorridaApi, type DetalleMapa, type VehiculoApi } from '../domain/flota.types';
 
 const n = (v: number | string | null | undefined) => (v === null || v === undefined ? null : Number(v));
@@ -32,6 +33,13 @@ export const flotaRepository = (db: Db) => ({
     const { data, error } = await db.schema('tel').rpc('fn_mapa_flota', { p_minutos: minutos });
     if (error) throw new RepoError(error);
     return parsearMapa(data);
+  },
+
+  /** Migración 182: clima (Open-Meteo) de la zona del mapa, de ahora a 24 h. */
+  async clima(z: ZonaMapa): Promise<ClimaMapa> {
+    const { data, error } = await db.schema('tel').rpc('fn_clima_mapa', { p_sur: z.sur, p_oeste: z.oeste, p_norte: z.norte, p_este: z.este });
+    if (error) throw new RepoError(error);
+    return parsearClima(data);
   },
 
   async vehiculosApi(): Promise<VehiculoApi[]> {

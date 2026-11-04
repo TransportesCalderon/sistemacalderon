@@ -1,11 +1,13 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { REFRESCO } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { importarTelemetriaAhora } from '../actions/flota.actions';
 import { buscarEquiposTrackerway, enlazarEquipoTrackerway, importarEquipoTrackerway } from '../actions/trackerway.actions';
+import type { ZonaMapa } from '../domain/clima.types';
 import { conduccionRepository } from '../repositories/conduccion.repository';
+import { flotaRepository } from '../repositories/flota.repository';
 import { tableroRepository } from '../repositories/tablero.repository';
 import { trackerwayRepository } from '../repositories/trackerway.repository';
 import { telemetriaQueries as q } from './keys';
@@ -79,4 +81,15 @@ export const useAvisosCarga = (horas = 12) =>
     queryKey: ['telemetria', 'avisos-carga', horas] as const,
     queryFn: () => tableroRepository(browserDb()).avisos(horas),
     refetchInterval: 120_000,
+  });
+
+/** Migración 182: clima de la zona del mapa (se pide solo con una capa prendida; la base lo guarda 60 min). */
+export const useClimaMapa = (zona: ZonaMapa | null) =>
+  useQuery({
+    queryKey: ['telemetria', 'clima', zona],
+    queryFn: () => flotaRepository(browserDb()).clima(zona!),
+    enabled: zona !== null,
+    staleTime: 10 * 60_000,
+    refetchInterval: 30 * 60_000,
+    placeholderData: keepPreviousData,
   });

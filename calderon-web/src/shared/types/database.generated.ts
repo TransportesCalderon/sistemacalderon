@@ -1798,6 +1798,7 @@ export type Database = {
       fn_importar_todas: { Args: { p_origen?: string }; Returns: Json };
       /** Migración 84. */
       fn_mapa_flota: { Args: { p_minutos?: number }; Returns: Json };
+      fn_clima_mapa: { Args: { p_sur: number; p_oeste: number; p_norte: number; p_este: number }; Returns: Json };
       // Migración 88: tablero del camión (fotos leídas por IA)
       fn_tablero_combinar: { Args: { p_lecturas: number[]; p_camion?: number | null }; Returns: Json };
       fn_guardar_tablero: {
