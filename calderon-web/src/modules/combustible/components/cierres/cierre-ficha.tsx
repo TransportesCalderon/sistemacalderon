@@ -1,6 +1,9 @@
 'use client';
 
 import { usePuedeAprobarCierres } from '../../queries/puede-aprobar';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { VERSION_DECISION } from '../../domain/decision.types';
+import { DecisionDiferencia } from './decision-diferencia';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -42,6 +45,7 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
   useNombreFicha(cierre?.numero);
   const puedeEditar = useCan('combustible.cierre_viaje:editar');
   const esBorrador = cierre?.estado === 'borrador';
+  const conDecision = useBaseTiene(VERSION_DECISION);
   const vivo = useResultadoCierre(id, esBorrador);
 
   if (isPending) return <Cargando texto="Cargando el cierre…" />;
@@ -83,6 +87,8 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
           {esBorrador && <Pendientes resultado={resultado} />}
           {resultado.versionCalculo === 1 ? <CalculoAnterior resultado={resultado} /> : <CombustibleCamion resultado={resultado} />}
           <Resultado cierre={cierre} resultado={resultado} />
+          {/* Migración 185: toda diferencia se resuelve (descontar o justificar) */}
+          {conDecision && <DecisionDiferencia cierreId={cierre.id} estado={cierre.estado} aDescontarL={resultado.imputableTotalL} />}
         </>
       ) : (
         <p className="text-sm text-tinta-suave">El cierre no tiene resultado congelado (se anuló sin haberse aprobado).</p>

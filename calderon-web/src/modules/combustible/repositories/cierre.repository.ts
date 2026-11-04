@@ -2,6 +2,7 @@ import { ConflictoVersion, RepoError, rangoPagina, type Db, type Pagina, type Ve
 import type { Database } from '@/shared/types/db';
 import type { CamionId, CargaId, ChoferId, CierreViajeId, FechaISO } from '@/shared/types/dominio';
 import { diaSiguiente, num, num0 } from '../domain/comun';
+import { parsearDecision, type Decision, type DecisionCierre } from '../domain/decision.types';
 import { parsearResultado, parsearVerificacion, resultadoCongelado, type ColumnasCongeladas } from '../domain/cierre.resultado';
 import {
   TAMANO_PAGINA_CIERRES,
@@ -242,6 +243,31 @@ export const cierreRepository = (db: Db) => ({
     if (error) throw new RepoError(error);
     if (!data) throw new ConflictoVersion('fue.cierre_viaje', id);
     return aCierre(data as FilaCierre);
+  },
+
+  /** Migración 185: la decisión sobre la diferencia y el pedido de quitar el descuento. */
+  async decision(id: number): Promise<DecisionCierre> {
+    const { data, error } = await db.schema('fue').rpc('fn_decision_cierre', { p_cierre: id });
+    if (error) throw new RepoError(error);
+    return parsearDecision(data);
+  },
+  async decidir(d: { cierreId: number; decision: Decision | null; motivo: string | null; evidencia: string | null }): Promise<void> {
+    const { error } = await db
+      .schema('fue')
+      .rpc('fn_decidir_diferencia', { p_cierre: d.cierreId, p_decision: d.decision, p_motivo: d.motivo, p_evidencia: d.evidencia });
+    if (error) throw new RepoError(error);
+  },
+  async pedirQuitarDescuento(d: { cierreId: number; motivo: string; evidencia: string }): Promise<void> {
+    const { error } = await db.schema('fue').rpc('fn_pedir_quitar_descuento', { p_cierre: d.cierreId, p_motivo: d.motivo, p_evidencia: d.evidencia });
+    if (error) throw new RepoError(error);
+  },
+  async resolverQuitarDescuento(d: { pedidoId: number; aprobar: boolean; motivo: string | null }): Promise<void> {
+    const { error } = await db.schema('fue').rpc('fn_resolver_quitar_descuento', { p_solicitud: d.pedidoId, p_aprobar: d.aprobar, p_motivo: d.motivo });
+    if (error) throw new RepoError(error);
+  },
+  async retirarQuitarDescuento(pedidoId: number): Promise<void> {
+    const { error } = await db.schema('fue').rpc('fn_retirar_quitar_descuento', { p_solicitud: pedidoId });
+    if (error) throw new RepoError(error);
   },
 
   async aprobar({ id, versionFila }: Versionado): Promise<CierreViaje> {

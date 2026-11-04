@@ -1921,6 +1921,12 @@ export type Database = {
       fn_ranking_mensual: { Args: { p_mes: string }; Returns: Json };
       fn_verificar_cierre: { Args: { p_id: number }; Returns: Json };
       fn_aprobar_cierre: { Args: { p_id: number; p_version: number }; Returns: CierreViajeRow };
+      fn_decision_cierre: { Args: { p_cierre: number }; Returns: Json };
+      fn_decidir_diferencia: { Args: { p_cierre: number; p_decision: string | null; p_motivo?: string | null; p_evidencia?: string | null }; Returns: Json };
+      fn_pedir_quitar_descuento: { Args: { p_cierre: number; p_motivo: string; p_evidencia: string }; Returns: number };
+      fn_resolver_quitar_descuento: { Args: { p_solicitud: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: Json };
+      fn_retirar_quitar_descuento: { Args: { p_solicitud: number }; Returns: undefined };
+      fn_diferencias_choferes: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       // Migración 170: ¿el usuario puede aprobar cierres?
       fn_puedo_aprobar_cierres: { Args: Record<string, never>; Returns: boolean };
       fn_anular_cierre: { Args: { p_id: number; p_version: number; p_motivo: string }; Returns: CierreViajeRow };

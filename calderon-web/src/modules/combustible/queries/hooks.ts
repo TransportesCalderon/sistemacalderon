@@ -19,7 +19,18 @@ import { crearCarga, editarCarga, eliminarCarga, resolverSolicitudCarga, retirar
 import { cerrarComite, revisarEquipoMes } from '../actions/comite.actions';
 import { comiteRepository } from '../repositories/comite.repository';
 import { consumoRepository } from '../repositories/consumo.repository';
-import { actualizarLimitesCierre, anularCierre, aprobarCierre, crearBorradorCierre, guardarBorradorCierre } from '../actions/cierre.actions';
+import {
+  actualizarLimitesCierre,
+  anularCierre,
+  aprobarCierre,
+  crearBorradorCierre,
+  decidirDiferencia,
+  guardarBorradorCierre,
+  pedirQuitarDescuento,
+  resolverQuitarDescuento,
+  retirarQuitarDescuento,
+} from '../actions/cierre.actions';
+import { cierreRepository } from '../repositories/cierre.repository';
 import {
   registrarDescarga,
   registrarMovimientoConMotivo,
@@ -36,7 +47,6 @@ import type { Bandeja } from '../domain/documento.types';
 import type { PeriodoParams } from '../domain/consumo.types';
 import { combustibleQueries as q } from './keys';
 import { cargaRepository } from '../repositories/carga.repository';
-import { cierreRepository } from '../repositories/cierre.repository';
 import { gensetRepository } from '../repositories/genset.repository';
 import { ralentiRepository } from '../repositories/ralenti.repository';
 import { anularCierreRalenti, cerrarRalenti } from '../actions/ralenti.actions';
@@ -154,6 +164,20 @@ export const useGuardarBorrador = () => useEscritura(guardarBorradorCierre);
 export const useActualizarLimites = () => useEscritura(actualizarLimitesCierre);
 export const useAprobarCierre = () => useEscritura(aprobarCierre);
 export const useAnularCierre = () => useEscritura(anularCierre);
+/** Migración 185 */
+export const useDecisionCierre = (id: number, activo = true) =>
+  useQuery({ queryKey: ['combustible', 'cierres', 'decision', id], queryFn: () => cierreRepository(browserDb()).decision(id), enabled: activo });
+export const useDecidirDiferencia = () => useEscritura(decidirDiferencia);
+export const usePedirQuitarDescuento = () => useEscritura(pedirQuitarDescuento);
+export const useResolverQuitarDescuento = () => useEscritura(resolverQuitarDescuento);
+export const useRetirarQuitarDescuento = () => useEscritura(retirarQuitarDescuento);
+export const useDiferenciasChoferes = (desde: string, hasta: string, activo: boolean) =>
+  useQuery({
+    queryKey: ['combustible', 'consumo', 'diferencias-choferes', desde, hasta],
+    queryFn: () => consumoRepository(browserDb()).diferenciasChoferes(desde, hasta),
+    enabled: activo,
+    placeholderData: keepPreviousData,
+  });
 
 // Migración 48: combustible de los gensets
 export const useGensetsCombustible = () =>

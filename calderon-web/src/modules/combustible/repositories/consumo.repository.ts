@@ -1,5 +1,6 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { CamionId, CargaId, CierreViajeId, FechaISO } from '@/shared/types/dominio';
+import { parsearDiferenciasChoferes, type DiferenciasChoferes } from '../domain/decision.types';
 import { parsearVientos, type VientoViaje } from '../domain/viento.types';
 import { situacionDe, type ConsumoCamion, type PeriodoParams, type ViajeConciliado } from '../domain/consumo.types';
 
@@ -7,6 +8,12 @@ const n = (v: number | string | null | undefined) => (v === null || v === undefi
 
 /** Tableros de control del consumo (funciones de la migración 36). */
 export const consumoRepository = (db: Db) => ({
+  /** Migración 185: diferencias acumuladas por chofer en un período. */
+  async diferenciasChoferes(desde: string, hasta: string): Promise<DiferenciasChoferes> {
+    const { data, error } = await db.schema('fue').rpc('fn_diferencias_choferes', { p_desde: desde, p_hasta: hasta });
+    if (error) throw new RepoError(error);
+    return parsearDiferenciasChoferes(data);
+  },
   /** Migración 181: el viento en contra de los viajes del período. */
   async vientos(p: PeriodoParams): Promise<VientoViaje[]> {
     const { data, error } = await db.schema('fue').rpc('fn_vientos', { p_desde: p.desde, p_hasta: p.hasta });

@@ -6,6 +6,8 @@ import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { VERSION_COMITE } from '../../domain/comite.types';
 import { claveViaje, resumenViento, VERSION_VIENTO, type VientoViaje } from '../../domain/viento.types';
 import { ComiteMensual } from '../comite/comite-mensual';
+import { VERSION_DECISION } from '../../domain/decision.types';
+import { DiferenciasChoferes } from './diferencias-choferes';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
@@ -27,12 +29,15 @@ const suma = (l: (number | null)[]) => l.reduce<number>((a, b) => a + (b ?? 0), 
 export function ConciliacionPantalla() {
   // Migración 179: el comité mensual de consumo, en la misma pantalla
   const conComite = useBaseTiene(VERSION_COMITE);
-  const [vista, setVista] = useState<'viajes' | 'comite'>('viajes');
+  // Migración 185: diferencias acumuladas por chofer
+  const conChoferes = useBaseTiene(VERSION_DECISION);
+  const [vista, setVista] = useState<'viajes' | 'choferes' | 'comite'>('viajes');
+  const vistas = (['viajes', 'choferes', 'comite'] as const).filter((v) => (v === 'comite' ? conComite : v === 'choferes' ? conChoferes : true));
   return (
     <div className="space-y-5">
-      {conComite && (
+      {vistas.length > 1 && (
         <div className="flex gap-1 print:hidden" role="tablist">
-          {(['viajes', 'comite'] as const).map((v) => (
+          {vistas.map((v) => (
             <button
               key={v}
               type="button"
@@ -41,12 +46,12 @@ export function ConciliacionPantalla() {
               onClick={() => setVista(v)}
               className={cn('rounded-md px-3 py-1.5 text-sm', vista === v ? 'bg-marca text-white' : 'bg-panel text-tinta-suave hover:text-tinta')}
             >
-              {v === 'viajes' ? 'Por viaje' : 'Comité del mes'}
+              {v === 'viajes' ? 'Por viaje' : v === 'choferes' ? 'Por chofer' : 'Comité del mes'}
             </button>
           ))}
         </div>
       )}
-      {vista === 'comite' && conComite ? <ComiteMensual /> : <ViajesConciliados />}
+      {vista === 'comite' && conComite ? <ComiteMensual /> : vista === 'choferes' && conChoferes ? <DiferenciasChoferes /> : <ViajesConciliados />}
     </div>
   );
 }
