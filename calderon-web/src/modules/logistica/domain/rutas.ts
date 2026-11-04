@@ -101,9 +101,11 @@ export function leerLinkMaps(link: string): PuntoRuta[] {
     if (t) segmentos.push(t); // vacío = «Tu ubicación»: se saltea
   }
   const puntos = segmentos.map(textoAPunto);
-  // Coordenadas de los lugares con nombre, en el mismo orden («!1d<lng>!2d<lat>» en data=)
+  // Coordenadas de los lugares con nombre, en el mismo orden («!2m2!1d<lng>!2d<lat>» en data=).
+  // Solo las de «!2m2»: los desvíos que se arrastran en el mapa («!3m4!1m2!1d…!2d…») no son puntos
+  // de la ruta y, si se contaban, ya no coincidía la cantidad y quedaban todos sin ubicar.
   const data = decodificar(url.pathname + url.search);
-  const pares = [...data.matchAll(/!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/g)].map((m) => ({ lng: Number(m[1]), lat: Number(m[2]) }));
+  const pares = [...data.matchAll(/!2m2!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/g)].map((m) => ({ lng: Number(m[1]), lat: Number(m[2]) }));
   const sinUbicar = puntos.filter((p) => p.lat === null);
   if (pares.length === sinUbicar.length) sinUbicar.forEach((p, k) => Object.assign(p, pares[k]));
   return puntos;

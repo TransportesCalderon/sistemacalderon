@@ -63,3 +63,16 @@ describe('rutas para los choferes (migración 135)', () => {
     expect(pantallaDeRuta('/operacion/lineas')).toBe('operacion.servicios');
   });
 });
+
+describe('link de Google Maps con desvíos arrastrados (04/11/2026)', () => {
+  it('los lugares con nombre toman su ubicación aunque la ruta tenga desvíos arrastrados en el mapa', () => {
+    const link =
+      'https://www.google.com/maps/dir/Cmo.+a+Melipilla+11246,+Maip%C3%BA/-33.51,-70.70/-33.53,-70.69/Shell+-+Av.+Lo+Espejo+03150/@-33.5,-70.7,13z/' +
+      'data=!3m1!4b1!4m24!4m23!1m10!1m1!1s0x1:0x2!2m2!1d-70.7614!2d-33.5089!3m4!1m2!1d-70.7301!2d-33.5102!3s0x9:0x9!1m0!1m0!1m5!1m1!1s0x3:0x4!2m2!1d-70.6912!2d-33.5401!3e0';
+    const p = leerLinkMaps(link);
+    expect(p).toHaveLength(4);
+    expect(p[0]).toMatchObject({ lat: -33.5089, lng: -70.7614 });
+    expect(p[1]).toMatchObject({ lat: -33.51, lng: -70.7 });
+    expect(p[3]).toMatchObject({ lat: -33.5401, lng: -70.6912 });
+  });
+});

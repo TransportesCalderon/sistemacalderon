@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Camera, Gauge, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, Camera, Gauge, LoaderCircle, Plus } from 'lucide-react';
 import { AvisoIA } from '@/modules/ia/aviso-ia';
 import { useLitrosSugeridos } from '@/modules/telemetria/queries/hooks';
 import { useLectorIA } from '@/modules/ia/use-lector-ia';
@@ -46,6 +46,14 @@ type Salida = ReturnType<typeof cargaFormSchema.parse>;
  * Con `carga` es la edición (migración 47): se corrige en el lugar; el camión no cambia.
  * El odómetro se propone desde la telemetría a la fecha y hora de la carga.
  */
+/** 04/11/2026: un ticket leído en el alta (la foto y lo que leyó la IA). */
+interface TicketLeido {
+  archivo: File;
+  numero: string | null;
+  litros: number | null;
+  precio: number | null;
+}
+
 export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial: number | null; reemplazaId: number | null; carga?: Carga }) {
   const router = useRouter();
   const { zonaHoraria, monedaBase } = useSesion();
@@ -164,15 +172,26 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
   // La IA propone; la persona revisa el formulario y guarda como siempre.
   const lector = useLectorIA('ticket_combustible');
   const adjuntar = useAdjuntarDocumento();
-  const [fotoTicket, setFotoTicket] = useState<File | null>(null);
+  // 04/11/2026: una carga puede tener varios tickets (cuando la bomba llega al límite y se hacen dos)
+  const [tickets, setTickets] = useState<TicketLeido[]>([]);
   const emisor = useEmisorTicket(Number(watch('estacionId')) || null);
   const conIA = !carga && lector.disponible;
-  const leerTicket = async (archivo: File) => {
-    setFotoTicket(archivo);
+  const leerTicket = async (archivo: File, sumar = false) => {
     const r = await lector.leer(archivo);
-    if (!r) return;
-    const p = r.propuesta;
+    const p = r?.propuesta;
+    const nuevo: TicketLeido = { archivo, numero: p?.numero_comprobante ?? null, litros: p?.litros ?? null, precio: p?.precio_unitario ?? null };
+    const lista = sumar ? [...tickets, nuevo] : [nuevo];
+    setTickets(lista);
+    if (!p) return;
     const op = { shouldValidate: true, shouldDirty: true } as const;
+    if (sumar) {
+      // Otro ticket de la misma carga: se suman los litros y el precio queda promediado por litro
+      const total = lista.reduce((a, t) => a + (t.litros ?? 0), 0);
+      const importe = lista.reduce((a, t) => a + (t.litros ?? 0) * (t.precio ?? 0), 0);
+      if (total > 0) setValue('litros', txt(Math.round(total * 100) / 100), op);
+      if (total > 0 && lista.every((t) => t.precio)) setValue('precioUnitario', txt(Math.round((importe / total) * 10000) / 10000), op);
+      return;
+    }
     if (p.camion_id && !watch('camionId')) setValue('camionId', String(p.camion_id), op);
     if (p.estacion_id) setValue('estacionId', String(p.estacion_id), op);
     if (p.fecha) setValue('fechaHoraLocal', `${p.fecha}T${p.hora ?? '12:00'}`, op);
@@ -181,11 +200,14 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
     if (p.moneda && monedas?.some((m) => m.codigo === p.moneda)) setValue('moneda', p.moneda, op);
     if (p.odometro_km) setValue('odometroKm', txt(p.odometro_km), op);
   };
-  // Después de crear la carga: la foto queda como su ticket (si la IA leyó el número)
-  const adjuntarTicket = async (cargaId: number, fechaDia: string) => {
-    if (!fotoTicket || lector.estado.fase !== 'listo' || !lector.estado.propuesta.numero_comprobante) return;
+  // Después de crear la carga: cada foto queda como su ticket (las que la IA les leyó el número)
+  const adjuntarTickets = async (cargaId: number, fechaDia: string) => {
+    for (const t of tickets) await adjuntarTicket(cargaId, fechaDia, t);
+  };
+  const adjuntarTicket = async (cargaId: number, fechaDia: string, t: TicketLeido) => {
+    if (!t.numero) return;
     try {
-      const { blob, extension, tipo } = await prepararArchivo(fotoTicket);
+      const { blob, extension, tipo } = await prepararArchivo(t.archivo);
       const hash = await sha256Hex(blob);
       const ruta = rutaArchivo(cargaId, extension, idAleatorio());
       const subida = await browserDb().storage.from(BUCKET_DOCUMENTOS).upload(ruta, blob, { contentType: tipo, upsert: false });
@@ -193,7 +215,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
       await adjuntar.mutateAsync({
         cargaId,
         tipo: 'ticket',
-        numero: lector.estado.propuesta.numero_comprobante,
+        numero: t.numero,
         fecha: fechaDia,
         archivo: ruta,
         hash,
@@ -265,7 +287,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
       return;
     }
     if (conIA) {
-      await adjuntarTicket(r.data, d.fechaHoraLocal.slice(0, 10));
+      await adjuntarTickets(r.data, d.fechaHoraLocal.slice(0, 10));
       await lector.marcarUsada({ litros: d.litros, precio_unitario: d.precioUnitario, estacion_id: Number(d.estacionId) || null, fecha: d.fechaHoraLocal.slice(0, 10) });
     }
     router.push(`/combustible/cargas/${r.data}`);
@@ -291,7 +313,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
         <section className={cn(TARJETA, 'space-y-3 p-5')} aria-label="Foto del ticket">
           <div className="flex flex-wrap items-center gap-3">
             <label className={cn(BOTON_SECUNDARIO, 'cursor-pointer')}>
-              <Camera className="size-4" /> {fotoTicket ? 'Otra foto del ticket' : 'Foto del ticket: completar con IA'}
+              <Camera className="size-4" /> {tickets.length > 0 ? 'Cambiar la foto del ticket' : 'Foto del ticket: completar con IA'}
               <input
                 type="file"
                 accept="image/*,application/pdf"
@@ -305,11 +327,38 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
                 }}
               />
             </label>
-            {fotoTicket && <span className="text-sm text-tinta-suave">{fotoTicket.name}</span>}
+            {tickets.length > 0 && (
+              <label className={cn(BOTON_SECUNDARIO, 'cursor-pointer')}>
+                <Plus className="size-4" /> Sumar otro ticket (misma carga)
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  capture="environment"
+                  className="sr-only"
+                  disabled={lector.estado.fase === 'leyendo' || tickets.length >= 5}
+                  onChange={(ev) => {
+                    const f = ev.target.files?.[0];
+                    if (f) void leerTicket(f, true);
+                    ev.target.value = '';
+                  }}
+                />
+              </label>
+            )}
           </div>
+          {tickets.length > 0 && (
+            <ul className="space-y-0.5 text-sm text-tinta-suave">
+              {tickets.map((t, i) => (
+                <li key={i}>
+                  Ticket {i + 1}: {t.numero ? `N° ${t.numero}` : 'sin número leído (adjuntalo después desde la ficha)'}
+                  {t.litros ? ` · ${txt(t.litros)} L` : ''} · {t.archivo.name}
+                </li>
+              ))}
+            </ul>
+          )}
           <AvisoIA estado={lector.estado} />
           <p className="text-xs text-tinta-suave">
             Opcional. La IA lee el ticket y completa lo que puede; revisá todo antes de guardar. Si lee el número, la foto queda adjunta como ticket.
+            Si la carga se hizo en dos tickets (la bomba llegó al límite), sumá el otro: los litros se suman.
           </p>
         </section>
       )}
