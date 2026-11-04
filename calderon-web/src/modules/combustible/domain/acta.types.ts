@@ -1,5 +1,6 @@
 import type { FechaISO } from '@/shared/types/dominio';
 import type { Nivel } from '@/shared/ui/niveles';
+import { parsearViento, type VientoViaje } from './viento.types';
 
 /** Datos del acta del cierre (migración 56, fue.fn_acta_cierre). Lo calcula la base; acá solo se convierte. */
 export interface ActaExtra {
@@ -14,6 +15,8 @@ export interface ActaExtra {
   /** Migración 176: odómetro del camión al salir y al llegar (km). */
   odometroSalida: number | null;
   odometroLlegada: number | null;
+  /** Migración 181: viento en contra del viaje (Open-Meteo). */
+  viento: VientoViaje | null;
   fuenteKm: string | null;
   consumoMotorL: number | null;
   fuenteConsumo: string | null;
@@ -164,6 +167,7 @@ export function parsearActa(d: unknown): ActaExtra {
     km: n(x.km),
     odometroSalida: n(x.odometro_salida),
     odometroLlegada: n(x.odometro_llegada),
+    viento: parsearViento(x.viento, { camionId: 0, cargaSalidaId: 0 }),
     fuenteKm: t(x.fuente_km),
     consumoMotorL: n(x.consumo_motor_l),
     fuenteConsumo: t(x.fuente_consumo),

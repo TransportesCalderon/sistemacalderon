@@ -3,6 +3,7 @@ import { ETIQUETA_ESTADO, ETIQUETA_RESOLUCION, etiquetaUnidad } from '@/modules/
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { conSigno, formatearNumero } from '@/shared/lib/numeros';
+import { resumenViento } from '../../domain/viento.types';
 import { GRUPOS_ECO, type ActaExtra, type EcoScore, type Nivel, type PuntajeCalderon } from '../../domain/acta.types';
 import type { CierreViaje } from '../../domain/cierre.types';
 import { BotonImprimir } from './boton-imprimir';
@@ -144,6 +145,18 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
           nota={descuento > 0 ? 'Cargó de más' : 'Sin descuento'}
         />
       </section>
+
+      {/* Migración 181: viento en contra (estimación; no justifica sola la diferencia) */}
+      {x.viento?.estado === 'ok' && x.viento.contraKmh !== null && (
+        <p className={cn('mt-1.5 rounded border px-2 py-1 text-[10px]', x.viento.fuerte ? 'border-amber-500 bg-amber-50' : 'border-neutral-300')}>
+          <strong>Viento:</strong> {resumenViento(x.viento)}
+          {x.viento.pctExtra !== null && ` (${formatearNumero(x.viento.pctExtra, 0)} % del consumo)`}
+          {x.viento.contraMaxKmh !== null && ` · máximo ${formatearNumero(x.viento.contraMaxKmh, 0)} km/h de frente`}
+          {x.viento.rafagaMaxKmh !== null && `, ráfagas de ${formatearNumero(x.viento.rafagaMaxKmh, 0)} km/h`}
+          {x.viento.minutosFuerte > 0 && ` · ${formatearNumero(x.viento.minutosFuerte / 60, 1)} h con viento fuerte de frente`}
+          . Es una estimación con el clima de Open-Meteo: sirve para revisar, no justifica sola la diferencia.
+        </p>
+      )}
 
       <div className="mt-1 grid grid-cols-2 gap-4">
         {/* Combustible */}

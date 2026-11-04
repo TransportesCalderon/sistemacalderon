@@ -18,6 +18,7 @@ import { adjuntarDocumento, quitarDocumento, validarCarga } from '../actions/doc
 import { crearCarga, editarCarga, eliminarCarga, resolverSolicitudCarga, retirarSolicitudCarga, solicitarAnulacionCarga } from '../actions/carga.actions';
 import { cerrarComite, revisarEquipoMes } from '../actions/comite.actions';
 import { comiteRepository } from '../repositories/comite.repository';
+import { consumoRepository } from '../repositories/consumo.repository';
 import { actualizarLimitesCierre, anularCierre, aprobarCierre, crearBorradorCierre, guardarBorradorCierre } from '../actions/cierre.actions';
 import {
   registrarDescarga,
@@ -72,6 +73,9 @@ export const useEmisorTicket = (estacionId: number | null) => useQuery(q.documen
 export const useBandeja = (tipo: Bandeja, pagina: number) =>
   useQuery({ ...q.documentos.bandeja(browserDb(), tipo, pagina), placeholderData: keepPreviousData });
 
+/** Migración 181: viento de los viajes del período (Cargado vs. motor). */
+export const useVientosViajes = (p: PeriodoParams, activo: boolean) =>
+  useQuery({ queryKey: ['combustible', 'consumo', 'vientos', p], queryFn: () => consumoRepository(browserDb()).vientos(p), enabled: activo, placeholderData: keepPreviousData });
 export const useConciliacionViajes = (p: PeriodoParams) => useQuery({ ...q.consumo.viajes(browserDb(), p), placeholderData: keepPreviousData });
 export const useConsumoCamiones = (p: PeriodoParams) => useQuery({ ...q.consumo.camiones(browserDb(), p), placeholderData: keepPreviousData });
 

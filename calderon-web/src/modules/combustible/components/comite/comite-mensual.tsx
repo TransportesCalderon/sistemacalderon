@@ -118,6 +118,11 @@ function Tractores({ c, mes }: { c: ComiteMes; mes: string }) {
                     {t.sinMotor > 0 && <Chip tono="neutro">{t.sinMotor} sin datos del motor</Chip>}
                     {t.sinAprobar > 0 && <Chip tono="alerta">{t.sinAprobar} sin aprobar</Chip>}
                     {t.alertasAbiertas > 0 && <Chip tono="alerta">{t.alertasAbiertas} alertas abiertas</Chip>}
+                    {t.viajesViento > 0 && (
+                      <Chip tono="neutro" title="Estimación con el clima de Open-Meteo: no justifica sola la diferencia">
+                        {t.viajesViento} con viento de frente{t.vientoExtraL !== null && t.vientoExtraL > 0 ? ` (~${num(t.vientoExtraL)} L)` : ''}
+                      </Chip>
+                    )}
                   </div>
                 </td>
                 <td className={TD}>

@@ -24,6 +24,9 @@ export interface TractorComite {
   sinAprobar: number;
   alertas: number;
   alertasAbiertas: number;
+  /** Migración 181: viajes con viento fuerte de frente y litros extra estimados. */
+  viajesViento: number;
+  vientoExtraL: number | null;
   revision: RevisionEquipo | null;
 }
 
@@ -91,6 +94,8 @@ export function parsearComite(d: unknown): ComiteMes {
       sinAprobar: Number(e.sin_aprobar ?? 0),
       alertas: Number(e.alertas ?? 0),
       alertasAbiertas: Number(e.alertas_abiertas ?? 0),
+      viajesViento: Number(e.viajes_viento ?? 0),
+      vientoExtraL: n(e.viento_extra_l),
       revision: revision(e.revision),
     })),
     gensets: a(x.gensets).map((e) => ({

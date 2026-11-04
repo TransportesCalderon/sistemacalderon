@@ -2028,6 +2028,7 @@ export type Database = {
       fn_quitar_documento_carga: { Args: { p_documento: number }; Returns: undefined };
       // Control del consumo (36)
       fn_comite_consumo: { Args: { p_mes: string }; Returns: Json };
+      fn_vientos: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       fn_revisar_equipo_mes: {
         Args: { p_mes: string; p_tipo: string; p_equipo: number; p_revisado: boolean; p_comentario?: string | null; p_accion?: string | null };
         Returns: undefined;

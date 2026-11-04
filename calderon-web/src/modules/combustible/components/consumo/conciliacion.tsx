@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Gauge } from 'lucide-react';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { VERSION_COMITE } from '../../domain/comite.types';
+import { claveViaje, resumenViento, VERSION_VIENTO, type VientoViaje } from '../../domain/viento.types';
 import { ComiteMensual } from '../comite/comite-mensual';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -12,7 +13,7 @@ import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { fueraDeTolerancia, type ViajeConciliado } from '../../domain/consumo.types';
 import { ETIQUETA_SITUACION_VIAJE } from '../../domain/viaje.types';
-import { useConciliacionViajes } from '../../queries/hooks';
+import { useConciliacionViajes, useVientosViajes } from '../../queries/hooks';
 import { Cargando, Chip, Encabezado, ErrorLectura, Vacio } from '../comun/ui';
 import { AccionViaje } from '../viajes/viajes-lista';
 import { Cifra, FiltroPeriodo, usePeriodo } from './periodo';
@@ -54,6 +55,10 @@ function ViajesConciliados() {
   const { zonaHoraria } = useSesion();
   const [p, setP] = usePeriodo('/combustible/conciliacion');
   const { data, isPending, isError, error, isFetching, refetch } = useConciliacionViajes(p);
+  // Migración 181: viento en contra de cada viaje (evidencia para revisar, no justifica solo)
+  const conViento = useBaseTiene(VERSION_VIENTO);
+  const vientos = useVientosViajes(p, conViento);
+  const porViaje = new Map((vientos.data ?? []).map((w) => [claveViaje(w.camionId, w.cargaSalidaId), w]));
   const conDatos = (data ?? []).filter((v) => v.diferenciaL !== null);
   const fuera = conDatos.filter(fueraDeTolerancia);
   const totalDif = suma(conDatos.map((v) => v.diferenciaL));
@@ -102,12 +107,18 @@ function ViajesConciliados() {
                     <th className={cn(TH, 'text-right')}>Diferencia</th>
                     <th className={cn(TH, 'text-right')}>Km</th>
                     <th className={cn(TH, 'text-right')}>L/100 km</th>
+                    {conViento && <th className={TH} title="Viento de frente durante el viaje (Open-Meteo) y el consumo extra estimado">Viento</th>}
                     <th className={TH}>Cierre</th>
                   </tr>
                 </thead>
                 <tbody className={cn('divide-y divide-borde', isFetching && 'opacity-70')}>
                   {data.map((v) => (
-                    <Fila key={`${v.camionId}-${v.cargaSalidaId}`} v={v} zonaHoraria={zonaHoraria} />
+                    <Fila
+                      key={`${v.camionId}-${v.cargaSalidaId}`}
+                      v={v}
+                      zonaHoraria={zonaHoraria}
+                      viento={conViento ? (porViaje.get(claveViaje(v.camionId, v.cargaSalidaId)) ?? null) : undefined}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -119,7 +130,7 @@ function ViajesConciliados() {
   );
 }
 
-function Fila({ v, zonaHoraria }: { v: ViajeConciliado; zonaHoraria: string }) {
+function Fila({ v, zonaHoraria, viento }: { v: ViajeConciliado; zonaHoraria: string; viento?: VientoViaje | null }) {
   const fuera = fueraDeTolerancia(v);
   return (
     <tr className={cn(fuera && 'bg-alerta-suave/40')}>
@@ -153,6 +164,17 @@ function Fila({ v, zonaHoraria }: { v: ViajeConciliado; zonaHoraria: string }) {
         {v.l100Motor === null ? '—' : formatearNumero(v.l100Motor, 1)}
         {v.l100Cargado !== null && <span className="block text-xs text-tinta-suave">cargado {formatearNumero(v.l100Cargado, 1)}</span>}
       </td>
+      {viento !== undefined && (
+        <td className={cn(TD, 'text-xs')}>
+          {viento === null ? (
+            <span className="text-tinta-suave">Calculando…</span>
+          ) : (
+            <span className={cn(viento.fuerte ? 'font-medium text-alerta' : 'text-tinta-suave')} title={viento.error ?? undefined}>
+              {resumenViento(viento)}
+            </span>
+          )}
+        </td>
+      )}
       <td className={TD}>
         <div className="flex flex-col items-start gap-1">
           <Chip tono={v.situacion === 'aprobado' ? 'exito' : v.situacion === 'borrador' ? 'marca' : 'alerta'}>
