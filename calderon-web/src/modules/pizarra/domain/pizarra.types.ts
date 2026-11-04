@@ -71,6 +71,8 @@ export interface FilaPizarra {
   /** Migración 176: el número de operación que lleva (y en qué aduana está, si está en una). */
   numeroOperacion: number | null;
   enAduana: string | null;
+  /** Migración 184: sin viaje, el tractor y el chofer siguen enganchados (vienen del último viaje). */
+  enganchado: boolean;
   cliente: string | null;
   producto: string | null;
   contenedor: string | null;
@@ -87,7 +89,7 @@ export interface FilaPizarra {
     taraMaxDias: number | null;
   } | null;
   ubicacion: string | null;
-  ubicacionFuente: 'telemetria' | 'evento' | 'playa' | 'ultimo_destino' | null;
+  ubicacionFuente: 'telemetria' | 'evento' | 'playa' | 'ultimo_destino' | 'espera' | 'desenganche' | null;
   ubicacionTs: FechaISO | null;
   observacion: string | null;
   observacionPor: string | null;

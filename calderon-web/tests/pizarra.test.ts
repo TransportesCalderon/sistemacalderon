@@ -37,6 +37,7 @@ const fila = (p: Partial<FilaPizarra>): FilaPizarra => ({
   numeroServicio: 'SC-00000001',
   numeroOperacion: null,
   enAduana: null,
+  enganchado: false,
   cliente: 'TUCAPEL',
   producto: 'Arroz',
   contenedor: 'MSKU4829130',
@@ -193,5 +194,18 @@ describe('pizarra: operación y aduana (migración 176)', () => {
     expect(coincide(f, '6223')).toBe(true);
     expect(coincide(f, 'palmira')).toBe(true);
     expect(coincide(fila({}), 'palmira')).toBe(false);
+  });
+});
+
+describe('pizarra: enganche y desenganche (migración 184)', () => {
+  it('un semi disponible sigue mostrando su tractor y su chofer si está enganchado', () => {
+    const f = fila({ estado: 'disponible', tramoId: null, tractor: 'GCSC93', chofer: 'Marco Gomez', enganchado: true });
+    expect(coincide(f, 'gcsc93')).toBe(true);
+    expect(coincide(f, 'marco')).toBe(true);
+  });
+  it('«Ver lo que está en aduana» es solo lo que quedó solo en una aduana', () => {
+    const solo = fila({ estado: 'disponible', tractor: null, chofer: null, enganchado: false, enAduana: 'Aduana Palmira', ubicacionFuente: 'desenganche' });
+    const pasando = fila({ estado: 'en_viaje', enAduana: null });
+    expect([solo, pasando].filter((x) => x.enAduana !== null)).toEqual([solo]);
   });
 });

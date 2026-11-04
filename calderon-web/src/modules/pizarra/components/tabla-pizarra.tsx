@@ -14,6 +14,8 @@ import { useGensets, useGuardarEdicionPizarra, useInstalarGenset, useRetirarGens
 import { useAsignarEquipo, useOpcionesViaje } from '@/modules/logistica/queries/hooks';
 import { CeldaEditable, type OpcionCelda } from './celda-editable';
 import { LoQueSigue } from './lo-que-sigue';
+import { Desenganche, VERSION_DESENGANCHE } from './desenganche';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import type { SigueFila } from '../domain/pizarra.sigue';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { alertaDe, claseAlerta, diaCorto, diaDeFecha, diaHora, hace } from './formato';
@@ -210,6 +212,7 @@ const Fila = memo(function Fila({
   sigue: SigueFila | undefined;
 }) {
   const nivel = nivelFila(f);
+  const conDesenganche = useBaseTiene(VERSION_DESENGANCHE);
   const info = ESTADO_INFO[f.estado];
   const aTara = alertaDe(f.alertas, 'tara_no_valida', 'tara_por_vencer', 'tara_proxima', 'sin_tara');
   const aTractor = alertaDe(f.alertas, 'tractor_no_activo', 'tractor_duplicado');
@@ -288,13 +291,17 @@ const Fila = memo(function Fila({
         >
           {info.etiqueta}
         </span>
-        {/* Migración 176: en qué aduana está */}
+        {/* Migraciones 176 y 184: en qué aduana quedó solo el semi */}
         {f.enAduana && f.estado !== 'en_aduana' && <span className="ml-1 text-[11px] text-[#713b12]">Aduana</span>}
         {f.enAduana && <span className="block text-[11px] leading-tight text-[#713b12]">{f.enAduana}</span>}
       </td>
       {conSigue && (
         <td className="px-2 py-1 whitespace-nowrap">
-          <LoQueSigue f={f} s={sigue} permisos={{ pasos: edicion.equipo, viajes: edicion.viajes }} />
+          <span className="flex flex-wrap items-center gap-1.5">
+            {/* Migración 184: sin viaje, el semi sigue enganchado hasta que se registra el desenganche */}
+            {conDesenganche && edicion.genset && (f.enganchado || f.ubicacionFuente === 'desenganche') && <Desenganche f={f} />}
+            {!(f.enganchado && !sigue) && <LoQueSigue f={f} s={sigue} permisos={{ pasos: edicion.equipo, viajes: edicion.viajes }} />}
+          </span>
         </td>
       )}
       <td className={cn(TD, 'font-mono', claseAlerta(aTractor))} title={aTractor?.texto}>

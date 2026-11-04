@@ -38,7 +38,7 @@ function alertas(j: Json): Alerta[] {
   );
 }
 
-const FUENTES = ['telemetria', 'evento', 'playa', 'ultimo_destino'] as const;
+const FUENTES = ['telemetria', 'evento', 'playa', 'ultimo_destino', 'espera', 'desenganche'] as const;
 
 /** Pizarra Azul y sus catálogos (migración 39). La base valida; su mensaje se muestra tal cual. */
 export const pizarraRepository = (db: Db) => {
@@ -94,6 +94,7 @@ export const pizarraRepository = (db: Db) => {
         numeroServicio: f.numero_servicio,
         numeroOperacion: f.numero_operacion ?? null,
         enAduana: f.en_aduana ?? null,
+        enganchado: f.enganchado === true,
         cliente: f.cliente,
         producto: f.producto,
         contenedor: f.contenedor,
@@ -145,7 +146,16 @@ export const pizarraRepository = (db: Db) => {
     },
 
     /** Lugar en playa, observación y accesorios, todo junto (devuelve la versión nueva de la fila). */
-    async guardarEdicion(d: EdicionPizarraDatos): Promise<number> {
+    /** Migración 184: el semi (sin viaje) se desengancha y queda en una base o aduana; o se deshace. */
+  async desenganchar(semiId: number, lugarId: number): Promise<void> {
+    const { error } = await db.schema('ops').rpc('fn_desenganchar_semi', { p_semi: semiId, p_lugar: lugarId });
+    if (error) throw new RepoError(error);
+  },
+  async deshacerDesenganche(semiId: number): Promise<void> {
+    const { error } = await db.schema('ops').rpc('fn_deshacer_desenganche', { p_semi: semiId });
+    if (error) throw new RepoError(error);
+  },
+  async guardarEdicion(d: EdicionPizarraDatos): Promise<number> {
       const { data, error } = await db.schema('ops').rpc('fn_guardar_semi_pizarra', {
         p_semi: d.semiId,
         p_version: d.versionFila,

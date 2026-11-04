@@ -13,6 +13,8 @@ import {
   guardarTipoAccesorio,
   instalarGenset,
   retirarGenset,
+  desengancharSemi,
+  deshacerDesenganche,
 } from '../actions/pizarra.actions';
 import { pizarraQueries as q } from './keys';
 import { invalidar } from '@/shared/query/invalidar';
@@ -83,6 +85,9 @@ function useEscritura<I, R extends { ok: boolean }>(accion: (input: I) => Promis
 
 export const useGuardarEdicionPizarra = () => useEscritura(guardarEdicionPizarra);
 export const useGuardarSemi = () => useEscritura(guardarSemi);
+/** Migración 184 */
+export const useDesengancharSemi = () => useEscritura(desengancharSemi);
+export const useDeshacerDesenganche = () => useEscritura(deshacerDesenganche);
 export const useBajaSemi = () => useEscritura(bajaSemi);
 export const useGuardarTipoAccesorio = () => useEscritura(guardarTipoAccesorio);
 export const useEliminarTipoAccesorio = () => useEscritura(eliminarTipoAccesorio);

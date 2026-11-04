@@ -1,5 +1,6 @@
 'use server';
 
+import { z } from 'zod';
 import { createAction } from '@/server/actions/create-action';
 import {
   edicionPizarraSchema,
@@ -79,5 +80,19 @@ export const retirarGenset = createAction({
   permiso: 'flota.pizarra:editar',
   schema: retirarGensetSchema,
   handler: (d, { db }) => pizarraRepository(db).retirarGenset(d.semiId),
+  invalida: rutas,
+});
+
+/** Migración 184: desenganchar el semi de su tractor (sin viaje en curso) en una base o aduana, o deshacerlo. */
+export const desengancharSemi = createAction({
+  permiso: 'flota.pizarra:editar',
+  schema: z.object({ semiId: z.number().int().positive(), lugarId: z.number().int().positive() }),
+  handler: (d, { db }) => pizarraRepository(db).desenganchar(d.semiId, d.lugarId),
+  invalida: rutas,
+});
+export const deshacerDesenganche = createAction({
+  permiso: 'flota.pizarra:editar',
+  schema: z.object({ semiId: z.number().int().positive() }),
+  handler: (d, { db }) => pizarraRepository(db).deshacerDesenganche(d.semiId),
   invalida: rutas,
 });

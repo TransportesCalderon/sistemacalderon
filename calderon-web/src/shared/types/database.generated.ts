@@ -892,6 +892,8 @@ type PizarraRow = {
   // Migración 176
   numero_operacion: number | null;
   en_aduana: string | null;
+  /** Migración 184: el tractor y el chofer vienen del último viaje (siguen enganchados). */
+  enganchado: boolean | null;
 };
 
 type Vista<Row> = { Row: { [K in keyof Row]: Row[K] | null }; Relationships: [] };
@@ -1217,6 +1219,8 @@ export type Database = {
       fn_mover_ruta_chofer: { Args: { p_chofer: number; p_id: number; p_dir: number }; Returns: undefined };
       fn_llegada_ruta_chofer: { Args: { p_chofer: number; p_llego: boolean }; Returns: undefined };
       fn_mi_ruta: { Args: Record<string, never>; Returns: Json };
+      fn_desenganchar_semi: { Args: { p_semi: number; p_lugar: number; p_ts?: string | null }; Returns: number };
+      fn_deshacer_desenganche: { Args: { p_semi: number }; Returns: undefined };
       fn_llegue_mi_destino: { Args: { p_lat?: number | null; p_lng?: number | null }; Returns: Json };
       fn_guardar_ruta_operacion: { Args: { p_servicio: number; p_version: number | null; p_datos: Json }; Returns: undefined };
       fn_quitar_ruta_operacion: { Args: { p_servicio: number; p_version: number }; Returns: undefined };
