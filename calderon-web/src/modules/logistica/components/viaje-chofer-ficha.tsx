@@ -208,7 +208,10 @@ function Dato({ etiqueta, children, fuerte }: { etiqueta: string; children: Reac
 // ---------------------------------------------------------------- combustible
 function Combustible({ v }: { v: ViajeChofer }) {
   const preparar = usePrepararCierreCombustible();
-  const puede = useCan('operacion.tramos:editar');
+  // 05/11/2026: también quien hace el cierre (Telemetría / Combustible)
+  const puedeTramos = useCan('operacion.tramos:editar');
+  const puedeCierre = useCan('combustible.cierre_viaje:editar');
+  const puede = puedeTramos || puedeCierre;
   const [error, setError] = useState<ErrorAccion | null>(null);
   if (v.cierre) return <CombustibleCalculado cierreId={v.cierre.id as CierreViajeId} />;
   return (
@@ -322,7 +325,10 @@ function CombustibleCalculado({ cierreId }: { cierreId: CierreViajeId }) {
 
 // ---------------------------------------------------------------- operaciones
 function Operaciones({ v }: { v: ViajeChofer }) {
-  const puede = useCan('operacion.tramos:editar') && v.estado === 'abierto';
+  // 05/11/2026: las operaciones del viaje también las carga quien hace el cierre (Telemetría / Combustible)
+  const puedeTramos = useCan('operacion.tramos:editar');
+  const puedeCierre = useCan('combustible.cierre_viaje:editar');
+  const puede = (puedeTramos || puedeCierre) && v.estado === 'abierto';
   const [agregar, setAgregar] = useState(false);
   const [editando, setEditando] = useState<number | null>(null);
   return (

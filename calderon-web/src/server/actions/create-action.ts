@@ -27,7 +27,8 @@ export interface AccionCtx {
  * autentica → verifica permiso → valida con Zod → ejecuta → traduce el error.
  */
 export function createAction<S extends z.ZodType, T>(def: {
-  permiso: Permiso;
+  /** Uno o varios permisos: alcanza con tener alguno (05/11/2026: las operaciones del viaje también las carga quien hace el cierre). */
+  permiso: Permiso | readonly Permiso[];
   schema: S;
   handler: (input: z.infer<S>, ctx: AccionCtx) => Promise<T>;
   /** Opcional: qué rutas revalidar al terminar bien (arquitectura §10). */
@@ -38,7 +39,8 @@ export function createAction<S extends z.ZodType, T>(def: {
     if (!sesion) return fallo('no_autenticado', 'Tu sesión expiró. Volvé a iniciar sesión.');
     if (!sesion.identidad) return fallo('sin_permiso', 'Tu usuario no está habilitado en el sistema.');
 
-    const alcance = alcanceDe(sesion.permisos, def.permiso);
+    const permisos: readonly Permiso[] = typeof def.permiso === 'string' ? [def.permiso] : def.permiso;
+    const alcance = permisos.map((p) => alcanceDe(sesion.permisos, p)).find((a) => a) ?? null;
     if (!alcance) return fallo('sin_permiso', 'No tenés permiso para esta acción.');
 
     const parsed = def.schema.safeParse(input);

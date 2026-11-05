@@ -37,14 +37,16 @@ export const iniciarViajeChofer = createAction({
 });
 
 export const agregarItemViaje = createAction({
-  permiso: 'operacion.tramos:editar',
+  // 05/11/2026: también quien hace el cierre (Telemetría / Combustible) carga las operaciones del viaje
+  permiso: ['operacion.tramos:editar', 'combustible.cierre_viaje:editar'],
   schema: agregarItemSchema,
   handler: (d, { db }) => viajesChoferRepository(db).agregarItem(d.viajeId, d.servicioId, d.lineaId),
   invalida: rutas,
 });
 
 export const ajustarItemViaje = createAction({
-  permiso: 'operacion.tramos:editar',
+  // 05/11/2026: también quien hace el cierre (Telemetría / Combustible) carga las operaciones del viaje
+  permiso: ['operacion.tramos:editar', 'combustible.cierre_viaje:editar'],
   schema: ajustarItemSchema,
   handler: (d, { db }) => viajesChoferRepository(db).ajustarItem(d),
   invalida: rutas,
@@ -52,14 +54,16 @@ export const ajustarItemViaje = createAction({
 
 /** Migración 109: «Continúa a …»: el tramo que sigue de la misma operación. */
 export const continuarOperacionViaje = createAction({
-  permiso: 'operacion.tramos:editar',
+  // 05/11/2026: también quien hace el cierre (Telemetría / Combustible) carga las operaciones del viaje
+  permiso: ['operacion.tramos:editar', 'combustible.cierre_viaje:editar'],
   schema: itemIdSchema,
   handler: (d, { db }) => viajesChoferRepository(db).continuarOperacion(d.itemId),
   invalida: rutas,
 });
 
 export const quitarItemViaje = createAction({
-  permiso: 'operacion.tramos:editar',
+  // 05/11/2026: también quien hace el cierre (Telemetría / Combustible) carga las operaciones del viaje
+  permiso: ['operacion.tramos:editar', 'combustible.cierre_viaje:editar'],
   schema: itemIdSchema,
   handler: (d, { db }) => viajesChoferRepository(db).quitarItem(d.itemId),
   invalida: rutas,
@@ -73,7 +77,7 @@ export const cambiarChoferViaje = createAction({
 });
 
 export const prepararCierreCombustible = createAction({
-  permiso: 'operacion.tramos:editar',
+  permiso: ['operacion.tramos:editar', 'combustible.cierre_viaje:editar'],
   schema: viajeIdSchema,
   handler: (d, { db }) => viajesChoferRepository(db).prepararCierre(d.viajeId),
   invalida: () => ({ paths: ['/operacion/viajes-chofer', '/combustible/viajes', '/combustible/cierres'] }),
