@@ -8,7 +8,8 @@ import { cambiarPassword } from '@/modules/core/auth/actions';
 import { cambiarPasswordSchema, type CambiarPasswordInput } from '@/modules/core/auth/schemas';
 import { Campo } from '@/shared/ui/campo';
 
-export function CambiarPasswordForm() {
+/** onListo: migración 192, la ventana de cambio obligatorio se cierra al guardar. */
+export function CambiarPasswordForm({ onListo }: { onListo?: () => void } = {}) {
   const [pendiente, iniciar] = useTransition();
   const [mensaje, setMensaje] = useState<{ ok: boolean; texto: string } | null>(null);
   const form = useForm<CambiarPasswordInput>({
@@ -24,7 +25,10 @@ export function CambiarPasswordForm() {
         iniciar(async () => {
           const r = await cambiarPassword(valores);
           setMensaje(r.ok ? { ok: true, texto: 'Contraseña actualizada.' } : { ok: false, texto: r.error.mensaje });
-          if (r.ok) form.reset();
+          if (r.ok) {
+            form.reset();
+            onListo?.();
+          }
         }),
       )}
     >

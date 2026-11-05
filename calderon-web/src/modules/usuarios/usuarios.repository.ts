@@ -64,6 +64,11 @@ export const usuariosRepository = (db: Db) => ({
     const { error } = await db.schema('seg').rpc('fn_marcar_recibe_escalamiento', { p_usuario: usuario, p_recibe: recibe });
     if (error) throw new RepoError(error);
   },
+  /** Migración 192: TI le pone una contraseña provisoria (al entrar, el usuario elige la suya). */
+  async restablecerClave(usuario: number, clave: string): Promise<void> {
+    const { error } = await db.schema('seg').rpc('fn_restablecer_clave', { p_usuario: usuario, p_clave: clave });
+    if (error) throw new RepoError(error);
+  },
   async sinVincular(): Promise<CuentaSinVincular[]> {
     const { data, error } = await db.schema('seg').rpc('fn_cuentas_sin_vincular');
     if (error) throw new RepoError(error);

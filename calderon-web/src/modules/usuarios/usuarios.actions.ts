@@ -54,3 +54,10 @@ export const marcarRecibeEscalamiento = createAction({
   schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
   handler: (d, { db }) => usuariosRepository(db).marcarRecibeEscalamiento(d.usuario, d.aprueba),
 });
+
+/** Migración 192: TI pone una contraseña provisoria; el usuario tiene que cambiarla al entrar. Solo TI (lo controla la base). */
+export const restablecerClave = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({ usuario: z.number().int().positive(), clave: z.string().max(72, 'Máximo 72 caracteres.') }),
+  handler: (d, { db }) => usuariosRepository(db).restablecerClave(d.usuario, d.clave),
+});

@@ -1494,6 +1494,10 @@ export type Database = {
       // Migración 189: quién recibe las alertas vencidas (escalamiento)
       fn_reciben_escalamiento: { Args: Record<string, never>; Returns: number[] };
       fn_marcar_recibe_escalamiento: { Args: { p_usuario: number; p_recibe: boolean }; Returns: undefined };
+      // Migración 192: contraseña provisoria puesta por TI
+      fn_restablecer_clave: { Args: { p_usuario: number; p_clave: string }; Returns: undefined };
+      fn_debo_cambiar_clave: { Args: Record<string, never>; Returns: boolean };
+      fn_clave_cambiada: { Args: Record<string, never>; Returns: undefined };
       fn_guardar_usuario: { Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean; p_chofer?: number | null }; Returns: number };
       /** Migración 150: crea la cuenta de acceso (Supabase Auth, con la llave de Vault) y el usuario. Solo TI. */
       fn_crear_usuario: {

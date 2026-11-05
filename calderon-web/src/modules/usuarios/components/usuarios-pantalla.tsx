@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, UserPlus, Users } from 'lucide-react';
+import { KeyRound, Pencil, UserPlus, Users } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorLectura, Seccion, Vacio } from '@/modules/combustible/components/comun/ui';
 import { ETIQUETA_ROL, ROLES_APP, type RolApp } from '@/modules/core/permissions/roles';
@@ -13,7 +13,7 @@ import { FRESCURA } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { Campo } from '@/shared/ui/campo';
 import { useChoferesCombustible } from '@/modules/combustible/queries/hooks';
-import { crearUsuario, guardarUsuario, marcarAprobadorCierre, marcarAvisoTanqueBajo, marcarRecibeEscalamiento } from '../usuarios.actions';
+import { crearUsuario, guardarUsuario, marcarAprobadorCierre, marcarAvisoTanqueBajo, marcarRecibeEscalamiento, restablecerClave } from '../usuarios.actions';
 import { BOTON_PRIMARIO } from '@/shared/ui/clases';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { usuariosRepository, type Usuario } from '../usuarios.repository';
@@ -32,7 +32,7 @@ const VERSION_APROBADORES = 170;
  * vinculan las cuentas creadas en Supabase, se cambian los roles o se desactiva.
  */
 export function UsuariosPantalla() {
-  const { zonaHoraria } = useSesion();
+  const { zonaHoraria, usuarioId } = useSesion();
   const db = browserDb();
   const usuarios = useQuery({
     queryKey: ['usuarios', 'lista'],
@@ -46,6 +46,8 @@ export function UsuariosPantalla() {
   });
   const [abierto, setAbierto] = useState<string | null>(null);
   const puedeCrear = useBaseTiene(VERSION_CREAR);
+  // Migración 192: TI pone una contraseña provisoria
+  const puedeRestablecer = useBaseTiene(192);
   // Migración 170: quién aprueba cierres de viaje
   const hayAprobadores = useBaseTiene(VERSION_APROBADORES);
   const aprobadores = useQuery({
@@ -212,12 +214,28 @@ export function UsuariosPantalla() {
                             <Pencil className="size-3.5" /> Editar
                           </button>
                         )}
+                        {puedeRestablecer && u.email && u.id !== usuarioId && (
+                          <button
+                            type="button"
+                            className="ml-3 inline-flex items-center gap-1 text-xs text-marca hover:underline"
+                            onClick={() => setAbierto(`c:${u.id}`)}
+                          >
+                            <KeyRound className="size-3.5" /> Contraseña
+                          </button>
+                        )}
                       </td>
                     </tr>
                     {abierto === `u:${u.id}` && u.email && (
                       <tr>
                         <td colSpan={columnas} className="px-3 pb-3">
                           <FormUsuario email={u.email} usuario={u} onCerrar={() => setAbierto(null)} />
+                        </td>
+                      </tr>
+                    )}
+                    {abierto === `c:${u.id}` && (
+                      <tr>
+                        <td colSpan={columnas} className="px-3 pb-3">
+                          <FormClave usuario={u} onCerrar={() => setAbierto(null)} />
                         </td>
                       </tr>
                     )}
@@ -350,6 +368,48 @@ function FormUsuario({ email: emailFijo = '', usuario, nuevo = false, onCerrar }
           Activo (si lo desactivás, deja de entrar en el momento)
         </label>
       )}
+    </Panel>
+  );
+}
+
+/** Una contraseña provisoria fácil de dictar (sin letras que se confunden). */
+function claveAlAzar(): string {
+  const letras = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const v = new Uint32Array(12);
+  crypto.getRandomValues(v);
+  return Array.from(v, (n) => letras[n % letras.length]).join('');
+}
+
+/** Migración 192: TI restablece la contraseña con una provisoria; el usuario elige la suya al entrar. */
+function FormClave({ usuario, onCerrar }: { usuario: Usuario; onCerrar: () => void }) {
+  const envio = useEnvio();
+  const [clave, setClave] = useState(claveAlAzar);
+  const [lista, setLista] = useState(false);
+  const restablecer = useMutation({ mutationFn: restablecerClave });
+  if (lista)
+    return (
+      <div className="space-y-2 rounded-lg border border-exito/40 bg-fondo/40 p-4 text-sm">
+        <p className="font-medium text-tinta">Listo. Pasale esta contraseña provisoria a {usuario.nombre}:</p>
+        <p className="font-mono text-lg tracking-wider text-tinta select-all">{clave}</p>
+        <p className="text-tinta-suave">Cuando entre, la plataforma le va a pedir que elija su propia contraseña. Esta no se vuelve a mostrar.</p>
+        <button type="button" className={BOTON_PRIMARIO} onClick={onCerrar}>
+          Cerrar
+        </button>
+      </div>
+    );
+  return (
+    <Panel
+      titulo={`Restablecer la contraseña de ${usuario.nombre}`}
+      explicacion="Se le pone una contraseña provisoria (mínimo 10 letras). Al entrar, tiene que elegir la suya. Si tiene email, también puede usar «¿Olvidaste tu contraseña?» en el inicio de sesión."
+      error={envio.error}
+      ocupado={restablecer.isPending}
+      textoBoton="Restablecer"
+      onConfirmar={() => void envio.enviar(restablecer.mutateAsync({ usuario: usuario.id, clave }), () => setLista(true))}
+      onCerrar={onCerrar}
+    >
+      <Campo label="Contraseña provisoria">
+        <input value={clave} onChange={(e) => setClave(e.target.value)} className="font-mono" autoComplete="off" />
+      </Campo>
     </Panel>
   );
 }

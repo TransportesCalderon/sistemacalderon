@@ -92,5 +92,7 @@ export async function cambiarPassword(input: CambiarPasswordInput): Promise<Acti
 
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return fallo('desconocido', 'No se pudo cambiar la contraseña. Probá con otra.');
+  // Migración 192: si TI le había puesto una provisoria, ya eligió la suya (en bases anteriores no existe: se ignora)
+  await supabase.schema('seg').rpc('fn_clave_cambiada');
   return ok(null);
 }
