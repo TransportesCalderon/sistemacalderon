@@ -1942,6 +1942,9 @@ export type Database = {
       fn_diferencias_choferes: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       // Migración 188: carga imposible (resultados y falsos positivos)
       fn_resumen_carga_imposible: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
+      // Migración 191: patrones por estación
+      fn_patrones_estaciones: { Args: { p_dias: number }; Returns: Json };
+      fn_patrones_estacion_detalle: { Args: { p_estacion: number; p_dias: number }; Returns: Json };
       // Migración 170: ¿el usuario puede aprobar cierres?
       fn_puedo_aprobar_cierres: { Args: Record<string, never>; Returns: boolean };
       fn_anular_cierre: { Args: { p_id: number; p_version: number; p_motivo: string }; Returns: CierreViajeRow };

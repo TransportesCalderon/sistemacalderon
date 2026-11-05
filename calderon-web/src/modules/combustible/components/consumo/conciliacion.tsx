@@ -8,6 +8,8 @@ import { claveViaje, resumenViento, VERSION_VIENTO, type VientoViaje } from '../
 import { ComiteMensual } from '../comite/comite-mensual';
 import { VERSION_DECISION } from '../../domain/decision.types';
 import { DiferenciasChoferes } from './diferencias-choferes';
+import { PatronesEstaciones } from './patrones-estaciones';
+import { VERSION_PATRONES_ESTACION } from '../../domain/estaciones.types';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
@@ -31,8 +33,12 @@ export function ConciliacionPantalla() {
   const conComite = useBaseTiene(VERSION_COMITE);
   // Migración 185: diferencias acumuladas por chofer
   const conChoferes = useBaseTiene(VERSION_DECISION);
-  const [vista, setVista] = useState<'viajes' | 'choferes' | 'comite'>('viajes');
-  const vistas = (['viajes', 'choferes', 'comite'] as const).filter((v) => (v === 'comite' ? conComite : v === 'choferes' ? conChoferes : true));
+  // Migración 191: patrones por estación (ranking de anomalías, solo lectura)
+  const conEstaciones = useBaseTiene(VERSION_PATRONES_ESTACION);
+  const [vista, setVista] = useState<'viajes' | 'choferes' | 'estaciones' | 'comite'>('viajes');
+  const vistas = (['viajes', 'choferes', 'estaciones', 'comite'] as const).filter((v) =>
+    v === 'comite' ? conComite : v === 'choferes' ? conChoferes : v === 'estaciones' ? conEstaciones : true,
+  );
   return (
     <div className="space-y-5">
       {vistas.length > 1 && (
@@ -46,12 +52,20 @@ export function ConciliacionPantalla() {
               onClick={() => setVista(v)}
               className={cn('rounded-md px-3 py-1.5 text-sm', vista === v ? 'bg-marca text-white' : 'bg-panel text-tinta-suave hover:text-tinta')}
             >
-              {v === 'viajes' ? 'Por viaje' : v === 'choferes' ? 'Por chofer' : 'Comité del mes'}
+              {v === 'viajes' ? 'Por viaje' : v === 'choferes' ? 'Por chofer' : v === 'estaciones' ? 'Por estación' : 'Comité del mes'}
             </button>
           ))}
         </div>
       )}
-      {vista === 'comite' && conComite ? <ComiteMensual /> : vista === 'choferes' && conChoferes ? <DiferenciasChoferes /> : <ViajesConciliados />}
+      {vista === 'comite' && conComite ? (
+        <ComiteMensual />
+      ) : vista === 'choferes' && conChoferes ? (
+        <DiferenciasChoferes />
+      ) : vista === 'estaciones' && conEstaciones ? (
+        <PatronesEstaciones />
+      ) : (
+        <ViajesConciliados />
+      )}
     </div>
   );
 }

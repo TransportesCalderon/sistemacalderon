@@ -171,6 +171,20 @@ export const useDecidirDiferencia = () => useEscritura(decidirDiferencia);
 export const usePedirQuitarDescuento = () => useEscritura(pedirQuitarDescuento);
 export const useResolverQuitarDescuento = () => useEscritura(resolverQuitarDescuento);
 export const useRetirarQuitarDescuento = () => useEscritura(retirarQuitarDescuento);
+/** Migración 191: patrones por estación (solo lectura). */
+export const usePatronesEstaciones = (dias: number, activo: boolean) =>
+  useQuery({
+    queryKey: ['combustible', 'consumo', 'estaciones', dias],
+    queryFn: () => consumoRepository(browserDb()).patronesEstaciones(dias),
+    enabled: activo,
+    placeholderData: keepPreviousData,
+  });
+export const useDetalleEstacion = (estacionId: number | null, dias: number) =>
+  useQuery({
+    queryKey: ['combustible', 'consumo', 'estacion-detalle', estacionId, dias],
+    queryFn: () => consumoRepository(browserDb()).detalleEstacion(estacionId!, dias),
+    enabled: estacionId !== null,
+  });
 export const useDiferenciasChoferes = (desde: string, hasta: string, activo: boolean) =>
   useQuery({
     queryKey: ['combustible', 'consumo', 'diferencias-choferes', desde, hasta],

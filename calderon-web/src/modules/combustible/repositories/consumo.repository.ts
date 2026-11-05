@@ -2,12 +2,25 @@ import { RepoError, type Db } from '@/shared/repository/types';
 import type { CamionId, CargaId, CierreViajeId, FechaISO } from '@/shared/types/dominio';
 import { parsearDiferenciasChoferes, type DiferenciasChoferes } from '../domain/decision.types';
 import { parsearVientos, type VientoViaje } from '../domain/viento.types';
+import { parsearDetalleEstacion, parsearPatronesEstaciones, type CargaConIncidente, type PatronesEstaciones } from '../domain/estaciones.types';
 import { situacionDe, type ConsumoCamion, type PeriodoParams, type ViajeConciliado } from '../domain/consumo.types';
 
 const n = (v: number | string | null | undefined) => (v === null || v === undefined ? null : Number(v));
 
 /** Tableros de control del consumo (funciones de la migración 36). */
 export const consumoRepository = (db: Db) => ({
+  /** Migración 191: ranking de anomalías por estación (30, 90 o 365 días). */
+  async patronesEstaciones(dias: number): Promise<PatronesEstaciones> {
+    const { data, error } = await db.schema('fue').rpc('fn_patrones_estaciones', { p_dias: dias });
+    if (error) throw new RepoError(error);
+    return parsearPatronesEstaciones(data);
+  },
+  /** Migración 191: cargas con incidente de una estación. */
+  async detalleEstacion(estacionId: number, dias: number): Promise<CargaConIncidente[]> {
+    const { data, error } = await db.schema('fue').rpc('fn_patrones_estacion_detalle', { p_estacion: estacionId, p_dias: dias });
+    if (error) throw new RepoError(error);
+    return parsearDetalleEstacion(data);
+  },
   /** Migración 185: diferencias acumuladas por chofer en un período. */
   async diferenciasChoferes(desde: string, hasta: string): Promise<DiferenciasChoferes> {
     const { data, error } = await db.schema('fue').rpc('fn_diferencias_choferes', { p_desde: desde, p_hasta: hasta });
