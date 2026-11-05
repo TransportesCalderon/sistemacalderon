@@ -73,6 +73,9 @@ export interface ResumenCargaImposible {
   sinDato: number;
   abiertas: number;
   confirmadas: number;
+  /** Migración 190: válidas con explicación legítima (no son falso positivo). */
+  justificadas: number;
+  /** Solo las descartadas: la alerta no debía existir. */
   falsosPositivos: number;
   pctFalsosPositivos: number | null;
   litrosExceso: number;
@@ -188,6 +191,7 @@ export function parsearResumenCargaImposible(d: unknown): ResumenCargaImposible 
     sinDato: Number(x.sin_dato ?? 0),
     abiertas: Number(x.abiertas ?? 0),
     confirmadas: Number(x.confirmadas ?? 0),
+    justificadas: Number(x.justificadas ?? 0),
     falsosPositivos: Number(x.falsos_positivos ?? 0),
     pctFalsosPositivos: numN(x.pct_falsos_positivos),
     litrosExceso: Number(x.litros_exceso ?? 0),

@@ -31,9 +31,9 @@ describe('Fase 2 · alertas con responsable, vencimiento y escalamiento (migraci
     expect(a?.gestion.prorroga?.puedoResolver).toBe(true);
   });
 
-  it('el resumen de carga imposible mide falsos positivos', () => {
-    const r = parsearResumenCargaImposible({ revisadas: 3, normales: 2, imposibles: 1, falsos_positivos: 1, pct_falsos_positivos: 100, sin_dato_motivos: { 'Falta telemetría': 2 } });
-    expect(r).toMatchObject({ revisadas: 3, imposibles: 1, pctFalsosPositivos: 100 });
+  it('el resumen de carga imposible: falso positivo es solo la descartada; la justificada va aparte (migración 190)', () => {
+    const r = parsearResumenCargaImposible({ revisadas: 4, imposibles: 2, justificadas: 1, falsos_positivos: 1, pct_falsos_positivos: 50, sin_dato_motivos: { 'Falta telemetría': 2 } });
+    expect(r).toMatchObject({ revisadas: 4, imposibles: 2, justificadas: 1, falsosPositivos: 1, pctFalsosPositivos: 50 });
     expect(r.sinDatoMotivos).toEqual([{ motivo: 'Falta telemetría', cantidad: 2 }]);
   });
 

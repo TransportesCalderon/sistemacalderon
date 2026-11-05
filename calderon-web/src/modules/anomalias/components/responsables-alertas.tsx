@@ -111,8 +111,8 @@ export function ResumenCargaImposible() {
       {abierto && (
         <div className="mt-3 space-y-3">
           <p className="text-sm text-tinta-suave">
-            Se revisan todas las cargas (también las normales y las que no tienen telemetría). Una alerta descartada o justificada cuenta como falso positivo. El
-            margen (5 % de la capacidad o 30 L) se cambia en Umbrales.
+            Se revisan todas las cargas (también las normales y las que no tienen telemetría). Falso positivo es solo la alerta descartada (no debía existir);
+            la justificada era válida y tuvo una explicación legítima, y se cuenta aparte. El margen (5 % de la capacidad o 30 L) se cambia en Umbrales.
           </p>
           <div className="flex flex-wrap gap-3 text-sm">
             <input type="date" className={CONTROL_FILTRO} value={desde} onChange={(e) => setDesde(e.target.value)} aria-label="Desde" />
@@ -133,7 +133,8 @@ export function ResumenCargaImposible() {
                 <Dato etiqueta="Sin dato">{formatearNumero(data.sinDato, 0)}</Dato>
                 <Dato etiqueta="Abiertas">{formatearNumero(data.abiertas, 0)}</Dato>
                 <Dato etiqueta="Confirmadas">{formatearNumero(data.confirmadas, 0)}</Dato>
-                <Dato etiqueta="Falsos positivos">
+                <Dato etiqueta="Justificadas (válidas)">{formatearNumero(data.justificadas, 0)}</Dato>
+                <Dato etiqueta="Falsos positivos (descartadas)">
                   {formatearNumero(data.falsosPositivos, 0)}
                   {data.pctFalsosPositivos !== null && ` (${formatearNumero(data.pctFalsosPositivos, 1)} % de las cerradas)`}
                 </Dato>
