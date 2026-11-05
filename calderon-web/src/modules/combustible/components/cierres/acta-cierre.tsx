@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { ETIQUETA_ESTADO, ETIQUETA_RESOLUCION, etiquetaUnidad } from '@/modules/anomalias/domain/alerta.types';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { conSigno, formatearNumero } from '@/shared/lib/numeros';
@@ -10,8 +9,8 @@ import { BotonImprimir } from './boton-imprimir';
 
 /**
  * Acta del cierre de viaje en una hoja A4 (imprimir o guardar como PDF desde el navegador). Lo crucial
- * arriba, en recuadros; después la cuenta del combustible, la conducción y el Eco Score, las alertas y
- * las firmas. Todo lo calcula la base, colores incluidos (lo congelado al aprobar); no incluye datos
+ * arriba, en recuadros; después la cuenta del combustible, la conducción y el Eco Score, los comentarios y
+ * las firmas (sin las alertas del viaje). Todo lo calcula la base, colores incluidos (lo congelado al aprobar); no incluye datos
  * sensibles (test de alcohol).
  */
 export interface DatosActa {
@@ -231,22 +230,9 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
 
       <EcoPartes eco={eco} niveles={c.ecoPartes} />
 
-      {/* Alertas y comentarios */}
-      <Bloque titulo={`Alertas del viaje (${x.alertas.length})`}>
-        {x.alertas.length === 0 ? (
-          <p className="text-neutral-600">Sin alertas.</p>
-        ) : (
-          <ul className="grid grid-cols-2 gap-x-4">
-            {x.alertas.slice(0, 8).map((a, i) => (
-              <li key={i} className="truncate">
-                <b>{a.tipo}</b> · {fecha(a.cuando)}
-                {a.valor !== null && ` · ${formatearNumero(a.valor, 0)} ${etiquetaUnidad(a.unidad)}`}
-                <span className="text-neutral-600"> · {a.resolucion ? (ETIQUETA_RESOLUCION[a.resolucion] ?? a.resolucion) : (ETIQUETA_ESTADO[a.estado] ?? a.estado)}</span>
-              </li>
-            ))}
-            {x.alertas.length > 8 && <li className="text-neutral-600">y {x.alertas.length - 8} más (ver el cierre)</li>}
-          </ul>
-        )}
+      {/* Comentarios (las alertas del viaje no van en el acta: pedido de Gerencia, 05/11/2026) */}
+      {(x.comentario || x.observaciones) && (
+      <Bloque titulo="Comentarios">
         {x.comentario && (
           <p className="mt-1 line-clamp-3 whitespace-pre-line">
             <b>Explicación:</b> {x.comentario}
@@ -258,6 +244,7 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
           </p>
         )}
       </Bloque>
+      )}
 
       {/* Firmas */}
       <section className="mt-6 grid grid-cols-2 gap-10 break-inside-avoid">
