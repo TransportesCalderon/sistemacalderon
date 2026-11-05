@@ -80,6 +80,9 @@ export interface DiferenciaChofer {
   /** Migración 187: de los litros que faltaron, % descontado y % justificado. */
   pctDescontado: number | null;
   pctJustificado: number | null;
+  /** Migración 193: lo que quedó dentro de la tolerancia (% de lo cargado): no se descuenta ni se justifica. */
+  litrosTolerancia: number;
+  pctTolerancia: number | null;
   promedioPorViaje: number | null;
   litrosCada1000Km: number | null;
   km: number;
@@ -93,6 +96,8 @@ export interface DiferenciasChoferes {
     litrosJustificados: number;
     pctDescontado: number | null;
     pctJustificado: number | null;
+    litrosTolerancia: number;
+    pctTolerancia: number | null;
   };
   choferes: DiferenciaChofer[];
 }
@@ -108,6 +113,8 @@ export function parsearDiferenciasChoferes(d: unknown): DiferenciasChoferes {
       litrosJustificados: Number(tot.litros_justificados ?? Math.max(0, Number(tot.litros_faltante ?? 0) - Number(tot.litros_descontados ?? 0))),
       pctDescontado: n(tot.pct_descontado),
       pctJustificado: n(tot.pct_justificado),
+      litrosTolerancia: Number(tot.litros_tolerancia ?? 0),
+      pctTolerancia: n(tot.pct_tolerancia),
     },
     choferes: (Array.isArray(x.choferes) ? (x.choferes as J[]) : []).map((c) => ({
       puesto: Number(c.puesto),
@@ -123,6 +130,8 @@ export function parsearDiferenciasChoferes(d: unknown): DiferenciasChoferes {
       viajesJustificados: Number(c.viajes_justificados ?? 0),
       pctDescontado: n(c.pct_descontado),
       pctJustificado: n(c.pct_justificado),
+      litrosTolerancia: Number(c.litros_tolerancia ?? 0),
+      pctTolerancia: n(c.pct_tolerancia),
       promedioPorViaje: n(c.promedio_por_viaje),
       litrosCada1000Km: n(c.litros_cada_1000_km),
       km: Number(c.km ?? 0),
