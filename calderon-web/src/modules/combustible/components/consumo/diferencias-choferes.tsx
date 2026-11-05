@@ -53,10 +53,15 @@ export function DiferenciasChoferes() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Cifra etiqueta="Viajes" valor={String(data.total.viajes)} detalle={`${data.total.viajesFaltante} con faltante`} />
             <Cifra etiqueta="Litros que faltaron" valor={`${formatearNumero(data.total.litrosFaltante, 0)} L`} alerta={data.total.litrosFaltante > 0} />
-            <Cifra etiqueta="Descontados" valor={`${formatearNumero(data.total.litrosDescontados, 0)} L`} />
+            <Cifra
+              etiqueta="Descontados"
+              valor={`${formatearNumero(data.total.litrosDescontados, 0)} L`}
+              detalle={data.total.pctDescontado === null ? undefined : `${data.total.pctDescontado} % de lo que faltó`}
+            />
             <Cifra
               etiqueta="Justificados"
-              valor={`${formatearNumero(Math.max(0, data.total.litrosFaltante - data.total.litrosDescontados), 0)} L`}
+              valor={`${formatearNumero(data.total.litrosJustificados, 0)} L`}
+              detalle={data.total.pctJustificado === null ? undefined : `${data.total.pctJustificado} % de lo que faltó`}
             />
           </div>
           <section className="overflow-hidden rounded-xl border border-borde bg-panel">
@@ -88,9 +93,13 @@ export function DiferenciasChoferes() {
                       <td className={cn(TD, 'text-right font-semibold tabular-nums', c.litrosFaltante > 0 && 'text-alerta')}>{num(c.litrosFaltante)} L</td>
                       <td className={cn(TD, 'text-right tabular-nums')}>{num(c.promedioPorViaje)} L</td>
                       <td className={cn(TD, 'text-right tabular-nums')}>{c.litrosCada1000Km === null ? '—' : `${num(c.litrosCada1000Km)} L`}</td>
-                      <td className={cn(TD, 'text-right tabular-nums')}>{num(c.litrosDescontados)} L</td>
+                      <td className={cn(TD, 'text-right tabular-nums')}>
+                        {num(c.litrosDescontados)} L
+                        {c.pctDescontado !== null && <span className="block text-xs text-tinta-suave">{c.pctDescontado} %</span>}
+                      </td>
                       <td className={cn(TD, 'text-right tabular-nums')}>
                         {num(c.litrosJustificados)} L
+                        {c.pctJustificado !== null && <span className="text-xs text-tinta-suave"> · {c.pctJustificado} %</span>}
                         {c.viajesJustificados > 0 && <span className="text-xs text-tinta-suave"> ({c.viajesJustificados} viaje/s)</span>}
                       </td>
                     </tr>

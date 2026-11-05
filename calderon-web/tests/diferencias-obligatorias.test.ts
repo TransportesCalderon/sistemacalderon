@@ -16,10 +16,11 @@ describe('diferencias obligatorias (migración 185)', () => {
   it('lee el acumulado por chofer (ranking)', () => {
     const r = parsearDiferenciasChoferes({
       total: { viajes: 3, viajes_faltante: 2, litros_faltante: 80, litros_descontados: 50 },
-      choferes: [{ puesto: 1, chofer_id: 4, chofer: 'Ana', viajes: 3, viajes_faltante: 2, pct_viajes_faltante: 67, litros_faltante: 80, promedio_por_viaje: 26.7 }],
+      choferes: [{ puesto: 1, chofer_id: 4, chofer: 'Ana', viajes: 3, viajes_faltante: 2, pct_viajes_faltante: 67, litros_faltante: 80, promedio_por_viaje: 26.7, pct_descontado: 63, pct_justificado: 38 }],
     });
     expect(r.total.litrosFaltante).toBe(80);
-    expect(r.choferes[0]).toMatchObject({ puesto: 1, chofer: 'Ana', promedioPorViaje: 26.7, pctViajesFaltante: 67 });
+    expect(r.choferes[0]).toMatchObject({ puesto: 1, chofer: 'Ana', promedioPorViaje: 26.7, pctViajesFaltante: 67, pctDescontado: 63, pctJustificado: 38 });
+    expect(r.total.litrosJustificados).toBe(30);
   });
 
   it('el período es el mes o los 3 meses que terminan en ese mes', () => {

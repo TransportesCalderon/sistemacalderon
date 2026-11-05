@@ -77,12 +77,23 @@ export interface DiferenciaChofer {
   litrosDescontados: number;
   litrosJustificados: number;
   viajesJustificados: number;
+  /** Migración 187: de los litros que faltaron, % descontado y % justificado. */
+  pctDescontado: number | null;
+  pctJustificado: number | null;
   promedioPorViaje: number | null;
   litrosCada1000Km: number | null;
   km: number;
 }
 export interface DiferenciasChoferes {
-  total: { viajes: number; viajesFaltante: number; litrosFaltante: number; litrosDescontados: number };
+  total: {
+    viajes: number;
+    viajesFaltante: number;
+    litrosFaltante: number;
+    litrosDescontados: number;
+    litrosJustificados: number;
+    pctDescontado: number | null;
+    pctJustificado: number | null;
+  };
   choferes: DiferenciaChofer[];
 }
 export function parsearDiferenciasChoferes(d: unknown): DiferenciasChoferes {
@@ -94,6 +105,9 @@ export function parsearDiferenciasChoferes(d: unknown): DiferenciasChoferes {
       viajesFaltante: Number(tot.viajes_faltante ?? 0),
       litrosFaltante: Number(tot.litros_faltante ?? 0),
       litrosDescontados: Number(tot.litros_descontados ?? 0),
+      litrosJustificados: Number(tot.litros_justificados ?? Math.max(0, Number(tot.litros_faltante ?? 0) - Number(tot.litros_descontados ?? 0))),
+      pctDescontado: n(tot.pct_descontado),
+      pctJustificado: n(tot.pct_justificado),
     },
     choferes: (Array.isArray(x.choferes) ? (x.choferes as J[]) : []).map((c) => ({
       puesto: Number(c.puesto),
@@ -107,6 +121,8 @@ export function parsearDiferenciasChoferes(d: unknown): DiferenciasChoferes {
       litrosDescontados: Number(c.litros_descontados ?? 0),
       litrosJustificados: Number(c.litros_justificados ?? 0),
       viajesJustificados: Number(c.viajes_justificados ?? 0),
+      pctDescontado: n(c.pct_descontado),
+      pctJustificado: n(c.pct_justificado),
       promedioPorViaje: n(c.promedio_por_viaje),
       litrosCada1000Km: n(c.litros_cada_1000_km),
       km: Number(c.km ?? 0),
