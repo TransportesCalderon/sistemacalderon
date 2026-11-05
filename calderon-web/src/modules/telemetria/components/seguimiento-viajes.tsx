@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, ClipboardCopy, History, LoaderCircle, Radar } from 'lucide-react';
+import { Check, Fuel, History, LoaderCircle, Radar } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -9,9 +9,11 @@ import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
-import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
-import { ETIQUETA_RESULTADO, VERSION_SEGUIMIENTO, type Estado, type Evaluacion, type Resultado, type ViajeEnCurso } from '../domain/seguimiento.types';
+import { BOTON_PRIMARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
+import { ETIQUETA_RESULTADO, VERSION_PEDIDO_CARGA, VERSION_SEGUIMIENTO, type Estado, type Evaluacion, type Resultado, type ViajeEnCurso } from '../domain/seguimiento.types';
 import { useControlesViaje, useRegistrarSeguimiento, useViajesEnCurso } from '../queries/hooks';
+import { BotonCopiar } from './boton-copiar';
+import { PedidoCarga } from './pedido-carga';
 
 const TONO_RESULTADO: Record<Resultado, Tono> = { bien: 'exito', a_mejorar: 'alerta', mal: 'error', sin_datos: 'neutro' };
 const COLOR_ESTADO: Record<NonNullable<Estado>, string> = { verde: 'text-exito', naranja: 'text-alerta', rojo: 'text-error' };
@@ -67,6 +69,9 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
   const [prog, setProg] = useState('');
   const [hecho, setHecho] = useState<Evaluacion | null>(null);
   const [historial, setHistorial] = useState(false);
+  // Migración 195: pedido de carga de combustible para Gerencia
+  const conPedido = useBaseTiene(VERSION_PEDIDO_CARGA);
+  const [pedido, setPedido] = useState(false);
   const e = hecho ?? v.evaluacion;
 
   return (
@@ -149,10 +154,18 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
             : 'Sin controles todavía'}
           {v.controlesHoy > 0 && ` · ${v.controlesHoy} hoy`}
         </span>
-        <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setHistorial(!historial)}>
-          <History className="size-3.5" /> {historial ? 'Ocultar historial' : 'Historial'}
-        </button>
+        <span className="flex items-center gap-3">
+          {conPedido && (
+            <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setPedido(!pedido)}>
+              <Fuel className="size-3.5" /> {pedido ? 'Cerrar pedido de carga' : 'Pedir carga'}
+            </button>
+          )}
+          <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setHistorial(!historial)}>
+            <History className="size-3.5" /> {historial ? 'Ocultar historial' : 'Historial'}
+          </button>
+        </span>
       </div>
+      {pedido && <PedidoCarga viajeId={v.viajeId} registra={registra} />}
       {historial && <Historial viajeId={v.viajeId} />}
     </li>
   );
@@ -164,24 +177,6 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactN
       <dt className="text-xs text-tinta-suave">{etiqueta}</dt>
       <dd className="font-semibold tabular-nums text-tinta">{children}</dd>
     </div>
-  );
-}
-
-function BotonCopiar({ texto }: { texto: string }) {
-  const [copiado, setCopiado] = useState(false);
-  return (
-    <button
-      type="button"
-      className={BOTON_SECUNDARIO}
-      onClick={() =>
-        void navigator.clipboard.writeText(texto).then(() => {
-          setCopiado(true);
-          setTimeout(() => setCopiado(false), 2000);
-        })
-      }
-    >
-      {copiado ? <Check className="size-4" /> : <ClipboardCopy className="size-4" />} {copiado ? 'Copiado' : 'Copiar mensaje'}
-    </button>
   );
 }
 

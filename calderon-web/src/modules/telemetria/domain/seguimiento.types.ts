@@ -120,3 +120,64 @@ export const parsearControles = (d: unknown): ControlViaje[] =>
     resultado: resultado(c.resultado),
     mensaje: txt(c.mensaje) ?? '',
   }));
+
+// ---- Migración 195: pedido de carga de combustible (mensaje para Gerencia) ----
+export const VERSION_PEDIDO_CARGA = 195;
+
+export interface DatosPedidoCarga {
+  inicialL: number | null;
+  km: number | null;
+  gastoL: number | null;
+  tanquesL: number | null;
+  mochilaL: number | null;
+  l100km: number | null;
+  programadorPct: number | null;
+  litrosSugeridos: number | null;
+  precio: number | null;
+  moneda: string | null;
+  precioFecha: FechaISO | null;
+  conTelemetria: boolean;
+  aviso: string | null;
+}
+
+export interface PedidoCarga {
+  id: number;
+  en: FechaISO;
+  por: string | null;
+  estacion: string | null;
+  litros: number;
+  importe: number | null;
+  moneda: string | null;
+  mensaje: string;
+}
+
+export function parsearDatosPedido(d: unknown): DatosPedidoCarga {
+  const x = obj(d);
+  return {
+    inicialL: n(x.inicial_l),
+    km: n(x.km),
+    gastoL: n(x.gasto_l),
+    tanquesL: n(x.tanques_l),
+    mochilaL: n(x.mochila_l),
+    l100km: n(x.l_100km),
+    programadorPct: n(x.programador_pct),
+    litrosSugeridos: n(x.litros_sugeridos),
+    precio: n(x.precio),
+    moneda: txt(x.moneda),
+    precioFecha: txt(x.precio_fecha) as FechaISO | null,
+    conTelemetria: x.con_telemetria === true,
+    aviso: txt(x.aviso),
+  };
+}
+
+export const parsearPedidos = (d: unknown): PedidoCarga[] =>
+  arr(d).map((p) => ({
+    id: Number(p.id),
+    en: (txt(p.en) ?? '') as FechaISO,
+    por: txt(p.por),
+    estacion: txt(p.estacion),
+    litros: Number(p.litros ?? 0),
+    importe: n(p.importe),
+    moneda: txt(p.moneda),
+    mensaje: txt(p.mensaje) ?? '',
+  }));

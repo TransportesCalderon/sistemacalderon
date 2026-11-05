@@ -29,3 +29,11 @@ describe('migración 194 · módulo Telemetría: seguimiento de viajes', () => {
     expect(pantallaDeRuta('/telemetria/seguimiento')).toBe('telemetria.mapa');
   });
 });
+
+describe('migración 195 · pedido de carga', () => {
+  it('trae los números y el precio de la última carga de la estación', async () => {
+    const { parsearDatosPedido } = await import('@/modules/telemetria/domain/seguimiento.types');
+    const d = parsearDatosPedido({ inicial_l: 1550, km: 1047, gasto_l: 506, tanques_l: 374, mochila_l: 720, litros_sugeridos: 506, precio: 1525, moneda: 'ARS', con_telemetria: true });
+    expect(d).toMatchObject({ inicialL: 1550, gastoL: 506, tanquesL: 374, mochilaL: 720, litrosSugeridos: 506, precio: 1525, moneda: 'ARS' });
+  });
+});

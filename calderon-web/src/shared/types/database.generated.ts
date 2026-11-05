@@ -1814,6 +1814,23 @@ export type Database = {
       fn_seguimiento_viajes: { Args: Record<string, never>; Returns: Json };
       fn_controles_viaje: { Args: { p_viaje: number }; Returns: Json };
       fn_registrar_seguimiento: { Args: { p_viaje: number; p_km?: number | null; p_litros?: number | null; p_programador?: number | null }; Returns: Json };
+      // Migración 195: pedido de carga de combustible
+      fn_preparar_pedido_carga: { Args: { p_viaje: number; p_estacion?: number | null }; Returns: Json };
+      fn_pedir_carga: {
+        Args: {
+          p_viaje: number;
+          p_estacion: number;
+          p_litros: number;
+          p_precio?: number | null;
+          p_km?: number | null;
+          p_gasto?: number | null;
+          p_tanques?: number | null;
+          p_mochila?: number | null;
+          p_programador?: number | null;
+        };
+        Returns: Json;
+      };
+      fn_pedidos_carga_viaje: { Args: { p_viaje: number }; Returns: Json };
       // Migración 88: tablero del camión (fotos leídas por IA)
       fn_tablero_combinar: { Args: { p_lecturas: number[]; p_camion?: number | null }; Returns: Json };
       fn_guardar_tablero: {

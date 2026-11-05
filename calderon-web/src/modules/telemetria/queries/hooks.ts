@@ -11,7 +11,7 @@ import { flotaRepository } from '../repositories/flota.repository';
 import { tableroRepository } from '../repositories/tablero.repository';
 import { trackerwayRepository } from '../repositories/trackerway.repository';
 import { seguimientoRepository } from '../repositories/seguimiento.repository';
-import { registrarSeguimiento } from '../actions/seguimiento.actions';
+import { pedirCarga, registrarSeguimiento } from '../actions/seguimiento.actions';
 import { telemetriaQueries as q } from './keys';
 import { invalidar } from '@/shared/query/invalidar';
 
@@ -114,4 +114,22 @@ export const useControlesViaje = (viajeId: number | null) =>
 export function useRegistrarSeguimiento() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: registrarSeguimiento, onSuccess: (r) => (r.ok ? invalidar(qc, 'telemetria') : undefined) });
+}
+
+// ---- Migración 195: pedido de carga ----
+export const useDatosPedidoCarga = (viajeId: number, estacionId: number | null) =>
+  useQuery({
+    queryKey: ['telemetria', 'pedido-carga', viajeId, estacionId] as const,
+    queryFn: () => seguimientoRepository(browserDb()).datosPedido(viajeId, estacionId),
+    placeholderData: keepPreviousData,
+  });
+export const usePedidosCarga = (viajeId: number | null) =>
+  useQuery({
+    queryKey: ['telemetria', 'pedidos-carga', viajeId] as const,
+    queryFn: () => seguimientoRepository(browserDb()).pedidos(viajeId!),
+    enabled: viajeId !== null,
+  });
+export function usePedirCarga() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: pedirCarga, onSuccess: (r) => (r.ok ? invalidar(qc, 'telemetria') : undefined) });
 }
