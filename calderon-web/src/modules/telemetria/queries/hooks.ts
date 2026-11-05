@@ -10,6 +10,8 @@ import { conduccionRepository } from '../repositories/conduccion.repository';
 import { flotaRepository } from '../repositories/flota.repository';
 import { tableroRepository } from '../repositories/tablero.repository';
 import { trackerwayRepository } from '../repositories/trackerway.repository';
+import { seguimientoRepository } from '../repositories/seguimiento.repository';
+import { registrarSeguimiento } from '../actions/seguimiento.actions';
 import { telemetriaQueries as q } from './keys';
 import { invalidar } from '@/shared/query/invalidar';
 
@@ -93,3 +95,23 @@ export const useClimaMapa = (zona: ZonaMapa | null) =>
     refetchInterval: 30 * 60_000,
     placeholderData: keepPreviousData,
   });
+
+// ---- Migración 194: seguimiento de los viajes en curso ----
+export const useViajesEnCurso = (activo: boolean) =>
+  useQuery({
+    queryKey: ['telemetria', 'seguimiento'] as const,
+    queryFn: () => seguimientoRepository(browserDb()).viajes(),
+    enabled: activo,
+    placeholderData: keepPreviousData,
+    refetchInterval: activo ? 5 * 60_000 : false,
+  });
+export const useControlesViaje = (viajeId: number | null) =>
+  useQuery({
+    queryKey: ['telemetria', 'seguimiento', 'controles', viajeId] as const,
+    queryFn: () => seguimientoRepository(browserDb()).controles(viajeId!),
+    enabled: viajeId !== null,
+  });
+export function useRegistrarSeguimiento() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: registrarSeguimiento, onSuccess: (r) => (r.ok ? invalidar(qc, 'telemetria') : undefined) });
+}

@@ -93,8 +93,9 @@ describe('navegación (menú lateral por área; se mantiene después del Sprint 
   const GRUPOS_PESTANAS = Object.values(PESTANAS) as readonly (readonly { href: string }[])[];
 
   it('grupos por área, con «Cargar nuevo» y lo del chofer aparte', () => {
-    expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'chofer', 'cargar', 'pendientes', 'ventas', 'logistica', 'combustible', 'flota', 'rrhh', 'finanzas', 'datos', 'configuracion']);
-    expect(entradas.length).toBe(45); // Migración 156: «Rutas para choferes»
+    // Migración 194: módulo Telemetría (Seguimiento de viajes, mapa, rutas, alertas, actas y ranking); «Alertas» se integró ahí
+    expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'chofer', 'cargar', 'ventas', 'logistica', 'telemetria', 'combustible', 'flota', 'rrhh', 'finanzas', 'datos', 'configuracion']);
+    expect(entradas.length).toBe(46);
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
   });

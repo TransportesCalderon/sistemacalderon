@@ -1,11 +1,15 @@
 import type { Metadata } from 'next';
 import { requirePermiso } from '@/modules/core/auth/guards';
-import { FlotaPantalla } from '@/modules/telemetria/components/flota-pantalla';
+import { SeguimientoViajes } from '@/modules/telemetria/components/seguimiento-viajes';
 
-export const metadata: Metadata = { title: 'Mapa de flota' };
+export const metadata: Metadata = { title: 'Seguimiento de viajes' };
 
-/** Mapa de flota con la telemetría rFMS (migración 32). */
+/**
+ * Migración 194 · Módulo Telemetría: «Seguimiento de viajes» se ve en /telemetria/seguimiento
+ * (rutas.ts la reescribe a esta página). La dirección vieja /telemetria/mapa sigue llevando al
+ * mapa de flota (/pizarra/mapa), así que esta página ya no mostraba el mapa.
+ */
 export default async function Pagina() {
   await requirePermiso('telemetria.mapa:ver');
-  return <FlotaPantalla />;
+  return <SeguimientoViajes />;
 }

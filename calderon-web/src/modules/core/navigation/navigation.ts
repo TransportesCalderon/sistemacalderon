@@ -16,6 +16,7 @@ export type IconoGrupo =
   | 'pendientes'
   | 'ventas'
   | 'logistica'
+  | 'telemetria'
   | 'combustible'
   | 'flota'
   | 'rrhh'
@@ -67,15 +68,6 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     ],
   },
   {
-    id: 'pendientes',
-    etiqueta: 'Alertas',
-    entradas: [
-      { href: '/analisis/alertas', etiqueta: 'Alertas de la telemetría' },
-      // Migración 122: consumo excesivo, daños en la unidad y velocidad excesiva
-      { href: '/actas', etiqueta: 'Actas de infracción' },
-    ],
-  },
-  {
     // Migración 67: seguimiento de clientes, cotizador, tarifas y facturación
     id: 'ventas',
     etiqueta: 'Ventas',
@@ -100,10 +92,21 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       // Migración 63: todos los cierres pendientes en un lugar, con lo que falta y aprobar varios
       { href: '/analisis/cierres/por-hacer', etiqueta: 'Cierres por hacer' },
       { href: '/pizarra', etiqueta: 'Pizarra Azul' },
+    ],
+  },
+  {
+    // Migración 194 · Módulo Telemetría: todo lo que hace el equipo de Telemetría, en un lugar
+    id: 'telemetria',
+    etiqueta: 'Telemetría',
+    entradas: [
+      { href: '/telemetria/seguimiento', etiqueta: 'Seguimiento de viajes' },
       // El mapa de flota con la misma importancia que la Pizarra (es su vista Mapa)
       { href: '/pizarra/mapa', etiqueta: 'Mapa de flota' },
-      // Migración 156: las rutas para los choferes, aparte de la operación (más simple para Telemetría)
+      // Migración 156: las rutas para los choferes, aparte de la operación
       { href: '/pizarra/rutas', etiqueta: 'Rutas para choferes' },
+      { href: '/analisis/alertas', etiqueta: 'Alertas de la telemetría' },
+      // Migración 122: consumo excesivo, daños en la unidad y velocidad excesiva
+      { href: '/actas', etiqueta: 'Actas de infracción' },
       // Migración 103: los mejores choferes de cada mes
       { href: '/analisis/ranking', etiqueta: 'Ranking de choferes', incluye: ['/analisis/ranking/periodo'] },
     ],

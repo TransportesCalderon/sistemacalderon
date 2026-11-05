@@ -179,6 +179,9 @@ export const RUTAS_NUEVAS: readonly { nueva: string; vieja: string; titulo: stri
   { nueva: '/ajustes/liquidacion/datos-legales', vieja: '/rrhh/datos-legales', titulo: 'Datos legales' },
   { nueva: '/ajustes/integraciones', vieja: '/telemetria/datos', titulo: 'Datos de los camiones' },
   { nueva: '/ajustes/integraciones/equipos', vieja: '/telemetria/equipos', titulo: 'Equipos GPS' },
+  // Migración 194 · Módulo Telemetría: el seguimiento de los viajes en curso (la página de /telemetria/mapa,
+  // cuya dirección sigue llevando al mapa de flota)
+  { nueva: '/telemetria/seguimiento', vieja: '/telemetria/mapa', titulo: 'Seguimiento de viajes' },
   // Decisión del 29/10/2026: quedan en Ajustes hasta que la Pizarra haga lo mismo (no se borran)
   { nueva: '/ajustes/viajes', vieja: '/operacion/viajes', titulo: 'Asignar viajes' },
   { nueva: '/ajustes/choferes-tractores', vieja: '/flota/asignaciones', titulo: 'Choferes de los tractores' },
@@ -204,8 +207,8 @@ export const RUTAS: readonly Ruta[] = [
  */
 export const RUTAS_MOVIDAS: readonly { desde: string; hasta: string }[] = [
   { desde: '/flota/pizarra', hasta: '/pizarra' },
-  // Sprint 6: el mapa es la vista Mapa de la Pizarra; los tractores, sus filas (y la ficha del camión)
-  { desde: '/telemetria/mapa', hasta: '/pizarra/mapa' },
+  // Sprint 6: el mapa es la vista Mapa de la Pizarra; los tractores, sus filas (y la ficha del camión).
+  // Migración 194: /telemetria/mapa ya no redirige al mapa: su página es el Seguimiento de viajes (RUTAS_NUEVAS).
   { desde: '/operacion/tractores', hasta: '/pizarra' },
   // Sprint 7: el chofer tiene una sola pantalla
   { desde: '/chofer', hasta: '/mi-viaje' },
