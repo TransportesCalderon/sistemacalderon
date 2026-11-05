@@ -54,6 +54,16 @@ export const usuariosRepository = (db: Db) => ({
     const { error } = await db.schema('seg').rpc('fn_marcar_aviso_tanque_bajo', { p_usuario: usuario, p_recibe: recibe });
     if (error) throw new RepoError(error);
   },
+  /** Migración 189: ids de quienes reciben las alertas vencidas (escalamiento) y resuelven prórrogas. */
+  async recibenEscalamiento(): Promise<number[]> {
+    const { data, error } = await db.schema('seg').rpc('fn_reciben_escalamiento');
+    if (error) throw new RepoError(error);
+    return (data ?? []).map(Number);
+  },
+  async marcarRecibeEscalamiento(usuario: number, recibe: boolean): Promise<void> {
+    const { error } = await db.schema('seg').rpc('fn_marcar_recibe_escalamiento', { p_usuario: usuario, p_recibe: recibe });
+    if (error) throw new RepoError(error);
+  },
   async sinVincular(): Promise<CuentaSinVincular[]> {
     const { data, error } = await db.schema('seg').rpc('fn_cuentas_sin_vincular');
     if (error) throw new RepoError(error);

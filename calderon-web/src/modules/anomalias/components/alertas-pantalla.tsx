@@ -29,7 +29,10 @@ import {
   type Decision,
   type Vista,
 } from '../domain/alerta.types';
-import { useBandejaAlertas, useComentarAlerta, useDetalleAlerta, useReabrirAlerta, useResolverAlerta, useTomarAlerta } from '../queries/hooks';
+import { useBandejaAlertas, useComentarAlerta, useDetalleAlerta, useGestionAlertas, useReabrirAlerta, useResolverAlerta, useTomarAlerta } from '../queries/hooks';
+import { VERSION_GESTION_ALERTAS, type GestionAlerta } from '../domain/gestion.types';
+import { ChipsGestion, GestionAlertaPanel } from './gestion-alerta';
+import { ResponsablesAlertas, ResumenCargaImposible } from './responsables-alertas';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import dynamic from 'next/dynamic';
 
@@ -69,6 +72,13 @@ export function AlertasPantalla() {
   const filtros = conFiltros ? { camionId: camion ? Number(camion) : null, severidad: severidad || null } : undefined;
   const { data, isPending, isError, error, isFetching, refetch } = useBandejaAlertas(vista, desde || null, hasta || null, filtros);
   const [abierta, setAbierta] = useState<number | null>(null);
+  // Migración 189: responsable, vencimiento, días abierta y reasignaciones (filtros «Mías» y «Vencidas»)
+  const conGestion = useBaseTiene(VERSION_GESTION_ALERTAS);
+  const [mias, setMias] = useState(false);
+  const [vencidas, setVencidas] = useState(false);
+  const { data: gestiones } = useGestionAlertas((data ?? []).map((a) => a.id), conGestion);
+  const gestion = new Map((gestiones ?? []).map((g) => [g.id, g]));
+  const lista = (data ?? []).filter((a) => (!mias || gestion.get(a.id)?.esMia) && (!vencidas || gestion.get(a.id)?.vencida));
 
   return (
     <div className="space-y-5">
@@ -124,6 +134,16 @@ export function AlertasPantalla() {
             </label>
           </>
         )}
+        {conGestion && (
+          <div className="flex gap-3 pb-2 text-sm">
+            <label className="inline-flex items-center gap-1.5">
+              <input type="checkbox" className="size-4 accent-marca" checked={mias} onChange={(e) => setMias(e.target.checked)} /> Mías
+            </label>
+            <label className="inline-flex items-center gap-1.5">
+              <input type="checkbox" className="size-4 accent-marca" checked={vencidas} onChange={(e) => setVencidas(e.target.checked)} /> Vencidas
+            </label>
+          </div>
+        )}
         {isFetching && !isPending && <LoaderCircle className="mb-2 size-4 animate-spin text-tinta-suave" />}
       </div>
 
@@ -131,20 +151,25 @@ export function AlertasPantalla() {
         <Cargando texto="Cargando las alertas…" />
       ) : isError ? (
         <ErrorLectura texto={error instanceof Error ? error.message : 'No se pudieron cargar las alertas.'} onReintentar={() => refetch()} />
-      ) : data.length === 0 ? (
-        <Vacio icono={<BellRing className="size-6" />} texto={camion || severidad ? 'No hay alertas con esos filtros.' : vista === 'abiertas' ? 'No hay alertas abiertas.' : 'No hay alertas en el período.'} />
+      ) : lista.length === 0 ? (
+        <Vacio
+          icono={<BellRing className="size-6" />}
+          texto={camion || severidad || mias || vencidas ? 'No hay alertas con esos filtros.' : vista === 'abiertas' ? 'No hay alertas abiertas.' : 'No hay alertas en el período.'}
+        />
       ) : (
         <ul className="space-y-3">
-          {data.map((a) => (
-            <FilaAlerta key={a.id} a={a} abierta={abierta === a.id} onAlternar={() => setAbierta(abierta === a.id ? null : a.id)} />
+          {lista.map((a) => (
+            <FilaAlerta key={a.id} a={a} g={gestion.get(a.id)} abierta={abierta === a.id} onAlternar={() => setAbierta(abierta === a.id ? null : a.id)} />
           ))}
         </ul>
       )}
+      <ResponsablesAlertas />
+      <ResumenCargaImposible />
     </div>
   );
 }
 
-function FilaAlerta({ a, abierta, onAlternar }: { a: Alerta; abierta: boolean; onAlternar: () => void }) {
+function FilaAlerta({ a, g, abierta, onAlternar }: { a: Alerta; g: GestionAlerta | undefined; abierta: boolean; onAlternar: () => void }) {
   const { zonaHoraria } = useSesion();
   const cuando = a.desde ?? a.detectada;
   return (
@@ -168,6 +193,7 @@ function FilaAlerta({ a, abierta, onAlternar }: { a: Alerta; abierta: boolean; o
             {' · '}
             {formatearFechaHora(cuando, zonaHoraria)}
           </p>
+          <ChipsGestion g={g} abierta={estaAbierta(a)} />
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right text-sm">
@@ -303,6 +329,7 @@ function DetalleFila({ a }: { a: Alerta }) {
         )
       )}
 
+      {d?.gestion && <GestionAlertaPanel alertaId={a.id} h={d.gestion} abierta={estaAbierta(a)} />}
       {puede && <Acciones a={a} />}
     </div>
   );

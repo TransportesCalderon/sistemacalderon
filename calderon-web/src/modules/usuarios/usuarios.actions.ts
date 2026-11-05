@@ -47,3 +47,10 @@ export const marcarAvisoTanqueBajo = createAction({
   schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
   handler: (d, { db }) => usuariosRepository(db).marcarAvisoTanqueBajo(d.usuario, d.aprueba),
 });
+
+/** Migración 189: marcar quién recibe las alertas vencidas (escalamiento) y resuelve prórrogas. Solo TI. */
+export const marcarRecibeEscalamiento = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
+  handler: (d, { db }) => usuariosRepository(db).marcarRecibeEscalamiento(d.usuario, d.aprueba),
+});

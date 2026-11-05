@@ -21,3 +21,16 @@ export const cambiarUmbralesSchema = z.object({
   parametros: z.record(z.string(), z.number()),
   activa: z.boolean(),
 });
+
+// Migración 189: gestión (solo forma; largos mínimos, quién puede y plazos los decide la base)
+export const avanceAlertaSchema = z.object({ alertaId: id(), hecho: textoObligatorio(2000, 'Contá qué se hizo.'), falta: z.string().max(2000).nullable() });
+export const reasignarAlertaSchema = z.object({
+  alertaId: id(),
+  rol: z.string().min(1, 'Elegí el equipo.'),
+  usuarioId: idOpcional(),
+  motivo: textoObligatorio(1000, 'Contá por qué se reasigna.'),
+});
+export const pedirProrrogaSchema = z.object({ alertaId: id(), horas: z.number().int(), motivo: textoObligatorio(1000, 'Contá por qué hace falta más plazo.') });
+export const resolverProrrogaSchema = z.object({ prorrogaId: id(), aprobar: z.boolean(), motivo: z.string().max(1000).nullable() });
+export const escalamientoVistoSchema = z.object({ alertaId: id() });
+export const cambiarResponsableSchema = z.object({ codigo: z.string().min(1), rol: z.string().min(1), usuarioId: idOpcional() });

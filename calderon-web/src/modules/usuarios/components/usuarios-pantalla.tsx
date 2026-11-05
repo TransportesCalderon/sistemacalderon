@@ -13,7 +13,7 @@ import { FRESCURA } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { Campo } from '@/shared/ui/campo';
 import { useChoferesCombustible } from '@/modules/combustible/queries/hooks';
-import { crearUsuario, guardarUsuario, marcarAprobadorCierre, marcarAvisoTanqueBajo } from '../usuarios.actions';
+import { crearUsuario, guardarUsuario, marcarAprobadorCierre, marcarAvisoTanqueBajo, marcarRecibeEscalamiento } from '../usuarios.actions';
 import { BOTON_PRIMARIO } from '@/shared/ui/clases';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { usuariosRepository, type Usuario } from '../usuarios.repository';
@@ -62,7 +62,15 @@ export function UsuariosPantalla() {
     enabled: hayAvisoTanque,
     staleTime: FRESCURA.maestro,
   });
-  const columnas = 5 + (hayAprobadores ? 1 : 0) + (hayAvisoTanque ? 1 : 0);
+  // Migración 189: quién recibe las alertas vencidas y resuelve las prórrogas
+  const hayEscalamiento = useBaseTiene(189);
+  const escalamiento = useQuery({
+    queryKey: ['usuarios', 'escalamiento'],
+    queryFn: () => usuariosRepository(db).recibenEscalamiento(),
+    enabled: hayEscalamiento,
+    staleTime: FRESCURA.maestro,
+  });
+  const columnas = 5 + (hayAprobadores ? 1 : 0) + (hayAvisoTanque ? 1 : 0) + (hayEscalamiento ? 1 : 0);
 
   return (
     <div className="space-y-5">
@@ -140,6 +148,11 @@ export function UsuariosPantalla() {
                   <th className={TH}>Estado</th>
                   {hayAprobadores && <th className={TH}>Aprueba cierres de viaje</th>}
                   {hayAvisoTanque && <th className={TH} title="Además de Telemetría">Aviso de tanque bajo</th>}
+                  {hayEscalamiento && (
+                    <th className={TH} title="Le llegan las alertas vencidas con su historial y resuelve los pedidos de prórroga">
+                      Recibe escalamientos
+                    </th>
+                  )}
                   <th className={TH} />
                 </tr>
               </thead>
@@ -176,6 +189,16 @@ export function UsuariosPantalla() {
                             marcado={(avisados.data ?? []).includes(u.id)}
                             cargando={avisados.isPending}
                             accion={marcarAvisoTanqueBajo}
+                          />
+                        </td>
+                      )}
+                      {hayEscalamiento && (
+                        <td className={TD}>
+                          <AprobadorCierre
+                            usuario={u.id}
+                            marcado={(escalamiento.data ?? []).includes(u.id)}
+                            cargando={escalamiento.isPending}
+                            accion={marcarRecibeEscalamiento}
                           />
                         </td>
                       )}

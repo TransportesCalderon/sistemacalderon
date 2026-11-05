@@ -9,6 +9,7 @@ import { AvisoMonedaBase } from '@/modules/core/layout/aviso-moneda-base';
 import { PanelFicha } from '@/modules/core/fichas/panel-ficha';
 import { AvisosDesvio } from '@/modules/logistica/components/rutas/avisos-desvio';
 import { AvisosTanqueBajo } from '@/modules/logistica/components/rutas/avisos-tanque-bajo';
+import { AvisosEscalamiento } from '@/modules/anomalias/components/avisos-escalamiento';
 
 /**
  * Layout de la aplicación (Server Component): resuelve la sesión una vez, filtra el menú
@@ -33,6 +34,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <AvisosDesvio />
       {/* Migración 177: tanque bajo (Telemetría y los que marque TI) */}
       <AvisosTanqueBajo />
+      <AvisosEscalamiento />
     </SessionProvider>
   );
 }

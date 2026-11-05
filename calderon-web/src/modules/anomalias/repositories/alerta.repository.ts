@@ -2,6 +2,16 @@ import { RepoError, type Db } from '@/shared/repository/types';
 import type { FechaISO } from '@/shared/types/dominio';
 import { num } from '@/modules/combustible/domain/comun';
 import { parsearDetalle, type Alerta, type DetalleAlerta, type Decision, type FiltrosAlertas, type Regla, type Vista } from '../domain/alerta.types';
+import {
+  parsearAvisosEscalamiento,
+  parsearGestiones,
+  parsearResponsables,
+  parsearResumenCargaImposible,
+  type AvisoEscalamiento,
+  type GestionAlerta,
+  type ResponsablesAlerta,
+  type ResumenCargaImposible,
+} from '../domain/gestion.types';
 
 /** Alertas (migración 49). Todo lo decide la base; su mensaje se muestra tal cual. */
 export const alertaRepository = (db: Db) => {
@@ -85,6 +95,63 @@ export const alertaRepository = (db: Db) => {
     async comentar(alertaId: number, texto: string): Promise<void> {
       const { error } = await ana().rpc('fn_comentar_alerta', { p_alerta: alertaId, p_texto: texto });
       if (error) throw new RepoError(error);
+    },
+
+    // ---- Migración 189: gestión con responsable, vencimiento, prórroga y escalamiento ----
+    async gestiones(ids: number[]): Promise<GestionAlerta[]> {
+      if (ids.length === 0) return [];
+      const { data, error } = await ana().rpc('fn_gestion_alertas', { p_ids: ids });
+      if (error) throw new RepoError(error);
+      return parsearGestiones(data);
+    },
+
+    async avance(alertaId: number, hecho: string, falta: string | null): Promise<void> {
+      const { error } = await ana().rpc('fn_avance_alerta', { p_alerta: alertaId, p_hecho: hecho, p_falta: falta });
+      if (error) throw new RepoError(error);
+    },
+
+    async reasignar(alertaId: number, rol: string, usuarioId: number | null, motivo: string): Promise<void> {
+      const { error } = await ana().rpc('fn_reasignar_alerta', { p_alerta: alertaId, p_rol: rol, p_usuario: usuarioId, p_motivo: motivo });
+      if (error) throw new RepoError(error);
+    },
+
+    async pedirProrroga(alertaId: number, horas: number, motivo: string): Promise<void> {
+      const { error } = await ana().rpc('fn_pedir_prorroga_alerta', { p_alerta: alertaId, p_horas: horas, p_motivo: motivo });
+      if (error) throw new RepoError(error);
+    },
+
+    async resolverProrroga(prorrogaId: number, aprobar: boolean, motivo: string | null): Promise<void> {
+      const { error } = await ana().rpc('fn_resolver_prorroga_alerta', { p_prorroga: prorrogaId, p_aprobar: aprobar, p_motivo: motivo });
+      if (error) throw new RepoError(error);
+    },
+
+    async avisosEscalamiento(): Promise<AvisoEscalamiento[]> {
+      const { data, error } = await ana().rpc('fn_avisos_escalamiento');
+      if (error) throw new RepoError(error);
+      return parsearAvisosEscalamiento(data);
+    },
+
+    async escalamientoVisto(alertaId: number): Promise<void> {
+      const { error } = await ana().rpc('fn_escalamiento_visto', { p_alerta: alertaId });
+      if (error) throw new RepoError(error);
+    },
+
+    async responsables(): Promise<ResponsablesAlerta> {
+      const { data, error } = await ana().rpc('fn_responsables_alerta');
+      if (error) throw new RepoError(error);
+      return parsearResponsables(data);
+    },
+
+    async cambiarResponsable(codigo: string, rol: string, usuarioId: number | null): Promise<void> {
+      const { error } = await ana().rpc('fn_cambiar_responsable_alerta', { p_codigo: codigo, p_rol: rol, p_usuario: usuarioId });
+      if (error) throw new RepoError(error);
+    },
+
+    /** Migración 188: cómo viene la regla de carga imposible (normales, imposibles, sin dato, falsos positivos). */
+    async resumenCargaImposible(desde: string, hasta: string): Promise<ResumenCargaImposible> {
+      const { data, error } = await db.schema('fue').rpc('fn_resumen_carga_imposible', { p_desde: desde, p_hasta: hasta });
+      if (error) throw new RepoError(error);
+      return parsearResumenCargaImposible(data);
     },
 
     async cambiarUmbrales(codigo: string, parametros: Record<string, number>, activa: boolean): Promise<string> {

@@ -1491,6 +1491,9 @@ export type Database = {
       fn_marcar_aprobador_cierre: { Args: { p_usuario: number; p_aprueba: boolean }; Returns: undefined };
       fn_avisados_tanque_bajo: { Args: Record<string, never>; Returns: number[] };
       fn_marcar_aviso_tanque_bajo: { Args: { p_usuario: number; p_recibe: boolean }; Returns: undefined };
+      // Migración 189: quién recibe las alertas vencidas (escalamiento)
+      fn_reciben_escalamiento: { Args: Record<string, never>; Returns: number[] };
+      fn_marcar_recibe_escalamiento: { Args: { p_usuario: number; p_recibe: boolean }; Returns: undefined };
       fn_guardar_usuario: { Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean; p_chofer?: number | null }; Returns: number };
       /** Migración 150: crea la cuenta de acceso (Supabase Auth, con la llave de Vault) y el usuario. Solo TI. */
       fn_crear_usuario: {
@@ -1862,6 +1865,16 @@ export type Database = {
       fn_reabrir_alerta: { Args: { p_alerta: number; p_justificacion: string }; Returns: undefined };
       fn_comentar_alerta: { Args: { p_alerta: number; p_texto: string }; Returns: undefined };
       fn_cambiar_umbrales: { Args: { p_codigo: string; p_parametros: Json; p_activa?: boolean }; Returns: string };
+      // Migración 189: responsable, vencimiento, prórroga y escalamiento
+      fn_gestion_alertas: { Args: { p_ids: number[] }; Returns: Json };
+      fn_avance_alerta: { Args: { p_alerta: number; p_hecho: string; p_falta: string | null }; Returns: undefined };
+      fn_reasignar_alerta: { Args: { p_alerta: number; p_rol: string; p_usuario: number | null; p_motivo: string }; Returns: undefined };
+      fn_pedir_prorroga_alerta: { Args: { p_alerta: number; p_horas: number; p_motivo: string }; Returns: undefined };
+      fn_resolver_prorroga_alerta: { Args: { p_prorroga: number; p_aprobar: boolean; p_motivo: string | null }; Returns: undefined };
+      fn_avisos_escalamiento: { Args: Record<string, never>; Returns: Json };
+      fn_escalamiento_visto: { Args: { p_alerta: number }; Returns: undefined };
+      fn_responsables_alerta: { Args: Record<string, never>; Returns: Json };
+      fn_cambiar_responsable_alerta: { Args: { p_codigo: string; p_rol: string; p_usuario: number | null }; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
@@ -1927,6 +1940,8 @@ export type Database = {
       fn_resolver_quitar_descuento: { Args: { p_solicitud: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: Json };
       fn_retirar_quitar_descuento: { Args: { p_solicitud: number }; Returns: undefined };
       fn_diferencias_choferes: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
+      // Migración 188: carga imposible (resultados y falsos positivos)
+      fn_resumen_carga_imposible: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       // Migración 170: ¿el usuario puede aprobar cierres?
       fn_puedo_aprobar_cierres: { Args: Record<string, never>; Returns: boolean };
       fn_anular_cierre: { Args: { p_id: number; p_version: number; p_motivo: string }; Returns: CierreViajeRow };

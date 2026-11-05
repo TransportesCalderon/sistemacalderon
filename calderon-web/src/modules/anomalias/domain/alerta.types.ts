@@ -1,4 +1,5 @@
 import type { FechaISO } from '@/shared/types/dominio';
+import { parsearHistorialGestion, type HistorialGestion } from './gestion.types';
 
 /**
  * Alertas del motor de anomalías (migración 49). La base detecta, deduplica y decide quién
@@ -73,6 +74,8 @@ export interface DetalleAlerta {
   carga: { id: number; fechaHora: FechaISO; litros: number; estacion: string | null } | null;
   /** Migración 175: exceso de velocidad: en qué horario pasó y el trayecto (para el mapa). */
   velocidad: { limiteKmh: number; tramos: TramoVelocidad[] } | null;
+  /** Migración 189: responsable, plazo, avances, reasignaciones, prórrogas y escalamiento. */
+  gestion: HistorialGestion | null;
 }
 
 export interface TramoVelocidad {
@@ -114,6 +117,7 @@ export function parsearDetalle(d: unknown): DetalleAlerta {
       justificacion: txt(h.justificacion),
     })),
     comentarios: arr(x.comentarios).map((k) => ({ texto: txt(k.texto) ?? '', en: (txt(k.en) ?? '') as FechaISO, usuario: txt(k.usuario) })),
+    gestion: parsearHistorialGestion(x.gestion),
     carga: c ? { id: Number(c.id), fechaHora: (txt(c.fecha_hora) ?? '') as FechaISO, litros: Number(c.litros), estacion: txt(c.estacion) } : null,
     velocidad: v
       ? {
@@ -148,6 +152,15 @@ export const ETIQUETA_DATO: Record<string, string> = {
   episodios: 'Veces',
   mayor_min: 'La más larga (min)',
   exceso_l: 'Litros de más',
+  // Migración 188: carga imposible
+  tickets: 'Tickets sumados',
+  capacidad_l: 'Capacidad del tanque (L)',
+  libre_l: 'Espacio libre antes (L)',
+  margen_l: 'Margen (L)',
+  margen_pct: 'Margen (% de la capacidad)',
+  agrupar_min: 'Juntar tickets a menos de (min)',
+  antes_h: 'Horas antes para el nivel',
+  despues_min: 'Minutos después para el nivel',
   velocidad_max: 'Velocidad máxima (km/h)',
   limite_kmh: 'Límite (km/h)',
   litros_min: 'Litros mínimos',
@@ -177,4 +190,4 @@ export const ETIQUETA_DATO: Record<string, string> = {
 };
 
 /** Evidencia que se muestra (sin coordenadas ni datos internos). */
-export const DATOS_OCULTOS = new Set(['latitud', 'longitud', 'estacion_latitud', 'estacion_longitud', 'detalle', 'con_acumulados']);
+export const DATOS_OCULTOS = new Set(['latitud', 'longitud', 'estacion_latitud', 'estacion_longitud', 'detalle', 'con_acumulados', 'cargas']);
