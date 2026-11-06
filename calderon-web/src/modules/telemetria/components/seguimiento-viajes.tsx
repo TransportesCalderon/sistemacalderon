@@ -33,6 +33,10 @@ export function SeguimientoViajes() {
   const hay = useBaseTiene(VERSION_SEGUIMIENTO);
   const registra = rolesApp.includes('analista_control') || rolesApp.includes('ti');
   const { data, isPending, isError, error, refetch, isFetching } = useViajesEnCurso(hay);
+  // Lista desplegable por patente (A → Z); al elegir una se abre su tarjeta
+  const [elegido, setElegido] = useState<number | null>(null);
+  const lista = [...(data ?? [])].sort((a, b) => a.patente.localeCompare(b.patente, 'es', { numeric: true }));
+  const viaje = lista.find((v) => v.viajeId === elegido) ?? null;
 
   if (!hay) return <Vacio icono={<Radar className="size-6" />} texto="Falta aplicar en la base el cambio del seguimiento de viajes." />;
   return (
@@ -49,11 +53,29 @@ export function SeguimientoViajes() {
       ) : data.length === 0 ? (
         <Vacio icono={<Radar className="size-6" />} texto="No hay viajes en curso." />
       ) : (
-        <ul className={cn('grid gap-3 lg:grid-cols-2', isFetching && 'opacity-80')}>
-          {data.map((v) => (
-            <TarjetaViaje key={v.viajeId} v={v} registra={registra} />
-          ))}
-        </ul>
+        <div className={cn('space-y-3', isFetching && 'opacity-80')}>
+          <label className="block max-w-md space-y-1 text-sm">
+            <span className="block text-xs text-tinta-suave">Tractor ({lista.length} en viaje)</span>
+            <select
+              id="seguimiento-patente"
+              className={cn(CONTROL_FILTRO, 'h-10 w-full')}
+              value={elegido ?? ''}
+              onChange={(e) => setElegido(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">Elegí la patente…</option>
+              {lista.map((v) => (
+                <option key={v.viajeId} value={v.viajeId}>
+                  {v.patente} · {v.chofer ?? 'Sin chofer'} · {ETIQUETA_RESULTADO[v.evaluacion.resultado]}
+                </option>
+              ))}
+            </select>
+          </label>
+          {viaje && (
+            <ul className="max-w-2xl">
+              <TarjetaViaje key={viaje.viajeId} v={viaje} registra={registra} />
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
