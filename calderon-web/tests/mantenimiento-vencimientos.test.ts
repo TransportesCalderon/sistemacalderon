@@ -6,7 +6,7 @@ import { parsearAvisosVencimiento, parsearVencimientos, textoDias } from '@/modu
 const op = { gerenciaDetalleAlertas: 'agregado' } as const;
 
 describe('migración 198 · Mantenimiento: vencimientos de técnicas y matafuegos', () => {
-  it('cargan Operaciones y Mantenimiento; anulan el Jefe y TI; Gerencia y Telemetría ven', () => {
+  it('cargan Operaciones, Telemetría y Mantenimiento; anulan el Jefe y TI; Gerencia y Telemetría ven', () => {
     const jefe = permisosDe(['mantenimiento_jefe'], op);
     const mec = permisosDe(['mecanico'], op);
     expect(can(jefe, 'mantenimiento.vencimientos:transicionar')).toBe(true);
@@ -15,7 +15,7 @@ describe('migración 198 · Mantenimiento: vencimientos de técnicas y matafuego
     expect(can(permisosDe(['operaciones'], op), 'mantenimiento.vencimientos:editar')).toBe(true);
     expect(can(permisosDe(['gerencia'], op), 'mantenimiento.vencimientos:ver')).toBe(true);
     expect(can(permisosDe(['gerencia'], op), 'mantenimiento.vencimientos:editar')).toBe(false);
-    expect(can(permisosDe(['analista_control'], op), 'mantenimiento.vencimientos:ver')).toBe(true);
+    expect(can(permisosDe(['analista_control'], op), 'mantenimiento.vencimientos:editar')).toBe(true); // migración 201: Telemetría también carga
     // Mantenimiento no ve finanzas ni combustible
     expect(can(mec, 'finanzas.resumen:ver')).toBe(false);
     expect(can(mec, 'combustible.cargas:ver')).toBe(false);

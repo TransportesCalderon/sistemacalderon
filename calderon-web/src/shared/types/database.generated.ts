@@ -1094,6 +1094,8 @@ export type Database = {
       fn_anular_vencimiento: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_avisos_vencimiento: { Args: Record<string, never>; Returns: Json };
       fn_vencimiento_visto: { Args: { p_id: number }; Returns: undefined };
+      // Migración 201: certificado adjunto
+      fn_adjuntar_vencimiento: { Args: { p_id: number; p_ruta: string; p_nombre: string | null }; Returns: string | null };
       // Migración 199: plan de mantenimiento y órdenes de trabajo
       fn_zonas_equipo: { Args: Record<string, never>; Returns: Json };
       fn_equipos_mantenimiento: { Args: Record<string, never>; Returns: Json };

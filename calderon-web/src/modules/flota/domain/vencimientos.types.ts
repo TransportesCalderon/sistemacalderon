@@ -6,6 +6,10 @@ import type { FechaISO } from '@/shared/types/dominio';
  * Acá solo se convierten tipos.
  */
 export const VERSION_VENCIMIENTOS = 198;
+/** Migración 201: Telemetría carga y se adjunta el certificado (PDF o foto). */
+export const VERSION_ADJUNTO_VENCIMIENTO = 201;
+/** Carpeta del certificado de un vencimiento (bucket documentos-operacion; la base exige esta carpeta). */
+export const carpetaVencimiento = (id: number) => `vencimientos/${id}`;
 
 export type EstadoVencimiento = 'vencido' | 'por_vencer' | 'al_dia' | 'sin_dato';
 export type Equipo = 'tractor' | 'semi';
@@ -38,6 +42,8 @@ export interface ItemVencimiento {
   observacion: string | null;
   cargadoPor: string | null;
   cargadoEn: FechaISO | null;
+  archivoRuta: string | null;
+  archivoNombre: string | null;
 }
 
 export interface EquipoVencimientos {
@@ -70,6 +76,7 @@ export interface HistorialVencimiento {
   cargadoPor: string | null;
   cargadoEn: FechaISO;
   situacion: 'vigente' | 'reemplazado' | 'anulado';
+  archivoRuta: string | null;
   anuladoPor: string | null;
   motivoAnulacion: string | null;
 }
@@ -133,6 +140,8 @@ export function parsearVencimientos(d: unknown): Vencimientos {
         observacion: txt(i.observacion),
         cargadoPor: txt(i.cargado_por),
         cargadoEn: txt(i.cargado_en) as FechaISO | null,
+        archivoRuta: txt(i.archivo_ruta),
+        archivoNombre: txt(i.archivo_nombre),
       })),
     })),
   };
@@ -149,6 +158,7 @@ export const parsearHistorialVencimientos = (d: unknown): HistorialVencimiento[]
     cargadoPor: txt(h.cargado_por),
     cargadoEn: (txt(h.cargado_en) ?? '') as FechaISO,
     situacion: h.situacion === 'anulado' ? 'anulado' : h.situacion === 'reemplazado' ? 'reemplazado' : 'vigente',
+    archivoRuta: txt(h.archivo_ruta),
     anuladoPor: txt(h.anulado_por),
     motivoAnulacion: txt(h.motivo_anulacion),
   }));

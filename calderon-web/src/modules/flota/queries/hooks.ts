@@ -10,7 +10,7 @@ import type { CamionEdicionInput, CamionFormInput } from '../domain/camion.schem
 import type { Camion, CamionListaParams } from '../domain/camion.types';
 import type { ChoferEdicionInput, ChoferFormInput } from '../domain/chofer.schemas';
 import type { Chofer, ChoferListaParams } from '../domain/chofer.types';
-import { anularVencimiento, registrarVencimiento, vencimientoVisto } from '../actions/vencimientos.actions';
+import { adjuntarVencimiento, anularVencimiento, registrarVencimiento, vencimientoVisto } from '../actions/vencimientos.actions';
 import {
   anularOt,
   asignarOt,
@@ -184,6 +184,10 @@ export function useRegistrarVencimiento() {
 export function useAnularVencimiento() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: anularVencimiento, onSuccess: (r) => (r.ok ? invalidar(qc, 'vencimiento') : undefined) });
+}
+export function useAdjuntarVencimiento() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: adjuntarVencimiento, onSuccess: (r) => (r.ok ? invalidar(qc, 'vencimiento') : undefined) });
 }
 export function useVencimientoVisto() {
   const qc = useQueryClient();

@@ -147,8 +147,8 @@ export const PANTALLAS = {
   'ventas.tarifas':          { etiqueta: 'Tarifas y costos', fila: ['L', '—', '—', '—', '—', '—', '—', 'L', 'E A', 'L', 'E A', '—', '—'] },
   'ventas.facturacion':      { etiqueta: 'Facturación y cobranzas', fila: ['L', '—', '—', '—', '—', '—', '—', 'E A', 'E A', 'L', 'L', '—', '—'] },
   // Migración 198 · Mantenimiento (M1): vencimientos de revisiones técnicas y matafuegos. Cargan Operaciones,
-  // Mantenimiento y TI; anulan (A) el Jefe de mantenimiento y TI; los demás que ven la flota, lectura.
-  'mantenimiento.vencimientos': { etiqueta: 'Vencimientos (técnicas y matafuegos)', fila: ['L', 'E', 'L', '—', 'L', 'L', '—', 'L', 'E A', 'L', '—', 'E A', 'E'] },
+  // Telemetría (migración 201), Mantenimiento y TI; anulan (A) el Jefe de mantenimiento y TI; los demás que ven la flota, lectura.
+  'mantenimiento.vencimientos': { etiqueta: 'Vencimientos (técnicas y matafuegos)', fila: ['L', 'E', 'L', '—', 'L', 'E', '—', 'L', 'E A', 'L', '—', 'E A', 'E'] },
   // Migración 199 · Mantenimiento (M2): órdenes de trabajo. Piden Gerencia, Operaciones, Telemetría, el Jefe y TI; las
   // trabajan los mecánicos y el Jefe; verifica el Jefe (A). La base decide cada paso (asignada, quién la pidió…).
   'mantenimiento.ordenes':   { etiqueta: 'Órdenes de trabajo', fila: ['E A', 'E', 'L', '—', 'L', 'E', '—', 'L', 'E A', 'L', '—', 'E A', 'E'] },

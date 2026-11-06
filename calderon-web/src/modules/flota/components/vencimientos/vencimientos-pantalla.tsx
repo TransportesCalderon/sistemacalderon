@@ -1,7 +1,8 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { Ban, CalendarClock, Check, ChevronDown, ChevronRight, History, LoaderCircle, MapPin, Plus } from 'lucide-react';
+import { Ban, CalendarClock, Check, ChevronDown, ChevronRight, FileText, History, LoaderCircle, MapPin, Paperclip, Plus } from 'lucide-react';
+import { abrirArchivo, borrarArchivo, subirArchivo } from '@/modules/chofer/components/archivos';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
@@ -12,7 +13,9 @@ import { formatearFechaHora } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
 import {
   ETIQUETA_ESTADO_VENC,
+  VERSION_ADJUNTO_VENCIMIENTO,
   VERSION_VENCIMIENTOS,
+  carpetaVencimiento,
   fechaDia,
   textoDias,
   type EquipoVencimientos,
@@ -20,7 +23,27 @@ import {
   type ItemVencimiento,
   type TipoVencimiento,
 } from '../../domain/vencimientos.types';
-import { useAnularVencimiento, useHistorialVencimientos, useRegistrarVencimiento, useVencimientos } from '../../queries/hooks';
+import { useAdjuntarVencimiento, useAnularVencimiento, useHistorialVencimientos, useRegistrarVencimiento, useVencimientos } from '../../queries/hooks';
+
+/** Sube el certificado a la carpeta del vencimiento y lo adjunta (si falla, no se pierde el vencimiento). */
+async function adjuntar(
+  id: number,
+  archivo: File,
+  enviar: (d: { id: number; ruta: string; nombre: string | null }) => Promise<{ ok: true; data: string | null } | { ok: false; error: { mensaje: string } }>,
+): Promise<string | null> {
+  try {
+    const s = await subirArchivo(archivo, carpetaVencimiento(id));
+    const r = await enviar({ id, ruta: s.ruta, nombre: s.nombre });
+    if (!r.ok) {
+      await borrarArchivo(s.ruta);
+      return r.error.mensaje;
+    }
+    await borrarArchivo(r.data);
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : 'No se pudo subir el archivo.';
+  }
+}
 
 const TONO: Record<EstadoVencimiento, Tono> = { vencido: 'error', por_vencer: 'alerta', al_dia: 'exito', sin_dato: 'neutro' };
 const TH = 'px-3 py-2.5 whitespace-nowrap';
@@ -237,8 +260,12 @@ function DetalleEquipo({ e, tipos, carga, anula }: { e: EquipoVencimientos; tipo
 
 function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento; zona: string; carga: boolean; anula: boolean; onRenovar: () => void }) {
   const anular = useAnularVencimiento();
+  const adj = useAdjuntarVencimiento();
+  const conAdjunto = useBaseTiene(VERSION_ADJUNTO_VENCIMIENTO);
   const envio = useEnvio();
   const [motivo, setMotivo] = useState<string | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
   return (
     <li className="space-y-2 p-3 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -254,7 +281,32 @@ function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento;
             </span>
           )}
         </div>
-        <div className="flex gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          {conAdjunto && i.archivoRuta && (
+            <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => void abrirArchivo(i.archivoRuta!).then(setAviso)}>
+              <FileText className="size-3.5" /> Ver certificado
+            </button>
+          )}
+          {conAdjunto && carga && i.id !== null && (
+            <label className="inline-flex cursor-pointer items-center gap-1 text-marca hover:underline">
+              {subiendo ? <LoaderCircle className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5" />}
+              {i.archivoRuta ? 'Cambiar certificado' : 'Adjuntar certificado (PDF)'}
+              <input
+                type="file"
+                accept="application/pdf,image/*"
+                className="sr-only"
+                disabled={subiendo}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!f) return;
+                  setSubiendo(true);
+                  setAviso(await adjuntar(i.id!, f, adj.mutateAsync));
+                  setSubiendo(false);
+                }}
+              />
+            </label>
+          )}
           {carga && (
             <button type="button" className="text-marca hover:underline" onClick={onRenovar}>
               {i.estado === 'sin_dato' ? 'Cargar' : 'Cargar la nueva'}
@@ -275,6 +327,7 @@ function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento;
           {i.observacion && ` · ${i.observacion}`}
         </p>
       )}
+      {aviso && <p className="text-xs text-error">{aviso}</p>}
       {motivo !== null && i.id !== null && (
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -300,7 +353,12 @@ function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento;
 
 function FormVencimiento({ e, tipos, inicial, onCerrar }: { e: EquipoVencimientos; tipos: TipoVencimiento[]; inicial: { tipo: string; detalle: string }; onCerrar: () => void }) {
   const registrar = useRegistrarVencimiento();
+  const adj = useAdjuntarVencimiento();
+  const conAdjunto = useBaseTiene(VERSION_ADJUNTO_VENCIMIENTO);
   const envio = useEnvio();
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
   const [tipo, setTipo] = useState(inicial.tipo);
   const [detalle, setDetalle] = useState(inicial.detalle);
   const [realizado, setRealizado] = useState('');
@@ -338,6 +396,17 @@ function FormVencimiento({ e, tipos, inicial, onCerrar }: { e: EquipoVencimiento
           <span className="block text-xs text-tinta-suave">Vence el</span>
           <input type="date" className={cn(CONTROL_FILTRO, 'h-10 w-full')} value={vence} onChange={(x) => setVence(x.target.value)} />
         </label>
+        {conAdjunto && (
+          <label className="space-y-1 text-sm sm:col-span-2">
+            <span className="block text-xs text-tinta-suave">Certificado (PDF o foto, opcional)</span>
+            <input
+              type="file"
+              accept="application/pdf,image/*"
+              className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-borde file:bg-panel file:px-3 file:py-1.5"
+              onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+            />
+          </label>
+        )}
         <label className="space-y-1 text-sm sm:col-span-2">
           <span className="block text-xs text-tinta-suave">Observación (opcional)</span>
           <input className={cn(CONTROL_FILTRO, 'h-10 w-full')} placeholder="Ej.: planta, número de certificado" value={obs} onChange={(x) => setObs(x.target.value)} />
@@ -345,27 +414,35 @@ function FormVencimiento({ e, tipos, inicial, onCerrar }: { e: EquipoVencimiento
       </div>
       <p className="text-xs text-tinta-suave">Si ya había uno cargado de lo mismo, el nuevo lo reemplaza y el anterior queda en el historial.</p>
       <ErrorBase error={envio.error} />
+      {aviso && <p className="text-sm text-error">{aviso}</p>}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           className={BOTON_PRIMARIO}
-          disabled={registrar.isPending}
-          onClick={() =>
-            void envio.enviar(
-              registrar.mutateAsync({
-                tipo,
-                equipo: e.equipo,
-                equipoId: e.id,
-                detalle: t?.pideDetalle ? detalle.trim() || null : null,
-                realizado: realizado || null,
-                vence,
-                observacion: obs.trim() || null,
-              }),
-              onCerrar,
-            )
-          }
+          disabled={registrar.isPending || subiendo}
+          onClick={async () => {
+            setAviso(null);
+            const r = await registrar.mutateAsync({
+              tipo,
+              equipo: e.equipo,
+              equipoId: e.id,
+              detalle: t?.pideDetalle ? detalle.trim() || null : null,
+              realizado: realizado || null,
+              vence,
+              observacion: obs.trim() || null,
+            });
+            if (!r.ok) return void envio.enviar(Promise.resolve(r), () => undefined);
+            if (archivo) {
+              setSubiendo(true);
+              const fallo = await adjuntar(r.data, archivo, adj.mutateAsync);
+              setSubiendo(false);
+              // El vencimiento ya quedó guardado: el certificado se puede volver a adjuntar desde el detalle
+              if (fallo) return setAviso(`Se guardó el vencimiento, pero no el certificado: ${fallo}`);
+            }
+            onCerrar();
+          }}
         >
-          {registrar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Guardar
+          {registrar.isPending || subiendo ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Guardar
         </button>
         <button type="button" className={BOTON_SECUNDARIO} onClick={onCerrar}>
           Cancelar
@@ -391,6 +468,15 @@ function Historial({ e }: { e: EquipoVencimientos }) {
           · vence {fechaDia(h.vence)}
           {h.realizado && ` · se hizo ${fechaDia(h.realizado)}`} · {h.cargadoPor ?? '—'} {formatearFechaHora(h.cargadoEn, zonaHoraria)} ·{' '}
           {h.situacion === 'vigente' ? 'vigente' : h.situacion === 'reemplazado' ? 'reemplazado' : `anulado por ${h.anuladoPor ?? '—'}: ${h.motivoAnulacion ?? ''}`}
+          {h.archivoRuta && (
+            <>
+              {' '}
+              ·{' '}
+              <button type="button" className="text-marca no-underline hover:underline" onClick={() => void abrirArchivo(h.archivoRuta!)}>
+                certificado
+              </button>
+            </>
+          )}
         </li>
       ))}
     </ul>

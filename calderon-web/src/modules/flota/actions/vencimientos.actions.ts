@@ -33,3 +33,10 @@ export const vencimientoVisto = createAction({
   schema: z.object({ id: z.number().int().positive() }),
   handler: (d, { db }) => vencimientosRepository(db).visto(d.id),
 });
+
+/** Migración 201: adjuntar el certificado (PDF o foto) ya subido a vencimientos/<id>/. */
+export const adjuntarVencimiento = createAction({
+  permiso: 'mantenimiento.vencimientos:editar',
+  schema: z.object({ id: z.number().int().positive(), ruta: z.string().max(300), nombre: z.string().max(200).nullable() }),
+  handler: (d, { db }) => vencimientosRepository(db).adjuntar(d.id, d.ruta, d.nombre),
+});
