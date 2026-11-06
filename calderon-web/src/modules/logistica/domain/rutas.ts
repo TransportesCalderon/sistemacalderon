@@ -94,21 +94,103 @@ export function leerLinkMaps(link: string): PuntoRuta[] {
   const partes = url.pathname.split('/');
   const i = partes.indexOf('dir');
   if (i < 0) return [];
-  const segmentos: string[] = [];
+  // Todos los segmentos, también los vacíos («Tu ubicación»), para alinearlos con data=
+  const todos: string[] = [];
   for (const s of partes.slice(i + 1)) {
     if (s.startsWith('@') || s.startsWith('data=')) break;
-    const t = decodificar(s).trim();
-    if (t) segmentos.push(t); // vacío = «Tu ubicación»: se saltea
+    todos.push(decodificar(s).trim());
   }
-  const puntos = segmentos.map(textoAPunto);
-  // Coordenadas de los lugares con nombre, en el mismo orden («!2m2!1d<lng>!2d<lat>» en data=).
-  // Solo las de «!2m2»: los desvíos que se arrastran en el mapa («!3m4!1m2!1d…!2d…») no son puntos
-  // de la ruta y, si se contaban, ya no coincidía la cantidad y quedaban todos sin ubicar.
+  while (todos.length > 0 && todos[todos.length - 1] === '') todos.pop();
+  const conVacios = todos.map((t) => (t ? textoAPunto(t) : null));
+  const puntos = conVacios.filter((p): p is PuntoRuta => p !== null); // vacío = «Tu ubicación»: se saltea
   const data = decodificar(url.pathname + url.search);
+
+  // 1) Leyendo la estructura de data=: cada punto de la ruta es un «!1m…» del bloque de direcciones,
+  //    en el mismo orden que el link; sus coordenadas son su «!2m2!1d<lng>!2d<lat>» propio.
+  //    Así un punto sin coordenadas (p. ej. una dirección escrita, «!1m0») no corre a los demás.
+  const k = data.indexOf('data=');
+  if (k >= 0) {
+    const paradas = paradasData(data.slice(k + 5), [conVacios.length, puntos.length]);
+    if (paradas) {
+      const destino = paradas.length === conVacios.length ? conVacios : puntos;
+      destino.forEach((p, j) => {
+        const c = paradas[j];
+        if (p && p.lat === null && c) Object.assign(p, c);
+      });
+      return puntos;
+    }
+  }
+  // 2) Respaldo: las «!2m2» en orden, si son tantas como los puntos sin ubicar.
+  //    Solo las de «!2m2»: los desvíos que se arrastran en el mapa («!3m4!1m2!1d…!2d…») no son puntos.
   const pares = [...data.matchAll(/!2m2!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/g)].map((m) => ({ lng: Number(m[1]), lat: Number(m[2]) }));
   const sinUbicar = puntos.filter((p) => p.lat === null);
-  if (pares.length === sinUbicar.length) sinUbicar.forEach((p, k) => Object.assign(p, pares[k]));
+  if (pares.length === sinUbicar.length) sinUbicar.forEach((p, j) => Object.assign(p, pares[j]));
   return puntos;
+}
+
+interface NodoData {
+  campo: string;
+  tipo: string;
+  valor: string;
+  hijos: NodoData[];
+}
+
+/** Arma el árbol de «data=» de Google Maps («!<campo><tipo><valor>»; «m» = mensaje con N elementos adentro). */
+function arbolData(data: string): NodoData[] {
+  const toks = data
+    .split('!')
+    .map((t) => /^(\d+)([a-z])(.*)$/.exec(t))
+    .filter((m): m is RegExpExecArray => m !== null);
+  let i = 0;
+  const leer = (n: number): NodoData[] => {
+    const out: NodoData[] = [];
+    let quedan = n;
+    while (quedan > 0 && i < toks.length) {
+      const m = toks[i++]!;
+      const nodo: NodoData = { campo: m[1]!, tipo: m[2]!, valor: m[3]!, hijos: [] };
+      quedan--;
+      if (nodo.tipo === 'm') {
+        const antes = i;
+        nodo.hijos = leer(Number(nodo.valor) || 0);
+        quedan -= i - antes;
+      }
+      out.push(nodo);
+    }
+    return out;
+  };
+  return leer(Number.POSITIVE_INFINITY);
+}
+
+/**
+ * Las coordenadas de cada punto según data= (null si ese punto no las trae), o null si no se
+ * encontró un bloque con tantos puntos como el link.
+ */
+function paradasData(data: string, cantidades: number[]): ({ lat: number; lng: number } | null)[] | null {
+  const pila = arbolData(data);
+  while (pila.length > 0) {
+    const n = pila.shift()!;
+    const wp = n.hijos.filter((h) => h.campo === '1' && h.tipo === 'm');
+    if (n.tipo === 'm' && wp.length >= 2 && cantidades.includes(wp.length)) {
+      return wp.map((w) => {
+        const c = w.hijos.find((h) => h.campo === '2' && h.tipo === 'm');
+        const lng = Number(c?.hijos.find((h) => h.campo === '1' && h.tipo === 'd')?.valor);
+        const lat = Number(c?.hijos.find((h) => h.campo === '2' && h.tipo === 'd')?.valor);
+        return c && Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0) ? { lat, lng } : null;
+      });
+    }
+    pila.push(...n.hijos);
+  }
+  return null;
+}
+
+/** Para ubicar por la dirección (servidor): variantes de la dirección, de la más exacta a la más general. */
+export function variantesDireccion(texto: string): string[] {
+  const t = texto.replace(/\s+/g, ' ').trim();
+  const sinCodigo = t.replace(/\b\d{7}\b\s*/g, '').replace(/\s+,/g, ',').trim(); // código postal chileno
+  const sinNegocio = sinCodigo.replace(/^[^,]*?\s-\s/, '').trim(); // «Shell - Av. Lo Espejo…» → «Av. Lo Espejo…»
+  const sinRegion = sinNegocio.replace(/,\s*Regi[oó]n[^,]*/i, '').trim();
+  const corta = sinRegion.replace(/\bCmo\.?\s/i, 'Camino ').replace(/\bAv\.?\s/i, 'Avenida ');
+  return [...new Set([t, sinCodigo, sinNegocio, sinRegion, corta].filter((x) => x.length >= 6))];
 }
 
 /** El link original es corto (hay que abrirlo en el servidor para ver los puntos). */
@@ -145,6 +227,8 @@ function medirTramo(p: { lat: number; lng: number }, a: { lat: number; lng: numb
 
 /** A menos de esto de un punto se lo da por alcanzado (no se lo vuelve a mandar como parada). */
 const ALCANZADO_M = 1_500;
+/** A más de esto de cualquier tramo, el chofer está fuera de la ruta (p. ej. todavía en la base). */
+const FUERA_M = 5_000;
 
 /**
  * Índice del próximo punto al que tiene que ir el chofer según dónde está: busca el tramo de la ruta
@@ -170,6 +254,9 @@ export function siguientePunto(puntos: PuntoRuta[], pos: { lat: number; lng: num
   }
   const p0 = puntos[0];
   if (mejor === 1 && tMejor <= 0 && p0 && ubicado(p0) && medirTramo(pos, p0, p0).d > ALCANZADO_M) return 0;
+  // Lejos de la ruta (todavía no la empezó, p. ej. está en la base, o se desvió mucho): que vaya al
+  // comienzo del tramo más cercano. Antes iba al final de ese tramo y se salteaba la primera parada.
+  if (menor > FUERA_M) return mejor - 1;
   return mejor;
 }
 

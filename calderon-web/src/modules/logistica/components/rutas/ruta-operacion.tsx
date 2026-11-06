@@ -16,6 +16,7 @@ import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import {
   abrirLinkCorto,
   guardarRutaOperacion,
+  ubicarPuntosRuta,
   guardarRutaTramo,
   llegadaRuta,
   moverRutaTramo,
@@ -281,13 +282,32 @@ export function EditorRuta({
       setAviso('No encontré los puntos en ese link. Abrilo en Google Maps, tocá «Compartir», copiá el link y volvé a pegarlo; o marcá los puntos en el mapa.');
       return;
     }
-    setPuntos(leidos.slice(0, MAX_PUNTOS).map((p, i, a) => ({ ...p, nombre: p.nombre || (i === 0 ? 'Partida' : i === a.length - 1 ? 'Destino' : `Parada ${i}`) })));
+    const lista = leidos.slice(0, MAX_PUNTOS).map((p, i, a) => ({ ...p, nombre: p.nombre || (i === 0 ? 'Partida' : i === a.length - 1 ? 'Destino' : `Parada ${i}`) }));
+    // Los que vienen como dirección escrita (sin coordenadas en el link): se ubican por la dirección
+    const porDireccion = lista.map((p, i) => ({ p, i })).filter(({ p }) => p.lat === null).slice(0, 4);
+    const aproximados: string[] = [];
+    if (porDireccion.length > 0) {
+      setOcupado('importar');
+      setAviso('Ubicando por la dirección los puntos que el link trae sin coordenadas…');
+      const r = await ubicarPuntosRuta({ direcciones: porDireccion.map(({ p }) => p.nombre) });
+      setOcupado(null);
+      if (r.ok)
+        porDireccion.forEach(({ p, i }, k) => {
+          const c = r.data[k];
+          if (c) {
+            lista[i] = { ...p, lat: c.lat, lng: c.lng };
+            aproximados.push(`${i + 1}`);
+          }
+        });
+    }
+    setPuntos(lista);
     setLinkOriginal(link.trim());
     setLink('');
-    const faltan = leidos.filter((p) => p.lat === null).length;
+    const faltan = lista.filter((p) => p.lat === null).length;
     setAviso(
-      `Se leyeron ${leidos.length} puntos.` +
-        (faltan > 0 ? ` ${faltan} no traen la ubicación: elegilos en la lista y tocá el mapa donde van.` : ' Revisalos en el mapa antes de guardar.'),
+      `Se leyeron ${lista.length} puntos.` +
+        (aproximados.length > 0 ? ` ${aproximados.length === 1 ? 'El punto' : 'Los puntos'} ${aproximados.join(', ')} se ubicaron por la dirección: revisá en el mapa que estén bien (si no, elegilo y tocá el mapa).` : '') +
+        (faltan > 0 ? ` ${faltan} no traen la ubicación: elegilos en la lista y tocá el mapa donde van.` : aproximados.length === 0 ? ' Revisalos en el mapa antes de guardar.' : ''),
     );
   };
 

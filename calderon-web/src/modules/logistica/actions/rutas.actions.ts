@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { createAction } from '@/server/actions/create-action';
 import { abrirLinkMaps } from '@/server/externos/maps';
+import { ubicarDirecciones } from '@/server/externos/geocodificar';
 import { esLinkDeMaps } from '../domain/rutas';
 import { rutasRepository } from '../repositories/rutas.repository';
 
@@ -36,6 +37,16 @@ export const abrirLinkCorto = createAction({
   permiso: 'operacion.rutas:editar',
   schema: z.object({ link: z.string().max(2000).refine(esLinkDeMaps, 'Pegá un link de Google Maps') }),
   handler: async (d) => abrirLinkMaps(d.link),
+});
+
+/**
+ * Los puntos de un link de Google Maps que vienen como dirección escrita, sin coordenadas: se ubican
+ * por la dirección (aproximado; la pantalla pide revisarlos en el mapa). Hasta 4 por vez.
+ */
+export const ubicarPuntosRuta = createAction({
+  permiso: 'operacion.rutas:editar',
+  schema: z.object({ direcciones: z.array(z.string().min(3).max(200)).min(1).max(4) }),
+  handler: async (d) => ubicarDirecciones(d.direcciones),
 });
 
 /** Migración 156: «Entendido» en la ventana emergente de un desvío (no vuelve a aparecer para ese usuario). */
