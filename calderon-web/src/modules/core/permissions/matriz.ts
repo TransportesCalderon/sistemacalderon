@@ -88,7 +88,8 @@ export const PANTALLAS = {
   'flota.camiones':          { etiqueta: 'Camiones y semirremolques', fila: ['L', 'E', 'L', '—', 'L', 'L', '—', 'L', 'E A', 'L', '—'] },
   'flota.choferes':          { etiqueta: 'Choferes (sin documento)', fila: ['L', 'E', 'L', '—', 'L', 'L', 'E', 'L', 'E A', 'L', '—'] },
   'flota.documento_chofer':  { etiqueta: 'Documento del chofer', fila: ['—', '—', '—', '—', '—', 'L', 'E', '—', 'E A', 'L', '—'] },
-  'flota.asignaciones':      { etiqueta: 'Asignaciones camión–chofer', fila: ['L', 'E', 'L', '—', 'L', 'L', 'L', '—', 'E A', 'L', '—'] },
+  // 06/11/2026: Telemetría (Analista de control) también cambia el chofer fijo de los tractores
+  'flota.asignaciones':      { etiqueta: 'Asignaciones camión–chofer', fila: ['L', 'E', 'L', '—', 'L', 'E', 'L', '—', 'E A', 'L', '—'] },
   'flota.dispositivos':      { etiqueta: 'Dispositivos de telemetría', fila: ['—', 'L', '—', '—', '—', 'L', '—', '—', 'E A', 'L', '—'] },
   // Migración 60/61: módulo del chofer. El chofer entra con el rol de base tc_chofer, que solo ejecuta las funciones de
   // su módulo (la base filtra por su propio chofer). Por eso el chofer ya no tiene 'P' en las pantallas de la oficina.
