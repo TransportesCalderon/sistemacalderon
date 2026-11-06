@@ -10,6 +10,7 @@ import { PanelFicha } from '@/modules/core/fichas/panel-ficha';
 import { AvisosDesvio } from '@/modules/logistica/components/rutas/avisos-desvio';
 import { AvisosTanqueBajo } from '@/modules/logistica/components/rutas/avisos-tanque-bajo';
 import { AvisosVencimiento } from '@/modules/flota/components/vencimientos/avisos-vencimiento';
+import { AvisosOt } from '@/modules/flota/components/mantenimiento/avisos-ot';
 import { AvisosEscalamiento } from '@/modules/anomalias/components/avisos-escalamiento';
 import { CambioClaveObligatorio } from '@/modules/core/layout/cambio-clave-obligatorio';
 
@@ -39,6 +40,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <AvisosEscalamiento />
       {/* Migración 198: técnica o matafuego vencido o por vencer (con el equipo en la Región Metropolitana) */}
       <AvisosVencimiento />
+      {/* Migración 199: orden de trabajo nueva o atrasada (Mantenimiento) */}
+      <AvisosOt />
       {/* Migración 192: contraseña provisoria puesta por TI → elegir la propia */}
       <CambioClaveObligatorio />
     </SessionProvider>

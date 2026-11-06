@@ -149,6 +149,11 @@ export const PANTALLAS = {
   // Migración 198 · Mantenimiento (M1): vencimientos de revisiones técnicas y matafuegos. Cargan Operaciones,
   // Mantenimiento y TI; anulan (A) el Jefe de mantenimiento y TI; los demás que ven la flota, lectura.
   'mantenimiento.vencimientos': { etiqueta: 'Vencimientos (técnicas y matafuegos)', fila: ['L', 'E', 'L', '—', 'L', 'L', '—', 'L', 'E A', 'L', '—', 'E A', 'E'] },
+  // Migración 199 · Mantenimiento (M2): órdenes de trabajo. Piden Gerencia, Operaciones, Telemetría, el Jefe y TI; las
+  // trabajan los mecánicos y el Jefe; verifica el Jefe (A). La base decide cada paso (asignada, quién la pidió…).
+  'mantenimiento.ordenes':   { etiqueta: 'Órdenes de trabajo', fila: ['E A', 'E', 'L', '—', 'L', 'E', '—', 'L', 'E A', 'L', '—', 'E A', 'E'] },
+  // Plan de mantenimiento: lo arman el Jefe de mantenimiento y TI; los demás lo ven.
+  'mantenimiento.plan':      { etiqueta: 'Plan de mantenimiento', fila: ['L', 'L', 'L', '—', 'L', 'L', '—', 'L', 'E A', 'L', '—', 'E A', 'L'] },
 } as const satisfies Record<string, { etiqueta: string; fila: Fila }>;
 
 export type PantallaId = keyof typeof PANTALLAS;

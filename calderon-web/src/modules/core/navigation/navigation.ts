@@ -115,10 +115,15 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     ],
   },
   {
-    // Migración 198 · Mantenimiento (M1): vencimientos de técnicas y matafuegos (vista de Camiones)
+    // Migraciones 198-199 · Mantenimiento: órdenes de trabajo, plan y vencimientos (vistas de Camiones)
     id: 'mantenimiento',
     etiqueta: 'Mantenimiento',
-    entradas: [{ href: '/ajustes/flota?vista=vencimientos', etiqueta: 'Vencimientos' }],
+    entradas: [
+      // Migración 199: órdenes de trabajo y plan de mantenimiento
+      { href: '/ajustes/flota?vista=ordenes', etiqueta: 'Órdenes de trabajo' },
+      { href: '/ajustes/flota?vista=plan', etiqueta: 'Plan de mantenimiento' },
+      { href: '/ajustes/flota?vista=vencimientos', etiqueta: 'Vencimientos' },
+    ],
   },
   {
     id: 'combustible',

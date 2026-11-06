@@ -69,7 +69,9 @@ export const OBJETOS = {
   /** Migración 177: «Entendido» en el aviso de tanque bajo. */
   tanque_bajo: [['logistica', 'tanque_bajo']],
   /** Migración 198: vencimiento cargado o anulado (la lista, el historial y la ventana). */
-  vencimiento: [['flota', 'vencimientos']],
+  vencimiento: [['flota', 'vencimientos'], ['flota', 'mantenimiento']],
+  /** Migración 199: plan de mantenimiento y órdenes de trabajo (una OT puede cerrar la de un vencimiento). */
+  mantenimiento: [['flota', 'mantenimiento'], ['flota', 'vencimientos']],
   /** Migración 192: eligió su contraseña (se cierra la ventana de cambio obligatorio). */
   clave: [['usuarios', 'debo-cambiar-clave']],
   /** Ventas: emitir o cobrar cambia también Finanzas y los viajes. */

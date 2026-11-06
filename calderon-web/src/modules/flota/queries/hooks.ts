@@ -11,6 +11,19 @@ import type { Camion, CamionListaParams } from '../domain/camion.types';
 import type { ChoferEdicionInput, ChoferFormInput } from '../domain/chofer.schemas';
 import type { Chofer, ChoferListaParams } from '../domain/chofer.types';
 import { anularVencimiento, registrarVencimiento, vencimientoVisto } from '../actions/vencimientos.actions';
+import {
+  anularOt,
+  asignarOt,
+  cargarBaseTarea,
+  crearOt,
+  guardarTarea,
+  iniciarOt,
+  notaOt,
+  otVista,
+  terminarOt,
+  verificarOt,
+} from '../actions/mantenimiento.actions';
+import { mantenimientoRepository } from '../repositories/mantenimiento.repository';
 import type { Equipo } from '../domain/vencimientos.types';
 import { vencimientosRepository } from '../repositories/vencimientos.repository';
 import { basesQueries, camionesQueries, catalogosFlotaQueries, choferesQueries } from './keys';
@@ -176,3 +189,38 @@ export function useVencimientoVisto() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: vencimientoVisto, onSuccess: (r) => (r.ok ? invalidar(qc, 'vencimiento') : undefined) });
 }
+
+// ---- Migración 199: plan de mantenimiento y órdenes de trabajo ----
+const mant = () => mantenimientoRepository(browserDb());
+export const useZonasEquipo = (activo: boolean) =>
+  useQuery({ queryKey: ['flota', 'mantenimiento', 'zonas'] as const, queryFn: () => mant().zonas(), enabled: activo, staleTime: 60 * 60_000 });
+export const useEquiposMant = (activo: boolean) =>
+  useQuery({ queryKey: ['flota', 'mantenimiento', 'equipos'] as const, queryFn: () => mant().equipos(), enabled: activo, staleTime: 10 * 60_000 });
+export const useMecanicos = (activo: boolean) =>
+  useQuery({ queryKey: ['flota', 'mantenimiento', 'mecanicos'] as const, queryFn: () => mant().mecanicos(), enabled: activo, staleTime: 10 * 60_000 });
+export const useOrdenesTrabajo = (activo: boolean, cerradasDias: number) =>
+  useQuery({
+    queryKey: ['flota', 'mantenimiento', 'ordenes', cerradasDias] as const,
+    queryFn: () => mant().ordenes(cerradasDias),
+    enabled: activo,
+    placeholderData: keepPreviousData,
+    refetchInterval: activo ? 2 * 60_000 : false,
+  });
+export const usePlanMantenimiento = (activo: boolean) =>
+  useQuery({ queryKey: ['flota', 'mantenimiento', 'plan'] as const, queryFn: () => mant().plan(), enabled: activo, placeholderData: keepPreviousData });
+export const useAvisosOt = (activo: boolean) =>
+  useQuery({ queryKey: ['flota', 'mantenimiento', 'avisos'] as const, queryFn: () => mant().avisos(), enabled: activo, refetchInterval: activo ? 2 * 60_000 : false });
+function useMutacionMant<A, R>(fn: (a: A) => Promise<R>) {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: fn, onSuccess: (r) => ((r as { ok?: boolean }).ok ? invalidar(qc, 'mantenimiento') : undefined) });
+}
+export const useGuardarTarea = () => useMutacionMant(guardarTarea);
+export const useCargarBaseTarea = () => useMutacionMant(cargarBaseTarea);
+export const useCrearOt = () => useMutacionMant(crearOt);
+export const useAsignarOt = () => useMutacionMant(asignarOt);
+export const useIniciarOt = () => useMutacionMant(iniciarOt);
+export const useTerminarOt = () => useMutacionMant(terminarOt);
+export const useVerificarOt = () => useMutacionMant(verificarOt);
+export const useAnularOt = () => useMutacionMant(anularOt);
+export const useNotaOt = () => useMutacionMant(notaOt);
+export const useOtVista = () => useMutacionMant(otVista);

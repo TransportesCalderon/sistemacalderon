@@ -24,7 +24,7 @@ describe('migración 198 · Mantenimiento: vencimientos de técnicas y matafuego
 
   it('el menú Mantenimiento › Vencimientos le aparece al mecánico', () => {
     const g = menuVisible(permisosDe(['mecanico'], op)).find((x) => x.id === 'mantenimiento');
-    expect(g?.entradas.map((e) => e.href)).toEqual(['/ajustes/flota?vista=vencimientos']);
+    expect(g?.entradas.map((e) => e.href)).toContain('/ajustes/flota?vista=vencimientos');
   });
 
   it('la base decide estado y zona; la web solo convierte', () => {

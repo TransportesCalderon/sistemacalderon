@@ -1094,6 +1094,64 @@ export type Database = {
       fn_anular_vencimiento: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_avisos_vencimiento: { Args: Record<string, never>; Returns: Json };
       fn_vencimiento_visto: { Args: { p_id: number }; Returns: undefined };
+      // Migración 199: plan de mantenimiento y órdenes de trabajo
+      fn_zonas_equipo: { Args: Record<string, never>; Returns: Json };
+      fn_equipos_mantenimiento: { Args: Record<string, never>; Returns: Json };
+      fn_mecanicos: { Args: Record<string, never>; Returns: Json };
+      fn_ordenes_trabajo: { Args: { p_cerradas_dias?: number | null }; Returns: Json };
+      fn_plan_mantenimiento: { Args: Record<string, never>; Returns: Json };
+      fn_avisos_ot: { Args: Record<string, never>; Returns: Json };
+      fn_ot_visto: { Args: { p_id: number }; Returns: undefined };
+      fn_guardar_tarea: {
+        Args: {
+          p_id: number | null;
+          p_version: number | null;
+          p_nombre: string;
+          p_descripcion: string | null;
+          p_aplica: string;
+          p_marca: string | null;
+          p_tipo_semi: string | null;
+          p_cada_dias: number | null;
+          p_cada_km: number | null;
+          p_aviso_dias: number;
+          p_aviso_km: number;
+          p_zonas: string[];
+          p_prioridad: string;
+          p_activo?: boolean;
+        };
+        Returns: number;
+      };
+      fn_base_tarea: { Args: { p_tarea: number; p_equipo: string; p_equipo_id: number; p_fecha: string; p_km: number | null }; Returns: undefined };
+      fn_crear_ot: {
+        Args: {
+          p_equipo: string;
+          p_equipo_id: number;
+          p_titulo: string;
+          p_descripcion: string | null;
+          p_zonas: string[];
+          p_prioridad: string;
+          p_fecha_limite: string | null;
+          p_asignado?: number | null;
+        };
+        Returns: number;
+      };
+      fn_asignar_ot: { Args: { p_id: number; p_usuario: number | null }; Returns: undefined };
+      fn_iniciar_ot: { Args: { p_id: number }; Returns: undefined };
+      fn_terminar_ot: {
+        Args: {
+          p_id: number;
+          p_trabajo: string;
+          p_km: number | null;
+          p_repuestos: string | null;
+          p_costo: number | null;
+          p_moneda: string | null;
+          p_proveedor: string | null;
+        };
+        Returns: undefined;
+      };
+      fn_verificar_ot: { Args: { p_id: number; p_ok: boolean; p_comentario: string | null }; Returns: undefined };
+      fn_anular_ot: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      fn_nota_ot: { Args: { p_id: number; p_texto: string }; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

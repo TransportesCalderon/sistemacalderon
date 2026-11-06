@@ -5,6 +5,8 @@ import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_EQUIPOS } from '@/shared/ui/pestanas-secciones';
 import { CamionesLista } from '@/modules/flota/components/camiones/camiones-lista';
 import { VencimientosPantalla } from '@/modules/flota/components/vencimientos/vencimientos-pantalla';
+import { OrdenesPantalla } from '@/modules/flota/components/mantenimiento/ordenes-pantalla';
+import { PlanPantalla } from '@/modules/flota/components/mantenimiento/plan-pantalla';
 import { parsearListaCamiones } from '@/modules/flota/domain/camion.lista';
 import { camionesQueries, catalogosFlotaQueries } from '@/modules/flota/queries/keys';
 import { createSupabaseServerClient } from '@/server/supabase/server';
@@ -22,6 +24,15 @@ export default async function CamionesPage({ searchParams }: Props) {
   if (sp.vista === 'vencimientos') {
     await requirePermiso('mantenimiento.vencimientos:ver');
     return <VencimientosPantalla />;
+  }
+  // Migración 199 · Mantenimiento › Órdenes de trabajo y Plan de mantenimiento
+  if (sp.vista === 'ordenes') {
+    await requirePermiso('mantenimiento.ordenes:ver');
+    return <OrdenesPantalla />;
+  }
+  if (sp.vista === 'plan') {
+    await requirePermiso('mantenimiento.plan:ver');
+    return <PlanPantalla />;
   }
   const params = parsearListaCamiones(sp);
 
