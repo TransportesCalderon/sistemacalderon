@@ -4,11 +4,13 @@ import {
   parsearDatosPedido,
   parsearEvaluacion,
   parsearPedidos,
+  parsearTramo,
   parsearViajesEnCurso,
   type ControlViaje,
   type DatosPedidoCarga,
   type Evaluacion,
   type PedidoCarga,
+  type TramoSeguimiento,
   type ViajeEnCurso,
 } from '../domain/seguimiento.types';
 
@@ -24,8 +26,16 @@ export const seguimientoRepository = (db: Db) => ({
     if (error) throw new RepoError(error);
     return parsearControles(data);
   },
-  async registrar(viajeId: number, km: number | null, litros: number | null, programador: number | null): Promise<Evaluacion> {
-    const { data, error } = await db.schema('tel').rpc('fn_registrar_seguimiento', { p_viaje: viajeId, p_km: km, p_litros: litros, p_programador: programador });
+  /** Migración 197: números, evaluación y mensaje desde el momento elegido (sin guardar). */
+  async desde(viajeId: number, desde: string): Promise<TramoSeguimiento> {
+    const { data, error } = await db.schema('tel').rpc('fn_seguimiento_desde', { p_viaje: viajeId, p_desde: desde });
+    if (error) throw new RepoError(error);
+    return parsearTramo(data);
+  },
+  async registrar(viajeId: number, km: number | null, litros: number | null, programador: number | null, desde: string | null = null): Promise<Evaluacion> {
+    // p_desde solo si se eligió (con la base anterior a la 197 la función no lo conoce)
+    const args = { p_viaje: viajeId, p_km: km, p_litros: litros, p_programador: programador, ...(desde ? { p_desde: desde } : {}) };
+    const { data, error } = await db.schema('tel').rpc('fn_registrar_seguimiento', args);
     if (error) throw new RepoError(error);
     return parsearEvaluacion(data);
   },

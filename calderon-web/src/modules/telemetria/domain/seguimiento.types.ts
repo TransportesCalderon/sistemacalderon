@@ -6,6 +6,8 @@ import type { FechaISO } from '@/shared/types/dominio';
  * el mensaje para el chofer. Acá solo se convierten tipos.
  */
 export const VERSION_SEGUIMIENTO = 194;
+/** Migración 197: litros con lecturas mezcladas, motivo cuando faltan y medir «desde» un momento elegido. */
+export const VERSION_SEGUIMIENTO_DESDE = 197;
 
 export type Resultado = 'bien' | 'a_mejorar' | 'mal' | 'sin_datos';
 export type Estado = 'verde' | 'naranja' | 'rojo' | null;
@@ -33,6 +35,8 @@ export interface ControlViaje {
   fuente: 'telemetria' | 'manual';
   resultado: Resultado;
   mensaje: string;
+  /** Migración 197: desde cuándo se midió (null = desde la salida). */
+  desde: FechaISO | null;
 }
 
 export interface ViajeEnCurso {
@@ -49,6 +53,8 @@ export interface ViajeEnCurso {
   litros: number | null;
   programadorPct: number | null;
   conTelemetria: boolean;
+  /** Migración 197: por qué la telemetría no da los litros (texto de la base). */
+  motivoSinLitros: string | null;
   evaluacion: Evaluacion;
   ultimoControl: { en: FechaISO; por: string | null; resultado: Resultado; l100km: number | null; programadorPct: number | null; fuente: string } | null;
   controlesHoy: number;
@@ -91,6 +97,7 @@ export const parsearViajesEnCurso = (d: unknown): ViajeEnCurso[] =>
       litros: n(v.litros),
       programadorPct: n(v.programador_pct),
       conTelemetria: v.con_telemetria === true,
+      motivoSinLitros: txt(v.motivo_sin_litros),
       evaluacion: parsearEvaluacion(v.evaluacion),
       ultimoControl: u
         ? {
@@ -119,7 +126,32 @@ export const parsearControles = (d: unknown): ControlViaje[] =>
     fuente: c.fuente === 'manual' ? 'manual' : 'telemetria',
     resultado: resultado(c.resultado),
     mensaje: txt(c.mensaje) ?? '',
+    desde: txt(c.desde) as FechaISO | null,
   }));
+
+/** Migración 197: los números de un viaje en curso desde el momento elegido. */
+export interface TramoSeguimiento {
+  desde: FechaISO;
+  km: number | null;
+  litros: number | null;
+  programadorPct: number | null;
+  conTelemetria: boolean;
+  motivoSinLitros: string | null;
+  evaluacion: Evaluacion;
+}
+
+export function parsearTramo(d: unknown): TramoSeguimiento {
+  const x = obj(d);
+  return {
+    desde: (txt(x.desde) ?? '') as FechaISO,
+    km: n(x.km),
+    litros: n(x.litros),
+    programadorPct: n(x.programador_pct),
+    conTelemetria: x.con_telemetria === true,
+    motivoSinLitros: txt(x.motivo_sin_litros),
+    evaluacion: parsearEvaluacion(x.evaluacion),
+  };
+}
 
 // ---- Migración 195: pedido de carga de combustible (mensaje para Gerencia) ----
 export const VERSION_PEDIDO_CARGA = 195;

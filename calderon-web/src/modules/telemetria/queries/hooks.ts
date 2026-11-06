@@ -111,6 +111,14 @@ export const useControlesViaje = (viajeId: number | null) =>
     queryFn: () => seguimientoRepository(browserDb()).controles(viajeId!),
     enabled: viajeId !== null,
   });
+/** Migración 197: el viaje medido desde el momento elegido (null = no consulta; se usa la lista). */
+export const useSeguimientoDesde = (viajeId: number, desde: string | null) =>
+  useQuery({
+    queryKey: ['telemetria', 'seguimiento', 'desde', viajeId, desde] as const,
+    queryFn: () => seguimientoRepository(browserDb()).desde(viajeId, desde!),
+    enabled: desde !== null,
+    retry: false,
+  });
 export function useRegistrarSeguimiento() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: registrarSeguimiento, onSuccess: (r) => (r.ok ? invalidar(qc, 'telemetria') : undefined) });

@@ -7,17 +7,27 @@ import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono }
 import { useSesion } from '@/modules/core/session/session-provider';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
-import { formatearFechaHora } from '@/shared/lib/fechas';
+import { formatearFechaHora, horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
-import { ETIQUETA_RESULTADO, VERSION_PEDIDO_CARGA, VERSION_SEGUIMIENTO, type Estado, type Evaluacion, type Resultado, type ViajeEnCurso } from '../domain/seguimiento.types';
-import { useControlesViaje, useRegistrarSeguimiento, useViajesEnCurso } from '../queries/hooks';
+import {
+  ETIQUETA_RESULTADO,
+  VERSION_PEDIDO_CARGA,
+  VERSION_SEGUIMIENTO,
+  VERSION_SEGUIMIENTO_DESDE,
+  type Estado,
+  type Evaluacion,
+  type Resultado,
+  type ViajeEnCurso,
+} from '../domain/seguimiento.types';
+import { useControlesViaje, useRegistrarSeguimiento, useSeguimientoDesde, useViajesEnCurso } from '../queries/hooks';
 import { BotonCopiar } from './boton-copiar';
 import { PedidoCarga } from './pedido-carga';
 
 const TONO_RESULTADO: Record<Resultado, Tono> = { bien: 'exito', a_mejorar: 'alerta', mal: 'error', sin_datos: 'neutro' };
 const COLOR_ESTADO: Record<NonNullable<Estado>, string> = { verde: 'text-exito', naranja: 'text-alerta', rojo: 'text-error' };
 const num = (v: number | null, d = 1) => (v === null ? '—' : formatearNumero(v, d));
+type Desde = 'salida' | 'control' | 'otro';
 const decimal = (s: string) => {
   const t = s.trim().replace(',', '.');
   return t === '' || !Number.isFinite(Number(t)) ? null : Number(t);
@@ -94,7 +104,18 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
   // Migración 195: pedido de carga de combustible para Gerencia
   const conPedido = useBaseTiene(VERSION_PEDIDO_CARGA);
   const [pedido, setPedido] = useState(false);
-  const e = hecho ?? v.evaluacion;
+  // Migración 197: desde qué momento se mide (salida, último control u otro momento)
+  const conDesde = useBaseTiene(VERSION_SEGUIMIENTO_DESDE);
+  const [modo, setModo] = useState<Desde>('salida');
+  const [otro, setOtro] = useState(() => isoAHoraLocal(v.salidaTs, zonaHoraria));
+  const desde = modo === 'salida' ? null : modo === 'control' ? (v.ultimoControl?.en ?? null) : horaLocalAIso(otro, zonaHoraria);
+  const tramo = useSeguimientoDesde(v.viajeId, conDesde ? desde : null);
+  const n = tramo.data ?? v;
+  const e = hecho ?? (desde && !tramo.data ? null : n.evaluacion);
+  const elegir = (m: Desde) => {
+    setModo(m);
+    setHecho(null);
+  };
 
   return (
     <li className={cn(TARJETA, 'space-y-3 p-4')}>
@@ -108,26 +129,75 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
             {v.linea && ` · ${v.linea}`}
           </p>
         </div>
-        <Chip tono={TONO_RESULTADO[e.resultado]}>{ETIQUETA_RESULTADO[e.resultado]}</Chip>
+        {e && <Chip tono={TONO_RESULTADO[e.resultado]}>{ETIQUETA_RESULTADO[e.resultado]}</Chip>}
       </div>
 
-      <dl className="grid grid-cols-4 gap-2 text-sm">
-        <Dato etiqueta="Km">{num(v.km, 0)}</Dato>
-        <Dato etiqueta="Litros">{num(v.litros, 0)}</Dato>
-        <Dato etiqueta="L/100 km">
-          <span className={e.estadoConsumo ? COLOR_ESTADO[e.estadoConsumo] : undefined}>{num(e.l100km)}</span>
-          {e.objetivoL100km !== null && <span className="block text-xs text-tinta-suave">objetivo {num(e.objetivoL100km)}</span>}
-        </Dato>
-        <Dato etiqueta="Programador">
-          <span className={e.estadoProgramador ? COLOR_ESTADO[e.estadoProgramador] : undefined}>{v.programadorPct === null ? '—' : `${num(v.programadorPct, 0)} %`}</span>
-        </Dato>
-      </dl>
-      {!v.conTelemetria && <p className="text-xs text-alerta">La telemetría de esta marca no da el consumo: cargá los números de su plataforma.</p>}
+      {conDesde && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-tinta-suave">Medir desde</span>
+          {(
+            [
+              ['salida', 'La salida'],
+              ['control', 'El último control'],
+              ['otro', 'Otro momento'],
+            ] as const
+          ).map(([m, t]) =>
+            m === 'control' && !v.ultimoControl ? null : (
+              <button
+                key={m}
+                type="button"
+                className={cn('rounded-full border px-3 py-1', modo === m ? 'border-marca bg-marca/10 text-marca' : 'border-borde text-tinta-suave hover:bg-hover')}
+                onClick={() => elegir(m)}
+              >
+                {t}
+              </button>
+            ),
+          )}
+          {modo === 'otro' && (
+            <input
+              type="datetime-local"
+              aria-label="Desde"
+              className={cn(CONTROL_FILTRO, 'h-8')}
+              value={otro}
+              onChange={(x) => {
+                setOtro(x.target.value);
+                setHecho(null);
+              }}
+            />
+          )}
+          {desde && tramo.data && <span className="text-tinta-suave">desde {formatearFechaHora(tramo.data.desde, zonaHoraria)}</span>}
+        </div>
+      )}
 
-      <div className="space-y-2 rounded-md bg-hover p-3">
-        <p className="whitespace-pre-line text-sm text-tinta">{e.mensaje}</p>
-        <BotonCopiar texto={e.mensaje} />
-      </div>
+      {tramo.isError ? (
+        <ErrorLectura texto="No se pudo medir desde ese momento." error={tramo.error} onReintentar={() => void tramo.refetch()} />
+      ) : !e ? (
+        <Cargando texto="Calculando desde ese momento…" />
+      ) : (
+        <>
+          <dl className="grid grid-cols-4 gap-2 text-sm">
+            <Dato etiqueta="Km">{num(n.km, 0)}</Dato>
+            <Dato etiqueta="Litros">{num(n.litros, 0)}</Dato>
+            <Dato etiqueta="L/100 km">
+              <span className={e.estadoConsumo ? COLOR_ESTADO[e.estadoConsumo] : undefined}>{num(e.l100km)}</span>
+              {e.objetivoL100km !== null && <span className="block text-xs text-tinta-suave">objetivo {num(e.objetivoL100km)}</span>}
+            </Dato>
+            <Dato etiqueta="Programador">
+              <span className={e.estadoProgramador ? COLOR_ESTADO[e.estadoProgramador] : undefined}>
+                {n.programadorPct === null ? '—' : `${num(n.programadorPct, 0)} %`}
+              </span>
+            </Dato>
+          </dl>
+          {!n.conTelemetria && (
+            <p className="text-xs text-alerta">{n.motivoSinLitros ?? 'La telemetría de esta marca no da el consumo: cargá los números de su plataforma.'}</p>
+          )}
+
+          <div className="space-y-2 rounded-md bg-hover p-3">
+            <p className="whitespace-pre-line text-sm text-tinta">{e.mensaje}</p>
+            <BotonCopiar texto={e.mensaje} />
+          </div>
+        </>
+      )}
 
       {registra && (
         <div className="space-y-2">
@@ -155,6 +225,7 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
                     km: manual ? decimal(km) : null,
                     litros: manual ? decimal(litros) : null,
                     programador: manual ? decimal(prog) : null,
+                    ...(conDesde && desde ? { desde } : {}),
                   })
                   .then((r) => {
                     if (r.ok) setHecho(r.data);
@@ -216,6 +287,7 @@ function Historial({ viajeId }: { viajeId: number }) {
             {formatearFechaHora(c.en, zonaHoraria)} · {c.por ?? '—'} · {num(c.km, 0)} km · {num(c.l100km)} L/100 km
             {c.programadorPct !== null && ` · ${num(c.programadorPct, 0)} % programador`}
             {c.fuente === 'manual' && ' · cargado a mano'}
+            {c.desde && ` · desde ${formatearFechaHora(c.desde, zonaHoraria)}`}
           </p>
           <p className="text-tinta">{c.mensaje}</p>
         </li>

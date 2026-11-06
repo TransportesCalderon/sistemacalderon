@@ -1832,7 +1832,13 @@ export type Database = {
       // Migración 194: seguimiento de los viajes en curso
       fn_seguimiento_viajes: { Args: Record<string, never>; Returns: Json };
       fn_controles_viaje: { Args: { p_viaje: number }; Returns: Json };
-      fn_registrar_seguimiento: { Args: { p_viaje: number; p_km?: number | null; p_litros?: number | null; p_programador?: number | null }; Returns: Json };
+      fn_registrar_seguimiento: {
+        Args: { p_viaje: number; p_km?: number | null; p_litros?: number | null; p_programador?: number | null; p_desde?: string | null };
+        Returns: Json;
+      };
+      // Migración 197: medir desde un momento elegido
+      fn_seguimiento_desde: { Args: { p_viaje: number; p_desde: string }; Returns: Json };
+      fn_tramo_telemetria: { Args: { p_camion: number; p_desde: string; p_hasta: string }; Returns: Json };
       // Migración 195: pedido de carga de combustible
       fn_preparar_pedido_carga: { Args: { p_viaje: number; p_estacion?: number | null }; Returns: Json };
       fn_pedir_carga: {

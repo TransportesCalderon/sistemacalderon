@@ -12,8 +12,10 @@ export const registrarSeguimiento = createAction({
     km: z.number().positive().nullable(),
     litros: z.number().positive().nullable(),
     programador: z.number().min(0).max(100).nullable(),
+    /** Migración 197: desde cuándo se mide (ISO); null = desde la salida. */
+    desde: z.string().datetime({ offset: true }).nullable().optional(),
   }),
-  handler: (d, { db }) => seguimientoRepository(db).registrar(d.viajeId, d.km, d.litros, d.programador),
+  handler: (d, { db }) => seguimientoRepository(db).registrar(d.viajeId, d.km, d.litros, d.programador, d.desde ?? null),
 });
 
 const opcional = z.number().min(0).nullable();
