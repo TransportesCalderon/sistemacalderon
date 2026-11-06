@@ -40,3 +40,10 @@ export const adjuntarVencimiento = createAction({
   schema: z.object({ id: z.number().int().positive(), ruta: z.string().max(300), nombre: z.string().max(200).nullable() }),
   handler: (d, { db }) => vencimientosRepository(db).adjuntar(d.id, d.ruta, d.nombre),
 });
+
+/** Migración 204: corregir las fechas de un vencimiento cargado mal (lo pueden hacer los que cargan). */
+export const corregirVencimiento = createAction({
+  permiso: 'mantenimiento.vencimientos:editar',
+  schema: z.object({ id: z.number().int().positive(), realizado: fecha.nullable(), vence: fecha, motivo: z.string().max(500) }),
+  handler: (d, { db }) => vencimientosRepository(db).corregir(d.id, d.realizado, d.vence, d.motivo),
+});

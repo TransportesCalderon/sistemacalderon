@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { Ban, CalendarClock, Check, ChevronDown, ChevronRight, FileText, History, LoaderCircle, MapPin, Paperclip, Plus } from 'lucide-react';
+import { Ban, CalendarClock, Check, Pencil, ChevronDown, ChevronRight, FileText, History, LoaderCircle, MapPin, Paperclip, Plus } from 'lucide-react';
 import { abrirArchivo, borrarArchivo, subirArchivo } from '@/modules/chofer/components/archivos';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
@@ -14,6 +14,7 @@ import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/sha
 import {
   ETIQUETA_ESTADO_VENC,
   VERSION_ADJUNTO_VENCIMIENTO,
+  VERSION_CORREGIR_VENCIMIENTO,
   VERSION_VENCIMIENTOS,
   carpetaVencimiento,
   fechaDia,
@@ -23,7 +24,7 @@ import {
   type ItemVencimiento,
   type TipoVencimiento,
 } from '../../domain/vencimientos.types';
-import { useAdjuntarVencimiento, useAnularVencimiento, useHistorialVencimientos, useRegistrarVencimiento, useVencimientos } from '../../queries/hooks';
+import { useAdjuntarVencimiento, useAnularVencimiento, useCorregirVencimiento, useHistorialVencimientos, useRegistrarVencimiento, useVencimientos } from '../../queries/hooks';
 
 /** Sube el certificado a la carpeta del vencimiento y lo adjunta (si falla, no se pierde el vencimiento). */
 async function adjuntar(
@@ -262,8 +263,10 @@ function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento;
   const anular = useAnularVencimiento();
   const adj = useAdjuntarVencimiento();
   const conAdjunto = useBaseTiene(VERSION_ADJUNTO_VENCIMIENTO);
+  const conCorregir = useBaseTiene(VERSION_CORREGIR_VENCIMIENTO);
   const envio = useEnvio();
   const [motivo, setMotivo] = useState<string | null>(null);
+  const [corrigiendo, setCorrigiendo] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   return (
@@ -312,6 +315,11 @@ function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento;
               {i.estado === 'sin_dato' ? 'Cargar' : 'Cargar la nueva'}
             </button>
           )}
+          {conCorregir && carga && i.id !== null && (
+            <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setCorrigiendo(!corrigiendo)}>
+              <Pencil className="size-3.5" /> Corregir fechas
+            </button>
+          )}
           {anula && i.id !== null && (
             <button type="button" className="text-error hover:underline" onClick={() => setMotivo(motivo === null ? '' : null)}>
               Anular
@@ -327,7 +335,14 @@ function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento;
           {i.observacion && ` · ${i.observacion}`}
         </p>
       )}
+      {i.correcciones.map((c, k) => (
+        <p key={k} className="text-xs text-alerta">
+          Fecha corregida por {c.usuario ?? '—'} el {formatearFechaHora(c.en, zona)}: antes vencía el {fechaDia(c.venceAntes)}
+          {c.realizadoAntes !== c.realizado && ` (se hizo el ${fechaDia(c.realizadoAntes)})`} · {c.motivo}
+        </p>
+      ))}
       {aviso && <p className="text-xs text-error">{aviso}</p>}
+      {corrigiendo && i.id !== null && <FormCorregir i={i} onListo={() => setCorrigiendo(false)} />}
       {motivo !== null && i.id !== null && (
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -348,6 +363,51 @@ function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento;
         </div>
       )}
     </li>
+  );
+}
+
+/** Migración 204: corregir las fechas del vigente (cargado mal). La base valida todo. */
+function FormCorregir({ i, onListo }: { i: ItemVencimiento; onListo: () => void }) {
+  const corregir = useCorregirVencimiento();
+  const envio = useEnvio();
+  const [realizado, setRealizado] = useState<string>(i.realizado ?? '');
+  const [vence, setVence] = useState<string>(i.vence ?? '');
+  const [motivo, setMotivo] = useState<string>('');
+  return (
+    <div className="space-y-2 rounded-lg border border-borde bg-fondo p-3">
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="flex flex-col gap-1 text-xs text-tinta-suave">
+          Se hizo
+          <input type="date" className={cn(CONTROL_FILTRO, 'h-9')} value={realizado} onChange={(x) => setRealizado(x.target.value)} />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-tinta-suave">
+          Vence
+          <input type="date" className={cn(CONTROL_FILTRO, 'h-9')} value={vence} onChange={(x) => setVence(x.target.value)} />
+        </label>
+        <label className="flex min-w-64 flex-1 flex-col gap-1 text-xs text-tinta-suave">
+          Por qué se corrige
+          <input
+            className={cn(CONTROL_FILTRO, 'h-9')}
+            placeholder="Por ejemplo: se cargó mal el año"
+            value={motivo}
+            onChange={(x) => setMotivo(x.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className={BOTON_PRIMARIO}
+          disabled={corregir.isPending}
+          onClick={() => void envio.enviar(corregir.mutateAsync({ id: i.id!, realizado: realizado || null, vence, motivo }), onListo)}
+        >
+          {corregir.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Guardar corrección
+        </button>
+        <button type="button" className={BOTON_SECUNDARIO} onClick={onListo}>
+          Cancelar
+        </button>
+      </div>
+      <p className="text-xs text-tinta-suave">Queda registrado quién lo corrigió, la fecha anterior y el motivo.</p>
+      <ErrorBase error={envio.error} />
+    </div>
   );
 }
 
@@ -468,6 +528,8 @@ function Historial({ e }: { e: EquipoVencimientos }) {
           · vence {fechaDia(h.vence)}
           {h.realizado && ` · se hizo ${fechaDia(h.realizado)}`} · {h.cargadoPor ?? '—'} {formatearFechaHora(h.cargadoEn, zonaHoraria)} ·{' '}
           {h.situacion === 'vigente' ? 'vigente' : h.situacion === 'reemplazado' ? 'reemplazado' : `anulado por ${h.anuladoPor ?? '—'}: ${h.motivoAnulacion ?? ''}`}
+          {h.correcciones.length > 0 &&
+            ` · fecha corregida (antes ${h.correcciones.map((c) => fechaDia(c.venceAntes)).join(', ')}): ${h.correcciones[h.correcciones.length - 1]?.motivo ?? ''}`}
           {h.archivoRuta && (
             <>
               {' '}

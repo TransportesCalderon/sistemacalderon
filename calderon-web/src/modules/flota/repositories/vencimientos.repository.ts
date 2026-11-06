@@ -48,6 +48,11 @@ export const vencimientosRepository = (db: Db) => ({
     const { error } = await db.schema('mae').rpc('fn_anular_vencimiento', { p_id: id, p_motivo: motivo });
     if (error) throw new RepoError(error);
   },
+  /** Migración 204: corrige las fechas del vencimiento vigente (con motivo). */
+  async corregir(id: number, realizado: string | null, vence: string, motivo: string): Promise<void> {
+    const { error } = await db.schema('mae').rpc('fn_corregir_vencimiento', { p_id: id, p_realizado: realizado, p_vence: vence, p_motivo: motivo });
+    if (error) throw new RepoError(error);
+  },
   /** Migración 201: adjunta el certificado ya subido; devuelve el anterior (para borrarlo del Storage). */
   async adjuntar(id: number, ruta: string, nombre: string | null): Promise<string | null> {
     const { data, error } = await db.schema('mae').rpc('fn_adjuntar_vencimiento', { p_id: id, p_ruta: ruta, p_nombre: nombre });

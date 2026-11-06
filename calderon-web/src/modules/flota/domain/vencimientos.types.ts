@@ -8,6 +8,18 @@ import type { FechaISO } from '@/shared/types/dominio';
 export const VERSION_VENCIMIENTOS = 198;
 /** Migración 201: Telemetría carga y se adjunta el certificado (PDF o foto). */
 export const VERSION_ADJUNTO_VENCIMIENTO = 201;
+/** Migración 204: corregir las fechas de un vencimiento cargado mal. */
+export const VERSION_CORREGIR_VENCIMIENTO = 204;
+
+export interface CorreccionVencimiento {
+  realizadoAntes: string | null;
+  venceAntes: string;
+  realizado: string | null;
+  vence: string;
+  motivo: string;
+  usuario: string | null;
+  en: FechaISO;
+}
 /** Carpeta del certificado de un vencimiento (bucket documentos-operacion; la base exige esta carpeta). */
 export const carpetaVencimiento = (id: number) => `vencimientos/${id}`;
 
@@ -44,6 +56,7 @@ export interface ItemVencimiento {
   cargadoEn: FechaISO | null;
   archivoRuta: string | null;
   archivoNombre: string | null;
+  correcciones: CorreccionVencimiento[];
 }
 
 export interface EquipoVencimientos {
@@ -77,6 +90,7 @@ export interface HistorialVencimiento {
   cargadoEn: FechaISO;
   situacion: 'vigente' | 'reemplazado' | 'anulado';
   archivoRuta: string | null;
+  correcciones: CorreccionVencimiento[];
   anuladoPor: string | null;
   motivoAnulacion: string | null;
 }
@@ -104,6 +118,17 @@ const txt = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? 
 const n = (v: unknown): number | null => (v === null || v === undefined || v === '' ? null : Number(v));
 const estado = (v: unknown): EstadoVencimiento => (v === 'vencido' || v === 'por_vencer' || v === 'al_dia' ? v : 'sin_dato');
 const equipo = (v: unknown): Equipo => (v === 'semi' ? 'semi' : 'tractor');
+
+const correcciones = (v: unknown): CorreccionVencimiento[] =>
+  arr(v).map((c) => ({
+    realizadoAntes: txt(c.realizado_antes),
+    venceAntes: txt(c.vence_antes) ?? '',
+    realizado: txt(c.realizado),
+    vence: txt(c.vence) ?? '',
+    motivo: txt(c.motivo) ?? '',
+    usuario: txt(c.usuario),
+    en: (txt(c.en) ?? '') as FechaISO,
+  }));
 
 export function parsearVencimientos(d: unknown): Vencimientos {
   const x = obj(d);
@@ -142,6 +167,7 @@ export function parsearVencimientos(d: unknown): Vencimientos {
         cargadoEn: txt(i.cargado_en) as FechaISO | null,
         archivoRuta: txt(i.archivo_ruta),
         archivoNombre: txt(i.archivo_nombre),
+        correcciones: correcciones(i.correcciones),
       })),
     })),
   };
@@ -159,6 +185,7 @@ export const parsearHistorialVencimientos = (d: unknown): HistorialVencimiento[]
     cargadoEn: (txt(h.cargado_en) ?? '') as FechaISO,
     situacion: h.situacion === 'anulado' ? 'anulado' : h.situacion === 'reemplazado' ? 'reemplazado' : 'vigente',
     archivoRuta: txt(h.archivo_ruta),
+    correcciones: correcciones(h.correcciones),
     anuladoPor: txt(h.anulado_por),
     motivoAnulacion: txt(h.motivo_anulacion),
   }));
