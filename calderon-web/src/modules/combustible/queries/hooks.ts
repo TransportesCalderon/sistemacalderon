@@ -94,6 +94,9 @@ export const useViajes = (p: ViajeListaParams) => useQuery({ ...q.viajes.lista(b
 export const useCierres = (p: CierreListaParams) => useQuery({ ...q.cierres.lista(browserDb(), p), placeholderData: keepPreviousData });
 export const useCierre = (id: CierreViajeId) => useQuery(q.cierres.detalle(browserDb(), id));
 export const useResultadoCierre = (id: CierreViajeId, enabled: boolean) => useQuery({ ...q.cierres.resultado(browserDb(), id), enabled });
+/** Migración 206: balance del tanque del cierre (salió con, cargó, llegó con). */
+export const useTanqueCierre = (id: CierreViajeId, enabled: boolean) =>
+  useQuery({ queryKey: ['combustible', 'cierres', 'tanque', id] as const, queryFn: () => cierreRepository(browserDb()).tanque(id), enabled });
 /** Migración 53: lo que dice la telemetría para el cierre, para mostrarlo al lado de cada campo del borrador. */
 export const useTelemetriaCierre = (id: CierreViajeId, enabled: boolean) =>
   useQuery({ queryKey: ['combustible', 'cierres', 'telemetria', id] as const, queryFn: () => cierreRepository(browserDb()).telemetria(id), enabled, staleTime: 60_000 });

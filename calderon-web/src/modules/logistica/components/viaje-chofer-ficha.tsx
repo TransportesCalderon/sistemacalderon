@@ -1,5 +1,6 @@
 'use client';
 
+import { TanqueCierre } from '@/modules/combustible/components/cierres/tanque-cierre';
 import { usePuedeAprobarCierres } from '@/modules/combustible/queries/puede-aprobar';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
@@ -272,8 +273,9 @@ function CombustibleCalculado({ cierreId }: { cierreId: CierreViajeId }) {
         <p className="text-sm text-tinta-suave">Sin resultado.</p>
       ) : (
         <>
+          <TanqueCierre cierreId={cierreId} />
           <dl className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <Dato etiqueta="Cargado (libro)" fuerte>
+            <Dato etiqueta="Consumo según el libro" fuerte>
               {formatoNumero(c.libroL, 2)} L
             </Dato>
             <Dato etiqueta="Plataforma" fuerte>

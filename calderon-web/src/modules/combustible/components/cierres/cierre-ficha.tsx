@@ -5,6 +5,7 @@ import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { VERSION_DECISION } from '../../domain/decision.types';
 import { DecisionDiferencia } from './decision-diferencia';
 import { SegundoNivel } from './segundo-nivel';
+import { TanqueCierre } from './tanque-cierre';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -86,7 +87,7 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
       ) : resultado ? (
         <>
           {esBorrador && <Pendientes resultado={resultado} />}
-          {resultado.versionCalculo === 1 ? <CalculoAnterior resultado={resultado} /> : <CombustibleCamion resultado={resultado} />}
+          {resultado.versionCalculo === 1 ? <CalculoAnterior resultado={resultado} /> : <CombustibleCamion resultado={resultado} cierreId={cierre.id} />}
           <Resultado cierre={cierre} resultado={resultado} />
           {/* Migración 185: toda diferencia se resuelve (descontar o justificar) */}
           {conDecision && <DecisionDiferencia cierreId={cierre.id} estado={cierre.estado} aDescontarL={resultado.imputableTotalL} />}
@@ -235,9 +236,10 @@ function Detalle({ children }: { children: ReactNode }) {
  * Combustible del camión (migración 26): todos los tanques, mochila incluida, como un solo volumen.
  * Libro = cargas + entradas − salidas + faltante al llegar − faltante al salir (lo calcula la base).
  */
-function CombustibleCamion({ resultado: { camion: c } }: { resultado: ResultadoCierre }) {
+function CombustibleCamion({ resultado: { camion: c }, cierreId }: { resultado: ResultadoCierre; cierreId: CierreViajeId }) {
   return (
     <Seccion titulo="Combustible del camión">
+      <TanqueCierre cierreId={cierreId} />
       <Cuatro
         etiquetaLibro="Libro (todos los tanques)"
         etiquetaFisico="Medido (plataforma)"

@@ -2055,6 +2055,8 @@ export type Database = {
     };
     Functions: {
       fn_resultado_cierre: { Args: { p_id: number }; Returns: Json };
+      // Migración 206: con cuántos litros salió, cargó y llegó
+      fn_tanque_cierre: { Args: { p_id: number }; Returns: Json };
       /** Migración 53: lo que toma el sistema de la telemetría para el cierre, sin los ajustes manuales. */
       fn_telemetria_cierre: { Args: { p_cierre: number }; Returns: Json };
       /** Migración 56: datos del acta del cierre para el chofer. */

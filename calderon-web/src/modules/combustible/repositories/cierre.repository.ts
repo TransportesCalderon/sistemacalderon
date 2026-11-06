@@ -1,4 +1,5 @@
 import { ConflictoVersion, RepoError, rangoPagina, type Db, type Pagina, type Versionado } from '@/shared/repository/types';
+import { parsearTanqueCierre, type TanqueCierre } from '../domain/cierre-tanque.types';
 import { parsearEsperas, parsearSegundoNivel, type EsperaSegundoNivel, type SegundoNivelCierre } from '../domain/segundo-nivel.types';
 import type { Database } from '@/shared/types/db';
 import type { CamionId, CargaId, ChoferId, CierreViajeId, FechaISO } from '@/shared/types/dominio';
@@ -201,6 +202,13 @@ export const cierreRepository = (db: Db) => ({
     const { data, error } = await db.schema('fue').rpc('fn_resultado_cierre', { p_id: id });
     if (error) throw new RepoError(error);
     return parsearResultado(data);
+  },
+
+  /** Migración 206: con cuántos litros salió, cargó y llegó (lo calcula la base). */
+  async tanque(id: CierreViajeId): Promise<TanqueCierre> {
+    const { data, error } = await db.schema('fue').rpc('fn_tanque_cierre', { p_id: id });
+    if (error) throw new RepoError(error);
+    return parsearTanqueCierre(data);
   },
 
   /** Migración 53: lo que dice la telemetría para el cierre (sin los ajustes manuales). */
