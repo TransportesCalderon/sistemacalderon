@@ -417,7 +417,7 @@ function Acciones({ cierre, onRecargar }: { cierre: CierreViaje; onRecargar: () 
         icono={<Stamp className="size-4" />}
         primario
         titulo="Aprobar el cierre"
-        explicacion="Al aprobar, el resultado queda congelado: lo que se descuenta al chofer ya no cambia."
+        explicacion="Si se descuenta toda la diferencia, queda aprobado y congelado. Si se descuenta menos, esta es la primera aprobación: queda esperando la segunda de un gerente."
         pideMotivo={false}
         ocupado={aprobar.isPending}
         error={null}
