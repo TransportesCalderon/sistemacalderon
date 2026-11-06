@@ -84,8 +84,9 @@ export const porCerrarRepository = (db: Db) => {
     async aprobarVarios(viajes: number[]) {
       const { data, error } = await ops().rpc('fn_cerrar_y_aprobar_varios', { p_viajes: viajes });
       if (error) throw new RepoError(error);
-      const r = (data ?? {}) as { aprobados?: number; errores?: { viaje: string | null; error: string }[] };
-      return { aprobados: r.aprobados ?? 0, errores: r.errores ?? [] };
+      const r = (data ?? {}) as { aprobados?: number; segundo_nivel?: number; errores?: { viaje: string | null; error: string }[] };
+      // Migración 200: los que descuentan menos que la diferencia quedan esperando la segunda aprobación
+      return { aprobados: r.aprobados ?? 0, segundoNivel: r.segundo_nivel ?? 0, errores: r.errores ?? [] };
     },
     /** Migración 134: el viaje del chofer de un viaje ya terminado (o el que ya tiene), para cargarle operaciones y línea. */
     async crearViajePasado(cargaSalidaId: number): Promise<number> {

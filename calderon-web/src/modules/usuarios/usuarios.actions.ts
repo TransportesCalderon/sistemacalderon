@@ -41,6 +41,13 @@ export const marcarAprobadorCierre = createAction({
   handler: (d, { db }) => usuariosRepository(db).marcarAprobadorCierre(d.usuario, d.aprueba),
 });
 
+/** Migración 200: marcar quién da la segunda aprobación de cierres (se descuenta menos que la diferencia). Solo TI. */
+export const marcarAprobadorSegundoNivel = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
+  handler: (d, { db }) => usuariosRepository(db).marcarAprobadorSegundoNivel(d.usuario, d.aprueba),
+});
+
 /** Migración 177: marcar quién recibe la ventana de tanque bajo (además de Telemetría). Solo TI. */
 export const marcarAvisoTanqueBajo = createAction({
   permiso: 'configuracion.usuarios:editar',

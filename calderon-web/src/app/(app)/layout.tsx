@@ -11,6 +11,7 @@ import { AvisosDesvio } from '@/modules/logistica/components/rutas/avisos-desvio
 import { AvisosTanqueBajo } from '@/modules/logistica/components/rutas/avisos-tanque-bajo';
 import { AvisosVencimiento } from '@/modules/flota/components/vencimientos/avisos-vencimiento';
 import { AvisosOt } from '@/modules/flota/components/mantenimiento/avisos-ot';
+import { AvisosSegundoNivel } from '@/modules/combustible/components/cierres/avisos-segundo-nivel';
 import { AvisosEscalamiento } from '@/modules/anomalias/components/avisos-escalamiento';
 import { CambioClaveObligatorio } from '@/modules/core/layout/cambio-clave-obligatorio';
 
@@ -42,6 +43,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <AvisosVencimiento />
       {/* Migración 199: orden de trabajo nueva o atrasada (Mantenimiento) */}
       <AvisosOt />
+      {/* Migración 200: cierres que esperan la segunda aprobación (gerente) */}
+      <AvisosSegundoNivel />
       {/* Migración 192: contraseña provisoria puesta por TI → elegir la propia */}
       <CambioClaveObligatorio />
     </SessionProvider>

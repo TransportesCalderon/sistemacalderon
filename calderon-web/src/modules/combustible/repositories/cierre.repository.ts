@@ -1,4 +1,5 @@
 import { ConflictoVersion, RepoError, rangoPagina, type Db, type Pagina, type Versionado } from '@/shared/repository/types';
+import { parsearEsperas, parsearSegundoNivel, type EsperaSegundoNivel, type SegundoNivelCierre } from '../domain/segundo-nivel.types';
 import type { Database } from '@/shared/types/db';
 import type { CamionId, CargaId, ChoferId, CierreViajeId, FechaISO } from '@/shared/types/dominio';
 import { diaSiguiente, num, num0 } from '../domain/comun';
@@ -245,6 +246,18 @@ export const cierreRepository = (db: Db) => ({
     return aCierre(data as FilaCierre);
   },
 
+  /** Migración 200: diferencia, litros a descontar y doble aprobación del cierre. */
+  async segundoNivel(id: number): Promise<SegundoNivelCierre | null> {
+    const { data, error } = await db.schema('fue').rpc('fn_segundo_nivel_cierre', { p_cierre: id });
+    if (error) throw new RepoError(error);
+    return parsearSegundoNivel(data);
+  },
+  /** Migración 200: lo que espera la segunda aprobación del usuario (vacío si no está habilitado). */
+  async esperanSegundoNivel(): Promise<EsperaSegundoNivel[]> {
+    const { data, error } = await db.schema('fue').rpc('fn_esperan_segundo_nivel');
+    if (error) throw new RepoError(error);
+    return parsearEsperas(data);
+  },
   /** Migración 185: la decisión sobre la diferencia y el pedido de quitar el descuento. */
   async decision(id: number): Promise<DecisionCierre> {
     const { data, error } = await db.schema('fue').rpc('fn_decision_cierre', { p_cierre: id });

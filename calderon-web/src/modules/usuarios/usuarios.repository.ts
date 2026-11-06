@@ -44,6 +44,16 @@ export const usuariosRepository = (db: Db) => ({
     const { error } = await db.schema('seg').rpc('fn_marcar_aprobador_cierre', { p_usuario: usuario, p_aprueba: aprueba });
     if (error) throw new RepoError(error);
   },
+  /** Migración 200: ids de quienes dan la segunda aprobación de cierres (descuento menor a la diferencia). */
+  async aprobadoresSegundoNivel(): Promise<number[]> {
+    const { data, error } = await db.schema('seg').rpc('fn_aprobadores_segundo_nivel');
+    if (error) throw new RepoError(error);
+    return (data ?? []).map(Number);
+  },
+  async marcarAprobadorSegundoNivel(usuario: number, aprueba: boolean): Promise<void> {
+    const { error } = await db.schema('seg').rpc('fn_marcar_aprobador_segundo_nivel', { p_usuario: usuario, p_aprueba: aprueba });
+    if (error) throw new RepoError(error);
+  },
   /** Migración 177: ids de quienes reciben el aviso de tanque bajo (además de Telemetría). */
   async avisadosTanqueBajo(): Promise<number[]> {
     const { data, error } = await db.schema('seg').rpc('fn_avisados_tanque_bajo');

@@ -61,7 +61,7 @@ export function PorCerrarPantalla() {
   const [grupo, setGrupo] = useState<Grupo | null>(null);
   const [marcados, setMarcados] = useState<Set<number>>(new Set());
   const [error, setError] = useState<ErrorAccion | null>(null);
-  const [resultado, setResultado] = useState<{ aprobados: number; errores: { viaje: string | null; error: string }[] } | null>(null);
+  const [resultado, setResultado] = useState<{ aprobados: number; segundoNivel?: number; errores: { viaje: string | null; error: string }[] } | null>(null);
 
   const cuenta = useMemo(() => {
     const c: Record<Grupo, number> = { aprobar: 0, faltan: 0, viaje: 0 };
@@ -148,6 +148,11 @@ export function PorCerrarPantalla() {
       {resultado && (
         <div className="space-y-1 rounded-lg border border-borde p-3 text-sm">
           <p className="font-medium text-tinta">{resultado.aprobados} viaje(s) aprobado(s).</p>
+          {(resultado.segundoNivel ?? 0) > 0 && (
+            <p className="text-alerta">
+              {resultado.segundoNivel} con la primera aprobación: descuentan menos que la diferencia y esperan la segunda (gerente).
+            </p>
+          )}
           {resultado.errores.map((e, i) => (
             <p key={i} className="text-error">
               {e.viaje ? `${e.viaje}: ` : ''}

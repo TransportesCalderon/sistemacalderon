@@ -168,6 +168,16 @@ export const useAnularCierre = () => useEscritura(anularCierre);
 export const useDecisionCierre = (id: number, activo = true) =>
   useQuery({ queryKey: ['combustible', 'cierres', 'decision', id], queryFn: () => cierreRepository(browserDb()).decision(id), enabled: activo });
 export const useDecidirDiferencia = () => useEscritura(decidirDiferencia);
+/** Migración 200: segunda aprobación del cierre. */
+export const useSegundoNivelCierre = (id: number, activo = true) =>
+  useQuery({ queryKey: ['combustible', 'cierres', 'segundo-nivel', id], queryFn: () => cierreRepository(browserDb()).segundoNivel(id), enabled: activo });
+export const useEsperanSegundoNivel = (activo: boolean) =>
+  useQuery({
+    queryKey: ['combustible', 'cierres', 'esperan-segundo-nivel'],
+    queryFn: () => cierreRepository(browserDb()).esperanSegundoNivel(),
+    enabled: activo,
+    refetchInterval: activo ? 5 * 60_000 : false,
+  });
 export const usePedirQuitarDescuento = () => useEscritura(pedirQuitarDescuento);
 export const useResolverQuitarDescuento = () => useEscritura(resolverQuitarDescuento);
 export const useRetirarQuitarDescuento = () => useEscritura(retirarQuitarDescuento);

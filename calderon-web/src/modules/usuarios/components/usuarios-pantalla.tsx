@@ -13,7 +13,15 @@ import { FRESCURA } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { Campo } from '@/shared/ui/campo';
 import { useChoferesCombustible } from '@/modules/combustible/queries/hooks';
-import { crearUsuario, guardarUsuario, marcarAprobadorCierre, marcarAvisoTanqueBajo, marcarRecibeEscalamiento, restablecerClave } from '../usuarios.actions';
+import {
+  crearUsuario,
+  guardarUsuario,
+  marcarAprobadorCierre,
+  marcarAprobadorSegundoNivel,
+  marcarAvisoTanqueBajo,
+  marcarRecibeEscalamiento,
+  restablecerClave,
+} from '../usuarios.actions';
 import { BOTON_PRIMARIO } from '@/shared/ui/clases';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { usuariosRepository, type Usuario } from '../usuarios.repository';
@@ -56,6 +64,14 @@ export function UsuariosPantalla() {
     enabled: hayAprobadores,
     staleTime: FRESCURA.maestro,
   });
+  // Migración 200: quién da la segunda aprobación de cierres
+  const haySegundoNivel = useBaseTiene(200);
+  const segundoNivel = useQuery({
+    queryKey: ['usuarios', 'segundo-nivel'],
+    queryFn: () => usuariosRepository(db).aprobadoresSegundoNivel(),
+    enabled: haySegundoNivel,
+    staleTime: FRESCURA.maestro,
+  });
   // Migración 177: quién recibe el aviso de tanque bajo
   const hayAvisoTanque = useBaseTiene(177);
   const avisados = useQuery({
@@ -72,7 +88,7 @@ export function UsuariosPantalla() {
     enabled: hayEscalamiento,
     staleTime: FRESCURA.maestro,
   });
-  const columnas = 5 + (hayAprobadores ? 1 : 0) + (hayAvisoTanque ? 1 : 0) + (hayEscalamiento ? 1 : 0);
+  const columnas = 5 + (hayAprobadores ? 1 : 0) + (haySegundoNivel ? 1 : 0) + (hayAvisoTanque ? 1 : 0) + (hayEscalamiento ? 1 : 0);
 
   return (
     <div className="space-y-5">
@@ -149,6 +165,11 @@ export function UsuariosPantalla() {
                   <th className={TH}>Último ingreso</th>
                   <th className={TH}>Estado</th>
                   {hayAprobadores && <th className={TH}>Aprueba cierres de viaje</th>}
+                  {haySegundoNivel && (
+                    <th className={TH} title="Cuando se descuenta al chofer menos que la diferencia (o se quita un descuento)">
+                      Segunda aprobación de cierres
+                    </th>
+                  )}
                   {hayAvisoTanque && <th className={TH} title="Además de Telemetría">Aviso de tanque bajo</th>}
                   {hayEscalamiento && (
                     <th className={TH} title="Le llegan las alertas vencidas con su historial y resuelve los pedidos de prórroga">
@@ -182,6 +203,16 @@ export function UsuariosPantalla() {
                       {hayAprobadores && (
                         <td className={TD}>
                           <AprobadorCierre usuario={u.id} marcado={(aprobadores.data ?? []).includes(u.id)} cargando={aprobadores.isPending} />
+                        </td>
+                      )}
+                      {haySegundoNivel && (
+                        <td className={TD}>
+                          <AprobadorCierre
+                            usuario={u.id}
+                            marcado={(segundoNivel.data ?? []).includes(u.id)}
+                            cargando={segundoNivel.isPending}
+                            accion={marcarAprobadorSegundoNivel}
+                          />
                         </td>
                       )}
                       {hayAvisoTanque && (

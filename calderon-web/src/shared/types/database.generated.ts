@@ -1584,6 +1584,9 @@ export type Database = {
       // Migración 170: quién aprueba cierres de viaje (TI)
       fn_aprobadores_cierre: { Args: Record<string, never>; Returns: number[] };
       fn_marcar_aprobador_cierre: { Args: { p_usuario: number; p_aprueba: boolean }; Returns: undefined };
+      // Migración 200: segunda aprobación de cierres
+      fn_aprobadores_segundo_nivel: { Args: Record<string, never>; Returns: number[] };
+      fn_marcar_aprobador_segundo_nivel: { Args: { p_usuario: number; p_aprueba: boolean }; Returns: undefined };
       fn_avisados_tanque_bajo: { Args: Record<string, never>; Returns: number[] };
       fn_marcar_aviso_tanque_bajo: { Args: { p_usuario: number; p_recibe: boolean }; Returns: undefined };
       // Migración 189: quién recibe las alertas vencidas (escalamiento)
@@ -2061,6 +2064,9 @@ export type Database = {
       fn_verificar_cierre: { Args: { p_id: number }; Returns: Json };
       fn_aprobar_cierre: { Args: { p_id: number; p_version: number }; Returns: CierreViajeRow };
       fn_decision_cierre: { Args: { p_cierre: number }; Returns: Json };
+      // Migración 200: segunda aprobación cuando se descuenta menos que la diferencia
+      fn_segundo_nivel_cierre: { Args: { p_cierre: number }; Returns: Json };
+      fn_esperan_segundo_nivel: { Args: Record<string, never>; Returns: Json };
       fn_decidir_diferencia: { Args: { p_cierre: number; p_decision: string | null; p_motivo?: string | null; p_evidencia?: string | null }; Returns: Json };
       fn_pedir_quitar_descuento: { Args: { p_cierre: number; p_motivo: string; p_evidencia: string }; Returns: number };
       fn_resolver_quitar_descuento: { Args: { p_solicitud: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: Json };

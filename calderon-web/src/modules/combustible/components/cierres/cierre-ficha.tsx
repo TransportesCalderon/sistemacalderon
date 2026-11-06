@@ -4,6 +4,7 @@ import { usePuedeAprobarCierres } from '../../queries/puede-aprobar';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { VERSION_DECISION } from '../../domain/decision.types';
 import { DecisionDiferencia } from './decision-diferencia';
+import { SegundoNivel } from './segundo-nivel';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -89,6 +90,8 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
           <Resultado cierre={cierre} resultado={resultado} />
           {/* Migración 185: toda diferencia se resuelve (descontar o justificar) */}
           {conDecision && <DecisionDiferencia cierreId={cierre.id} estado={cierre.estado} aDescontarL={resultado.imputableTotalL} />}
+          {/* Migración 200: descontar menos que la diferencia pide una segunda aprobación (gerente) */}
+          <SegundoNivel cierreId={cierre.id} estado={cierre.estado} />
         </>
       ) : (
         <p className="text-sm text-tinta-suave">El cierre no tiene resultado congelado (se anuló sin haberse aprobado).</p>
