@@ -1,6 +1,8 @@
 'use client';
 
 import { TanqueCierre } from '@/modules/combustible/components/cierres/tanque-cierre';
+import { VERSION_TANQUE_CIERRE } from '@/modules/combustible/domain/cierre-tanque.types';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { usePuedeAprobarCierres } from '@/modules/combustible/queries/puede-aprobar';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
@@ -253,6 +255,7 @@ function CombustibleCalculado({ cierreId }: { cierreId: CierreViajeId }) {
   const puedeCompletar = useCan('combustible.cierre_viaje:editar');
   const resultado = esBorrador ? (vivo.data ?? null) : (cierre?.congelado ?? null);
   const c = resultado?.camion;
+  const conTanque = useBaseTiene(VERSION_TANQUE_CIERRE);
 
   return (
     <Seccion
@@ -273,17 +276,21 @@ function CombustibleCalculado({ cierreId }: { cierreId: CierreViajeId }) {
         <p className="text-sm text-tinta-suave">Sin resultado.</p>
       ) : (
         <>
-          <TanqueCierre cierreId={cierreId} />
+          {conTanque && <TanqueCierre cierreId={cierreId} consumoL={c.consumoPlataformaL} diferenciaL={c.diferenciaL} toleranciaL={c.toleranciaL} />}
           <dl className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <Dato etiqueta="Consumo según el libro" fuerte>
-              {formatoNumero(c.libroL, 2)} L
-            </Dato>
-            <Dato etiqueta="Plataforma" fuerte>
-              {formatoNumero(c.consumoPlataformaL, 2)} L
-            </Dato>
-            <Dato etiqueta="Diferencia" fuerte>
-              <DiferenciaL litros={c.diferenciaL} toleranciaL={c.toleranciaL} />
-            </Dato>
+            {!conTanque && (
+              <>
+                <Dato etiqueta="Cargado (libro)" fuerte>
+                  {formatoNumero(c.libroL, 2)} L
+                </Dato>
+                <Dato etiqueta="Plataforma" fuerte>
+                  {formatoNumero(c.consumoPlataformaL, 2)} L
+                </Dato>
+                <Dato etiqueta="Diferencia" fuerte>
+                  <DiferenciaL litros={c.diferenciaL} toleranciaL={c.toleranciaL} />
+                </Dato>
+              </>
+            )}
             <Dato etiqueta="Km recorridos">{formatoNumero(c.kmRecorridos)}</Dato>
             <Dato etiqueta="Consumo">{c.consumoL100km === null ? '—' : `${formatoNumero(c.consumoL100km, 1)} L/100 km`}</Dato>
             <Dato etiqueta="Ralentí / días parado">

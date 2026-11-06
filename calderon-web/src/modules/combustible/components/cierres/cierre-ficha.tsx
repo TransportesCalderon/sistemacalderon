@@ -6,6 +6,7 @@ import { VERSION_DECISION } from '../../domain/decision.types';
 import { DecisionDiferencia } from './decision-diferencia';
 import { SegundoNivel } from './segundo-nivel';
 import { TanqueCierre } from './tanque-cierre';
+import { VERSION_TANQUE_CIERRE } from '../../domain/cierre-tanque.types';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -237,19 +238,24 @@ function Detalle({ children }: { children: ReactNode }) {
  * Libro = cargas + entradas − salidas + faltante al llegar − faltante al salir (lo calcula la base).
  */
 function CombustibleCamion({ resultado: { camion: c }, cierreId }: { resultado: ResultadoCierre; cierreId: CierreViajeId }) {
+  const conTanque = useBaseTiene(VERSION_TANQUE_CIERRE);
   return (
     <Seccion titulo="Combustible del camión">
-      <TanqueCierre cierreId={cierreId} />
-      <Cuatro
-        etiquetaLibro="Libro (todos los tanques)"
-        etiquetaFisico="Medido (plataforma)"
-        libro={c.libroL}
-        fisico={c.consumoPlataformaL}
-        diferencia={c.diferenciaL}
-        tolerancia={c.toleranciaL}
-      />
+      {conTanque && <TanqueCierre cierreId={cierreId} consumoL={c.consumoPlataformaL} diferenciaL={c.diferenciaL} toleranciaL={c.toleranciaL} />}
+      {!conTanque && (
+        <Cuatro
+          etiquetaLibro="Libro (todos los tanques)"
+          etiquetaFisico="Medido (plataforma)"
+          libro={c.libroL}
+          fisico={c.consumoPlataformaL}
+          diferencia={c.diferenciaL}
+          tolerancia={c.toleranciaL}
+        />
+      )}
       <p className="text-sm text-tinta">{explicacionDiferencia(c.diferenciaL)}</p>
       <Detalle>
+        {conTanque && <Dato etiqueta="Cargado según el libro">{conUnidad(c.libroL, 'L')}</Dato>}
+        {conTanque && <Dato etiqueta="Tolerancia">{c.toleranciaL === null ? '—' : `± ${formatearNumero(c.toleranciaL)} L`}</Dato>}
         <Dato etiqueta="Cargas del viaje">{conUnidad(c.cargasL, 'L')}</Dato>
         <Dato etiqueta="Entradas (bidón, otro camión)">{conUnidad(c.entradasL, 'L')}</Dato>
         <Dato etiqueta="Salidas (descargas, con motivo)">{conUnidad(c.salidasL, 'L')}</Dato>
