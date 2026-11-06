@@ -14,6 +14,16 @@ export interface GastoViaje {
   motivoAnulacion: string | null;
 }
 
+export interface CargaGensetViaje {
+  id: number;
+  fechaHora: FechaISO;
+  genset: string;
+  litros: number;
+  importeBase: number | null;
+  estimado: boolean;
+  operacion: string | null;
+}
+
 export interface CostosViaje {
   moneda: string;
   enCurso: boolean;
@@ -26,6 +36,11 @@ export interface CostosViaje {
   litrosCargados: number | null;
   combustible: number | null;
   combustibleEstimado: boolean;
+  /** Migración 203: combustible de los gensets que llevó el tractor. */
+  gensetLitros: number | null;
+  combustibleGenset: number | null;
+  combustibleGensetEstimado: boolean;
+  gensetDetalle: CargaGensetViaje[];
   canon: number | null;
   canonSinCotizacion: number;
   costoKmFijo: number | null;
@@ -53,6 +68,7 @@ export interface CostoViajeFila {
   canon: number | null;
   costoKm: number | null;
   gastos: number | null;
+  combustibleGenset: number | null;
   total: number;
   porKm: number | null;
   operaciones: number;
@@ -81,6 +97,21 @@ export function parsearCostosViaje(d: unknown): CostosViaje {
     litrosCargados: n(x.litros_cargados),
     combustible: n(x.combustible),
     combustibleEstimado: x.combustible_estimado === true,
+    gensetLitros: n(x.genset_litros),
+    combustibleGenset: n(x.combustible_genset),
+    combustibleGensetEstimado: x.combustible_genset_estimado === true,
+    gensetDetalle: (Array.isArray(x.genset_detalle) ? x.genset_detalle : []).map((g) => {
+      const y = obj(g);
+      return {
+        id: Number(y.id),
+        fechaHora: (t(y.fecha_hora) ?? '') as FechaISO,
+        genset: t(y.genset) ?? '',
+        litros: Number(y.litros ?? 0),
+        importeBase: n(y.importe_base),
+        estimado: y.estimado === true,
+        operacion: t(y.operacion),
+      };
+    }),
     canon: n(x.canon),
     canonSinCotizacion: n(x.canon_sin_cotizacion) ?? 0,
     costoKmFijo: n(x.costo_km_fijo),

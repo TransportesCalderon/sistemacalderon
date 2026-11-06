@@ -209,6 +209,17 @@ export interface CargaGenset {
   observacion: string | null;
   cargadoPor: string | null;
   cierre: string | null;
+  /** Migración 203: a qué viaje / operación fue (solo cargas). */
+  imputacion: ImputacionGenset | null;
+}
+
+export interface ImputacionGenset {
+  importeBase: number | null;
+  estimado: boolean;
+  viajeId: number | null;
+  viaje: string | null;
+  operacion: string | null;
+  motivo: string | null;
 }
 
 export interface ContextoGenset {
@@ -247,9 +258,111 @@ export const parsearCargasGenset = (d: unknown): CargaGenset[] =>
     observacion: tg(x.observacion),
     cargadoPor: tg(x.cargado_por),
     cierre: tg(x.cierre),
+    imputacion: parsearImputacion(x.imputacion),
   }));
+
+function parsearImputacion(v: unknown): ImputacionGenset | null {
+  if (!v || typeof v !== 'object') return null;
+  const x = v as JG;
+  return {
+    importeBase: ng(x.importe_base),
+    estimado: x.estimado === true,
+    viajeId: ng(x.viaje_id),
+    viaje: tg(x.viaje),
+    operacion: tg(x.operacion),
+    motivo: tg(x.motivo),
+  };
+}
 
 export function parsearContextoGenset(d: unknown): ContextoGenset {
   const x = (d && typeof d === 'object' ? d : {}) as JG;
   return { semi: tg(x.semi), camionId: ng(x.camion_id), tractor: tg(x.tractor), choferId: ng(x.chofer_id), chofer: tg(x.chofer) };
+}
+
+// ---- Migración 203 · Genset G2: costo a la operación y tablero ----
+export const VERSION_GENSET_G2 = 203;
+
+export interface SinImputarGenset {
+  id: number;
+  fechaHora: FechaISO;
+  litros: number;
+  importeBase: number | null;
+  motivo: string | null;
+}
+
+export interface FilaTableroGenset {
+  gensetId: number;
+  genset: string;
+  semi: string | null;
+  cargas: number;
+  litrosCargados: number;
+  litrosDescargados: number;
+  litrosBase: number;
+  importe: number;
+  importeImputado: number;
+  estimado: boolean;
+  sinImputar: number;
+  sinImputarDetalle: SinImputarGenset[];
+  horas: number | null;
+  consumoLh: number | null;
+  vueltas: number;
+  consumoRealLh: number | null;
+  desvioPct: number | null;
+}
+
+export interface TableroGensets {
+  moneda: string;
+  filas: FilaTableroGenset[];
+  totales: { cargas: number; litrosCargados: number; litrosDescargados: number; importe: number; importeImputado: number; sinImputar: number; horas: number | null };
+}
+
+export function parsearTableroGensets(d: unknown): TableroGensets {
+  const x = (d && typeof d === 'object' ? d : {}) as JG;
+  const tot = (x.totales && typeof x.totales === 'object' ? x.totales : {}) as JG;
+  return {
+    moneda: tg(x.moneda) ?? '',
+    filas: (Array.isArray(x.filas) ? (x.filas as JG[]) : []).map((f) => ({
+      gensetId: Number(f.genset_id),
+      genset: tg(f.genset) ?? '',
+      semi: tg(f.semi),
+      cargas: Number(f.cargas ?? 0),
+      litrosCargados: Number(f.litros_cargados ?? 0),
+      litrosDescargados: Number(f.litros_descargados ?? 0),
+      litrosBase: Number(f.litros_base ?? 0),
+      importe: Number(f.importe ?? 0),
+      importeImputado: Number(f.importe_imputado ?? 0),
+      estimado: f.estimado === true,
+      sinImputar: Number(f.sin_imputar ?? 0),
+      sinImputarDetalle: (Array.isArray(f.sin_imputar_detalle) ? (f.sin_imputar_detalle as JG[]) : []).map((y) => ({
+        id: Number(y.id),
+        fechaHora: (tg(y.fecha_hora) ?? '') as FechaISO,
+        litros: Number(y.litros ?? 0),
+        importeBase: ng(y.importe_base),
+        motivo: tg(y.motivo),
+      })),
+      horas: ng(f.horas),
+      consumoLh: ng(f.consumo_lh),
+      vueltas: Number(f.vueltas ?? 0),
+      consumoRealLh: ng(f.consumo_real_lh),
+      desvioPct: ng(f.desvio_pct),
+    })),
+    totales: {
+      cargas: Number(tot.cargas ?? 0),
+      litrosCargados: Number(tot.litros_cargados ?? 0),
+      litrosDescargados: Number(tot.litros_descargados ?? 0),
+      importe: Number(tot.importe ?? 0),
+      importeImputado: Number(tot.importe_imputado ?? 0),
+      sinImputar: Number(tot.sin_imputar ?? 0),
+      horas: ng(tot.horas),
+    },
+  };
+}
+
+/** Primer y último día del mes «AAAA-MM». */
+export function rangoMes(mes: string): { desde: string; hasta: string } {
+  const [a, m] = mes.split('-').map(Number);
+  if (!a || !m) return { desde: '', hasta: '' };
+  const ultimo = new Date(Date.UTC(a, m, 0)).getUTCDate();
+  const mm = String(m).padStart(2, '0');
+  return { desde: `${a}-${mm}-01`, hasta: `${a}-${mm}-${String(ultimo).padStart(2, '0')}` };
 }

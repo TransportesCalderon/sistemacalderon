@@ -70,6 +70,20 @@ function ContenidoCostos({ c, viaje }: { c: Costos; viaje: ViajeChofer }) {
               </td>
               <td className={cn(TD, 'text-right tabular-nums')}>{imp(c.combustible)}</td>
             </tr>
+            {(c.combustibleGenset !== null || c.gensetDetalle.length > 0) && (
+              <tr>
+                <td className={TD}>
+                  Combustible genset
+                  <span className="block text-xs text-tinta-suave">
+                    {c.gensetDetalle
+                      .map((g) => `${g.genset} ${formatoNumero(g.litros)} L${g.operacion ? ` (op. ${g.operacion})` : ''}`)
+                      .join(' · ')}
+                    {c.combustibleGensetEstimado && ' · alguna carga del tanque de base o sin cotización: se usó el precio promedio del mes'}
+                  </span>
+                </td>
+                <td className={cn(TD, 'text-right tabular-nums')}>{imp(c.combustibleGenset)}</td>
+              </tr>
+            )}
             <tr>
               <td className={TD}>
                 Canon del chofer
@@ -269,7 +283,7 @@ export function CostosViajesPantalla() {
     <div className="space-y-5">
       <Encabezado titulo="Costos de viajes" subtitulo="Viajes" />
       <p className="max-w-3xl text-sm text-tinta-suave">
-        Por viaje de chofer: combustible de las cargas, canon, km reales × costo fijo por km (Configuración › Parámetros y catálogos) y los gastos cargados en el
+        Por viaje de chofer: combustible de las cargas (del tractor y de los gensets que llevó), canon, km reales × costo fijo por km (Configuración › Parámetros y catálogos) y los gastos cargados en el
         viaje. Los km de la línea son los que se liquidan; los reales salen de la telemetría.
       </p>
       <FiltroPeriodo p={p} onCambiar={setP} />
@@ -296,6 +310,7 @@ export function CostosViajesPantalla() {
                     <th className={cn(TH, 'text-right')}>Km línea</th>
                     <th className={cn(TH, 'text-right')}>Km reales</th>
                     <th className={cn(TH, 'text-right')}>Combustible</th>
+                    <th className={cn(TH, 'text-right')}>Genset</th>
                     <th className={cn(TH, 'text-right')}>Canon</th>
                     <th className={cn(TH, 'text-right')}>Por km</th>
                     <th className={cn(TH, 'text-right')}>Gastos</th>
@@ -314,7 +329,7 @@ export function CostosViajesPantalla() {
                         <span className="mt-0.5 flex gap-1">
                           {f.enCurso && <Chip tono="marca">En curso</Chip>}
                           {f.incompleto && (
-                            <Chip tono="alerta" title="Sin telemetría, combustible estimado o canon sin cotización">
+                            <Chip tono="alerta" title="Sin telemetría, combustible (del tractor o del genset) estimado o canon sin cotización">
                               Revisar
                             </Chip>
                           )}
@@ -327,6 +342,7 @@ export function CostosViajesPantalla() {
                       <td className={cn(TD, 'text-right tabular-nums')}>{formatoNumero(f.kmLinea)}</td>
                       <td className={cn(TD, 'text-right tabular-nums')}>{formatoNumero(f.kmReales)}</td>
                       <td className={cn(TD, 'text-right tabular-nums')}>{imp(f.combustible)}</td>
+                      <td className={cn(TD, 'text-right tabular-nums')}>{imp(f.combustibleGenset)}</td>
                       <td className={cn(TD, 'text-right tabular-nums')}>{imp(f.canon)}</td>
                       <td className={cn(TD, 'text-right tabular-nums')}>{imp(f.costoKm)}</td>
                       <td className={cn(TD, 'text-right tabular-nums')}>{imp(f.gastos)}</td>

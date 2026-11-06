@@ -217,6 +217,13 @@ export const useCargasGenset = (desde: string | null, hasta: string | null, gens
     enabled: activo,
     placeholderData: keepPreviousData,
   });
+export const useTableroGensets = (desde: string, hasta: string, activo = true) =>
+  useQuery({
+    queryKey: ['combustible', 'gensets', 'tablero', desde, hasta],
+    queryFn: () => gensetRepository(browserDb()).tablero(desde, hasta),
+    enabled: activo && desde !== '' && hasta !== '',
+    placeholderData: keepPreviousData,
+  });
 export const useContextoGenset = (gensetId: number | null, ts: string | null, activo = true) =>
   useQuery({
     queryKey: ['combustible', 'gensets', 'contexto', gensetId, ts],

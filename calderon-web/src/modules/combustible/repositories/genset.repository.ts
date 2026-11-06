@@ -5,10 +5,12 @@ import {
   parsearCargasGenset,
   parsearContextoGenset,
   parsearFichaGenset,
+  parsearTableroGensets,
   type CargaGenset,
   type ContextoGenset,
   type FichaGenset,
   type GensetCombustible,
+  type TableroGensets,
 } from '../domain/genset.types';
 
 /** Combustible de los gensets (migración 48). Todo lo calcula la base; su mensaje se muestra tal cual. */
@@ -42,6 +44,12 @@ export const gensetRepository = (db: Db) => {
       return parsearCargasGenset(data);
     },
     /** Migración 202: semi, tractor y chofer del genset en un momento (para completar la carga). */
+    /** Migración 203: por genset, litros, importe, horas y L/h del período. */
+    async tablero(desde: string, hasta: string): Promise<TableroGensets> {
+      const { data, error } = await fue().rpc('fn_tablero_gensets', { p_desde: desde, p_hasta: hasta });
+      if (error) throw new RepoError(error);
+      return parsearTableroGensets(data);
+    },
     async contexto(gensetId: number, ts: string | null): Promise<ContextoGenset> {
       const { data, error } = await fue().rpc('fn_contexto_genset', { p_genset: gensetId, p_ts: ts });
       if (error) throw new RepoError(error);

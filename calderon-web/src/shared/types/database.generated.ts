@@ -661,6 +661,8 @@ type CostoViajeRow = {
   moneda: string;
   en_curso: boolean;
   incompleto: boolean;
+  /** Migración 203: combustible de los gensets que llevó el tractor. */
+  combustible_genset: number | null;
 };
 /** fue.fn_ralenti_mes (migración 50). */
 type RalentiMesRow = {
@@ -2069,6 +2071,9 @@ export type Database = {
       // Migración 202: gensets
       fn_cargas_genset: { Args: { p_desde?: string | null; p_hasta?: string | null; p_genset?: number | null }; Returns: Json };
       fn_contexto_genset: { Args: { p_genset: number; p_ts?: string | null }; Returns: Json };
+      // Migración 203: costo del genset a la operación y tablero
+      fn_imputacion_genset: { Args: { p_registro: number }; Returns: Json };
+      fn_tablero_gensets: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       // Migración 200: segunda aprobación cuando se descuenta menos que la diferencia
       fn_segundo_nivel_cierre: { Args: { p_cierre: number }; Returns: Json };
       fn_esperan_segundo_nivel: { Args: Record<string, never>; Returns: Json };

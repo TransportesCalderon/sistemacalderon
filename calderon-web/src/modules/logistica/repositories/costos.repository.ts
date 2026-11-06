@@ -33,6 +33,7 @@ export const costosRepository = (db: Db) => {
         canon: n(f.canon),
         costoKm: n(f.costo_km),
         gastos: n(f.gastos),
+        combustibleGenset: n(f.combustible_genset),
         total: Number(f.total),
         porKm: n(f.por_km),
         operaciones: f.operaciones,
