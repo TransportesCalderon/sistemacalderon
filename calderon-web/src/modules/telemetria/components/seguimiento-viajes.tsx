@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, Fuel, History, LoaderCircle, Radar } from 'lucide-react';
+import { Fragment, useState } from 'react';
+import { Check, ChevronDown, ChevronRight, Fuel, History, LoaderCircle, Radar } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -10,6 +10,9 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora, horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
+
+const TH = 'px-3 py-2.5 whitespace-nowrap';
+const TD = 'px-3 py-2.5 whitespace-nowrap';
 import {
   ETIQUETA_RESULTADO,
   VERSION_PEDIDO_CARGA,
@@ -39,22 +42,25 @@ const decimal = (s: string) => {
  * «Registrar control» lo guarda y «Copiar» lo deja listo para pegar en WhatsApp.
  */
 export function SeguimientoViajes() {
-  const { rolesApp } = useSesion();
+  const { rolesApp, zonaHoraria } = useSesion();
   const hay = useBaseTiene(VERSION_SEGUIMIENTO);
   const registra = rolesApp.includes('analista_control') || rolesApp.includes('ti');
   const { data, isPending, isError, error, refetch, isFetching } = useViajesEnCurso(hay);
-  // Lista desplegable por patente (A → Z); al elegir una se abre su tarjeta
-  const [elegido, setElegido] = useState<number | null>(null);
-  const lista = [...(data ?? [])].sort((a, b) => a.patente.localeCompare(b.patente, 'es', { numeric: true }));
-  const viaje = lista.find((v) => v.viajeId === elegido) ?? null;
+  // Lista de los tractores en viaje (A → Z); al tocar uno se despliega su seguimiento debajo, como en la Pizarra
+  const [abierto, setAbierto] = useState<number | null>(null);
+  const [filtro, setFiltro] = useState('');
+  const f = filtro.trim().toLowerCase();
+  const lista = [...(data ?? [])]
+    .sort((a, b) => a.patente.localeCompare(b.patente, 'es', { numeric: true }))
+    .filter((v) => !f || [v.patente, v.chofer, v.marca, v.linea].some((x) => x?.toLowerCase().includes(f)));
 
   if (!hay) return <Vacio icono={<Radar className="size-6" />} texto="Falta aplicar en la base el cambio del seguimiento de viajes." />;
   return (
     <div className="space-y-5">
       <Encabezado titulo="Seguimiento de viajes" />
       <p className="max-w-3xl text-sm text-tinta-suave">
-        Cómo viene cada viaje desde la salida: consumo contra el objetivo del viaje (el mismo del cierre) y uso del programador. El sistema arma el mensaje
-        para el chofer; registrá el control y copialo para mandarlo por WhatsApp.
+        Cómo viene cada viaje desde la salida: consumo contra el objetivo del viaje (el mismo del cierre) y uso del programador. Tocá un tractor para ver el
+        detalle: el sistema arma el mensaje para el chofer; registrá el control y copialo para mandarlo por WhatsApp.
       </p>
       {isPending ? (
         <Cargando texto="Leyendo los viajes en curso…" />
@@ -64,27 +70,87 @@ export function SeguimientoViajes() {
         <Vacio icono={<Radar className="size-6" />} texto="No hay viajes en curso." />
       ) : (
         <div className={cn('space-y-3', isFetching && 'opacity-80')}>
-          <label className="block max-w-md space-y-1 text-sm">
-            <span className="block text-xs text-tinta-suave">Tractor ({lista.length} en viaje)</span>
-            <select
-              id="seguimiento-patente"
-              className={cn(CONTROL_FILTRO, 'h-10 w-full')}
-              value={elegido ?? ''}
-              onChange={(e) => setElegido(e.target.value ? Number(e.target.value) : null)}
-            >
-              <option value="">Elegí la patente…</option>
-              {lista.map((v) => (
-                <option key={v.viajeId} value={v.viajeId}>
-                  {v.patente} · {v.chofer ?? 'Sin chofer'} · {ETIQUETA_RESULTADO[v.evaluacion.resultado]}
-                </option>
-              ))}
-            </select>
-          </label>
-          {viaje && (
-            <ul className="max-w-2xl">
-              <TarjetaViaje key={viaje.viajeId} v={viaje} registra={registra} />
-            </ul>
-          )}
+          <input
+            type="search"
+            aria-label="Buscar"
+            className={cn(CONTROL_FILTRO, 'h-10 w-full max-w-md')}
+            placeholder={`Buscar patente, chofer, marca o línea (${data.length} en viaje)…`}
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+          />
+          <div className={cn(TARJETA, 'overflow-x-auto')}>
+            <table className="w-full min-w-[980px] text-sm">
+              <thead className="border-b border-borde bg-fondo text-left text-xs font-medium tracking-wide text-tinta-suave uppercase">
+                <tr>
+                  <th className={cn(TH, 'w-8')} />
+                  <th className={TH}>Patente</th>
+                  <th className={TH}>Chofer</th>
+                  <th className={TH}>Marca</th>
+                  <th className={TH}>Salida</th>
+                  <th className={TH}>Línea</th>
+                  <th className={cn(TH, 'text-right')}>Km</th>
+                  <th className={cn(TH, 'text-right')}>Litros</th>
+                  <th className={cn(TH, 'text-right')}>L/100 km</th>
+                  <th className={cn(TH, 'text-right')}>Programador</th>
+                  <th className={TH}>Estado</th>
+                  <th className={TH}>Último control</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lista.map((v) => {
+                  const ab = abierto === v.viajeId;
+                  const e = v.evaluacion;
+                  return (
+                    <Fragment key={v.viajeId}>
+                      <tr
+                        className={cn('cursor-pointer border-b border-borde hover:bg-hover', ab && 'bg-[#e7f0fa] hover:bg-[#e7f0fa]')}
+                        onClick={() => setAbierto(ab ? null : v.viajeId)}
+                        aria-expanded={ab}
+                      >
+                        <td className={cn(TD, 'text-tinta-suave')}>{ab ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}</td>
+                        <td className={TD}>
+                          <button type="button" className="font-mono font-semibold tracking-wide text-tinta outline-none focus-visible:underline">
+                            {v.patente}
+                          </button>
+                        </td>
+                        <td className={TD}>{v.chofer ?? 'Sin chofer'}</td>
+                        <td className={cn(TD, 'text-tinta-suave')}>{v.marca ?? '—'}</td>
+                        <td className={cn(TD, 'tabular-nums')}>{formatearFechaHora(v.salidaTs, zonaHoraria)}</td>
+                        <td className={cn(TD, 'text-tinta-suave')}>{v.linea ?? '—'}</td>
+                        <td className={cn(TD, 'text-right tabular-nums')}>{num(v.km, 0)}</td>
+                        <td className={cn(TD, 'text-right tabular-nums')}>{num(v.litros, 0)}</td>
+                        <td className={cn(TD, 'text-right font-semibold tabular-nums', e.estadoConsumo && COLOR_ESTADO[e.estadoConsumo])}>{num(e.l100km)}</td>
+                        <td className={cn(TD, 'text-right font-semibold tabular-nums', e.estadoProgramador && COLOR_ESTADO[e.estadoProgramador])}>
+                          {v.programadorPct === null ? '—' : `${num(v.programadorPct, 0)} %`}
+                        </td>
+                        <td className={TD}>
+                          <Chip tono={TONO_RESULTADO[e.resultado]}>{ETIQUETA_RESULTADO[e.resultado]}</Chip>
+                        </td>
+                        <td className={cn(TD, 'text-xs text-tinta-suave')}>
+                          {v.ultimoControl ? formatearFechaHora(v.ultimoControl.en, zonaHoraria) : '—'}
+                          {v.controlesHoy > 0 && ` · ${v.controlesHoy} hoy`}
+                        </td>
+                      </tr>
+                      {ab && (
+                        <tr className="border-b border-borde bg-[#f5f9fd]">
+                          <td colSpan={12} className="p-3">
+                            <TarjetaViaje v={v} registra={registra} />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+                {lista.length === 0 && (
+                  <tr>
+                    <td colSpan={12} className="px-3 py-6 text-center text-tinta-suave">
+                      Ningún tractor coincide con la búsqueda.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -118,7 +184,7 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
   };
 
   return (
-    <li className={cn(TARJETA, 'space-y-3 p-4')}>
+    <div className={cn(TARJETA, 'max-w-3xl space-y-3 p-4')}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="font-medium text-tinta">
@@ -260,7 +326,7 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
       </div>
       {pedido && <PedidoCarga viajeId={v.viajeId} registra={registra} />}
       {historial && <Historial viajeId={v.viajeId} />}
-    </li>
+    </div>
   );
 }
 
