@@ -4,6 +4,8 @@
  * Lo calcula la base (fue.fn_tanque_cierre); acá solo se cambian los nombres.
  */
 export const VERSION_TANQUE_CIERRE = 206;
+/** Migración 208: cuánto debería haber cargado al llegar. */
+export const VERSION_DEBERIA_CARGAR = 208;
 
 export interface TanqueCierre {
   disponible: boolean;
@@ -19,6 +21,10 @@ export interface TanqueCierre {
   faltanteLlegadaL: number | null;
   quedoConL: number | null;
   consumoLibroL: number | null;
+  /** Migración 208 */
+  consumoPlataformaL: number | null;
+  diferenciaL: number | null;
+  deberiaCargarL: number | null;
   aviso: string | null;
 }
 
@@ -42,6 +48,9 @@ export function parsearTanqueCierre(d: unknown): TanqueCierre {
     faltanteLlegadaL: n(x.faltante_llegada_l),
     quedoConL: n(x.quedo_con_l),
     consumoLibroL: n(x.consumo_libro_l),
+    consumoPlataformaL: n(x.consumo_plataforma_l),
+    diferenciaL: n(x.diferencia_l),
+    deberiaCargarL: n(x.deberia_cargar_l),
     aviso: t(x.aviso),
   };
 }

@@ -16,4 +16,10 @@ describe('migración 206 · con cuántos litros salió', () => {
     expect(t.aviso).toContain('capacidad');
     expect(parsearTanqueCierre(null).disponible).toBe(false);
   });
+
+  it('migración 208: trae lo que debería haber cargado (cargó al llegar − diferencia)', () => {
+    const t = parsearTanqueCierre({ disponible: true, carga_llegada_l: 560, consumo_plataforma_l: 506.87, diferencia_l: 73.13, deberia_cargar_l: 486.87 });
+    expect(t).toMatchObject({ cargaLlegadaL: 560, consumoPlataformaL: 506.87, diferenciaL: 73.13, deberiaCargarL: 486.87 });
+    expect(parsearTanqueCierre({ disponible: true }).deberiaCargarL).toBeNull();
+  });
 });
