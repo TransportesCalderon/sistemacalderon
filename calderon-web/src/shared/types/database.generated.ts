@@ -1084,6 +1084,25 @@ export type Database = {
     Tables: { [_ in never]: never };
     Views: { [_ in never]: never };
     Functions: {
+      // Migración 196: libro de salidas de la base operativa
+      fn_libro_salidas: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
+      fn_datos_salida: { Args: { p_camion: number; p_ts?: string }; Returns: Json };
+      fn_guardar_salida: {
+        Args: {
+          p_id: number | null;
+          p_camion: number;
+          p_fecha: string;
+          p_hora: string | null;
+          p_chofer: number | null;
+          p_semi: number | null;
+          p_genset: number | null;
+          p_producto: string | null;
+          p_destino: string | null;
+          p_observacion: string | null;
+        };
+        Returns: number;
+      };
+      fn_descartar_salida: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       // Migración 68: Ventas (ops.fn_ven_* llama a ven.*)
       fn_ven_tablero: { Args: Record<string, never>; Returns: Json };
       fn_ven_empresas: { Args: { p_texto?: string | null; p_solo?: string | null }; Returns: Json };

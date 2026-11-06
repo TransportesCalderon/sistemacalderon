@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { browserDb } from '@/shared/supabase/browser';
 import {
   bajaSemi,
@@ -17,6 +17,8 @@ import {
   deshacerDesenganche,
 } from '../actions/pizarra.actions';
 import { pizarraQueries as q } from './keys';
+import { descartarSalida, guardarSalida } from '../actions/salidas.actions';
+import { salidasRepository } from '../repositories/salidas.repository';
 import { invalidar } from '@/shared/query/invalidar';
 
 /** Respaldo por si el tiempo real se corta: la Pizarra se vuelve a leer igual cada 60 s. */
@@ -95,3 +97,27 @@ export const useGuardarGenset = () => useEscritura(guardarGenset);
 export const useEliminarGenset = () => useEscritura(eliminarGenset);
 export const useInstalarGenset = () => useEscritura(instalarGenset);
 export const useRetirarGenset = () => useEscritura(retirarGenset);
+
+// ---- Migración 196: libro de salidas de la base ----
+export const useLibroSalidas = (desde: string, hasta: string, activo: boolean) =>
+  useQuery({
+    queryKey: ['pizarra', 'salidas', desde, hasta] as const,
+    queryFn: () => salidasRepository(browserDb()).libro(desde, hasta),
+    enabled: activo,
+    placeholderData: keepPreviousData,
+    refetchInterval: activo ? 5 * 60_000 : false,
+  });
+export const useDatosSalida = (camionId: number | null) =>
+  useQuery({
+    queryKey: ['pizarra', 'salidas', 'datos', camionId] as const,
+    queryFn: () => salidasRepository(browserDb()).datos(camionId!),
+    enabled: camionId !== null,
+  });
+export function useGuardarSalida() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: guardarSalida, onSuccess: (r) => (r.ok ? invalidar(qc, 'pizarra') : undefined) });
+}
+export function useDescartarSalida() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: descartarSalida, onSuccess: (r) => (r.ok ? invalidar(qc, 'pizarra') : undefined) });
+}

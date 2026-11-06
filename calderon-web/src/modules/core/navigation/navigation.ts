@@ -92,6 +92,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       // Migración 63: todos los cierres pendientes en un lugar, con lo que falta y aprobar varios
       { href: '/analisis/cierres/por-hacer', etiqueta: 'Cierres por hacer' },
       { href: '/pizarra', etiqueta: 'Pizarra Azul' },
+      // Migración 196: qué camiones salieron de la base cada día (vista de la Pizarra)
+      { href: '/pizarra?vista=salidas', etiqueta: 'Libro de salidas' },
     ],
   },
   {
