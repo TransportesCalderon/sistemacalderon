@@ -21,8 +21,8 @@ function Paso({ titulo, valor, detalle, fuerte }: { titulo: string; valor: strin
 }
 
 /**
- * Migración 206 · El tanque del viaje sin hacer cuentas: con cuántos litros salió, cuánto cargó en el viaje,
- * con cuánto llegó (antes de cargar) y cuánto consumió según el libro. Lo calcula la base (fue.fn_tanque_cierre).
+ * Migración 206 · El tanque del viaje sin hacer cuentas: con cuántos litros salió, cuánto cargó en el viaje
+ * y cuánto consumió según el libro. Lo calcula la base (fue.fn_tanque_cierre).
  */
 export function TanqueCierre({ cierreId }: { cierreId: CierreViajeId }) {
   const hay = useBaseTiene(VERSION_TANQUE_CIERRE);
@@ -56,13 +56,7 @@ export function TanqueCierre({ cierreId }: { cierreId: CierreViajeId }) {
           detalle={trasvases ? `y trasvases: + ${litros(t.entradasL)} / − ${litros(t.salidasL)}` : 'sin contar la carga de llegada'}
         />
         <ArrowRight className="hidden size-4 shrink-0 self-center text-tinta-suave sm:block" />
-        <Paso
-          titulo="Llegó con"
-          valor={litros(t.llegoConL)}
-          detalle={`antes de cargar ${litros(t.cargaLlegadaL)}${(t.faltanteLlegadaL ?? 0) > 0 ? ` (quedaron faltando ${litros(t.faltanteLlegadaL)})` : ''}`}
-        />
-        <ArrowRight className="hidden size-4 shrink-0 self-center text-tinta-suave sm:block" />
-        <Paso titulo="Consumió (libro)" valor={litros(t.consumoLibroL)} detalle="salió + cargó − llegó" fuerte />
+        <Paso titulo="Consumió (libro)" valor={litros(t.consumoLibroL)} detalle="lo que se cargó para volver a llenar" fuerte />
       </div>
       {t.aviso && (
         <p className="flex items-start gap-1.5 text-sm text-alerta">
