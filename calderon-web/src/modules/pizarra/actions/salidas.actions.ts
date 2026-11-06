@@ -22,6 +22,7 @@ export const guardarSalida = createAction({
     producto: texto,
     destino: texto,
     observacion: texto,
+    devolucion: texto,
   }),
   handler: (d, { db }) => salidasRepository(db).guardar(d),
 });

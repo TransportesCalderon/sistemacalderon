@@ -6,6 +6,8 @@ import type { FechaISO } from '@/shared/types/dominio';
  * confirma o descarta, y también se cargan a mano. Acá solo se convierten tipos.
  */
 export const VERSION_LIBRO_SALIDAS = 196;
+/** Migración 205: dónde se devuelve el contenedor vacío. */
+export const VERSION_DEVOLUCION_VACIO = 205;
 
 export type EstadoSalida = 'detectada' | 'confirmada' | 'descartada';
 export type OrigenSalida = 'gps' | 'manual' | 'importado';
@@ -27,6 +29,7 @@ export interface Salida {
   genset: string | null;
   producto: string | null;
   destino: string | null;
+  devolucionVacio: string | null;
   observacion: string | null;
   motivoDescarte: string | null;
   confirmadaPor: string | null;
@@ -36,6 +39,8 @@ export interface Salida {
 export interface LibroSalidas {
   base: string | null;
   pendientes: number;
+  /** Lugares de devolución ya usados (para sugerir). */
+  lugaresDevolucion: string[];
   salidas: Salida[];
 }
 
@@ -57,6 +62,7 @@ export function parsearLibro(d: unknown): LibroSalidas {
   return {
     base: txt(x.base),
     pendientes: Number(x.pendientes ?? 0),
+    lugaresDevolucion: Array.isArray(x.lugares_devolucion) ? x.lugares_devolucion.filter((l): l is string => typeof l === 'string') : [],
     salidas: (Array.isArray(x.salidas) ? (x.salidas as J[]) : []).map((s) => ({
       id: Number(s.id),
       fecha: txt(s.fecha) ?? '',
@@ -73,6 +79,7 @@ export function parsearLibro(d: unknown): LibroSalidas {
       genset: txt(s.genset),
       producto: txt(s.producto),
       destino: txt(s.destino),
+      devolucionVacio: txt(s.devolucion_vacio),
       observacion: txt(s.observacion),
       motivoDescarte: txt(s.motivo_descarte),
       confirmadaPor: txt(s.confirmada_por),

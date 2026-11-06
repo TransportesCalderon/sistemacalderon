@@ -1181,6 +1181,8 @@ export type Database = {
           p_producto: string | null;
           p_destino: string | null;
           p_observacion: string | null;
+          /** Migración 205 */
+          p_devolucion?: string | null;
         };
         Returns: number;
       };

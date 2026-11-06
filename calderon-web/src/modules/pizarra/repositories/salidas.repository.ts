@@ -12,6 +12,8 @@ export interface GuardarSalidaDatos {
   producto: string | null;
   destino: string | null;
   observacion: string | null;
+  /** Migración 205 */
+  devolucion: string | null;
 }
 
 /** Migración 196: libro de salidas de la base. Todo lo decide la base; su mensaje se muestra tal cual. */
@@ -38,6 +40,7 @@ export const salidasRepository = (db: Db) => ({
       p_producto: d.producto,
       p_destino: d.destino,
       p_observacion: d.observacion,
+      p_devolucion: d.devolucion,
     });
     if (error) throw new RepoError(error);
     return Number(data);
