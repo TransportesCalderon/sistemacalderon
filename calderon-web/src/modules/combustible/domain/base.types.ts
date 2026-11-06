@@ -65,6 +65,7 @@ export interface ControlBase {
 export const TIPOS_MOVIMIENTO_BASE = [
   'entrada_camion',
   'entrada_genset',
+  'salida_genset',
   'entrada_otra',
   'salida_carga_propia',
   'salida_otra',
@@ -79,6 +80,7 @@ export const esTipoMovimientoBase = esDe(TIPOS_MOVIMIENTO_BASE);
 export const ETIQUETA_TIPO_MOVIMIENTO_BASE: Record<TipoMovimientoBase, string> = {
   entrada_camion: 'Descarga de camión',
   entrada_genset: 'Descarga de genset',
+  salida_genset: 'Carga a genset',
   entrada_otra: 'Entrada con motivo',
   salida_carga_propia: 'Carga a camión',
   salida_otra: 'Salida con motivo',

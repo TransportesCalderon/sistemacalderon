@@ -15,7 +15,7 @@ import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { registroGensetFormSchema, type RegistroGensetFormEntrada } from '../../domain/genset.schemas';
-import { useCamionesCombustible, useChoferesCombustible, useEstaciones, useMonedas, useRegistrarGenset, useTanquesBase } from '../../queries/hooks';
+import { useCamionesCombustible, useChoferesCombustible, useContextoGenset, useEstaciones, useMonedas, useRegistrarGenset, useTanquesBase } from '../../queries/hooks';
 import { CLASE_TEXTAREA, ErrorBase } from '../comun/ui';
 
 type Salida = ReturnType<typeof registroGensetFormSchema.parse>;
@@ -102,6 +102,15 @@ export function RegistroGensetForm({
   const litros = aNumero(watch('litros'));
   const precio = aNumero(watch('precioUnitario'));
   const genset = gensets?.find((g) => g.id === Number(watch('gensetId')));
+  // Migración 202: con el genset y la fecha, la base dice qué tractor lo llevaba y con qué chofer (se completa si está vacío)
+  const fechaIso = horaLocalAIso(watch('fechaHoraLocal') ?? '', zonaHoraria);
+  const { data: contexto } = useContextoGenset(genset?.id ?? null, fechaIso, listas);
+  useEffect(() => {
+    if (!contexto) return;
+    if (contexto.choferId && !form.getValues('choferId')) form.setValue('choferId', String(contexto.choferId), { shouldDirty: true });
+    if (contexto.camionId && !form.getValues('camionId')) form.setValue('camionId', String(contexto.camionId), { shouldDirty: true });
+  }, [contexto, form]);
+  const estacion = estaciones?.find((x) => x.id === Number(watch('estacionId')));
 
   const enviar = handleSubmit(async (d) => {
     setError(null);
@@ -141,7 +150,8 @@ export function RegistroGensetForm({
     }
     borrarBorrador(claveBorrador);
     if (onListo) onListo(d.gensetId);
-    else router.push(`/flota/gensets/${d.gensetId}`);
+    // Migración 202: vuelve a Cargas › Gensets
+    else router.push('/analisis/cargas?destino=genset');
   });
 
   return (
@@ -167,10 +177,10 @@ export function RegistroGensetForm({
             <option value="">Elegí…</option>
             {gensets
               ?.filter((g) => g.estado === 'activo')
+              .sort((a, b) => (a.semiPatente ?? `~${a.codigo}`).localeCompare(b.semiPatente ?? `~${b.codigo}`, 'es', { numeric: true }))
               .map((g) => (
                 <option key={g.id} value={g.id}>
-                  {g.codigo}
-                  {g.semiPatente ? ` · semi ${g.semiPatente}` : ''}
+                  {g.semiPatente ? `Semi ${g.semiPatente} · ${g.codigo}` : `${g.codigo} (sin semi)`}
                 </option>
               ))}
           </select>
@@ -196,7 +206,7 @@ export function RegistroGensetForm({
         </Campo>
         {carga ? (
           <>
-            <Campo label="Tractor" error={e.camionId?.message}>
+            <Campo label="Tractor" error={e.camionId?.message} {...(contexto?.tractor ? { ayuda: `Lo llevaba el ${contexto.tractor}.` } : {})}>
               <select {...register('camionId')}>
                 <option value="">Sin informar</option>
                 {camiones?.map((c) => (
@@ -206,12 +216,16 @@ export function RegistroGensetForm({
                 ))}
               </select>
             </Campo>
-            <Campo label="Estación *" error={e.estacionId?.message}>
+            <Campo
+              label="Estación *"
+              error={e.estacionId?.message}
+              {...(estacion?.esTanquePropio ? { ayuda: 'Surtidor de la base: los litros salen del tanque de base.' } : {})}
+            >
               <select {...register('estacionId')}>
                 <option value="">Elegí…</option>
                 {estaciones?.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.nombre} ({s.pais})
+                    {s.nombre} ({s.pais}){s.esTanquePropio ? ' · surtidor de la base' : ''}
                   </option>
                 ))}
               </select>

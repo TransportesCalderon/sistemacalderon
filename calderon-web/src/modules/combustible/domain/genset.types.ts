@@ -182,3 +182,74 @@ export function parsearFichaGenset(d: J): FichaGenset {
     })),
   };
 }
+
+// ---- Migración 202 · Genset G1: lista de cargas y contexto para completar la carga ----
+export const VERSION_GENSET_G1 = 202;
+
+export interface CargaGenset {
+  id: number;
+  tipo: 'carga' | 'descarga';
+  fechaHora: FechaISO;
+  gensetId: number;
+  genset: string;
+  semi: string | null;
+  tractor: string | null;
+  chofer: string | null;
+  origen: 'estacion' | 'tanque_base' | 'descarga_base';
+  estacion: string | null;
+  tanque: string | null;
+  litros: number;
+  horometroH: number;
+  tanqueLleno: boolean;
+  vacio: boolean;
+  precioUnitario: number | null;
+  moneda: string | null;
+  importe: number | null;
+  ticketNumero: string | null;
+  observacion: string | null;
+  cargadoPor: string | null;
+  cierre: string | null;
+}
+
+export interface ContextoGenset {
+  semi: string | null;
+  camionId: number | null;
+  tractor: string | null;
+  choferId: number | null;
+  chofer: string | null;
+}
+
+type JG = Record<string, unknown>;
+const tg = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
+const ng = (v: unknown): number | null => (v === null || v === undefined || v === '' ? null : Number(v));
+
+export const parsearCargasGenset = (d: unknown): CargaGenset[] =>
+  (Array.isArray(d) ? (d as JG[]) : []).map((x) => ({
+    id: Number(x.id),
+    tipo: x.tipo === 'descarga' ? 'descarga' : 'carga',
+    fechaHora: (tg(x.fecha_hora) ?? '') as FechaISO,
+    gensetId: Number(x.genset_id),
+    genset: tg(x.genset) ?? '',
+    semi: tg(x.semi),
+    tractor: tg(x.tractor),
+    chofer: tg(x.chofer),
+    origen: x.origen === 'tanque_base' ? 'tanque_base' : x.origen === 'descarga_base' ? 'descarga_base' : 'estacion',
+    estacion: tg(x.estacion),
+    tanque: tg(x.tanque),
+    litros: Number(x.litros ?? 0),
+    horometroH: Number(x.horometro_h ?? 0),
+    tanqueLleno: x.tanque_lleno === true,
+    vacio: x.vacio === true,
+    precioUnitario: ng(x.precio_unitario),
+    moneda: tg(x.moneda),
+    importe: ng(x.importe),
+    ticketNumero: tg(x.ticket_numero),
+    observacion: tg(x.observacion),
+    cargadoPor: tg(x.cargado_por),
+    cierre: tg(x.cierre),
+  }));
+
+export function parsearContextoGenset(d: unknown): ContextoGenset {
+  const x = (d && typeof d === 'object' ? d : {}) as JG;
+  return { semi: tg(x.semi), camionId: ng(x.camion_id), tractor: tg(x.tractor), choferId: ng(x.chofer_id), chofer: tg(x.chofer) };
+}

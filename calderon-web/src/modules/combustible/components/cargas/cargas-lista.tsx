@@ -18,6 +18,7 @@ import { Cargando, Encabezado, ErrorLectura, Paginador, Vacio } from '../comun/u
 import { DestinoCarga, RolViajeChips, SituacionCargaChip } from './chips-carga';
 import { AvisosCargaOficina } from '@/modules/telemetria/components/avisos-carga-oficina';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
+import { DestinoListaCargas } from '../genset/cargas-genset-lista';
 import { useAbrirFicha } from '@/modules/core/fichas/contexto';
 
 /** Combustible > Cargas: lista con fronteras, rol en el viaje y situación. */
@@ -41,6 +42,7 @@ export function CargasLista() {
         </Can>
       </Encabezado>
 
+      <DestinoListaCargas actual="tractor" />
       <AvisosCargaOficina />
 
       <section className={cn(TARJETA, 'flex flex-wrap items-center gap-2 p-3')} aria-label="Filtros">

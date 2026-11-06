@@ -4,6 +4,7 @@ import { requirePermiso } from '@/modules/core/auth/guards';
 import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_CARGAS } from '@/shared/ui/pestanas-secciones';
 import { CargasLista } from '@/modules/combustible/components/cargas/cargas-lista';
+import { CargasGensetLista } from '@/modules/combustible/components/genset/cargas-genset-lista';
 import { parsearListaCargas } from '@/modules/combustible/domain/carga.lista';
 import { combustibleQueries as q } from '@/modules/combustible/queries/keys';
 import { createSupabaseServerClient } from '@/server/supabase/server';
@@ -16,7 +17,16 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 /** Combustible > Cargas. Precarga en el servidor e hidrata React Query. */
 export default async function CargasPage({ searchParams }: Props) {
   await requirePermiso('combustible.cargas:ver');
-  const params = parsearListaCargas(await searchParams);
+  const sp = await searchParams;
+  // Migración 202: las cargas de genset, en la misma pantalla (Tractores | Gensets)
+  if (sp.destino === 'genset')
+    return (
+      <>
+        <Pestanas items={PESTANAS_CARGAS} />
+        <CargasGensetLista />
+      </>
+    );
+  const params = parsearListaCargas(sp);
   const db = await createSupabaseServerClient();
   const qc = getQueryClient();
   await Promise.all([qc.prefetchQuery(q.cargas.lista(db, params)), qc.prefetchQuery(q.catalogos.camiones(db))]);

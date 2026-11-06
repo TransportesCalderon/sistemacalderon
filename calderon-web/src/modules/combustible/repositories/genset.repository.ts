@@ -1,7 +1,15 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { FechaISO } from '@/shared/types/dominio';
 import type { RegistroGenset } from '../domain/genset.schemas';
-import { parsearFichaGenset, type FichaGenset, type GensetCombustible } from '../domain/genset.types';
+import {
+  parsearCargasGenset,
+  parsearContextoGenset,
+  parsearFichaGenset,
+  type CargaGenset,
+  type ContextoGenset,
+  type FichaGenset,
+  type GensetCombustible,
+} from '../domain/genset.types';
 
 /** Combustible de los gensets (migración 48). Todo lo calcula la base; su mensaje se muestra tal cual. */
 export const gensetRepository = (db: Db) => {
@@ -25,6 +33,19 @@ export const gensetRepository = (db: Db) => {
         porCerrar: g.por_cerrar,
         descuentosL: Number(g.descuentos_l ?? 0),
       }));
+    },
+
+    /** Migración 202: cargas y descargas de genset del período (Cargas › Gensets). */
+    async cargas(desde: string | null, hasta: string | null, gensetId: number | null): Promise<CargaGenset[]> {
+      const { data, error } = await fue().rpc('fn_cargas_genset', { p_desde: desde, p_hasta: hasta, p_genset: gensetId });
+      if (error) throw new RepoError(error);
+      return parsearCargasGenset(data);
+    },
+    /** Migración 202: semi, tractor y chofer del genset en un momento (para completar la carga). */
+    async contexto(gensetId: number, ts: string | null): Promise<ContextoGenset> {
+      const { data, error } = await fue().rpc('fn_contexto_genset', { p_genset: gensetId, p_ts: ts });
+      if (error) throw new RepoError(error);
+      return parsearContextoGenset(data);
     },
 
     async ficha(gensetId: number): Promise<FichaGenset> {

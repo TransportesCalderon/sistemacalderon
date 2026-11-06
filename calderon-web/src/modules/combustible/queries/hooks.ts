@@ -209,6 +209,21 @@ export const useGensetsCombustible = () =>
 export const useFichaGenset = (gensetId: number) =>
   useQuery({ queryKey: ['combustible', 'gensets', gensetId] as const, queryFn: () => gensetRepository(browserDb()).ficha(gensetId), staleTime: 15_000 });
 export const useRegistrarGenset = () => useEscritura(registrarGenset);
+/** Migración 202: Cargas › Gensets y contexto del genset para completar la carga. */
+export const useCargasGenset = (desde: string | null, hasta: string | null, gensetId: number | null, activo = true) =>
+  useQuery({
+    queryKey: ['combustible', 'gensets', 'cargas', desde, hasta, gensetId],
+    queryFn: () => gensetRepository(browserDb()).cargas(desde, hasta, gensetId),
+    enabled: activo,
+    placeholderData: keepPreviousData,
+  });
+export const useContextoGenset = (gensetId: number | null, ts: string | null, activo = true) =>
+  useQuery({
+    queryKey: ['combustible', 'gensets', 'contexto', gensetId, ts],
+    queryFn: () => gensetRepository(browserDb()).contexto(gensetId!, ts),
+    enabled: activo && gensetId !== null,
+    staleTime: 60_000,
+  });
 export const useEliminarRegistroGenset = () => useEscritura(eliminarRegistroGenset);
 export const useCerrarGenset = () => useEscritura(cerrarGenset);
 export const useAnularCierreGenset = () => useEscritura(anularCierreGenset);

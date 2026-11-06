@@ -2066,6 +2066,9 @@ export type Database = {
       fn_verificar_cierre: { Args: { p_id: number }; Returns: Json };
       fn_aprobar_cierre: { Args: { p_id: number; p_version: number }; Returns: CierreViajeRow };
       fn_decision_cierre: { Args: { p_cierre: number }; Returns: Json };
+      // Migración 202: gensets
+      fn_cargas_genset: { Args: { p_desde?: string | null; p_hasta?: string | null; p_genset?: number | null }; Returns: Json };
+      fn_contexto_genset: { Args: { p_genset: number; p_ts?: string | null }; Returns: Json };
       // Migración 200: segunda aprobación cuando se descuenta menos que la diferencia
       fn_segundo_nivel_cierre: { Args: { p_cierre: number }; Returns: Json };
       fn_esperan_segundo_nivel: { Args: Record<string, never>; Returns: Json };
