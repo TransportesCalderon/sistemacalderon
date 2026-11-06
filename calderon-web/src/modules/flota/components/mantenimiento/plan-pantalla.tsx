@@ -23,6 +23,7 @@ import {
 } from '../../domain/mantenimiento.types';
 import { fechaDia, type Equipo } from '../../domain/vencimientos.types';
 import { useCargarBaseTarea, useGuardarTarea, usePlanMantenimiento, useZonasEquipo } from '../../queries/hooks';
+import { Camion3D } from './camion-3d';
 import { SelectorZonas } from './ordenes-pantalla';
 
 const TONO: Record<EstadoPlan, Tono> = { vencida: 'error', proxima: 'alerta', al_dia: 'exito', sin_km: 'neutro' };
@@ -292,6 +293,15 @@ function FormTarea({ t, zonas, onCerrar }: { t: TareaPlan | null; zonas: Zona[];
       <div className="space-y-1">
         <span className="block text-xs text-tinta-suave">Qué revisar (se marca en amarillo)</span>
         <SelectorZonas zonas={zonas} equipo={aplica} valor={zs} onCambiar={setZs} />
+        <Camion3D
+          equipo={aplica}
+          marca={aplica === 'tractor' ? marca || null : null}
+          tipoSemi={aplica === 'semi' ? tipoSemi || null : null}
+          zonas={zs}
+          nombres={Object.fromEntries(zonas.map((z) => [z.codigo, z.nombre]))}
+          onTocar={(z) => setZs((v) => (v.includes(z) ? v.filter((x) => x !== z) : [...v, z]))}
+          alto={220}
+        />
       </div>
       {t && (
         <label className="inline-flex items-center gap-2 text-sm text-tinta">

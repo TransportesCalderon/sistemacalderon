@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
+import { Camion3D } from './camion-3d';
 import {
   ETIQUETA_ESTADO_OT,
   ETIQUETA_ORIGEN,
@@ -60,8 +61,10 @@ export function OrdenesPantalla() {
   const [abierta, setAbierta] = useState<number | null>(null);
   const [nueva, setNueva] = useState(false);
   const [buscar, setBuscar] = useState('');
+  const [equipoSel, setEquipoSel] = useState('');
   const { data, isPending, isError, error, refetch, isFetching } = useOrdenesTrabajo(hay, 30);
   const zonas = useZonasEquipo(hay).data ?? [];
+  const nombres = Object.fromEntries(zonas.map((z) => [z.codigo, z.nombre]));
 
   if (!hay) return <Vacio icono={<Wrench className="size-6" />} texto="Falta aplicar en la base el cambio de Mantenimiento (órdenes de trabajo)." />;
   if (isPending) return <Cargando texto="Leyendo las órdenes de trabajo…" />;
@@ -76,7 +79,16 @@ export function OrdenesPantalla() {
     cerradas: (o) => o.estado === 'verificada' || o.estado === 'anulada',
   };
   const b = buscar.trim().toLowerCase();
-  const lista = data.filter((o) => FILTROS[filtro](o) && (!b || [o.numero, o.patente, o.titulo, o.asignado].some((t) => t?.toLowerCase().includes(b))));
+  const delEquipo = (o: OrdenTrabajo) => !equipoSel || `${o.equipo}:${o.equipoId}` === equipoSel;
+  const lista = data.filter(
+    (o) => FILTROS[filtro](o) && delEquipo(o) && (!b || [o.numero, o.patente, o.titulo, o.asignado].some((t) => t?.toLowerCase().includes(b))),
+  );
+  // Migración M4: equipos con órdenes abiertas, para verlos en 3D con todo lo que hay que revisar
+  const conAbiertas = [...new Map(data.filter(abiertas).map((o) => [`${o.equipo}:${o.equipoId}`, o])).values()].sort((x, y) =>
+    x.patente.localeCompare(y.patente, 'es', { numeric: true }),
+  );
+  const sel = conAbiertas.find((o) => `${o.equipo}:${o.equipoId}` === equipoSel) ?? null;
+  const abiertasSel = sel ? data.filter((o) => abiertas(o) && delEquipo(o)) : [];
   const cuenta = (f: Filtro) => data.filter(FILTROS[f]).length;
 
   return (
@@ -115,14 +127,48 @@ export function OrdenesPantalla() {
           </button>
         ))}
       </div>
-      <input
-        type="search"
-        aria-label="Buscar"
-        className={cn(CONTROL_FILTRO, 'h-10 w-full max-w-sm')}
-        placeholder="Buscar OT, patente, tarea o mecánico…"
-        value={buscar}
-        onChange={(e) => setBuscar(e.target.value)}
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="search"
+          aria-label="Buscar"
+          className={cn(CONTROL_FILTRO, 'h-10 w-full max-w-sm')}
+          placeholder="Buscar OT, patente, tarea o mecánico…"
+          value={buscar}
+          onChange={(e) => setBuscar(e.target.value)}
+        />
+        <select aria-label="Equipo" className={cn(CONTROL_FILTRO, 'h-10')} value={equipoSel} onChange={(e) => setEquipoSel(e.target.value)}>
+          <option value="">Todos los equipos</option>
+          {conAbiertas.map((o) => (
+            <option key={`${o.equipo}:${o.equipoId}`} value={`${o.equipo}:${o.equipoId}`}>
+              {o.patente} ({o.equipo === 'tractor' ? 'tractor' : 'semi'}) · {data.filter((x) => abiertas(x) && x.equipo === o.equipo && x.equipoId === o.equipoId).length} abiertas
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {sel && (
+        <div className={cn(TARJETA, 'max-w-4xl space-y-2 p-4')}>
+          <p className="font-medium text-tinta">
+            <span className="font-mono">{sel.patente}</span> · lo que hay que revisar ({abiertasSel.length} {abiertasSel.length === 1 ? 'orden abierta' : 'órdenes abiertas'})
+          </p>
+          <Camion3D
+            equipo={sel.equipo}
+            marca={sel.marca}
+            modelo={sel.modelo}
+            tipoSemi={sel.tipoSemi}
+            zonas={[...new Set(abiertasSel.flatMap((o) => o.zonas))]}
+            nombres={nombres}
+          />
+          <ul className="text-sm text-tinta">
+            {abiertasSel.map((o) => (
+              <li key={o.id}>
+                <span className="font-mono">{o.numero}</span> · {o.titulo}
+                {o.zonas.length > 0 && <span className="text-tinta-suave"> · {o.zonas.map((z) => nombres[z] ?? z).join(', ')}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className={cn(TARJETA, 'overflow-x-auto', isFetching && 'opacity-80')}>
         <table className="w-full min-w-[940px] text-sm">
@@ -308,8 +354,17 @@ function NuevaOt({ zonas, onCerrar }: { zonas: Zona[]; onCerrar: () => void }) {
       </div>
       {elegido && (
         <div className="space-y-1">
-          <span className="block text-xs text-tinta-suave">Qué revisar (se marca en amarillo)</span>
+          <span className="block text-xs text-tinta-suave">Qué revisar (se marca en amarillo): elegilo en la lista o tocá el camión</span>
           <SelectorZonas zonas={zonas} equipo={elegido.equipo} valor={zs} onCambiar={setZs} />
+          <Camion3D
+            equipo={elegido.equipo}
+            marca={elegido.equipo === 'tractor' ? elegido.descripcion : null}
+            tipoSemi={elegido.equipo === 'semi' ? elegido.descripcion : null}
+            zonas={zs}
+            nombres={Object.fromEntries(zonas.map((z) => [z.codigo, z.nombre]))}
+            onTocar={(z) => setZs((v) => (v.includes(z) ? v.filter((x) => x !== z) : [...v, z]))}
+            alto={240}
+          />
         </div>
       )}
       <ErrorBase error={envio.error} />
@@ -377,14 +432,15 @@ function DetalleOt({ o, zonas }: { o: OrdenTrabajo; zonas: Zona[] }) {
 
       {o.descripcion && <p className="text-sm text-tinta">{o.descripcion}</p>}
       {o.zonas.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="text-tinta-suave">Revisar:</span>
-          {o.zonas.map((z) => (
-            <span key={z} className="rounded-full border border-[#d4a106] bg-[#fff4c2] px-2.5 py-0.5 text-[#6b5000]">
-              {nombreZona(z)}
-            </span>
-          ))}
-        </div>
+        <Camion3D
+          equipo={o.equipo}
+          marca={o.marca}
+          modelo={o.modelo}
+          tipoSemi={o.tipoSemi}
+          zonas={o.zonas}
+          nombres={Object.fromEntries(o.zonas.map((z) => [z, nombreZona(z)]))}
+          alto={240}
+        />
       )}
 
       <div className="space-y-2 rounded-md bg-hover p-3">
