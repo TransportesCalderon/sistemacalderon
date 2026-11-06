@@ -14,6 +14,9 @@ export const ROLES_APP = [
   'ti',
   'auditor',
   'comercial',
+  // Migración 198: Mantenimiento
+  'mantenimiento_jefe',
+  'mecanico',
 ] as const;
 
 export type RolApp = (typeof ROLES_APP)[number];
@@ -33,4 +36,6 @@ export const ETIQUETA_ROL: Record<RolApp, string> = {
   ti: 'Administrador del sistema',
   auditor: 'Auditor',
   comercial: 'Ventas',
+  mantenimiento_jefe: 'Jefe de mantenimiento',
+  mecanico: 'Mecánico',
 };

@@ -94,8 +94,11 @@ describe('navegación (menú lateral por área; se mantiene después del Sprint 
 
   it('grupos por área, con «Cargar nuevo» y lo del chofer aparte', () => {
     // Migración 194: módulo Telemetría (Seguimiento de viajes, mapa, rutas, alertas, actas y ranking); «Alertas» se integró ahí
-    expect(NAVEGACION.map((g) => g.id)).toEqual(['inicio', 'chofer', 'cargar', 'ventas', 'logistica', 'telemetria', 'combustible', 'flota', 'rrhh', 'finanzas', 'datos', 'configuracion']);
-    expect(entradas.length).toBe(47); // Migración 196: «Libro de salidas»
+    // Migración 198: módulo Mantenimiento (Vencimientos)
+    expect(NAVEGACION.map((g) => g.id)).toEqual([
+      'inicio', 'chofer', 'cargar', 'ventas', 'logistica', 'telemetria', 'mantenimiento', 'combustible', 'flota', 'rrhh', 'finanzas', 'datos', 'configuracion',
+    ]);
+    expect(entradas.length).toBe(48); // Migración 196: «Libro de salidas»; 198: «Vencimientos»
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
   });
@@ -129,9 +132,9 @@ describe('navegación (menú lateral por área; se mantiene después del Sprint 
     expect(pantallaDeRuta('/otra-cosa')).toBeNull();
   });
 
-  it('TI ve 11 grupos (no el del chofer); el inicio de todos es «Hoy» y el del chofer, Mi viaje', () => {
-    expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(11);
-    for (const rol of ['gerencia', 'operaciones', 'base_mendoza', 'adm_combustible', 'finanzas', 'comercial'] as const) {
+  it('TI ve 12 grupos (no el del chofer); el inicio de todos es «Hoy» y el del chofer, Mi viaje', () => {
+    expect(menuVisible(permisosDe(['ti'], agregado)).length).toBe(12);
+    for (const rol of ['gerencia', 'operaciones', 'base_mendoza', 'adm_combustible', 'finanzas', 'comercial', 'mantenimiento_jefe', 'mecanico'] as const) {
       expect(rutaInicial(permisosDe([rol], agregado)), rol).toBe('/hoy');
     }
     expect(rutaInicial(permisosDe(['chofer'], agregado))).toBe('/mi-viaje');

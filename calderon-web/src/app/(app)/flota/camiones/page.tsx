@@ -4,6 +4,7 @@ import { requirePermiso } from '@/modules/core/auth/guards';
 import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_EQUIPOS } from '@/shared/ui/pestanas-secciones';
 import { CamionesLista } from '@/modules/flota/components/camiones/camiones-lista';
+import { VencimientosPantalla } from '@/modules/flota/components/vencimientos/vencimientos-pantalla';
 import { parsearListaCamiones } from '@/modules/flota/domain/camion.lista';
 import { camionesQueries, catalogosFlotaQueries } from '@/modules/flota/queries/keys';
 import { createSupabaseServerClient } from '@/server/supabase/server';
@@ -16,7 +17,13 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 /** P-MAE-01 · Lista de camiones. Precarga en el servidor e hidrata React Query. */
 export default async function CamionesPage({ searchParams }: Props) {
   await requirePermiso('flota.camiones:ver');
-  const params = parsearListaCamiones(await searchParams);
+  const sp = await searchParams;
+  // Migración 198 · Mantenimiento › Vencimientos (técnicas y matafuegos), vista de esta pantalla
+  if (sp.vista === 'vencimientos') {
+    await requirePermiso('mantenimiento.vencimientos:ver');
+    return <VencimientosPantalla />;
+  }
+  const params = parsearListaCamiones(sp);
 
   const db = await createSupabaseServerClient();
   const qc = getQueryClient();

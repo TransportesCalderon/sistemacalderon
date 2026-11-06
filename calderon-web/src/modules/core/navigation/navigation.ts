@@ -17,6 +17,7 @@ export type IconoGrupo =
   | 'ventas'
   | 'logistica'
   | 'telemetria'
+  | 'mantenimiento'
   | 'combustible'
   | 'flota'
   | 'rrhh'
@@ -112,6 +113,12 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       // Migración 103: los mejores choferes de cada mes
       { href: '/analisis/ranking', etiqueta: 'Ranking de choferes', incluye: ['/analisis/ranking/periodo'] },
     ],
+  },
+  {
+    // Migración 198 · Mantenimiento (M1): vencimientos de técnicas y matafuegos (vista de Camiones)
+    id: 'mantenimiento',
+    etiqueta: 'Mantenimiento',
+    entradas: [{ href: '/ajustes/flota?vista=vencimientos', etiqueta: 'Vencimientos' }],
   },
   {
     id: 'combustible',

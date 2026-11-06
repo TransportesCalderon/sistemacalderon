@@ -1076,6 +1076,24 @@ export type Database = {
       };
       /** Migración 143: punto de una estación de servicio (null = sin punto). */
       fn_ubicar_estacion: { Args: { p_estacion: number; p_latitud: number | null; p_longitud: number | null }; Returns: undefined };
+      // Migración 198: vencimientos de técnicas y matafuegos
+      fn_vencimientos: { Args: Record<string, never>; Returns: Json };
+      fn_historial_vencimientos: { Args: { p_equipo: string; p_id: number }; Returns: Json };
+      fn_registrar_vencimiento: {
+        Args: {
+          p_tipo: string;
+          p_equipo: string;
+          p_equipo_id: number;
+          p_detalle: string | null;
+          p_realizado: string | null;
+          p_vence: string;
+          p_observacion?: string | null;
+        };
+        Returns: number;
+      };
+      fn_anular_vencimiento: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      fn_avisos_vencimiento: { Args: Record<string, never>; Returns: Json };
+      fn_vencimiento_visto: { Args: { p_id: number }; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

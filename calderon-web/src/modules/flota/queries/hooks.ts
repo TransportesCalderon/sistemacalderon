@@ -10,6 +10,9 @@ import type { CamionEdicionInput, CamionFormInput } from '../domain/camion.schem
 import type { Camion, CamionListaParams } from '../domain/camion.types';
 import type { ChoferEdicionInput, ChoferFormInput } from '../domain/chofer.schemas';
 import type { Chofer, ChoferListaParams } from '../domain/chofer.types';
+import { anularVencimiento, registrarVencimiento, vencimientoVisto } from '../actions/vencimientos.actions';
+import type { Equipo } from '../domain/vencimientos.types';
+import { vencimientosRepository } from '../repositories/vencimientos.repository';
 import { basesQueries, camionesQueries, catalogosFlotaQueries, choferesQueries } from './keys';
 import { invalidar } from '@/shared/query/invalidar';
 
@@ -137,4 +140,39 @@ export function useEliminarChofer() {
     mutationFn: (input: { id: number; motivo: string }) => eliminarChofer(input),
     onSuccess: (r) => (r.ok ? invalidar(qc, 'chofer') : undefined),
   });
+}
+
+// ---- Migración 198: vencimientos de técnicas y matafuegos ----
+export const useVencimientos = (activo: boolean) =>
+  useQuery({
+    queryKey: ['flota', 'vencimientos', 'lista'] as const,
+    queryFn: () => vencimientosRepository(browserDb()).lista(),
+    enabled: activo,
+    placeholderData: keepPreviousData,
+    refetchInterval: activo ? 10 * 60_000 : false,
+  });
+export const useHistorialVencimientos = (equipo: Equipo, id: number | null) =>
+  useQuery({
+    queryKey: ['flota', 'vencimientos', 'historial', equipo, id] as const,
+    queryFn: () => vencimientosRepository(browserDb()).historial(equipo, id!),
+    enabled: id !== null,
+  });
+export const useAvisosVencimiento = (activo: boolean) =>
+  useQuery({
+    queryKey: ['flota', 'vencimientos', 'avisos'] as const,
+    queryFn: () => vencimientosRepository(browserDb()).avisos(),
+    enabled: activo,
+    refetchInterval: activo ? 5 * 60_000 : false,
+  });
+export function useRegistrarVencimiento() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: registrarVencimiento, onSuccess: (r) => (r.ok ? invalidar(qc, 'vencimiento') : undefined) });
+}
+export function useAnularVencimiento() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: anularVencimiento, onSuccess: (r) => (r.ok ? invalidar(qc, 'vencimiento') : undefined) });
+}
+export function useVencimientoVisto() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: vencimientoVisto, onSuccess: (r) => (r.ok ? invalidar(qc, 'vencimiento') : undefined) });
 }

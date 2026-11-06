@@ -57,7 +57,7 @@ export function SeguimientoViajes() {
   if (!hay) return <Vacio icono={<Radar className="size-6" />} texto="Falta aplicar en la base el cambio del seguimiento de viajes." />;
   return (
     <div className="space-y-5">
-      <Encabezado titulo="Seguimiento de viajes" />
+      <Encabezado titulo="Seguimiento de viajes" subtitulo="Telemetría" />
       <p className="max-w-3xl text-sm text-tinta-suave">
         Cómo viene cada viaje desde la salida: consumo contra el objetivo del viaje (el mismo del cierre) y uso del programador. Tocá un tractor para ver el
         detalle: el sistema arma el mensaje para el chofer; registrá el control y copialo para mandarlo por WhatsApp.

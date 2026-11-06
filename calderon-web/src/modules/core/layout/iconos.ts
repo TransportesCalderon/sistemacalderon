@@ -1,4 +1,4 @@
-import { Building2, Handshake, Landmark, CirclePlus, Package, Wallet, ClipboardCheck, Fuel, House, Radar, Route, Settings, Truck, type LucideIcon } from 'lucide-react';
+import { Building2, Handshake, Landmark, CirclePlus, Package, Wallet, ClipboardCheck, Fuel, House, Radar, Route, Settings, Truck, Wrench, type LucideIcon } from 'lucide-react';
 import type { IconoGrupo } from '@/modules/core/navigation/navigation';
 
 export const ICONO_GRUPO: Record<IconoGrupo, LucideIcon> = {
@@ -9,6 +9,7 @@ export const ICONO_GRUPO: Record<IconoGrupo, LucideIcon> = {
   ventas: Handshake,
   logistica: Route,
   telemetria: Radar,
+  mantenimiento: Wrench,
   combustible: Fuel,
   flota: Truck,
   rrhh: Wallet,

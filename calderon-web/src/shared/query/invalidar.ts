@@ -68,6 +68,8 @@ export const OBJETOS = {
   desvio: [['logistica', 'rutas', 'avisos']],
   /** Migración 177: «Entendido» en el aviso de tanque bajo. */
   tanque_bajo: [['logistica', 'tanque_bajo']],
+  /** Migración 198: vencimiento cargado o anulado (la lista, el historial y la ventana). */
+  vencimiento: [['flota', 'vencimientos']],
   /** Migración 192: eligió su contraseña (se cierra la ventana de cambio obligatorio). */
   clave: [['usuarios', 'debo-cambiar-clave']],
   /** Ventas: emitir o cobrar cambia también Finanzas y los viajes. */
