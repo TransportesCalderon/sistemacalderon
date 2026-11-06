@@ -13,11 +13,17 @@ export type Vec3 = readonly [number, number, number];
 export interface Pieza {
   /** Zonas de mae.zona_equipo a las que pertenece (la primera es la que se elige al tocarla). */
   zonas: readonly string[];
-  forma: 'caja' | 'cilindro';
+  forma: 'caja' | 'cilindro' | 'perfil';
   centro: Vec3;
   /** Caja: largo (x), alto (y), ancho (z). Cilindro: [radio, largo, radio] a lo largo de «eje». */
   medida: Vec3;
   eje?: 'x' | 'y' | 'z';
+  /** Perfil: contorno de costado (x, y), convexo, que se extruye a lo ancho (medida[2]). */
+  perfil?: readonly (readonly [number, number])[];
+  /** 1 = detalle pegado a otra pieza (ventana, rejilla, faro): se dibuja encima de las caras que miran a la cámara. */
+  capa?: number;
+  /** Hacia dónde mira un detalle: si mira para el otro lado, no se dibuja (no se ve a través de la cabina). */
+  mira?: Vec3;
   color: string;
 }
 
@@ -33,8 +39,9 @@ export interface EstiloCabina {
 }
 
 const C = {
-  cabina: '#c9d3df',
-  vidrio: '#5b6b7d',
+  cabina: '#eef1f4',
+  vidrio: '#3f4b58',
+  oscuro: '#2f343a',
   chasis: '#3d434b',
   motor: '#6b7280',
   goma: '#22262b',
@@ -67,6 +74,16 @@ const cil = (zonas: string[], centro: Vec3, radio: number, largo: number, eje: '
   color,
 });
 
+/** Marca una pieza como detalle de superficie (se dibuja después). */
+const det = (p: Pieza, mira: Vec3 = [1, 0, 0]): Pieza => ({ ...p, capa: 1, mira });
+
+/** Contorno de costado (x, y) extruido a lo ancho, centrado en z. */
+const perfil = (zonas: string[], puntos: [number, number][], ancho: number, z: number, color: string): Pieza => {
+  const cx = puntos.reduce((s, q) => s + q[0], 0) / puntos.length;
+  const cy = puntos.reduce((s, q) => s + q[1], 0) / puntos.length;
+  return { zonas, forma: 'perfil', centro: [cx, cy, z], medida: [0, 0, ancho], perfil: puntos, color };
+};
+
 /** Ruedas, frenos, eje y suspensión de un eje (doble rueda atrás). */
 function eje(codigo: string, x: number, doble: boolean, piso: number): Pieza[] {
   const r = 0.5;
@@ -76,47 +93,89 @@ function eje(codigo: string, x: number, doble: boolean, piso: number): Pieza[] {
   const out: Pieza[] = [caja([codigo], [x, y, 0], [0.18, 0.18, 2 * zr - ancho], C.chasis)];
   for (const s of [-1, 1]) {
     out.push(cil(['ruedas', codigo], [x, y, s * zr], r, ancho, 'z', C.goma));
-    out.push(cil(['ruedas', codigo], [x, y, s * (zr + ancho / 2 + 0.005)], 0.26, 0.02, 'z', C.llanta));
+    out.push(cil(['ruedas', codigo], [x, y, s * (zr + ancho / 2 + 0.005)], 0.3, 0.02, 'z', C.llanta));
+    out.push(cil(['ruedas', codigo], [x, y, s * (zr + ancho / 2 + 0.02)], 0.1, 0.03, 'z', C.oscuro));
     out.push(cil(['frenos', codigo], [x, y, s * (zr - ancho / 2 - 0.08)], 0.3, 0.14, 'z', C.freno));
     out.push(caja(['suspension', codigo], [x, y + 0.28, s * 0.45], [1.1, 0.1, 0.1], C.chasis));
   }
   return out;
 }
 
-/** Tractor 6x4 (3 ejes). */
+/**
+ * Tractor 6x4 (3 ejes), genérico: cabina de frente casi vertical con parabrisas inclinado, visera, espejos,
+ * escalones, paragolpes con faros, guardabarros y llantas. Alta o baja y corta o larga según la ficha.
+ */
 export function modeloTractor(estilo: EstiloCabina): Pieza[] {
-  const altoCab = estilo.alta ? 2.5 : 1.9;
-  const largoCab = estilo.larga ? 2.35 : 2.0;
-  const pisoCab = 1.25;
-  const xCab = 3.3 - largoCab / 2;
+  const piso = 1.3;
+  const techo = piso + (estilo.alta ? 2.45 : 1.85);
+  const atras = estilo.larga ? 1.0 : 1.3;
+  const frente = 3.38;
+  const ancho = 2.45;
+  const zLado = ancho / 2;
+  const yVidrio = piso + (estilo.alta ? 1.2 : 1.0);
+  const yVidrioArriba = techo - (estilo.alta ? 0.55 : 0.3);
   const p: Pieza[] = [
-    // Chasis y paragolpes
-    caja(['chasis'], [-0.1, 0.95, 0.45], [6.4, 0.24, 0.12], C.chasis),
-    caja(['chasis'], [-0.1, 0.95, -0.45], [6.4, 0.24, 0.12], C.chasis),
-    caja(['chasis'], [3.35, 0.75, 0], [0.18, 0.4, 2.4], C.chasis),
-    // Cabina con parabrisas y ventanas
-    caja(['cabina'], [xCab, pisoCab + altoCab / 2, 0], [largoCab, altoCab, 2.45], C.cabina),
-    caja(['cabina'], [3.31, pisoCab + altoCab * 0.62, 0], [0.04, altoCab * 0.38, 2.2], C.vidrio),
-    caja(['cabina'], [3.3 - 0.45, pisoCab + altoCab * 0.62, 1.23], [0.7, altoCab * 0.3, 0.02], C.vidrio),
-    caja(['cabina'], [3.3 - 0.45, pisoCab + altoCab * 0.62, -1.23], [0.7, altoCab * 0.3, 0.02], C.vidrio),
+    // Chasis
+    caja(['chasis'], [-0.15, 0.95, 0.45], [6.5, 0.24, 0.12], C.chasis),
+    caja(['chasis'], [-0.15, 0.95, -0.45], [6.5, 0.24, 0.12], C.chasis),
+    // Cabina: cuerpo con el techo un poco redondeado hacia adelante
+    perfil(['cabina'], [[atras, piso], [frente, piso], [frente + 0.02, yVidrio], [frente - 0.14, yVidrioArriba], [frente - 0.32, techo - 0.04],
+                        [frente - 0.55, techo], [atras, techo]], ancho, 0, C.cabina),
+    // Parabrisas (sigue la inclinación del frente) y ventanas de las puertas
+    det(perfil(['cabina'], [[frente + 0.035, yVidrio + 0.05], [frente - 0.12, yVidrioArriba - 0.02], [frente - 0.135, yVidrioArriba - 0.02], [frente + 0.02, yVidrio + 0.05]],
+           ancho - 0.25, 0, C.vidrio)),
+    det(caja(['cabina'], [frente - 0.75, yVidrio + 0.35, zLado + 0.005], [0.85, 0.75, 0.02], C.vidrio), [0, 0, 1]),
+    det(caja(['cabina'], [frente - 0.75, yVidrio + 0.35, -zLado - 0.005], [0.85, 0.75, 0.02], C.vidrio), [0, 0, -1]),
+    // Línea de la puerta y franja oscura bajo el parabrisas
+    det(caja(['cabina'], [frente - 1.3, piso + 0.9, zLado + 0.006], [0.03, 1.5, 0.01], '#c3c9d0'), [0, 0, 1]),
+    det(caja(['cabina'], [frente - 1.3, piso + 0.9, -zLado - 0.006], [0.03, 1.5, 0.01], '#c3c9d0'), [0, 0, -1]),
+    det(caja(['cabina'], [frente + 0.025, yVidrio - 0.04, 0], [0.02, 0.08, ancho - 0.2], C.oscuro)),
+    // Zócalo oscuro abajo de la cabina, a los costados
+    det(caja(['cabina'], [(atras + frente) / 2, piso + 0.12, zLado + 0.008], [frente - atras - 0.05, 0.24, 0.015], '#5f6770'), [0, 0, 1]),
+    det(caja(['cabina'], [(atras + frente) / 2, piso + 0.12, -zLado - 0.008], [frente - atras - 0.05, 0.24, 0.015], '#5f6770'), [0, 0, -1]),
+    // Visera sobre el parabrisas
+    caja(['cabina'], [frente - 0.1, yVidrioArriba + 0.08, 0], [0.32, 0.05, ancho - 0.1], C.oscuro),
+    // Espejos con su brazo
+    caja(['cabina'], [frente - 0.25, yVidrio + 0.55, zLado + 0.12], [0.05, 0.05, 0.25], C.oscuro),
+    caja(['cabina'], [frente - 0.25, yVidrio + 0.55, -zLado - 0.12], [0.05, 0.05, 0.25], C.oscuro),
+    caja(['cabina'], [frente - 0.25, yVidrio + 0.4, zLado + 0.27], [0.1, 0.5, 0.2], C.cabina),
+    caja(['cabina'], [frente - 0.25, yVidrio + 0.4, -zLado - 0.27], [0.1, 0.5, 0.2], C.cabina),
+    // Escalones de la cabina
+    caja(['cabina'], [frente - 0.75, 0.62, zLado - 0.06], [0.55, 0.05, 0.22], C.oscuro),
+    caja(['cabina'], [frente - 0.75, 1.0, zLado - 0.06], [0.55, 0.05, 0.22], C.oscuro),
+    caja(['cabina'], [frente - 0.75, 0.62, -zLado + 0.06], [0.55, 0.05, 0.22], C.oscuro),
+    caja(['cabina'], [frente - 0.75, 1.0, -zLado + 0.06], [0.55, 0.05, 0.22], C.oscuro),
+    // Frente: rejilla con listones y paragolpes
+    det(caja(['motor'], [frente + 0.045, piso + 0.45, 0], [0.02, 0.62, 1.25], C.oscuro)),
+    det(caja(['motor'], [frente + 0.065, piso + 0.3, 0], [0.02, 0.04, 1.15], '#7b8590')),
+    det(caja(['motor'], [frente + 0.065, piso + 0.48, 0], [0.02, 0.04, 1.15], '#7b8590')),
+    det(caja(['motor'], [frente + 0.065, piso + 0.66, 0], [0.02, 0.04, 1.15], '#7b8590')),
+    caja(['chasis'], [frente - 0.02, 0.85, 0], [0.32, 0.6, ancho], '#d9dee4'),
+    det(caja(['chasis'], [frente + 0.15, 0.6, 0], [0.04, 0.12, ancho - 0.3], C.oscuro)),
+    // Guardabarros delanteros y traseros
+    caja(['chasis'], [2.55, 1.12, 1.07], [1.15, 0.06, 0.4], C.oscuro),
+    caja(['chasis'], [2.55, 1.12, -1.07], [1.15, 0.06, 0.4], C.oscuro),
+    caja(['chasis'], [-1.95, 1.12, 0.95], [2.75, 0.05, 0.66], C.oscuro),
+    caja(['chasis'], [-1.95, 1.12, -0.95], [2.75, 0.05, 0.66], C.oscuro),
     // Motor y caja de cambios
-    caja(['motor'], [2.2, 0.9, 0], [1.4, 0.65, 0.85], C.motor),
+    caja(['motor'], [2.25, 0.95, 0], [1.4, 0.7, 0.85], C.motor),
     caja(['caja'], [1.05, 0.85, 0], [0.9, 0.45, 0.6], C.motor),
     // Tanques de combustible y de aire
-    cil(['tanques'], [0.55, 0.78, 1.05], 0.33, 1.35, 'x', C.tanque),
-    cil(['tanques'], [0.55, 0.78, -1.05], 0.33, 1.35, 'x', C.tanque),
-    cil(['aire'], [-0.55, 0.62, 0.95], 0.15, 0.75, 'x', C.tanque),
-    cil(['aire'], [-0.55, 0.62, -0.95], 0.15, 0.75, 'x', C.tanque),
-    // Quinta rueda
-    caja(['quinta_rueda'], [-1.85, 1.16, 0], [1.2, 0.1, 1.05], '#4b5563'),
-    // Luces y caja de baterías
-    caja(['electrico'], [3.45, 0.85, 0.95], [0.05, 0.16, 0.36], C.luz),
-    caja(['electrico'], [3.45, 0.85, -0.95], [0.05, 0.16, 0.36], C.luz),
-    caja(['electrico'], [-3.28, 0.9, 1.0], [0.05, 0.14, 0.3], C.luzTrasera),
-    caja(['electrico'], [-3.28, 0.9, -1.0], [0.05, 0.14, 0.3], C.luzTrasera),
-    caja(['electrico'], [-0.4, 0.82, -1.08], [0.55, 0.38, 0.3], '#4b5563'),
+    cil(['tanques'], [0.55, 0.75, 1.05], 0.34, 1.4, 'x', C.tanque),
+    cil(['tanques'], [0.55, 0.75, -1.05], 0.34, 1.4, 'x', C.tanque),
+    cil(['aire'], [-0.5, 0.62, 0.95], 0.15, 0.75, 'x', C.tanque),
+    cil(['aire'], [-0.5, 0.62, -0.95], 0.15, 0.75, 'x', C.tanque),
+    // Quinta rueda (plato con la ranura)
+    caja(['quinta_rueda'], [-1.9, 1.17, 0], [1.15, 0.1, 1.05], '#4b5563'),
+    caja(['quinta_rueda'], [-2.3, 1.225, 0], [0.4, 0.02, 0.14], '#1f2328'),
+    // Luces: faros en el paragolpes, traseras y caja de baterías
+    det(caja(['electrico'], [frente + 0.145, 0.95, 0.92], [0.02, 0.16, 0.42], C.luz)),
+    det(caja(['electrico'], [frente + 0.145, 0.95, -0.92], [0.02, 0.16, 0.42], C.luz)),
+    caja(['electrico'], [-3.38, 0.9, 1.0], [0.05, 0.14, 0.3], C.luzTrasera),
+    caja(['electrico'], [-3.38, 0.9, -1.0], [0.05, 0.14, 0.3], C.luzTrasera),
+    caja(['electrico'], [-0.45, 0.82, -1.08], [0.55, 0.38, 0.3], '#4b5563'),
   ];
-  return [...p, ...eje('eje_1', 2.55, false, 0), ...eje('eje_2', -1.25, true, 0), ...eje('eje_3', -2.65, true, 0)];
+  return [...p, ...eje('eje_1', 2.55, false, 0), ...eje('eje_2', -1.3, true, 0), ...eje('eje_3', -2.7, true, 0)];
 }
 
 /** Semirremolque de 3 ejes; furgón/refrigerado con caja, plataforma con piso. */
@@ -166,6 +225,15 @@ export function caras(piezas: readonly Pieza[], lados = 14): Cara[] {
         [[-1, -1, -1], [-1, 1, -1], [1, 1, -1], [1, -1, -1]],
       ];
       for (const f of q) out.push({ pieza: i, puntos: f.map(([a, b, c]) => v(a, b, c)) });
+    } else if (p.forma === 'perfil' && p.perfil) {
+      const w = p.medida[2] / 2;
+      const pf = p.perfil;
+      out.push({ pieza: i, puntos: pf.map(([x, y]) => [x, y, cz + w] as Vec3) });
+      out.push({ pieza: i, puntos: [...pf].reverse().map(([x, y]) => [x, y, cz - w] as Vec3) });
+      pf.forEach(([x, y], k) => {
+        const [x2, y2] = pf[(k + 1) % pf.length]!;
+        out.push({ pieza: i, puntos: [[x, y, cz - w], [x2, y2, cz - w], [x2, y2, cz + w], [x, y, cz + w]] });
+      });
     } else {
       const [r, largo] = p.medida;
       const e = p.eje ?? 'z';

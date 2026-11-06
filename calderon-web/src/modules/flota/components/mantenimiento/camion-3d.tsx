@@ -136,8 +136,8 @@ export function Camion3D({
         n = [n[0] / largo, n[1] / largo, n[2] / largo];
         return { c, pts, p, n, z: m[2] };
       })
-      .filter((x) => x.n[2] > -0.02)
-      .sort((x, y) => x.z - y.z);
+      .filter((x) => x.n[2] > -0.02 && (!x.p.mira || rotar(x.p.mira, vista.giro, vista.inclinacion)[2] > 0.02))
+      .sort((x, y) => (x.p.capa ?? 0) - (y.p.capa ?? 0) || x.z - y.z);
 
     const ll = Math.hypot(...luz);
     const out: typeof dibujadas.current = [];
