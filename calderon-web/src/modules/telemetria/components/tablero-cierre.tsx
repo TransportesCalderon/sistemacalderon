@@ -19,7 +19,20 @@ import { invalidar } from '@/shared/query/invalidar';
  * Migración 88: fotos del tablero del camión de este viaje. Sin telemetría del motor, el cierre toma de
  * acá el consumo, los km, las horas y el ralentí (lo decide la base). La oficina puede subirlas si el chofer no lo hizo.
  */
-export function TableroCierre({ camionId, desde, hasta, editable }: { camionId: number; desde: string | null; hasta: string | null; editable: boolean }) {
+export function TableroCierre({
+  camionId,
+  desde,
+  hasta,
+  editable,
+  enLinea = false,
+}: {
+  camionId: number;
+  desde: string | null;
+  hasta: string | null;
+  editable: boolean;
+  /** 06/11/2026: dentro de «Completar el cierre» de la ficha del viaje (sin tarjeta propia). */
+  enLinea?: boolean;
+}) {
   const { zonaHoraria } = useSesion();
   const qc = useQueryClient();
   const [subir, setSubir] = useState(false);
@@ -32,20 +45,17 @@ export function TableroCierre({ camionId, desde, hasta, editable }: { camionId: 
   });
   if (delViaje.length === 0 && !editable) return null;
 
-  return (
-    <Seccion
-      titulo="Tablero del camión (fotos)"
-      acciones={
-        editable && !subir ? (
-          <button type="button" className={BOTON_SECUNDARIO} onClick={() => setSubir(true)}>
-            <Camera className="size-4" /> Subir fotos
-          </button>
-        ) : undefined
-      }
-    >
+  const boton =
+    editable && !subir ? (
+      <button type="button" className={BOTON_SECUNDARIO} onClick={() => setSubir(true)}>
+        <Camera className="size-4" /> Subir fotos
+      </button>
+    ) : undefined;
+  const contenido = (
+    <>
       {delViaje.length === 0 ? (
         <p className="text-sm text-tinta-suave">
-          Sin fotos del tablero en este viaje. Si el camión no manda el consumo por internet, el chofer las sube en el llenado de llegada (o subilas acá).
+          {enLinea ? 'Sin fotos del tablero en este viaje.' : 'Sin fotos del tablero en este viaje. Si el camión no manda el consumo por internet, el chofer las sube en el llenado de llegada (o subilas acá).'}
         </p>
       ) : (
         <ul className="divide-y divide-borde text-sm">
@@ -95,6 +105,22 @@ export function TableroCierre({ camionId, desde, hasta, editable }: { camionId: 
           />
         </div>
       )}
+    </>
+  );
+  if (enLinea) {
+    return (
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-medium text-tinta">Fotos del tablero del camión</h3>
+          {boton}
+        </div>
+        {contenido}
+      </div>
+    );
+  }
+  return (
+    <Seccion titulo="Tablero del camión (fotos)" acciones={boton}>
+      {contenido}
     </Seccion>
   );
 }
