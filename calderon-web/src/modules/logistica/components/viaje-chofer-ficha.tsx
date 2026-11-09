@@ -1,6 +1,7 @@
 'use client';
 
 import { TanqueCierre } from '@/modules/combustible/components/cierres/tanque-cierre';
+import { TableroCierre } from '@/modules/telemetria/components/tablero-cierre';
 import { VERSION_TANQUE_CIERRE } from '@/modules/combustible/domain/cierre-tanque.types';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { usePuedeAprobarCierres } from '@/modules/combustible/queries/puede-aprobar';
@@ -319,10 +320,11 @@ function CombustibleCalculado({ cierreId }: { cierreId: CierreViajeId }) {
       {cierre && esBorrador && puedeCompletar && (
         <div className="border-t border-borde pt-3">
           <button type="button" className="inline-flex items-center gap-1 text-sm font-medium text-marca" onClick={() => setCompletar(!completar)} aria-expanded={completar}>
-            <ChevronDown className={cn('size-4 transition-transform', completar && 'rotate-180')} /> Completar el cierre: programador, test de alcohol, litros justificados y observaciones
+            <ChevronDown className={cn('size-4 transition-transform', completar && 'rotate-180')} /> Completar el cierre: fotos del tablero, programador, test de alcohol, litros justificados y observaciones
           </button>
           {completar && (
-            <div className="mt-3">
+            <div className="mt-3 space-y-4">
+              <TableroCierre camionId={cierre.camionId} desde={cierre.salidaTs} hasta={cierre.llegadaTs} editable enLinea />
               <BorradorForm cierre={cierre} />
             </div>
           )}
