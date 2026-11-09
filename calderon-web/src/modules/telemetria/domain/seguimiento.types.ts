@@ -173,6 +173,13 @@ export interface DatosPedidoCarga {
   precioFecha: FechaISO | null;
   conTelemetria: boolean;
   aviso: string | null;
+  /** Migración 221: inicial separado (los tanques se llenan primero), lo cargado en el viaje y la línea por los tramos. */
+  inicialTanquesL: number | null;
+  inicialMochilaL: number | null;
+  cargasViajeL: number;
+  cargasViaje: { estacion: string; litros: number }[];
+  linea: string | null;
+  lineaTramos: boolean;
 }
 
 export interface PedidoCarga {
@@ -202,6 +209,12 @@ export function parsearDatosPedido(d: unknown): DatosPedidoCarga {
     precioFecha: txt(x.precio_fecha) as FechaISO | null,
     conTelemetria: x.con_telemetria === true,
     aviso: txt(x.aviso),
+    inicialTanquesL: n(x.inicial_tanques_l),
+    inicialMochilaL: n(x.inicial_mochila_l),
+    cargasViajeL: n(x.cargas_viaje_l) ?? 0,
+    cargasViaje: arr(x.cargas_viaje).map((c) => ({ estacion: txt(c.estacion) ?? '', litros: Number(c.litros ?? 0) })),
+    linea: txt(x.linea),
+    lineaTramos: x.linea_tramos === true,
   };
 }
 

@@ -72,6 +72,23 @@ export function PedidoCarga({ viajeId, registra }: { viajeId: number; registra: 
           </div>
         ))}
       </dl>
+      {/* Migración 221: inicial por tanques y mochila, lo cargado en el viaje y la línea por los tramos */}
+      <div className="space-y-1 text-xs text-tinta-suave">
+        {d.inicialTanquesL !== null && (
+          <p>
+            Inicial: {formatearNumero(d.inicialTanquesL, 0)} L tanques | {formatearNumero(d.inicialMochilaL ?? 0, 0)} L mochila
+          </p>
+        )}
+        <p>
+          Cargado en el viaje: <span className="font-semibold text-tinta">{formatearNumero(d.cargasViajeL, 0)} L</span>
+          {d.cargasViaje.length > 0 && ` (${d.cargasViaje.map((c) => `${c.estacion}: ${formatearNumero(c.litros, 0)} L`).join(' · ')})`}
+        </p>
+        {d.linea && (
+          <p>
+            Línea{d.lineaTramos ? ' (tramos hechos)' : ''}: <span className="text-tinta">{d.linea}</span>
+          </p>
+        )}
+      </div>
       {d.aviso && <p className="text-xs text-alerta">{d.aviso}</p>}
 
       {registra && (
