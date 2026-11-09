@@ -47,6 +47,8 @@ export interface ViajeEnCurso {
   marca: string | null;
   choferId: number | null;
   chofer: string | null;
+  /** Migración 214: el chofer del viaje, si no es el que maneja ahora (a él se le hace el cierre). */
+  choferViaje: string | null;
   salidaTs: FechaISO;
   linea: string | null;
   km: number | null;
@@ -91,6 +93,7 @@ export const parsearViajesEnCurso = (d: unknown): ViajeEnCurso[] =>
       marca: txt(v.marca),
       choferId: n(v.chofer_id),
       chofer: txt(v.chofer),
+      choferViaje: txt(v.chofer_viaje),
       salidaTs: (txt(v.salida_ts) ?? '') as FechaISO,
       linea: txt(v.linea),
       km: n(v.km),
