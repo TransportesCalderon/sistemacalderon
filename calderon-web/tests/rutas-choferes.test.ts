@@ -35,20 +35,23 @@ describe('rutas para los choferes (migración 135)', () => {
     expect(siguientePunto(ruta, { lat: -33.5, lng: -71.1 })).toBe(1); // entre el puerto y Santiago
     expect(siguientePunto(ruta, { lat: -33.1, lng: -70.63 })).toBe(2); // pasó Santiago
     expect(siguientePunto(ruta, { lat: -32.86, lng: -69.7 })).toBe(3); // cruzando a Mendoza
-    // Desde «Tu ubicación» pasando por TODOS los puntos que faltan hasta el último (formato que respeta el celular)
+    // 09/11/2026: desde «Tu ubicación» hasta el ÚLTIMO punto (destination), con las paradas que faltan en el medio
     const l = linkDesde(ruta, 2)!;
-    expect(l.url).toBe('https://www.google.com/maps/dir//-32.83,-70.6/-32.89,-68.84');
+    expect(l.url).toBe('https://www.google.com/maps/dir/?api=1&destination=-32.89,-68.84&waypoints=-32.83,-70.6&travelmode=driving');
     expect(l.tramoFinal).toBe(true);
-    expect(linkDesde(ruta, 0)!.url).toBe('https://www.google.com/maps/dir//-33.59,-71.61/-33.45,-70.66/-32.83,-70.6/-32.89,-68.84');
+    expect(linkDesde(ruta, 0)!.url).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=-32.89,-68.84&waypoints=-33.59,-71.61%7C-33.45,-70.66%7C-32.83,-70.6&travelmode=driving',
+    );
   });
 
-  it('con más de 10 puntos el link llega hasta el 10.º y se sigue por tramos', () => {
+  it('con muchos puntos el link igual va hasta el último, con la próxima parada y otras repartidas', () => {
     const larga = Array.from({ length: 14 }, (_, i) => P(`P${i}`, -33 + i * 0.01, -70));
     const l = linkDesde(larga, 1)!;
-    expect(l.paradas).toBe(9);
-    expect(l.hasta.nombre).toBe('P10');
-    expect(l.tramoFinal).toBe(false);
-    expect(linkDesde(larga, 11)!.tramoFinal).toBe(true);
+    expect(l.paradas).toBe(3);
+    expect(l.hasta.nombre).toBe('P13');
+    expect(l.tramoFinal).toBe(true);
+    // Paradas: P1 (la próxima), P7 y P12 (repartidas), destino P13
+    expect(l.url).toBe('https://www.google.com/maps/dir/?api=1&destination=-32.87,-70&waypoints=-32.99,-70%7C-32.93,-70%7C-32.88,-70&travelmode=driving');
     expect(linkCompleto(ruta)).toBe('https://www.google.com/maps/dir/-33.59,-71.61/-33.45,-70.66/-32.83,-70.6/-32.89,-68.84');
   });
 

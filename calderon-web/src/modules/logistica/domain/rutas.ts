@@ -268,23 +268,36 @@ export interface LinkNavegacion {
   paradas: number;
 }
 
+/** 09/11/2026: paradas intermedias que se mandan al celular (en iPhone la app solo respeta pocas). */
+export const PARADAS_CELULAR = 3;
+
 /**
- * Link de Google Maps desde la ubicación del teléfono («Tu ubicación»), pasando por TODOS los puntos
- * que faltan (desde «desde») hasta el último. Formato /maps/dir//a/b/c: la app de Google Maps del
- * celular respeta todas las paradas (el formato api=1 en el celular se queda con la primera). Entran
- * hasta 10 puntos; si la ruta tiene más, el link llega hasta el 10.º y al volver a tocar «Continuar
- * viaje» sigue desde donde esté.
+ * Link de Google Maps desde la ubicación del teléfono («Tu ubicación») hasta el ÚLTIMO punto de la ruta.
+ * 09/11/2026: el formato /maps/dir//a/b/c… en iPhone se quedaba con los dos primeros puntos y el chofer
+ * terminaba navegando hasta una parada intermedia. Ahora va con «destination» = el último punto (eso lo
+ * respetan siempre Android y iPhone) y hasta 3 paradas intermedias: la próxima y otras repartidas a lo
+ * largo de lo que falta, para que Google siga el camino de la ruta.
  */
 export function linkDesde(puntos: PuntoRuta[], desde: number): LinkNavegacion | null {
   const faltan = puntos.slice(Math.max(0, Math.min(desde, puntos.length - 1))).filter(ubicado);
   if (faltan.length === 0) return null;
-  const tramo = faltan.slice(0, MAX_PARADAS_LINK + 1);
-  const destino = tramo[tramo.length - 1]!;
+  const destino = faltan[faltan.length - 1]!;
+  const intermedias = faltan.slice(0, -1);
+  let paradas: PuntoRuta[];
+  if (intermedias.length <= PARADAS_CELULAR) {
+    paradas = intermedias;
+  } else {
+    // La próxima siempre; las demás repartidas en lo que queda
+    const idx = new Set<number>([0]);
+    for (let k = 1; k < PARADAS_CELULAR; k++) idx.add(Math.round((k * (intermedias.length - 1)) / (PARADAS_CELULAR - 1)));
+    paradas = [...idx].sort((x, y) => x - y).map((i) => intermedias[i]!);
+  }
+  const q = `destination=${coord(destino)}${paradas.length ? `&waypoints=${paradas.map(coord).join('%7C')}` : ''}&travelmode=driving`;
   return {
-    url: `https://www.google.com/maps/dir//${tramo.map(coord).join('/')}`,
+    url: `https://www.google.com/maps/dir/?api=1&${q}`,
     hasta: destino,
-    tramoFinal: tramo.length === faltan.length,
-    paradas: tramo.length - 1,
+    tramoFinal: true,
+    paradas: paradas.length,
   };
 }
 
