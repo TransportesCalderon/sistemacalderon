@@ -86,7 +86,11 @@ export function ViajeChoferFicha({ id }: { id: number }) {
 
 function Cabecera({ v }: { v: ViajeChofer }) {
   const { zonaHoraria } = useSesion();
-  const puede = useCan('operacion.tramos:editar');
+  // 09/11/2026: cambiar el chofer también lo hacen Telemetría (asigna choferes a tractores) y Combustible (cierre)
+  const puedeTramos = useCan('operacion.tramos:editar');
+  const puedeCierre = useCan('combustible.cierre_viaje:editar');
+  const puedeAsignar = useCan('flota.asignaciones:editar');
+  const puede = puedeTramos || puedeCierre || puedeAsignar;
   const [cambiar, setCambiar] = useState(false);
   return (
     <header className="space-y-2">

@@ -70,7 +70,8 @@ export const quitarItemViaje = createAction({
 });
 
 export const cambiarChoferViaje = createAction({
-  permiso: 'operacion.tramos:editar',
+  // 09/11/2026: también Telemetría (asigna los choferes a los tractores) y Combustible (hace el cierre)
+  permiso: ['operacion.tramos:editar', 'combustible.cierre_viaje:editar', 'flota.asignaciones:editar'],
   schema: cambiarChoferViajeSchema,
   handler: (d, { db }) => viajesChoferRepository(db).cambiarChofer(d.viajeId, d.choferId),
   invalida: rutas,
