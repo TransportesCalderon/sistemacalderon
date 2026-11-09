@@ -22,7 +22,7 @@ const AREA = 'w-full rounded-md border border-borde bg-panel px-3 py-2 text-sm o
 
 /**
  * Migración 185 · La diferencia del cierre se resuelve siempre: descontar al chofer o justificar (con
- * motivo y evidencia). La aprueba otra persona. Ya aprobado, quitar el descuento es un pedido que
+ * motivo y evidencia). La aprueba alguien habilitado (migración 219: también quien decidió). Ya aprobado, quitar el descuento es un pedido que
  * resuelve otra persona habilitada. Las reglas las controla la base; acá solo se muestra su mensaje.
  */
 export function DecisionDiferencia({ cierreId, estado, aDescontarL }: { cierreId: number; estado: string; aDescontarL: number | null }) {
@@ -69,7 +69,7 @@ function Decidir({ cierreId, litros, actual }: { cierreId: number; litros: numbe
   return (
     <div className="space-y-3 border-t border-borde pt-3">
       <p className="text-sm">
-        Faltan <strong>{formatearNumero(litros, 1)} L</strong>. Para aprobar el cierre hay que decidir. La aprueba otra persona (no quien decide).
+        Faltan <strong>{formatearNumero(litros, 1)} L</strong>. Para aprobar el cierre hay que decidir. Después lo aprueba alguien habilitado para aprobar cierres (puede ser quien decidió).
       </p>
       <div className="flex flex-wrap gap-4 text-sm">
         {(['descontar', 'justificar'] as const).map((d) => (
