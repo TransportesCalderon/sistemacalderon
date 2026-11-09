@@ -154,6 +154,9 @@ export const PANTALLAS = {
   'mantenimiento.ordenes':   { etiqueta: 'Órdenes de trabajo', fila: ['E A', 'E', 'L', '—', 'L', 'E', '—', 'L', 'E A', 'L', '—', 'E A', 'E'] },
   // Plan de mantenimiento: lo arman el Jefe de mantenimiento y TI; los demás lo ven.
   'mantenimiento.plan':      { etiqueta: 'Plan de mantenimiento', fila: ['L', 'L', 'L', '—', 'L', 'L', '—', 'L', 'E A', 'L', '—', 'E A', 'L'] },
+  // Migración 216 · Stock de insumos: lo manejan el Jefe de mantenimiento y TI; Finanzas detalla las facturas de compra
+  // (la base no la deja tocar lo demás); los mecánicos lo ven y anotan lo que usan desde la OT.
+  'mantenimiento.stock':     { etiqueta: 'Stock de insumos', fila: ['L', '—', 'L', '—', '—', '—', '—', 'E', 'E A', 'L', '—', 'E A', 'L'] },
 } as const satisfies Record<string, { etiqueta: string; fila: Fila }>;
 
 export type PantallaId = keyof typeof PANTALLAS;

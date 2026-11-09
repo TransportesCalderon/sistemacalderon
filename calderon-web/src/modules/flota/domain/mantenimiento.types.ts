@@ -91,6 +91,8 @@ export interface OrdenTrabajo {
   verificadaPor: string | null;
   motivoAnulacion: string | null;
   mensaje: string;
+  /** Migración 216: costo (CLP) de los insumos del stock usados en la orden (null si no se usó ninguno). */
+  costoInsumos: number | null;
   notas: NotaOt[];
 }
 
@@ -202,6 +204,7 @@ export const parsearOrdenes = (d: unknown): OrdenTrabajo[] =>
     verificadaPor: txt(o.verificada_por),
     motivoAnulacion: txt(o.motivo_anulacion),
     mensaje: txt(o.mensaje) ?? '',
+    costoInsumos: n(o.costo_insumos),
     notas: arr(o.notas).map((x) => ({ texto: txt(x.texto) ?? '', por: txt(x.por), en: (txt(x.en) ?? '') as FechaISO })),
   }));
 

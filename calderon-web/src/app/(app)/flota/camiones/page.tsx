@@ -7,6 +7,7 @@ import { CamionesLista } from '@/modules/flota/components/camiones/camiones-list
 import { VencimientosPantalla } from '@/modules/flota/components/vencimientos/vencimientos-pantalla';
 import { OrdenesPantalla } from '@/modules/flota/components/mantenimiento/ordenes-pantalla';
 import { PlanPantalla } from '@/modules/flota/components/mantenimiento/plan-pantalla';
+import { StockPantalla } from '@/modules/flota/components/mantenimiento/stock-pantalla';
 import { parsearListaCamiones } from '@/modules/flota/domain/camion.lista';
 import { camionesQueries, catalogosFlotaQueries } from '@/modules/flota/queries/keys';
 import { createSupabaseServerClient } from '@/server/supabase/server';
@@ -33,6 +34,11 @@ export default async function CamionesPage({ searchParams }: Props) {
   if (sp.vista === 'plan') {
     await requirePermiso('mantenimiento.plan:ver');
     return <PlanPantalla />;
+  }
+  // Migración 216 · Mantenimiento › Stock de insumos
+  if (sp.vista === 'stock') {
+    await requirePermiso('mantenimiento.stock:ver');
+    return <StockPantalla />;
   }
   const params = parsearListaCamiones(sp);
 

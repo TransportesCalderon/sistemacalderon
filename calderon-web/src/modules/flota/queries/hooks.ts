@@ -24,6 +24,17 @@ import {
   verificarOt,
 } from '../actions/mantenimiento.actions';
 import { mantenimientoRepository } from '../repositories/mantenimiento.repository';
+import {
+  ajustarInsumo,
+  consumirInsumo,
+  devolverInsumo,
+  guardarInsumo,
+  guardarPanol,
+  ingresoCompra,
+  ingresoInsumo,
+  traspasarInsumo,
+} from '../actions/stock.actions';
+import { stockRepository } from '../repositories/stock.repository';
 import type { Equipo } from '../domain/vencimientos.types';
 import { vencimientosRepository } from '../repositories/vencimientos.repository';
 import { basesQueries, camionesQueries, catalogosFlotaQueries, choferesQueries } from './keys';
@@ -253,3 +264,37 @@ export const useVerificarOt = () => useMutacionMant(verificarOt);
 export const useAnularOt = () => useMutacionMant(anularOt);
 export const useNotaOt = () => useMutacionMant(notaOt);
 export const useOtVista = () => useMutacionMant(otVista);
+
+// ---- Migración 216: stock de insumos ----
+const stk = () => stockRepository(browserDb());
+export const useStockInsumos = (activo: boolean) =>
+  useQuery({ queryKey: ['flota', 'mantenimiento', 'stock'] as const, queryFn: () => stk().stock(), enabled: activo, placeholderData: keepPreviousData });
+export const useKardexInsumo = (insumo: number | null, panol: number | null) =>
+  useQuery({
+    queryKey: ['flota', 'mantenimiento', 'stock', 'kardex', insumo, panol] as const,
+    queryFn: () => stk().kardex(insumo ?? 0, panol),
+    enabled: insumo !== null,
+  });
+export const useFacturasInsumos = (activo: boolean, soloPendientes: boolean) =>
+  useQuery({
+    queryKey: ['flota', 'mantenimiento', 'stock', 'facturas', soloPendientes] as const,
+    queryFn: () => stk().facturas(soloPendientes),
+    enabled: activo,
+    placeholderData: keepPreviousData,
+  });
+export const useCuadreInsumos = (activo: boolean) =>
+  useQuery({ queryKey: ['flota', 'mantenimiento', 'stock', 'cuadre'] as const, queryFn: () => stk().cuadre(), enabled: activo });
+export const useInsumosOt = (ot: number, activo: boolean) =>
+  useQuery({ queryKey: ['flota', 'mantenimiento', 'stock', 'ot', ot] as const, queryFn: () => stk().insumosOt(ot), enabled: activo });
+function useMutacionStock<A, R>(fn: (a: A) => Promise<R>) {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: fn, onSuccess: (r) => ((r as { ok?: boolean }).ok ? invalidar(qc, 'stock') : undefined) });
+}
+export const useGuardarPanol = () => useMutacionStock(guardarPanol);
+export const useGuardarInsumo = () => useMutacionStock(guardarInsumo);
+export const useIngresoInsumo = () => useMutacionStock(ingresoInsumo);
+export const useIngresoCompra = () => useMutacionStock(ingresoCompra);
+export const useTraspasarInsumo = () => useMutacionStock(traspasarInsumo);
+export const useAjustarInsumo = () => useMutacionStock(ajustarInsumo);
+export const useConsumirInsumo = () => useMutacionStock(consumirInsumo);
+export const useDevolverInsumo = () => useMutacionStock(devolverInsumo);

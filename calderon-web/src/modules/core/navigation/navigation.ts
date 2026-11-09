@@ -123,6 +123,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/ajustes/flota?vista=ordenes', etiqueta: 'Órdenes de trabajo' },
       { href: '/ajustes/flota?vista=plan', etiqueta: 'Plan de mantenimiento' },
       { href: '/ajustes/flota?vista=vencimientos', etiqueta: 'Vencimientos' },
+      // Migración 216: stock de insumos y repuestos
+      { href: '/ajustes/flota?vista=stock', etiqueta: 'Stock de insumos' },
     ],
   },
   {

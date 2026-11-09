@@ -13,6 +13,7 @@ import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
 import { Camion3D } from './camion-3d';
+import { InsumosOt } from './insumos-ot';
 import {
   ETIQUETA_ESTADO_OT,
   ETIQUETA_ORIGEN,
@@ -497,6 +498,9 @@ function DetalleOt({ o, zonas }: { o: OrdenTrabajo; zonas: Zona[] }) {
         </dl>
       )}
       {o.estado === 'anulada' && <p className="text-sm text-tinta-suave">Anulada: {o.motivoAnulacion}</p>}
+
+      {/* Migración 216: insumos del stock usados en la orden (se cargan mientras está abierta o recién terminada) */}
+      <InsumosOt ot={o.id} puedeCargar={trabaja || (o.estado === 'terminada' && (jefe || mecanico))} />
 
       <div className="flex flex-wrap items-center gap-2">
         {abierta && jefe && (

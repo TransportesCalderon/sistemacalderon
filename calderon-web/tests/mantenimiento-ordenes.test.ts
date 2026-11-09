@@ -22,7 +22,7 @@ describe('migración 199 · Mantenimiento: plan y órdenes de trabajo', () => {
 
   it('el menú Mantenimiento tiene órdenes, plan y vencimientos', () => {
     const g = menuVisible(permisosDe(['mecanico'], op)).find((x) => x.id === 'mantenimiento');
-    expect(g?.entradas.map((e) => e.etiqueta)).toEqual(['Órdenes de trabajo', 'Plan de mantenimiento', 'Vencimientos']);
+    expect(g?.entradas.map((e) => e.etiqueta)).toEqual(['Órdenes de trabajo', 'Plan de mantenimiento', 'Vencimientos', 'Stock de insumos']);
   });
 
   it('la web solo convierte lo que manda la base', () => {

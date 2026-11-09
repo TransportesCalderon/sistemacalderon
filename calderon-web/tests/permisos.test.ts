@@ -98,7 +98,7 @@ describe('navegación (menú lateral por área; se mantiene después del Sprint 
     expect(NAVEGACION.map((g) => g.id)).toEqual([
       'inicio', 'chofer', 'cargar', 'ventas', 'logistica', 'telemetria', 'mantenimiento', 'combustible', 'flota', 'rrhh', 'finanzas', 'datos', 'configuracion',
     ]);
-    expect(entradas.length).toBe(50); // Migración 196: «Libro de salidas»; 198: «Vencimientos»; 199: OT y plan
+    expect(entradas.length).toBe(51); // Migración 196: «Libro de salidas»; 198: «Vencimientos»; 199: OT y plan; 216: stock
     expect(NAVEGACION.find((g) => g.id === 'cargar')?.entradas.every((e) => e.accion === 'editar')).toBe(true);
     for (const e of entradas) for (const r of e.incluye ?? []) expect(pantallaDeRuta(r), r).not.toBeNull();
   });

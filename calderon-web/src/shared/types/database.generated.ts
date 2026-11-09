@@ -1134,6 +1134,32 @@ export type Database = {
       };
       // Migración 215: km del tractor para su ficha
       fn_km_camion: { Args: { p_camion: number }; Returns: Json };
+      // Migración 216 · Stock de insumos
+      fn_stock_insumos: { Args: Record<string, never>; Returns: Json };
+      fn_kardex_insumo: { Args: { p_insumo: number; p_panol?: number | null; p_limite?: number | null }; Returns: Json };
+      fn_facturas_insumos: { Args: { p_solo_pendientes?: boolean | null }; Returns: Json };
+      fn_insumos_ot: { Args: { p_ot: number }; Returns: Json };
+      fn_cuadre_insumos: { Args: Record<string, never>; Returns: Json };
+      fn_guardar_panol: { Args: { p_id: number | null; p_nombre: string; p_ubicacion: string | null; p_activo?: boolean }; Returns: number };
+      fn_guardar_insumo: {
+        Args: {
+          p_id: number | null;
+          p_codigo: string;
+          p_nombre: string;
+          p_unidad: string;
+          p_categoria: string;
+          p_stock_minimo: number;
+          p_observacion: string | null;
+          p_activo?: boolean;
+        };
+        Returns: number;
+      };
+      fn_ingreso_insumo: { Args: { p_insumo: number; p_panol: number; p_cantidad: number; p_costo_unitario: number; p_motivo: string }; Returns: number };
+      fn_ingreso_compra: { Args: { p_gasto: number; p_renglones: Json }; Returns: number };
+      fn_consumir_insumo: { Args: { p_ot: number; p_insumo: number; p_panol: number; p_cantidad: number }; Returns: number };
+      fn_devolver_insumo: { Args: { p_consumo: number; p_cantidad: number }; Returns: number };
+      fn_traspasar_insumo: { Args: { p_insumo: number; p_desde: number; p_hasta: number; p_cantidad: number; p_motivo: string | null }; Returns: number };
+      fn_ajustar_insumo: { Args: { p_insumo: number; p_panol: number; p_contado: number; p_motivo: string; p_costo_unitario?: number | null }; Returns: number };
       fn_base_tarea: { Args: { p_tarea: number; p_equipo: string; p_equipo_id: number; p_fecha: string; p_km: number | null }; Returns: undefined };
       fn_crear_ot: {
         Args: {
