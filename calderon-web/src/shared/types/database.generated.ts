@@ -1403,6 +1403,8 @@ export type Database = {
         Args: { p_servicio: number; p_paso: string; p_ts?: string | null; p_odometro_km?: number | null; p_detalle?: string | null };
         Returns: undefined;
       };
+      /** Migración 217: corregir el odómetro de salida del viaje en curso. */
+      fn_corregir_odometro_salida: { Args: { p_servicio: number; p_km: number }; Returns: undefined };
       fn_sugerencia_cliente: { Args: { p_cliente: number }; Returns: Json };
       /** Migración 81. */
       fn_tramos_de_operacion: { Args: { p_servicio: number }; Returns: Json };

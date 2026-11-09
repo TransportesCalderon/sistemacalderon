@@ -116,6 +116,13 @@ export const avanzarSchema = z.object({
     .trim()
     .max(500, 'Máximo 500 caracteres.')
     .transform((v) => (v === '' ? null : v)),
+  /** Migración 217: corregir el odómetro de salida del viaje (cuando la llegada da menor). */
+  odometroSalidaKm: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (!v ? null : Number(v.replace(/\./g, '').replace(',', '.'))))
+    .refine((v) => v === null || (Number.isFinite(v) && v > 0), 'Kilómetros, número mayor que 0.'),
 });
 export type AvanzarDatos = z.output<typeof avanzarSchema>;
 

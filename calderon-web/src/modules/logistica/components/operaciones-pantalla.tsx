@@ -797,9 +797,12 @@ function PanelPaso({
   const avanzar = useAvanzarOperacion();
   const { error, setError, enviar, campo } = useEnvio();
   const mostrado = error ?? errorInicial;
-  const [f, setF] = useState({ paso: pasoInicial, momento: '', odometroKm: '', detalle: '' });
+  const [f, setF] = useState({ paso: pasoInicial, momento: '', odometroKm: '', detalle: '', odometroSalidaKm: '' });
   const pasos = o.posibles.filter((p) => !PASOS_CON_PANEL.includes(p));
   const pideOdometro = !!o.tramoId && PASOS_CON_ODOMETRO.includes(f.paso);
+  // Migración 217: si la llegada dio menor que la salida, se puede corregir la salida
+  const [corrigeSalida, setCorrigeSalida] = useState(false);
+  const muestraSalida = pideOdometro && f.paso === 'entrego' && (corrigeSalida || (mostrado?.mensaje.includes('Odómetro de salida') ?? false));
   return (
     <Panel
       titulo={`${PASO_OPERACION_ETIQUETA[f.paso]} · Op. ${o.numero}`}
@@ -828,6 +831,18 @@ function PanelPaso({
       {pideOdometro && (
         <Campo label="Odómetro del tractor (km)" error={campo('odometroKm')} ayuda="Solo si no hay telemetría.">
           <input inputMode="decimal" value={f.odometroKm} onChange={(e) => setF({ ...f, odometroKm: e.target.value })} />
+        </Campo>
+      )}
+      {muestraSalida && (
+        <Campo label="Odómetro de salida (km)" error={campo('odometroSalidaKm')} ayuda="Solo si el de salida está mal: lo corrige.">
+          <input
+            inputMode="decimal"
+            value={f.odometroSalidaKm}
+            onChange={(e) => {
+              setCorrigeSalida(true);
+              setF({ ...f, odometroSalidaKm: e.target.value });
+            }}
+          />
         </Campo>
       )}
       <Campo label={f.paso === 'demora' ? 'Motivo' : 'Nota'} error={campo('detalle')}>

@@ -171,8 +171,10 @@ export const operacionesRepository = (db: Db) => {
       return data ?? [];
     },
 
-    avanzar: (d: AvanzarDatos) =>
-      llamar(
+    avanzar: async (d: AvanzarDatos) => {
+      // Migración 217: primero se corrige el odómetro de salida, si lo cargaron
+      if (d.odometroSalidaKm != null) await llamar(ops().rpc('fn_corregir_odometro_salida', { p_servicio: d.servicioId, p_km: d.odometroSalidaKm }));
+      return llamar(
         ops().rpc('fn_avanzar', {
           p_servicio: d.servicioId,
           p_paso: d.paso,
@@ -180,7 +182,8 @@ export const operacionesRepository = (db: Db) => {
           p_odometro_km: d.odometroKm,
           p_detalle: d.detalle,
         }),
-      ),
+      );
+    },
 
     // Migración 125: cambio de tractor en la base operativa
     /** Bases operativas y (migración 176) aduanas: donde puede quedar el semi esperando otro tractor. */

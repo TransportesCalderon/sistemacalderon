@@ -174,6 +174,8 @@ function GloboPaso({
   const [error, setError] = useState<ErrorAccion | null>(errorInicial);
   const [momento, setMomento] = useState('');
   const [odometro, setOdometro] = useState('');
+  // Migración 217: corregir el odómetro de salida cuando la llegada da menor
+  const [odometroSalida, setOdometroSalida] = useState('');
   const [detalle, setDetalle] = useState('');
   const pideOdometro = !!f.tramoId && PASOS_CON_ODOMETRO.includes(paso);
   return (
@@ -189,6 +191,7 @@ function GloboPaso({
             momento: momento ? (horaLocalAIso(momento, zona) ?? momento) : '',
             odometroKm: odometro,
             detalle,
+            odometroSalidaKm: odometroSalida,
           });
           if (r.ok) onCerrar();
           else setError(r.error);
@@ -205,6 +208,11 @@ function GloboPaso({
           </CampoGlobo>
         )}
         {error?.campos?.odometroKm && <p className="text-xs text-error">{error.campos.odometroKm}</p>}
+        {pideOdometro && paso === 'entrego' && (odometroSalida !== '' || error?.mensaje.includes('Odómetro de salida')) && (
+          <CampoGlobo etiqueta="Odómetro de salida (km)" ayuda="Solo si el de salida está mal: lo corrige.">
+            <input inputMode="decimal" className={ENTRADA_GLOBO} value={odometroSalida} onChange={(e) => setOdometroSalida(e.target.value)} />
+          </CampoGlobo>
+        )}
         <CampoGlobo etiqueta={paso === 'demora' ? 'Motivo' : 'Nota'}>
           <input maxLength={500} className={ENTRADA_GLOBO} value={detalle} onChange={(e) => setDetalle(e.target.value)} />
         </CampoGlobo>
