@@ -169,7 +169,12 @@ export function PedidoCarga({ viajeId, registra }: { viajeId: number; registra: 
 
       {mensaje && (
         <div className="space-y-2 rounded-md bg-hover p-3">
-          <p className="whitespace-pre-line text-tinta">{mensaje}</p>
+          {/* Migración 222: el mensaje trae negritas de WhatsApp (*así*); acá se muestran en negrita y se copian tal cual */}
+          <p className="whitespace-pre-line text-tinta">
+            {mensaje.split(/(\*[^*\n]+\*)/g).map((parte, i) =>
+              parte.length > 2 && parte.startsWith('*') && parte.endsWith('*') ? <strong key={i}>{parte.slice(1, -1)}</strong> : parte,
+            )}
+          </p>
           <BotonCopiar texto={mensaje} />
         </div>
       )}
