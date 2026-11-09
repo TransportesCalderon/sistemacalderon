@@ -93,6 +93,9 @@ export const mantenimientoRepository = (db: Db) => {
           }),
         ),
       ),
+    /** Migración 218 */
+    noAplica: async (tarea: number, equipo: Equipo, equipoId: number, noAplica: boolean, motivo: string | null) =>
+      void ok(await mae().rpc('fn_tarea_no_aplica', { p_tarea: tarea, p_equipo: equipo, p_equipo_id: equipoId, p_no_aplica: noAplica, p_motivo: motivo })),
     baseTarea: async (tarea: number, equipo: Equipo, equipoId: number, fecha: string, km: number | null) =>
       void ok(await mae().rpc('fn_base_tarea', { p_tarea: tarea, p_equipo: equipo, p_equipo_id: equipoId, p_fecha: fecha, p_km: km })),
     crearOt: async (d: DatosOt): Promise<number> =>

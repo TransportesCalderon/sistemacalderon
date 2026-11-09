@@ -20,6 +20,7 @@ import {
   iniciarOt,
   notaOt,
   otVista,
+  tareaNoAplica,
   terminarOt,
   verificarOt,
 } from '../actions/mantenimiento.actions';
@@ -256,6 +257,7 @@ function useMutacionMant<A, R>(fn: (a: A) => Promise<R>) {
 }
 export const useGuardarTarea = () => useMutacionMant(guardarTarea);
 export const useCargarBaseTarea = () => useMutacionMant(cargarBaseTarea);
+export const useTareaNoAplica = () => useMutacionMant(tareaNoAplica);
 export const useCrearOt = () => useMutacionMant(crearOt);
 export const useAsignarOt = () => useMutacionMant(asignarOt);
 export const useIniciarOt = () => useMutacionMant(iniciarOt);

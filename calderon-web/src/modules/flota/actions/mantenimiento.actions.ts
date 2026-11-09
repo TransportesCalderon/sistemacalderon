@@ -40,6 +40,13 @@ export const cargarBaseTarea = createAction({
   handler: (d, { db }) => mantenimientoRepository(db).baseTarea(d.tarea, d.equipo, d.equipoId, d.fecha, d.km),
 });
 
+/** Migración 218: la tarea no se aplica (o vuelve a aplicarse) a un equipo. */
+export const tareaNoAplica = createAction({
+  permiso: 'mantenimiento.plan:editar',
+  schema: z.object({ tarea: id, equipo, equipoId: id, noAplica: z.boolean(), motivo: z.string().max(200).nullable() }),
+  handler: (d, { db }) => mantenimientoRepository(db).noAplica(d.tarea, d.equipo, d.equipoId, d.noAplica, d.motivo),
+});
+
 export const crearOt = createAction({
   permiso: 'mantenimiento.ordenes:editar',
   schema: z.object({

@@ -4,6 +4,8 @@ import type { Equipo as EquipoVenc } from './vencimientos.types';
 /** Migración 215: los gensets también tienen mantenimiento (por horas del horómetro). */
 export type Equipo = EquipoVenc | 'genset';
 export const VERSION_MANT_GENSET = 215;
+/** Migración 218: «no aplica a este equipo» en el plan. */
+export const VERSION_NO_APLICA = 218;
 export const ETIQUETA_EQUIPO: Record<Equipo, string> = { tractor: 'Tractor', semi: 'Semi', genset: 'Genset' };
 /** Unidad de la medida del equipo: km del tractor, horas del genset (el semi no tiene). */
 export const unidadDe = (e: Equipo): 'km' | 'h' => (e === 'genset' ? 'h' : 'km');
@@ -130,6 +132,8 @@ export interface TareaPlan {
   activo: boolean;
   version: number;
   equipos: EquipoPlan[];
+  /** Migración 218: equipos a los que la tarea no se aplica (con el motivo). */
+  noAplica: { equipo: Equipo; equipoId: number; patente: string; motivo: string }[];
 }
 
 export interface AvisoOt {
@@ -239,6 +243,12 @@ export const parsearPlan = (d: unknown): TareaPlan[] =>
       estado: estadoPlan(e.estado),
       otAbierta: n(e.ot_abierta),
       otNumero: txt(e.ot_numero),
+    })),
+    noAplica: arr(t.no_aplica).map((x) => ({
+      equipo: equipo(x.equipo),
+      equipoId: Number(x.equipo_id),
+      patente: txt(x.patente) ?? '',
+      motivo: txt(x.motivo) ?? '',
     })),
   }));
 

@@ -14,6 +14,7 @@ import {
   ETIQUETA_PRIORIDAD,
   SUGERENCIAS_TAREA,
   VERSION_MANTENIMIENTO,
+  VERSION_NO_APLICA,
   textoFrecuencia,
   type EquipoPlan,
   type EstadoPlan,
@@ -24,7 +25,7 @@ import {
   type Equipo,
 } from '../../domain/mantenimiento.types';
 import { fechaDia } from '../../domain/vencimientos.types';
-import { useCargarBaseTarea, useGuardarTarea, usePlanMantenimiento, useZonasEquipo } from '../../queries/hooks';
+import { useCargarBaseTarea, useGuardarTarea, usePlanMantenimiento, useTareaNoAplica, useZonasEquipo } from '../../queries/hooks';
 import { Camion3D } from './camion-3d';
 import { SelectorZonas } from './ordenes-pantalla';
 
@@ -113,6 +114,10 @@ export function PlanPantalla() {
 
 function EquiposTarea({ t, edita }: { t: TareaPlan; edita: boolean }) {
   const [base, setBase] = useState<EquipoPlan | null>(null);
+  const [noAplica, setNoAplica] = useState<EquipoPlan | null>(null);
+  const hayNoAplica = useBaseTiene(VERSION_NO_APLICA);
+  const desmarcar = useTareaNoAplica();
+  const envio = useEnvio();
   return (
     <div className="mt-3 overflow-x-auto">
       <table className="w-full min-w-[760px] text-sm">
@@ -148,6 +153,15 @@ function EquiposTarea({ t, edita }: { t: TareaPlan; edita: boolean }) {
                   <button type="button" className="text-xs text-marca hover:underline" onClick={() => setBase(base === e ? null : e)}>
                     Última vez…
                   </button>
+                  {hayNoAplica && (
+                    <button
+                      type="button"
+                      className="ml-3 text-xs text-tinta-suave hover:underline"
+                      onClick={() => setNoAplica(noAplica === e ? null : e)}
+                    >
+                      No aplica…
+                    </button>
+                  )}
                 </td>
               )}
             </tr>
@@ -155,6 +169,74 @@ function EquiposTarea({ t, edita }: { t: TareaPlan; edita: boolean }) {
         </tbody>
       </table>
       {base && <FormBase t={t} e={base} onCerrar={() => setBase(null)} />}
+      {noAplica && <FormNoAplica t={t} e={noAplica} onCerrar={() => setNoAplica(null)} />}
+      {/* Migración 218: equipos a los que esta tarea no se aplica */}
+      {t.noAplica.length > 0 && (
+        <div className="mt-3 space-y-1 text-sm">
+          <p className="text-xs font-medium text-tinta-suave uppercase">No aplica a</p>
+          <ul className="flex flex-wrap gap-2">
+            {t.noAplica.map((x) => (
+              <li key={`${x.equipo}${x.equipoId}`} className="flex items-center gap-2 rounded-md border border-borde px-2 py-1">
+                <span className="font-mono font-semibold">{x.patente}</span>
+                <span className="text-tinta-suave">{x.motivo}</span>
+                {edita && (
+                  <button
+                    type="button"
+                    className="text-xs text-marca hover:underline"
+                    disabled={desmarcar.isPending}
+                    onClick={() =>
+                      void envio.enviar(
+                        desmarcar.mutateAsync({ tarea: t.id, equipo: x.equipo, equipoId: x.equipoId, noAplica: false, motivo: null }),
+                        () => undefined,
+                      )
+                    }
+                  >
+                    Volver a aplicar
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          <ErrorBase error={envio.error} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FormNoAplica({ t, e, onCerrar }: { t: TareaPlan; e: EquipoPlan; onCerrar: () => void }) {
+  const marcar = useTareaNoAplica();
+  const envio = useEnvio();
+  const [motivo, setMotivo] = useState('');
+  return (
+    <div className="mt-3 flex flex-wrap items-end gap-2 rounded-md border border-marca/40 p-3">
+      <p className="w-full text-sm text-tinta">
+        «{t.nombre}» no se aplica a <span className="font-mono">{e.patente}</span>: deja de figurar en esta tarea y no le salen órdenes de trabajo.
+      </p>
+      <label className="flex-1 space-y-1 text-sm">
+        <span className="block text-xs text-tinta-suave">Motivo</span>
+        <input
+          className={cn(CONTROL_FILTRO, 'h-9 w-full')}
+          maxLength={200}
+          placeholder="Por ejemplo: piezas nuevas"
+          value={motivo}
+          onChange={(x) => setMotivo(x.target.value)}
+        />
+      </label>
+      <button
+        type="button"
+        className={BOTON_PRIMARIO}
+        disabled={marcar.isPending}
+        onClick={() => void envio.enviar(marcar.mutateAsync({ tarea: t.id, equipo: e.equipo, equipoId: e.equipoId, noAplica: true, motivo }), onCerrar)}
+      >
+        {marcar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} No aplica
+      </button>
+      <button type="button" className={BOTON_SECUNDARIO} onClick={onCerrar}>
+        Cancelar
+      </button>
+      <div className="w-full">
+        <ErrorBase error={envio.error} />
+      </div>
     </div>
   );
 }

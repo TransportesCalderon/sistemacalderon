@@ -1134,6 +1134,8 @@ export type Database = {
       };
       // Migración 215: km del tractor para su ficha
       fn_km_camion: { Args: { p_camion: number }; Returns: Json };
+      /** Migración 218 */
+      fn_tarea_no_aplica: { Args: { p_tarea: number; p_equipo: string; p_equipo_id: number; p_no_aplica: boolean; p_motivo?: string | null }; Returns: undefined };
       // Migración 216 · Stock de insumos
       fn_stock_insumos: { Args: Record<string, never>; Returns: Json };
       fn_kardex_insumo: { Args: { p_insumo: number; p_panol?: number | null; p_limite?: number | null }; Returns: Json };
