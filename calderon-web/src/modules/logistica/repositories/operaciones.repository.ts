@@ -102,6 +102,8 @@ function aOperacion(o: OperacionRow): Operacion {
     guia: o.guia ?? null,
     agenteTransporteId: o.agente_transporte_id ?? null,
     agenteTransporte: o.agente_transporte ?? null,
+    // Migración 213 (antes de aplicarla: solo se sabe si falta la línea)
+    faltan: o.faltan ?? (o.linea_id === null && o.estado !== 'cancelado' ? ['línea'] : []),
     observacion: o.observacion,
     motivoCancelacion: o.motivo_cancelacion,
     transportistaId: o.transportista_id,

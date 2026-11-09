@@ -212,6 +212,8 @@ export interface Operacion {
   gensetId: number | null;
   genset: string | null;
   facturacion: FacturacionOperacion | null;
+  /** Migración 213: datos que le faltan (línea, km de la línea, precio, tipo de operación). Lo decide la base. */
+  faltan: string[];
 }
 
 /** Migración 101: cómo está la facturación de la operación (aparte del viaje). */

@@ -828,6 +828,8 @@ export type OperacionRow = {
   genset_id?: number | null;
   genset?: string | null;
   facturacion?: Json | null;
+  /** Migración 213: lo que le falta a la operación (línea, km de la línea, precio, tipo). */
+  faltan?: string[] | null;
 };
 /** ops.fn_pizarra (migración 39). */
 type PizarraSigueRow = {
