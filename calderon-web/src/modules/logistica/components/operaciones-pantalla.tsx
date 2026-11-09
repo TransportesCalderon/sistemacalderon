@@ -109,6 +109,8 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
   const [hasta, setHasta] = useState<string>(hoy);
   const [texto, setTexto] = useState(opInicial ? String(opInicial) : '');
   const [grupo, setGrupo] = useState<GrupoFiltro>('todos');
+  // 07/11/2026: las que no tienen la línea cargada (quedaron así de la importación de Redline)
+  const [sinLinea, setSinLinea] = useState(false);
   // Migración 101: de entrada solo las activas; las entregadas y canceladas quedan en «Históricas».
   const [vista, setVista] = useState<'activas' | 'historicas'>('activas');
   const [abierto, setAbiertoEstado] = useState<Abierto>(nueva && puede ? { tipo: 'nueva' } : null);
@@ -125,12 +127,14 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
     return (data ?? []).filter(
       (o) =>
         o.activa === (vista === 'activas') &&
+        (!sinLinea || o.lineaId === null) &&
         (!t ||
         [String(o.numero), o.redline ? String(o.redline.numero) : null, o.cliente, o.linea, o.contenedor, o.chofer, o.tractor, o.semi, o.booking, o.crt, o.mic, o.guia, o.transportista].some(
           (c) => normalizar(c).includes(t),
         )),
     );
-  }, [data, texto, vista]);
+  }, [data, texto, vista, sinLinea]);
+  const cantSinLinea = (data ?? []).filter((o) => o.activa === (vista === 'activas') && o.lineaId === null).length;
   const totalActivas = (data ?? []).filter((o) => o.activa).length;
   const grupos = GRUPOS_FILTRO.filter((g) => g.id === 'todos' || (vista === 'historicas') === (g.id === 'entregado' || g.id === 'cancelado'));
   const cambiarVista = (v: 'activas' | 'historicas') => {
@@ -214,6 +218,19 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
             </button>
           ))}
         </div>
+        {(cantSinLinea > 0 || sinLinea) && (
+          <button
+            type="button"
+            aria-pressed={sinLinea}
+            onClick={() => setSinLinea(!sinLinea)}
+            className={cn(
+              'inline-flex h-8 items-center gap-1.5 rounded-md border border-alerta/50 bg-alerta-suave px-3 text-xs font-semibold text-alerta',
+              sinLinea ? 'ring-2 ring-tinta ring-offset-1' : 'opacity-80 hover:opacity-100',
+            )}
+          >
+            Sin línea <span className="tabular-nums">{cantSinLinea}</span>
+          </button>
+        )}
         {vista === 'historicas' && (
           <div className="ml-auto flex flex-wrap items-center gap-2 text-xs text-tinta-suave">
             Fecha de la operación entre
