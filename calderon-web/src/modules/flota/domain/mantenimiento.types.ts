@@ -1,5 +1,12 @@
 import type { FechaISO } from '@/shared/types/dominio';
-import type { Equipo } from './vencimientos.types';
+import type { Equipo as EquipoVenc } from './vencimientos.types';
+
+/** Migración 215: los gensets también tienen mantenimiento (por horas del horómetro). */
+export type Equipo = EquipoVenc | 'genset';
+export const VERSION_MANT_GENSET = 215;
+export const ETIQUETA_EQUIPO: Record<Equipo, string> = { tractor: 'Tractor', semi: 'Semi', genset: 'Genset' };
+/** Unidad de la medida del equipo: km del tractor, horas del genset (el semi no tiene). */
+export const unidadDe = (e: Equipo): 'km' | 'h' => (e === 'genset' ? 'h' : 'km');
 
 /**
  * Migración 199 · Mantenimiento (M2): plan de mantenimiento y órdenes de trabajo.
@@ -29,6 +36,7 @@ export interface Zona {
   nombre: string;
   tractor: boolean;
   semi: boolean;
+  genset: boolean;
 }
 export interface EquipoMant {
   equipo: Equipo;
@@ -112,6 +120,9 @@ export interface TareaPlan {
   cadaKm: number | null;
   avisoDias: number;
   avisoKm: number;
+  /** Migración 215: gensets. */
+  cadaHoras: number | null;
+  avisoHoras: number;
   zonas: string[];
   prioridad: Prioridad;
   activo: boolean;
@@ -138,14 +149,14 @@ const arr = (v: unknown): J[] => (Array.isArray(v) ? (v as J[]) : []);
 const txt = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 const n = (v: unknown): number | null => (v === null || v === undefined || v === '' ? null : Number(v));
 const textos = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
-const equipo = (v: unknown): Equipo => (v === 'semi' ? 'semi' : 'tractor');
+const equipo = (v: unknown): Equipo => (v === 'semi' ? 'semi' : v === 'genset' ? 'genset' : 'tractor');
 const prioridad = (v: unknown): Prioridad => (v === 'alta' || v === 'urgente' ? v : 'normal');
 const estadoOt = (v: unknown): EstadoOt => (v === 'en_curso' || v === 'terminada' || v === 'verificada' || v === 'anulada' ? v : 'pendiente');
 const origen = (v: unknown): OrigenOt => (v === 'plan' || v === 'vencimiento' ? v : 'puntual');
 const estadoPlan = (v: unknown): EstadoPlan => (v === 'vencida' || v === 'proxima' || v === 'sin_km' ? v : 'al_dia');
 
 export const parsearZonas = (d: unknown): Zona[] =>
-  arr(d).map((z) => ({ codigo: txt(z.codigo) ?? '', nombre: txt(z.nombre) ?? '', tractor: z.tractor === true, semi: z.semi === true }));
+  arr(d).map((z) => ({ codigo: txt(z.codigo) ?? '', nombre: txt(z.nombre) ?? '', tractor: z.tractor === true, semi: z.semi === true, genset: z.genset === true }));
 export const parsearEquiposMant = (d: unknown): EquipoMant[] =>
   arr(d).map((e) => ({ equipo: equipo(e.equipo), id: Number(e.id), patente: txt(e.patente) ?? '', descripcion: txt(e.descripcion) }));
 export const parsearPersonas = (d: unknown): Persona[] =>
@@ -206,6 +217,8 @@ export const parsearPlan = (d: unknown): TareaPlan[] =>
     cadaKm: n(t.cada_km),
     avisoDias: Number(t.aviso_dias ?? 7),
     avisoKm: Number(t.aviso_km ?? 1000),
+    cadaHoras: n(t.cada_horas),
+    avisoHoras: Number(t.aviso_horas ?? 50),
     zonas: textos(t.zonas),
     prioridad: prioridad(t.prioridad),
     activo: t.activo !== false,
@@ -242,8 +255,12 @@ export const parsearAvisosOt = (d: unknown): AvisoOt[] =>
   }));
 
 /** «cada 30 días o cada 30.000 km» (texto para mostrar; la base guarda los números). */
-export function textoFrecuencia(t: { cadaDias: number | null; cadaKm: number | null }): string {
-  const p = [t.cadaDias !== null ? `cada ${t.cadaDias} días` : null, t.cadaKm !== null ? `cada ${t.cadaKm.toLocaleString('es-AR')} km` : null].filter(Boolean);
+export function textoFrecuencia(t: { cadaDias: number | null; cadaKm: number | null; cadaHoras?: number | null }): string {
+  const p = [
+    t.cadaDias !== null ? `cada ${t.cadaDias} días` : null,
+    t.cadaKm !== null ? `cada ${t.cadaKm.toLocaleString('es-AR')} km` : null,
+    t.cadaHoras != null ? `cada ${t.cadaHoras.toLocaleString('es-AR')} horas` : null,
+  ].filter(Boolean);
   return p.join(' o ') + (p.length > 1 ? ' (lo que pase primero)' : '');
 }
 
@@ -266,4 +283,5 @@ export const SUGERENCIAS_TAREA: Record<Equipo, readonly string[]> = {
     'Aire acondicionado',
   ],
   semi: ['Revisión de frenos', 'Mazas y rodamientos', 'Suspensión', 'Perno rey', 'Patas de apoyo', 'Luces', 'Piso y carrocería', 'Neumáticos', 'Equipo de frío'],
+  genset: ['Cambio de aceite y filtros', 'Filtro de gasoil', 'Filtro de aire', 'Correas', 'Refrigerante y radiador', 'Baterías', 'Generador y conexiones eléctricas', 'Limpieza del tanque'],
 };

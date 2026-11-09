@@ -22,8 +22,11 @@ import {
   type OrdenTrabajo,
   type Prioridad,
   type Zona,
+  ETIQUETA_EQUIPO,
+  unidadDe,
+  type Equipo,
 } from '../../domain/mantenimiento.types';
-import { fechaDia, type Equipo } from '../../domain/vencimientos.types';
+import { fechaDia } from '../../domain/vencimientos.types';
 import {
   useAnularOt,
   useAsignarOt,
@@ -43,7 +46,7 @@ const TONO_PRIORIDAD: Record<Prioridad, Tono> = { normal: 'neutro', alta: 'alert
 const TH = 'px-3 py-2.5 whitespace-nowrap';
 const TD = 'px-3 py-2.5 align-top';
 type Filtro = 'abiertas' | 'mias' | 'atrasadas' | 'verificar' | 'cerradas';
-const km = (v: number | null) => (v === null ? null : `${formatearNumero(v, 0)} km`);
+const km = (v: number | null, u: 'km' | 'h' = 'km') => (v === null ? null : `${formatearNumero(v, 0)} ${u}`);
 const decimal = (s: string) => {
   const t = s.trim().replace(/\./g, '').replace(',', '.');
   return t === '' || !Number.isFinite(Number(t)) ? null : Number(t);
@@ -140,7 +143,7 @@ export function OrdenesPantalla() {
           <option value="">Todos los equipos</option>
           {conAbiertas.map((o) => (
             <option key={`${o.equipo}:${o.equipoId}`} value={`${o.equipo}:${o.equipoId}`}>
-              {o.patente} ({o.equipo === 'tractor' ? 'tractor' : 'semi'}) · {data.filter((x) => abiertas(x) && x.equipo === o.equipo && x.equipoId === o.equipoId).length} abiertas
+              {o.patente} ({ETIQUETA_EQUIPO[o.equipo].toLowerCase()}) · {data.filter((x) => abiertas(x) && x.equipo === o.equipo && x.equipoId === o.equipoId).length} abiertas
             </option>
           ))}
         </select>
@@ -151,14 +154,16 @@ export function OrdenesPantalla() {
           <p className="font-medium text-tinta">
             <span className="font-mono">{sel.patente}</span> · lo que hay que revisar ({abiertasSel.length} {abiertasSel.length === 1 ? 'orden abierta' : 'órdenes abiertas'})
           </p>
-          <Camion3D
-            equipo={sel.equipo}
-            marca={sel.marca}
-            modelo={sel.modelo}
-            tipoSemi={sel.tipoSemi}
-            zonas={[...new Set(abiertasSel.flatMap((o) => o.zonas))]}
-            nombres={nombres}
-          />
+          {sel.equipo !== 'genset' && (
+            <Camion3D
+              equipo={sel.equipo}
+              marca={sel.marca}
+              modelo={sel.modelo}
+              tipoSemi={sel.tipoSemi}
+              zonas={[...new Set(abiertasSel.flatMap((o) => o.zonas))]}
+              nombres={nombres}
+            />
+          )}
           <ul className="text-sm text-tinta">
             {abiertasSel.map((o) => (
               <li key={o.id}>
@@ -202,7 +207,7 @@ export function OrdenesPantalla() {
                     </td>
                     <td className={TD}>
                       <span className="font-mono font-semibold">{o.patente}</span>
-                      <span className="block text-xs text-tinta-suave">{o.equipo === 'tractor' ? 'Tractor' : `Semi ${o.tipoSemi ?? ''}`}</span>
+                      <span className="block text-xs text-tinta-suave">{o.equipo === 'semi' ? `Semi ${o.tipoSemi ?? ''}` : ETIQUETA_EQUIPO[o.equipo]}</span>
                     </td>
                     <td className={TD}>
                       <span className="text-tinta">{o.titulo}</span>
@@ -213,8 +218,8 @@ export function OrdenesPantalla() {
                       )}
                     </td>
                     <td className={cn(TD, 'whitespace-nowrap', o.atrasada && 'font-semibold text-error')}>
-                      {[o.fechaLimite ? fechaDia(o.fechaLimite) : null, km(o.kmLimite)].filter(Boolean).join(' o ') || '—'}
-                      {o.kmActual !== null && o.kmLimite !== null && <span className="block text-xs font-normal text-tinta-suave">va {km(o.kmActual)}</span>}
+                      {[o.fechaLimite ? fechaDia(o.fechaLimite) : null, km(o.kmLimite, unidadDe(o.equipo))].filter(Boolean).join(' o ') || '—'}
+                      {o.kmActual !== null && o.kmLimite !== null && <span className="block text-xs font-normal text-tinta-suave">va {km(o.kmActual, unidadDe(o.equipo))}</span>}
                     </td>
                     <td className={TD}>
                       <Chip tono={o.atrasada ? 'error' : TONO_ESTADO[o.estado]}>{o.atrasada ? 'Atrasada' : ETIQUETA_ESTADO_OT[o.estado]}</Chip>
@@ -249,7 +254,7 @@ export function SelectorZonas({ zonas, equipo, valor, onCambiar }: { zonas: Zona
   return (
     <div className="flex flex-wrap gap-1.5">
       {zonas
-        .filter((z) => (equipo === 'tractor' ? z.tractor : z.semi))
+        .filter((z) => (equipo === 'tractor' ? z.tractor : equipo === 'semi' ? z.semi : z.genset))
         .map((z) => {
           const on = valor.includes(z.codigo);
           return (
@@ -297,7 +302,7 @@ function NuevaOt({ zonas, onCerrar }: { zonas: Zona[]; onCerrar: () => void }) {
               setZs([]);
             }}
           >
-            <option value="">Elegí el tractor o el semi…</option>
+            <option value="">Elegí el tractor, el semi o el genset…</option>
             <optgroup label="Tractores">
               {equipos
                 .filter((e) => e.equipo === 'tractor')
@@ -316,6 +321,17 @@ function NuevaOt({ zonas, onCerrar }: { zonas: Zona[]; onCerrar: () => void }) {
                   </option>
                 ))}
             </optgroup>
+            {equipos.some((e) => e.equipo === 'genset') && (
+              <optgroup label="Gensets">
+                {equipos
+                  .filter((e) => e.equipo === 'genset')
+                  .map((e) => (
+                    <option key={`g${e.id}`} value={`genset:${e.id}`}>
+                      {e.patente} {e.descripcion ? `· ${e.descripcion}` : ''}
+                    </option>
+                  ))}
+              </optgroup>
+            )}
           </select>
         </label>
         <label className="space-y-1 text-sm">
@@ -356,15 +372,17 @@ function NuevaOt({ zonas, onCerrar }: { zonas: Zona[]; onCerrar: () => void }) {
         <div className="space-y-1">
           <span className="block text-xs text-tinta-suave">Qué revisar (se marca en amarillo): elegilo en la lista o tocá el camión</span>
           <SelectorZonas zonas={zonas} equipo={elegido.equipo} valor={zs} onCambiar={setZs} />
-          <Camion3D
-            equipo={elegido.equipo}
-            marca={elegido.equipo === 'tractor' ? elegido.descripcion : null}
-            tipoSemi={elegido.equipo === 'semi' ? elegido.descripcion : null}
-            zonas={zs}
-            nombres={Object.fromEntries(zonas.map((z) => [z.codigo, z.nombre]))}
-            onTocar={(z) => setZs((v) => (v.includes(z) ? v.filter((x) => x !== z) : [...v, z]))}
-            alto={240}
-          />
+          {elegido.equipo !== 'genset' && (
+            <Camion3D
+              equipo={elegido.equipo}
+              marca={elegido.equipo === 'tractor' ? elegido.descripcion : null}
+              tipoSemi={elegido.equipo === 'semi' ? elegido.descripcion : null}
+              zonas={zs}
+              nombres={Object.fromEntries(zonas.map((z) => [z.codigo, z.nombre]))}
+              onTocar={(z) => setZs((v) => (v.includes(z) ? v.filter((x) => x !== z) : [...v, z]))}
+              alto={240}
+            />
+          )}
         </div>
       )}
       <ErrorBase error={envio.error} />
@@ -423,7 +441,7 @@ function DetalleOt({ o, zonas }: { o: OrdenTrabajo; zonas: Zona[] }) {
             <span className="font-mono">{o.numero}</span> · {o.titulo}
           </p>
           <p className="text-xs text-tinta-suave">
-            {o.equipo === 'tractor' ? `Tractor ${o.patente} · ${[o.marca, o.modelo].filter(Boolean).join(' ')}` : `Semi ${o.patente} · ${o.tipoSemi ?? ''}`} · pedida por{' '}
+            {o.equipo === 'semi' ? `Semi ${o.patente} · ${o.tipoSemi ?? ''}` : `${ETIQUETA_EQUIPO[o.equipo]} ${o.patente} · ${[o.marca, o.modelo].filter(Boolean).join(' ')}`} · pedida por{' '}
             {o.creadoPor ?? 'el sistema'} el {formatearFechaHora(o.creadoEn, zonaHoraria)}
           </p>
         </div>
@@ -431,7 +449,8 @@ function DetalleOt({ o, zonas }: { o: OrdenTrabajo; zonas: Zona[] }) {
       </div>
 
       {o.descripcion && <p className="text-sm text-tinta">{o.descripcion}</p>}
-      {o.zonas.length > 0 && (
+      {o.zonas.length > 0 && o.equipo === 'genset' && <p className="text-sm text-tinta">Revisar: {o.zonas.map(nombreZona).join(', ')}</p>}
+      {o.zonas.length > 0 && o.equipo !== 'genset' && (
         <Camion3D
           equipo={o.equipo}
           marca={o.marca}
@@ -455,7 +474,7 @@ function DetalleOt({ o, zonas }: { o: OrdenTrabajo; zonas: Zona[] }) {
           <dt className="text-tinta-suave">Terminada</dt>
           <dd className="text-tinta">
             {o.terminadaPor} · {o.terminadaEn ? formatearFechaHora(o.terminadaEn, zonaHoraria) : ''}
-            {o.kmAlTerminar !== null && ` · ${km(o.kmAlTerminar)}`}
+            {o.kmAlTerminar !== null && ` · ${km(o.kmAlTerminar, unidadDe(o.equipo))}`}
           </dd>
           {o.repuestos && (
             <>
@@ -573,9 +592,9 @@ function Terminar({ o, onCerrar }: { o: OrdenTrabajo; onCerrar: () => void }) {
           <span className="block text-xs text-tinta-suave">Qué se hizo</span>
           <textarea className={cn(CONTROL_FILTRO, 'min-h-16 w-full py-2')} value={trabajo} onChange={(e) => setTrabajo(e.target.value)} />
         </label>
-        {o.equipo === 'tractor' && (
+        {o.equipo !== 'semi' && (
           <label className="space-y-1 text-sm">
-            <span className="block text-xs text-tinta-suave">Km del tractor (vacío = el del GPS)</span>
+            <span className="block text-xs text-tinta-suave">{o.equipo === 'genset' ? 'Horas del horómetro (vacío = las últimas anotadas)' : 'Km del tractor (vacío = el del GPS)'}</span>
             <input className={cn(CONTROL_FILTRO, 'h-10 w-full')} inputMode="numeric" value={kmT} onChange={(e) => setKmT(e.target.value)} />
           </label>
         )}

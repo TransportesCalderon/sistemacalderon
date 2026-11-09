@@ -10,9 +10,11 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
-import type { CamionId } from '@/shared/types/dominio';
+import type { CamionId, FechaISO } from '@/shared/types/dominio';
 import { ETIQUETA_PROPIETARIO } from '../../domain/camion.types';
-import { useCamion, useCatalogosFlota, useTanques } from '../../queries/hooks';
+import { useCamion, useCatalogosFlota, useKmCamion, useTanques } from '../../queries/hooks';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { VERSION_MANT_GENSET } from '../../domain/mantenimiento.types';
 import { EstadoCamionChip } from './estado-camion';
 import { TanquesCamion } from './tanques-camion';
 import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
@@ -175,6 +177,7 @@ export function CamionFicha({ id }: { id: CamionId }) {
               </a>
             )}
           </Dato>
+          <KmCamionDato id={camion.id} />
           <Dato etiqueta="Consumo de referencia">
             {camion.consumoReferencia ? `${camion.consumoReferencia.replace('.', ',')} l/100 km` : null}
           </Dato>
@@ -228,5 +231,27 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode })
       <dt className="text-tinta-suave">{etiqueta}</dt>
       <dd className="min-w-0 break-words text-tinta">{vacio ? <span className="text-tinta-suave">—</span> : children}</dd>
     </div>
+  );
+}
+
+/** Migración 215: km del tractor (último odómetro de la telemetría o de la última carga). */
+function KmCamionDato({ id }: { id: CamionId }) {
+  const { zonaHoraria } = useSesion();
+  const hay = useBaseTiene(VERSION_MANT_GENSET);
+  const { data } = useKmCamion(id, hay);
+  if (!hay) return null;
+  return (
+    <Dato etiqueta="Km de la unidad">
+      {data?.km == null ? null : (
+        <>
+          {formatearNumero(data.km, 0)} km
+          {data.ts && (
+            <span className="block text-xs text-tinta-suave">
+              {data.fuente === 'telemetria' ? 'telemetría' : 'última carga'} · {formatearFechaHora(data.ts as FechaISO, zonaHoraria)}
+            </span>
+          )}
+        </>
+      )}
+    </Dato>
   );
 }

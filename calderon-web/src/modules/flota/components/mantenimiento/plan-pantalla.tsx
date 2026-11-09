@@ -20,14 +20,16 @@ import {
   type Prioridad,
   type TareaPlan,
   type Zona,
+  unidadDe,
+  type Equipo,
 } from '../../domain/mantenimiento.types';
-import { fechaDia, type Equipo } from '../../domain/vencimientos.types';
+import { fechaDia } from '../../domain/vencimientos.types';
 import { useCargarBaseTarea, useGuardarTarea, usePlanMantenimiento, useZonasEquipo } from '../../queries/hooks';
 import { Camion3D } from './camion-3d';
 import { SelectorZonas } from './ordenes-pantalla';
 
 const TONO: Record<EstadoPlan, Tono> = { vencida: 'error', proxima: 'alerta', al_dia: 'exito', sin_km: 'neutro' };
-const km = (v: number | null) => (v === null ? null : `${formatearNumero(v, 0)} km`);
+const km = (v: number | null, u: 'km' | 'h' = 'km') => (v === null ? null : `${formatearNumero(v, 0)} ${u}`);
 const entero = (s: string) => {
   const t = s.trim().replace(/\./g, '');
   return t === '' || !Number.isFinite(Number(t)) ? null : Math.round(Number(t));
@@ -59,7 +61,7 @@ export function PlanPantalla() {
         )}
       </Encabezado>
       <p className="max-w-3xl text-sm text-tinta-suave">
-        Tareas que se repiten cada tantos días o cada tantos km (con el odómetro de la telemetría). Cuando a un equipo le toca, el sistema genera la orden de
+        Tareas que se repiten cada tantos días, cada tantos km (con el odómetro de la telemetría) o, en los gensets, cada tantas horas de horómetro. Cuando a un equipo le toca, el sistema genera la orden de
         trabajo sola. La próxima se cuenta desde la última orden terminada.
       </p>
 
@@ -80,8 +82,8 @@ export function PlanPantalla() {
                     <span>
                       <span className="font-medium text-tinta">{t.nombre}</span>
                       <span className="block text-xs text-tinta-suave">
-                        {t.aplica === 'tractor' ? `Tractores${t.marca ? ` ${t.marca}` : ''}` : `Semis${t.tipoSemi ? ` ${t.tipoSemi}` : ''}`} · {textoFrecuencia(t)} ·
-                        avisa {[t.cadaDias !== null ? `${t.avisoDias} días` : null, t.cadaKm !== null ? `${formatearNumero(t.avisoKm, 0)} km` : null].filter(Boolean).join(' / ')} antes
+                        {t.aplica === 'tractor' ? `Tractores${t.marca ? ` ${t.marca}` : ''}` : t.aplica === 'semi' ? `Semis${t.tipoSemi ? ` ${t.tipoSemi}` : ''}` : 'Gensets'} · {textoFrecuencia(t)} ·
+                        avisa {[t.cadaDias !== null ? `${t.avisoDias} días` : null, t.cadaKm !== null ? `${formatearNumero(t.avisoKm, 0)} km` : null, t.cadaHoras !== null ? `${formatearNumero(t.avisoHoras, 0)} horas` : null].filter(Boolean).join(' / ')} antes
                         {!t.activo && ' · inactiva'}
                       </span>
                     </span>
@@ -119,7 +121,7 @@ function EquiposTarea({ t, edita }: { t: TareaPlan; edita: boolean }) {
             <th className="px-2 py-2">Equipo</th>
             <th className="px-2 py-2">Última vez</th>
             <th className="px-2 py-2">Próxima</th>
-            {t.cadaKm !== null && <th className="px-2 py-2 text-right">Km hoy</th>}
+            {(t.cadaKm !== null || t.cadaHoras !== null) && <th className="px-2 py-2 text-right">{t.aplica === 'genset' ? 'Horas hoy' : 'Km hoy'}</th>}
             <th className="px-2 py-2">Estado</th>
             <th className="px-2 py-2">OT</th>
             {edita && <th className="px-2 py-2" />}
@@ -130,13 +132,13 @@ function EquiposTarea({ t, edita }: { t: TareaPlan; edita: boolean }) {
             <tr key={`${e.equipo}${e.equipoId}`} className="border-b border-borde last:border-0">
               <td className="px-2 py-2 font-mono font-semibold">{e.patente}</td>
               <td className="px-2 py-2">
-                {[fechaDia(e.baseFecha), km(e.baseKm)].filter(Boolean).join(' · ')}
+                {[fechaDia(e.baseFecha), km(e.baseKm, unidadDe(e.equipo))].filter(Boolean).join(' · ')}
                 <span className="block text-xs text-tinta-suave">
                   {e.baseOrigen === 'ot' ? 'orden terminada' : e.baseOrigen === 'cargada' ? 'cargada a mano' : 'desde que se creó la tarea'}
                 </span>
               </td>
-              <td className="px-2 py-2">{[e.proximaFecha ? fechaDia(e.proximaFecha) : null, km(e.proximoKm)].filter(Boolean).join(' o ') || '—'}</td>
-              {t.cadaKm !== null && <td className="px-2 py-2 text-right tabular-nums">{km(e.kmActual) ?? '—'}</td>}
+              <td className="px-2 py-2">{[e.proximaFecha ? fechaDia(e.proximaFecha) : null, km(e.proximoKm, unidadDe(e.equipo))].filter(Boolean).join(' o ') || '—'}</td>
+              {(t.cadaKm !== null || t.cadaHoras !== null) && <td className="px-2 py-2 text-right tabular-nums">{km(e.kmActual, unidadDe(e.equipo)) ?? '—'}</td>}
               <td className="px-2 py-2">
                 <Chip tono={TONO[e.estado]}>{ETIQUETA_ESTADO_PLAN[e.estado]}</Chip>
               </td>
@@ -171,9 +173,9 @@ function FormBase({ t, e, onCerrar }: { t: TareaPlan; e: EquipoPlan; onCerrar: (
         <span className="block text-xs text-tinta-suave">Fecha</span>
         <input type="date" className={cn(CONTROL_FILTRO, 'h-9')} value={fecha} onChange={(x) => setFecha(x.target.value)} />
       </label>
-      {e.equipo === 'tractor' && (
+      {e.equipo !== 'semi' && (
         <label className="space-y-1 text-sm">
-          <span className="block text-xs text-tinta-suave">Km (opcional)</span>
+          <span className="block text-xs text-tinta-suave">{e.equipo === 'genset' ? 'Horas del horómetro (opcional)' : 'Km (opcional)'}</span>
           <input className={cn(CONTROL_FILTRO, 'h-9 w-32')} inputMode="numeric" value={k} onChange={(x) => setK(x.target.value)} />
         </label>
       )}
@@ -207,6 +209,8 @@ function FormTarea({ t, zonas, onCerrar }: { t: TareaPlan | null; zonas: Zona[];
   const [kmC, setKmC] = useState(t?.cadaKm != null ? String(t.cadaKm) : '');
   const [avD, setAvD] = useState(String(t?.avisoDias ?? 7));
   const [avK, setAvK] = useState(String(t?.avisoKm ?? 1000));
+  const [hsC, setHsC] = useState(t?.cadaHoras != null ? String(t.cadaHoras) : '');
+  const [avH, setAvH] = useState(String(t?.avisoHoras ?? 50));
   const [zs, setZs] = useState<string[]>(t?.zonas ?? []);
   const [prio, setPrio] = useState<Prioridad>(t?.prioridad ?? 'normal');
   const [activo, setActivo] = useState(t?.activo ?? true);
@@ -228,6 +232,7 @@ function FormTarea({ t, zonas, onCerrar }: { t: TareaPlan | null; zonas: Zona[];
           >
             <option value="tractor">Tractores</option>
             <option value="semi">Semis</option>
+            <option value="genset">Gensets</option>
           </select>
         </label>
         <label className="space-y-1 text-sm">
@@ -239,7 +244,9 @@ function FormTarea({ t, zonas, onCerrar }: { t: TareaPlan | null; zonas: Zona[];
             ))}
           </datalist>
         </label>
-        {aplica === 'tractor' ? (
+        {aplica === 'genset' ? (
+          <div className="hidden sm:block" />
+        ) : aplica === 'tractor' ? (
           <label className="space-y-1 text-sm">
             <span className="block text-xs text-tinta-suave">Solo la marca (opcional)</span>
             <input className={cn(CONTROL_FILTRO, 'h-10 w-full')} placeholder="Ej.: Renault, Mercedes, Scania" value={marca} onChange={(e) => setMarca(e.target.value)} />
@@ -275,6 +282,12 @@ function FormTarea({ t, zonas, onCerrar }: { t: TareaPlan | null; zonas: Zona[];
             <input className={cn(CONTROL_FILTRO, 'h-10 w-full')} inputMode="numeric" placeholder="Ej.: 10.000, 30.000" value={kmC} onChange={(e) => setKmC(e.target.value)} />
           </label>
         )}
+        {aplica === 'genset' && (
+          <label className="space-y-1 text-sm">
+            <span className="block text-xs text-tinta-suave">Cada cuántas horas de horómetro (vacío = no va por horas)</span>
+            <input className={cn(CONTROL_FILTRO, 'h-10 w-full')} inputMode="numeric" placeholder="Ej.: 250, 500, 1.000" value={hsC} onChange={(e) => setHsC(e.target.value)} />
+          </label>
+        )}
         <label className="space-y-1 text-sm">
           <span className="block text-xs text-tinta-suave">Avisar con cuántos días antes</span>
           <input className={cn(CONTROL_FILTRO, 'h-10 w-full')} inputMode="numeric" value={avD} onChange={(e) => setAvD(e.target.value)} />
@@ -285,6 +298,12 @@ function FormTarea({ t, zonas, onCerrar }: { t: TareaPlan | null; zonas: Zona[];
             <input className={cn(CONTROL_FILTRO, 'h-10 w-full')} inputMode="numeric" value={avK} onChange={(e) => setAvK(e.target.value)} />
           </label>
         )}
+        {aplica === 'genset' && (
+          <label className="space-y-1 text-sm">
+            <span className="block text-xs text-tinta-suave">Avisar con cuántas horas antes</span>
+            <input className={cn(CONTROL_FILTRO, 'h-10 w-full')} inputMode="numeric" value={avH} onChange={(e) => setAvH(e.target.value)} />
+          </label>
+        )}
         <label className="space-y-1 text-sm sm:col-span-2">
           <span className="block text-xs text-tinta-suave">Detalle para el mecánico (opcional)</span>
           <input className={cn(CONTROL_FILTRO, 'h-10 w-full')} placeholder="Ej.: aceite 15W40, 38 litros" value={desc} onChange={(e) => setDesc(e.target.value)} />
@@ -293,15 +312,17 @@ function FormTarea({ t, zonas, onCerrar }: { t: TareaPlan | null; zonas: Zona[];
       <div className="space-y-1">
         <span className="block text-xs text-tinta-suave">Qué revisar (se marca en amarillo)</span>
         <SelectorZonas zonas={zonas} equipo={aplica} valor={zs} onCambiar={setZs} />
-        <Camion3D
-          equipo={aplica}
-          marca={aplica === 'tractor' ? marca || null : null}
-          tipoSemi={aplica === 'semi' ? tipoSemi || null : null}
-          zonas={zs}
-          nombres={Object.fromEntries(zonas.map((z) => [z.codigo, z.nombre]))}
-          onTocar={(z) => setZs((v) => (v.includes(z) ? v.filter((x) => x !== z) : [...v, z]))}
-          alto={220}
-        />
+        {aplica !== 'genset' && (
+          <Camion3D
+            equipo={aplica}
+            marca={aplica === 'tractor' ? marca || null : null}
+            tipoSemi={aplica === 'semi' ? tipoSemi || null : null}
+            zonas={zs}
+            nombres={Object.fromEntries(zonas.map((z) => [z.codigo, z.nombre]))}
+            onTocar={(z) => setZs((v) => (v.includes(z) ? v.filter((x) => x !== z) : [...v, z]))}
+            alto={220}
+          />
+        )}
       </div>
       {t && (
         <label className="inline-flex items-center gap-2 text-sm text-tinta">
@@ -328,6 +349,8 @@ function FormTarea({ t, zonas, onCerrar }: { t: TareaPlan | null; zonas: Zona[];
                 cadaKm: aplica === 'tractor' ? entero(kmC) : null,
                 avisoDias: entero(avD) ?? 7,
                 avisoKm: entero(avK) ?? 1000,
+                cadaHoras: aplica === 'genset' ? entero(hsC) : null,
+                avisoHoras: entero(avH) ?? 50,
                 zonas: zs,
                 prioridad: prio,
                 activo,

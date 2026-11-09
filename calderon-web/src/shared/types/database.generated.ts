@@ -1126,9 +1126,14 @@ export type Database = {
           p_zonas: string[];
           p_prioridad: string;
           p_activo?: boolean;
+          /** Migración 215: gensets */
+          p_cada_horas?: number | null;
+          p_aviso_horas?: number | null;
         };
         Returns: number;
       };
+      // Migración 215: km del tractor para su ficha
+      fn_km_camion: { Args: { p_camion: number }; Returns: Json };
       fn_base_tarea: { Args: { p_tarea: number; p_equipo: string; p_equipo_id: number; p_fecha: string; p_km: number | null }; Returns: undefined };
       fn_crear_ot: {
         Args: {

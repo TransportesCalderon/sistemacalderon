@@ -6,7 +6,7 @@ import { mantenimientoRepository } from '../repositories/mantenimiento.repositor
 
 /** Migración 199: plan de mantenimiento y órdenes de trabajo. La base vuelve a controlar roles, estados y datos. */
 const fecha = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida');
-const equipo = z.enum(['tractor', 'semi']);
+const equipo = z.enum(['tractor', 'semi', 'genset']);
 const prioridad = z.enum(['normal', 'alta', 'urgente']);
 const entero = z.number().int().nullable();
 const id = z.number().int().positive();
@@ -25,6 +25,8 @@ export const guardarTarea = createAction({
     cadaKm: entero,
     avisoDias: z.number().int(),
     avisoKm: z.number().int(),
+    cadaHoras: entero.optional(),
+    avisoHoras: z.number().int().optional(),
     zonas: z.array(z.string().max(30)).max(20),
     prioridad,
     activo: z.boolean(),

@@ -14,7 +14,7 @@ import {
   type TareaPlan,
   type Zona,
 } from '../domain/mantenimiento.types';
-import type { Equipo } from '../domain/vencimientos.types';
+import type { Equipo } from '../domain/mantenimiento.types';
 
 export interface DatosTarea {
   id: number | null;
@@ -28,6 +28,9 @@ export interface DatosTarea {
   cadaKm: number | null;
   avisoDias: number;
   avisoKm: number;
+  /** Migración 215: gensets */
+  cadaHoras?: number | null;
+  avisoHoras?: number;
   zonas: string[];
   prioridad: Prioridad;
   activo: boolean;
@@ -85,6 +88,8 @@ export const mantenimientoRepository = (db: Db) => {
             p_zonas: d.zonas,
             p_prioridad: d.prioridad,
             p_activo: d.activo,
+            p_cada_horas: d.cadaHoras ?? null,
+            p_aviso_horas: d.avisoHoras ?? null,
           }),
         ),
       ),

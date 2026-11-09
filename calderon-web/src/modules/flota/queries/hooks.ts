@@ -38,6 +38,27 @@ export function useCamion(id: CamionId, opciones: { enabled?: boolean } = {}) {
   return useQuery({ ...camionesQueries.detalle(browserDb(), id), enabled: opciones.enabled ?? true });
 }
 
+/** Migración 215: km del tractor para su ficha (telemetría o la última carga con odómetro). Lo decide la base. */
+export interface KmCamion {
+  km: number | null;
+  ts: string | null;
+  fuente: 'telemetria' | 'carga' | null;
+}
+export function useKmCamion(id: CamionId, activo = true) {
+  return useQuery({
+    queryKey: ['flota', 'camion', 'km', id] as const,
+    queryFn: async (): Promise<KmCamion> => {
+      const { data, error } = await browserDb().schema('mae').rpc('fn_km_camion', { p_camion: id });
+      if (error) throw error;
+      const x = (data && typeof data === 'object' && !Array.isArray(data) ? data : {}) as Record<string, unknown>;
+      const fuente = x.fuente === 'telemetria' || x.fuente === 'carga' ? x.fuente : null;
+      return { km: x.km === null || x.km === undefined ? null : Number(x.km), ts: typeof x.ts === 'string' ? x.ts : null, fuente };
+    },
+    enabled: activo,
+    staleTime: 60_000,
+  });
+}
+
 export function useCatalogosFlota() {
   return useQuery(catalogosFlotaQueries.obtener(browserDb()));
 }
