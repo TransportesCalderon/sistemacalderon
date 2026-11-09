@@ -20,7 +20,8 @@ export const VERSION_MANTENIMIENTO = 199;
 export type EstadoOt = 'pendiente' | 'en_curso' | 'terminada' | 'verificada' | 'anulada';
 export type Prioridad = 'normal' | 'alta' | 'urgente';
 export type OrigenOt = 'plan' | 'vencimiento' | 'puntual';
-export type EstadoPlan = 'vencida' | 'proxima' | 'al_dia' | 'sin_km';
+/** Migración 220: «sin_registro» = no se sabe cuándo se hizo (última vez vacía, no sale la OT sola). */
+export type EstadoPlan = 'vencida' | 'proxima' | 'al_dia' | 'sin_km' | 'sin_registro';
 
 export const ETIQUETA_ESTADO_OT: Record<EstadoOt, string> = {
   pendiente: 'Pendiente',
@@ -31,7 +32,13 @@ export const ETIQUETA_ESTADO_OT: Record<EstadoOt, string> = {
 };
 export const ETIQUETA_PRIORIDAD: Record<Prioridad, string> = { normal: 'Normal', alta: 'Alta', urgente: 'Urgente' };
 export const ETIQUETA_ORIGEN: Record<OrigenOt, string> = { plan: 'Plan', vencimiento: 'Vencimiento', puntual: 'Pedida' };
-export const ETIQUETA_ESTADO_PLAN: Record<EstadoPlan, string> = { vencida: 'Toca ya', proxima: 'Se acerca', al_dia: 'Al día', sin_km: 'Sin km' };
+export const ETIQUETA_ESTADO_PLAN: Record<EstadoPlan, string> = {
+  vencida: 'Toca ya',
+  proxima: 'Se acerca',
+  al_dia: 'Al día',
+  sin_km: 'Sin km',
+  sin_registro: 'Sin registro',
+};
 
 export interface Zona {
   codigo: string;
@@ -104,7 +111,7 @@ export interface EquipoPlan {
   patente: string;
   baseFecha: string | null;
   baseKm: number | null;
-  baseOrigen: 'ot' | 'cargada' | 'alta_tarea';
+  baseOrigen: 'ot' | 'cargada' | 'alta_tarea' | 'sin_registro';
   proximaFecha: string | null;
   proximoKm: number | null;
   kmActual: number | null;
@@ -159,7 +166,7 @@ const equipo = (v: unknown): Equipo => (v === 'semi' ? 'semi' : v === 'genset' ?
 const prioridad = (v: unknown): Prioridad => (v === 'alta' || v === 'urgente' ? v : 'normal');
 const estadoOt = (v: unknown): EstadoOt => (v === 'en_curso' || v === 'terminada' || v === 'verificada' || v === 'anulada' ? v : 'pendiente');
 const origen = (v: unknown): OrigenOt => (v === 'plan' || v === 'vencimiento' ? v : 'puntual');
-const estadoPlan = (v: unknown): EstadoPlan => (v === 'vencida' || v === 'proxima' || v === 'sin_km' ? v : 'al_dia');
+const estadoPlan = (v: unknown): EstadoPlan => (v === 'vencida' || v === 'proxima' || v === 'sin_km' || v === 'sin_registro' ? v : 'al_dia');
 
 export const parsearZonas = (d: unknown): Zona[] =>
   arr(d).map((z) => ({ codigo: txt(z.codigo) ?? '', nombre: txt(z.nombre) ?? '', tractor: z.tractor === true, semi: z.semi === true, genset: z.genset === true }));
@@ -236,7 +243,7 @@ export const parsearPlan = (d: unknown): TareaPlan[] =>
       patente: txt(e.patente) ?? '',
       baseFecha: txt(e.base_fecha),
       baseKm: n(e.base_km),
-      baseOrigen: e.base_origen === 'ot' ? 'ot' : e.base_origen === 'cargada' ? 'cargada' : 'alta_tarea',
+      baseOrigen: e.base_origen === 'ot' ? 'ot' : e.base_origen === 'cargada' ? 'cargada' : e.base_origen === 'sin_registro' ? 'sin_registro' : 'alta_tarea',
       proximaFecha: txt(e.proxima_fecha),
       proximoKm: n(e.proximo_km),
       kmActual: n(e.km_actual),

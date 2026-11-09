@@ -29,7 +29,7 @@ import { useCargarBaseTarea, useGuardarTarea, usePlanMantenimiento, useTareaNoAp
 import { Camion3D } from './camion-3d';
 import { SelectorZonas } from './ordenes-pantalla';
 
-const TONO: Record<EstadoPlan, Tono> = { vencida: 'error', proxima: 'alerta', al_dia: 'exito', sin_km: 'neutro' };
+const TONO: Record<EstadoPlan, Tono> = { vencida: 'error', proxima: 'alerta', al_dia: 'exito', sin_km: 'neutro', sin_registro: 'neutro' };
 const km = (v: number | null, u: 'km' | 'h' = 'km') => (v === null ? null : `${formatearNumero(v, 0)} ${u}`);
 const entero = (s: string) => {
   const t = s.trim().replace(/\./g, '');
@@ -92,6 +92,7 @@ export function PlanPantalla() {
                   <div className="flex flex-wrap items-center gap-1.5">
                     {c('vencida') > 0 && <Chip tono="error">{c('vencida')} toca ya</Chip>}
                     {c('proxima') > 0 && <Chip tono="alerta">{c('proxima')} se acerca</Chip>}
+                    {c('sin_registro') > 0 && <Chip tono="neutro">{c('sin_registro')} sin registro</Chip>}
                     <Chip tono="neutro">{t.equipos.length} equipos</Chip>
                     {t.prioridad !== 'normal' && <Chip tono="alerta">{ETIQUETA_PRIORIDAD[t.prioridad]}</Chip>}
                     {edita && (
@@ -137,9 +138,15 @@ function EquiposTarea({ t, edita }: { t: TareaPlan; edita: boolean }) {
             <tr key={`${e.equipo}${e.equipoId}`} className="border-b border-borde last:border-0">
               <td className="px-2 py-2 font-mono font-semibold">{e.patente}</td>
               <td className="px-2 py-2">
-                {[fechaDia(e.baseFecha), km(e.baseKm, unidadDe(e.equipo))].filter(Boolean).join(' · ')}
+                {e.baseOrigen === 'sin_registro' ? '—' : [fechaDia(e.baseFecha), km(e.baseKm, unidadDe(e.equipo))].filter(Boolean).join(' · ')}
                 <span className="block text-xs text-tinta-suave">
-                  {e.baseOrigen === 'ot' ? 'orden terminada' : e.baseOrigen === 'cargada' ? 'cargada a mano' : 'desde que se creó la tarea'}
+                  {e.baseOrigen === 'ot'
+                    ? 'orden terminada'
+                    : e.baseOrigen === 'cargada'
+                      ? 'cargada a mano'
+                      : e.baseOrigen === 'sin_registro'
+                        ? 'sin registro: cargá la última vez'
+                        : 'desde que se creó la tarea'}
                 </span>
               </td>
               <td className="px-2 py-2">{[e.proximaFecha ? fechaDia(e.proximaFecha) : null, km(e.proximoKm, unidadDe(e.equipo))].filter(Boolean).join(' o ') || '—'}</td>
