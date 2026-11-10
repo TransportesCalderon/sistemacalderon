@@ -177,6 +177,8 @@ export interface DatosPedidoCarga {
   /** Migración 221: inicial separado (los tanques se llenan primero), lo cargado en el viaje y la línea por los tramos. */
   inicialTanquesL: number | null;
   inicialMochilaL: number | null;
+  /** Migración 233: lo que faltó para llenar en la carga de salida (ya descontado del inicial). */
+  faltanteSalidaL: number | null;
   cargasViajeL: number;
   cargasViaje: { estacion: string; litros: number }[];
   linea: string | null;
@@ -216,6 +218,7 @@ export function parsearDatosPedido(d: unknown): DatosPedidoCarga {
     aviso: txt(x.aviso),
     inicialTanquesL: n(x.inicial_tanques_l),
     inicialMochilaL: n(x.inicial_mochila_l),
+    faltanteSalidaL: n(x.faltante_salida_l),
     cargasViajeL: n(x.cargas_viaje_l) ?? 0,
     cargasViaje: arr(x.cargas_viaje).map((c) => ({ estacion: txt(c.estacion) ?? '', litros: Number(c.litros ?? 0) })),
     linea: txt(x.linea),

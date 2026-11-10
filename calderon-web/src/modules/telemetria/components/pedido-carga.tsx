@@ -78,6 +78,7 @@ export function PedidoCarga({ viajeId, registra }: { viajeId: number; registra: 
         {d.inicialTanquesL !== null && (
           <p>
             Inicial: {formatearNumero(d.inicialTanquesL, 0)} L tanques | {formatearNumero(d.inicialMochilaL ?? 0, 0)} L mochila
+            {d.faltanteSalidaL !== null && <span className="text-alerta"> · faltaron {formatearNumero(d.faltanteSalidaL, 0)} L para llenar en la salida</span>}
           </p>
         )}
         <p>
