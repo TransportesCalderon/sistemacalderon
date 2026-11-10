@@ -24,3 +24,15 @@ export function NombreIronTrack({ className }: { className?: string }) {
 export function LogoIronTrack({ className }: { className?: string }) {
   return <Image src={logo} alt="IronTrack · Gestión de flotas" priority className={cn('h-auto w-full', className)} />;
 }
+
+/**
+ * 10/11/2026 · Logo de IronTrack de fondo en las pantallas: centrado, grande y muy tenue (marca de agua),
+ * detrás del contenido; no se puede tocar ni seleccionar y no sale al imprimir.
+ */
+export function MarcaDeAguaIronTrack({ className }: { className?: string }) {
+  return (
+    <div aria-hidden className={cn('pointer-events-none fixed inset-0 z-0 flex items-center justify-center select-none print:hidden', className)}>
+      <Image src={logo} alt="" className="h-auto w-[min(70%,56rem)] opacity-[0.08]" />
+    </div>
+  );
+}
