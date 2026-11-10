@@ -144,6 +144,8 @@ const GRUPOS: { titulo: string; icono: typeof Gauge; total?: string; partes: Rec
       braking: 'Relación frenado/parada',
       anticipationAndBraking: 'Anticipación y frenado',
       coasting: 'En punto muerto',
+      // Migración 232: Scania (foto del tablero)
+      distance: 'Distancia al vehículo de adelante',
     },
   },
   {

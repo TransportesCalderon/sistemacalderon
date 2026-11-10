@@ -93,7 +93,7 @@ export interface EcoScore {
 export const GRUPOS_ECO: { titulo: string; partes: Record<string, string> }[] = [
   {
     titulo: 'Anticipación y frenado',
-    partes: { anticipation: 'Anticipación', braking: 'Frenado', anticipationAndBraking: 'Anticipación y frenado', coasting: 'Inercia (rodar sin acelerar)' },
+    partes: { anticipation: 'Anticipación', braking: 'Frenado', anticipationAndBraking: 'Anticipación y frenado', coasting: 'Inercia (rodar sin acelerar)', distance: 'Distancia al vehículo de adelante' },
   },
   {
     titulo: 'Motor y caja',
