@@ -2291,6 +2291,13 @@ export type Database = {
           ultima_lectura: string | null;
         }[];
       };
+      /** Migración 223 */
+      fn_consumo_rutas: { Args: Record<string, never>; Returns: Json };
+      fn_consumo_choferes: { Args: { p_mes: string }; Returns: Json };
+      fn_recalcular_consumo_choferes: { Args: { p_mes: string }; Returns: number };
+      fn_revisar_consumo_chofer: { Args: { p_mes: string; p_chofer: number; p_comentario: string }; Returns: undefined };
+      fn_analizar_consumo_chofer_ia: { Args: { p_mes: string; p_chofer: number }; Returns: undefined };
+      fn_litros_pendientes: { Args: { p_camion: number }; Returns: Json };
       fn_mis_pendientes: {
         Args: Record<string, never>;
         Returns: {

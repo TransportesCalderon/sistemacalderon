@@ -11,6 +11,7 @@ import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, CONTROL_FILTRO } from '@/shared/ui/clases';
 import { useDatosPedidoCarga, usePedidosCarga, usePedirCarga } from '../queries/hooks';
 import { BotonCopiar } from './boton-copiar';
+import { Recorrido } from '@/modules/combustible/components/consumo/consumo-rutas';
 
 const decimal = (s: string) => {
   const t = s.trim().replace(/\./g, '').replace(',', '.');
@@ -89,6 +90,19 @@ export function PedidoCarga({ viajeId, registra }: { viajeId: number; registra: 
           </p>
         )}
       </div>
+      {/* Migración 223: lo necesario para lo que le falta, según el consumo medido en esas rutas */}
+      {d.necesario && d.necesario.tramos.length > 0 && (
+        <div className="space-y-1 rounded-md bg-hover p-2 text-xs text-tinta-suave">
+          <p className="text-tinta">
+            Para lo que le falta necesita <strong>{formatearNumero(d.necesario.litros, 0)} L</strong>
+            {d.litrosParaLlegar !== null
+              ? ` → para llegar con reserva hay que cargar ${formatearNumero(d.litrosParaLlegar, 0)} L`
+              : ' (faltan datos de algún tramo: se sugiere llenar)'}
+            {d.litrosParaLlenar !== null && ` · para llenar los tanques: ${formatearNumero(d.litrosParaLlenar, 0)} L`}
+          </p>
+          <Recorrido p={d.necesario} />
+        </div>
+      )}
       {d.aviso && <p className="text-xs text-alerta">{d.aviso}</p>}
 
       {registra && (

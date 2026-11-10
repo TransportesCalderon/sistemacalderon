@@ -34,12 +34,16 @@ export const PESTANAS_CONSUMO = [
   { href: '/analisis/consumo', etiqueta: 'Consumo por camión' },
   { href: '/analisis/consumo/cargado-vs-motor', etiqueta: 'Cargado vs. motor' },
   { href: '/analisis/consumo/ralenti', etiqueta: 'Ralentí del mes' },
+  // Migración 223: lo que midió el motor en cada ruta y los litros que necesita cada camión
+  { href: '/analisis/consumo?vista=rutas', etiqueta: 'Consumo por ruta' },
 ] as const;
 
 /** Análisis › Ranking: el del mes y el puntaje de manejo por período. */
 export const PESTANAS_RANKING = [
   { href: '/analisis/ranking', etiqueta: 'Ranking del mes' },
   { href: '/analisis/ranking/periodo', etiqueta: 'Puntaje por período' },
+  // Migración 223: cada chofer contra los demás en el mismo camión y ruta
+  { href: '/analisis/ranking?vista=consumo', etiqueta: 'Choferes con consumo alto' },
 ] as const;
 
 /** Ajustes › Flota: equipos y choferes. */

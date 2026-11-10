@@ -1,3 +1,4 @@
+import { parsearLitrosRuta, type LitrosRuta } from '@/modules/combustible/domain/consumo-aprendido.types';
 import type { FechaISO } from '@/shared/types/dominio';
 
 /**
@@ -180,6 +181,10 @@ export interface DatosPedidoCarga {
   cargasViaje: { estacion: string; litros: number }[];
   linea: string | null;
   lineaTramos: boolean;
+  /** Migración 223: lo necesario para lo que le falta (consumo medido en esas rutas) y lo que entra en los tanques. */
+  litrosParaLlenar: number | null;
+  litrosParaLlegar: number | null;
+  necesario: LitrosRuta | null;
 }
 
 export interface PedidoCarga {
@@ -215,6 +220,9 @@ export function parsearDatosPedido(d: unknown): DatosPedidoCarga {
     cargasViaje: arr(x.cargas_viaje).map((c) => ({ estacion: txt(c.estacion) ?? '', litros: Number(c.litros ?? 0) })),
     linea: txt(x.linea),
     lineaTramos: x.linea_tramos === true,
+    litrosParaLlenar: n(x.litros_para_llenar),
+    litrosParaLlegar: n(x.litros_para_llegar),
+    necesario: x.necesario ? parsearLitrosRuta(x.necesario) : null,
   };
 }
 

@@ -19,6 +19,8 @@ import { crearCarga, editarCarga, eliminarCarga, resolverSolicitudCarga, retirar
 import { cerrarComite, revisarEquipoMes } from '../actions/comite.actions';
 import { comiteRepository } from '../repositories/comite.repository';
 import { consumoRepository } from '../repositories/consumo.repository';
+import { consumoAprendidoRepository } from '../repositories/consumo-aprendido.repository';
+import { analizarConsumoChofer, recalcularConsumoChoferes, revisarConsumoChofer } from '../actions/consumo-aprendido.actions';
 import {
   actualizarLimitesCierre,
   anularCierre,
@@ -243,3 +245,31 @@ export const useRalentiMes = (mes: string) =>
   useQuery({ queryKey: ['combustible', 'ralenti', mes] as const, queryFn: () => ralentiRepository(browserDb()).mes(mes), staleTime: 30_000, placeholderData: keepPreviousData });
 export const useCerrarRalenti = () => useEscritura(cerrarRalenti);
 export const useAnularCierreRalenti = () => useEscritura(anularCierreRalenti);
+
+// ---- Migración 223: consumo aprendido por ruta y choferes con consumo alto ----
+export const useConsumoRutas = (activo: boolean) =>
+  useQuery({
+    queryKey: ['combustible', 'consumo', 'rutas'] as const,
+    queryFn: () => consumoAprendidoRepository(browserDb()).rutas(),
+    enabled: activo,
+    staleTime: 5 * 60_000,
+  });
+export const useConsumoChoferes = (mes: string, activo: boolean) =>
+  useQuery({
+    queryKey: ['combustible', 'consumo', 'choferes-alto', mes] as const,
+    queryFn: () => consumoAprendidoRepository(browserDb()).choferes(mes),
+    enabled: activo && mes !== '',
+    placeholderData: keepPreviousData,
+    // Mientras la IA está respondiendo, se vuelve a leer cada 5 segundos
+    refetchInterval: (q) => (q.state.data?.choferes.some((c) => c.iaEstado === 'esperando') ? 5000 : false),
+  });
+function useMutacionConsumo<A, R>(fn: (a: A) => Promise<R>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (r) => ((r as { ok?: boolean }).ok ? invalidar(qc, 'consumo_choferes') : undefined),
+  });
+}
+export const useRecalcularConsumoChoferes = () => useMutacionConsumo(recalcularConsumoChoferes);
+export const useRevisarConsumoChofer = () => useMutacionConsumo(revisarConsumoChofer);
+export const useAnalizarConsumoChofer = () => useMutacionConsumo(analizarConsumoChofer);

@@ -74,6 +74,8 @@ export const OBJETOS = {
   mantenimiento: [['flota', 'mantenimiento'], ['flota', 'vencimientos']],
   /** Migración 216: stock de insumos (también la OT donde se usaron y la contabilidad). */
   stock: [['flota', 'mantenimiento'], ['finanzas']],
+  /** Migración 223: revisión de choferes con consumo alto (y el análisis de la IA). */
+  consumo_choferes: [['combustible', 'consumo', 'choferes-alto'], ['pendientes']],
   /** Migración 192: eligió su contraseña (se cierra la ventana de cambio obligatorio). */
   clave: [['usuarios', 'debo-cambiar-clave']],
   /** Ventas: emitir o cobrar cambia también Finanzas y los viajes. */
