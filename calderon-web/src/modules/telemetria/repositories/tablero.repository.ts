@@ -6,6 +6,9 @@ import {
   parsearContexto,
   parsearSugerido,
   parsearTableros,
+  parsearInterpretacion,
+  parsearPendientesTablero,
+  parsearTablerosCarga,
   type DatosTablero,
 } from '../domain/tablero.types';
 
@@ -38,6 +41,28 @@ export const tableroRepository = (db: Db) => {
       });
       if (error) throw new RepoError(error);
       return data;
+    },
+    /** Migración 224: fotos de una carga (llenado de corte) con su interpretación. */
+    async deCarga(cargaId: number) {
+      const { data, error } = await tel().rpc('fn_tableros_carga', { p_carga: cargaId });
+      if (error) throw new RepoError(error);
+      return parsearTablerosCarga(data);
+    },
+    async guardarDeCarga(d: { cargaId: number; datos: DatosTablero; lecturas: number[]; fotos: { ruta: string; hash: string }[] }) {
+      const { data, error } = await tel().rpc('fn_guardar_tablero_carga', {
+        p_carga: d.cargaId,
+        p_datos: d.datos as Json,
+        p_lecturas: d.lecturas,
+        p_fotos: d.fotos as Json,
+      });
+      if (error) throw new RepoError(error);
+      const x = (data ?? {}) as { id?: number; interpretacion?: unknown };
+      return { id: Number(x.id ?? 0), interpretacion: parsearInterpretacion(x.interpretacion) };
+    },
+    async pendientesChofer() {
+      const { data, error } = await tel().rpc('fn_tablero_pendiente_chofer');
+      if (error) throw new RepoError(error);
+      return parsearPendientesTablero(data);
     },
     async anular(id: number) {
       const { error } = await tel().rpc('fn_anular_tablero', { p_id: id });

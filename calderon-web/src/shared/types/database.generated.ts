@@ -1982,6 +1982,10 @@ export type Database = {
       fn_pedidos_carga_viaje: { Args: { p_viaje: number }; Returns: Json };
       // Migración 88: tablero del camión (fotos leídas por IA)
       fn_tablero_combinar: { Args: { p_lecturas: number[]; p_camion?: number | null }; Returns: Json };
+      /** Migración 224 */
+      fn_tableros_carga: { Args: { p_carga: number }; Returns: Json };
+      fn_guardar_tablero_carga: { Args: { p_carga: number; p_datos: Json; p_lecturas?: number[]; p_fotos?: Json; p_tomada_en?: string | null }; Returns: Json };
+      fn_tablero_pendiente_chofer: { Args: Record<string, never>; Returns: Json };
       fn_guardar_tablero: {
         Args: { p_camion: number; p_datos: Json; p_lecturas?: number[]; p_fotos?: Json; p_tomada_en?: string | null };
         Returns: number;

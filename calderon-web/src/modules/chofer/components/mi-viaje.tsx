@@ -9,6 +9,7 @@ import { TONO_LIQ } from '@/modules/liquidacion/components/liquidaciones-pantall
 import { ETIQUETA_ESTADO_LIQ } from '@/modules/liquidacion/domain/liquidacion.types';
 import { useMisLiquidaciones } from '@/modules/liquidacion/queries/hooks';
 import { AvisoCargaChofer } from '@/modules/telemetria/components/aviso-carga-chofer';
+import { AvisoTableroInicio } from '@/modules/telemetria/components/aviso-tablero-inicio';
 import { cn } from '@/shared/lib/cn';
 import { TARJETA } from '@/shared/ui/clases';
 import { nombrePeriodo } from '../domain/chofer.types';
@@ -48,6 +49,7 @@ export function MiViaje() {
       </header>
 
       <AvisoCargaChofer />
+      <AvisoTableroInicio />
 
       {/* 1 · Lo de ahora: la ruta que le cargó Telemetría (solo la en curso; si no hay, nada) */}
       {ruta && <RutaDelChofer ruta={ruta} />}

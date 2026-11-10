@@ -17,6 +17,7 @@ import { useCarga, useEliminarCarga, useResolverSolicitud, useRetirarSolicitud, 
 import { AccionConMotivo, Cargando, Chip, Dato, ErrorBase, ErrorLectura, Seccion } from '../comun/ui';
 import { DestinoCarga, RolViajeChips, SituacionCargaChip } from './chips-carga';
 import { TicketCarga } from './ticket-carga';
+import { TableroCarga } from '@/modules/telemetria/components/tablero-carga';
 import { SoloEnPagina, useFicha, useNombreFicha } from '@/modules/core/fichas/contexto';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
@@ -106,6 +107,8 @@ export function CargaFicha({ id }: { id: CargaId }) {
         </p>
       )}
       <TicketCarga carga={carga} />
+      {/* Migración 224: fotos del tablero del llenado de corte (inicio de viaje), interpretadas */}
+      {carga.esFrontera && carga.situacion !== 'anulada' && <TableroCarga cargaId={carga.id} camionId={carga.camionId} />}
       <Anulacion carga={carga} onRecargar={() => refetch()} />
       <TrazaContable origen="carga" id={carga.id} />
     </div>

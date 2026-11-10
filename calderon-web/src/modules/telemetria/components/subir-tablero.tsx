@@ -11,8 +11,9 @@ import { idAleatorio, prepararArchivo, sha256Hex } from '@/shared/lib/archivo';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
-import { guardarTableroChofer, guardarTableroOficina } from '../actions/tablero.actions';
-import { CAMPOS_TABLERO, horasATexto, textoAHoras, type DatosTablero } from '../domain/tablero.types';
+import { guardarTableroCarga, guardarTableroChofer, guardarTableroOficina } from '../actions/tablero.actions';
+import { CAMPOS_TABLERO, horasATexto, textoAHoras, type DatosTablero, type Interpretacion } from '../domain/tablero.types';
+import { ConclusionesTablero } from './conclusiones-tablero';
 import { tableroRepository } from '../repositories/tablero.repository';
 
 const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
@@ -32,7 +33,20 @@ type Foto = { clave: string; nombre: string; vista: string; estado: 'subiendo' |
  * Fotos del tablero del camión (migración 88): se suben como respaldo, la IA lee cada una y la base
  * junta lo leído. La persona revisa, corrige si hace falta y guarda. Sin IA activada, se completa a mano.
  */
-export function SubirTablero({ camionId, modo, carpeta, onGuardado }: { camionId: number; modo: 'chofer' | 'oficina'; carpeta: string; onGuardado?: () => void }) {
+export function SubirTablero({
+  camionId,
+  modo,
+  carpeta,
+  onGuardado,
+  cargaId,
+}: {
+  camionId: number;
+  modo: 'chofer' | 'oficina';
+  carpeta: string;
+  onGuardado?: () => void;
+  /** Migración 224: subidas desde la carga (llenado de corte): quedan unidas a ella y se interpretan. */
+  cargaId?: number;
+}) {
   const ia = useQuery({ queryKey: ['ia', 'estado'], queryFn: () => iaRepository(browserDb()).estado(), staleTime: 300_000 });
   const entrada = useRef<HTMLInputElement>(null);
   const [fotos, setFotos] = useState<Foto[]>([]);
@@ -42,6 +56,7 @@ export function SubirTablero({ camionId, modo, carpeta, onGuardado }: { camionId
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [listo, setListo] = useState(false);
+  const [interpretacion, setInterpretacion] = useState<Interpretacion | null>(null);
   const ocupado = fotos.some((f) => f.estado === 'subiendo' || f.estado === 'leyendo');
 
   const cambiar = (clave: string, c: Partial<Foto>) => setFotos((fs) => fs.map((f) => (f.clave === clave ? { ...f, ...c } : f)));
@@ -123,17 +138,24 @@ export function SubirTablero({ camionId, modo, carpeta, onGuardado }: { camionId
       } else (final as Record<string, number>)[c.clave] = n;
     }
     setGuardando(true);
-    const accion = modo === 'chofer' ? guardarTableroChofer : guardarTableroOficina;
-    const r = await accion({
-      camionId,
-      datos: final,
-      lecturas: fotos.flatMap((f) => (f.lectura ? [f.lectura] : [])),
-      fotos: fotos.flatMap((f) => (f.ruta ? [{ ruta: f.ruta, hash: f.hash ?? '' }] : [])),
-    });
-    setGuardando(false);
-    if (!r.ok) {
-      setError(r.error.mensaje);
-      return;
+    const lecturas = fotos.flatMap((f) => (f.lectura ? [f.lectura] : []));
+    const subidas = fotos.flatMap((f) => (f.ruta ? [{ ruta: f.ruta, hash: f.hash ?? '' }] : []));
+    if (cargaId !== undefined) {
+      const r = await guardarTableroCarga({ cargaId, datos: final, lecturas, fotos: subidas });
+      setGuardando(false);
+      if (!r.ok) {
+        setError(r.error.mensaje);
+        return;
+      }
+      setInterpretacion(r.data.interpretacion);
+    } else {
+      const accion = modo === 'chofer' ? guardarTableroChofer : guardarTableroOficina;
+      const r = await accion({ camionId, datos: final, lecturas, fotos: subidas });
+      setGuardando(false);
+      if (!r.ok) {
+        setError(r.error.mensaje);
+        return;
+      }
     }
     setListo(true);
     setFotos([]);
@@ -148,6 +170,7 @@ export function SubirTablero({ camionId, modo, carpeta, onGuardado }: { camionId
       <div className={cn(TARJETA, 'space-y-3 p-4 text-center')}>
         <CheckCircle2 className="mx-auto size-8 text-exito" />
         <p className="font-medium text-tinta">Listo, quedó guardado.</p>
+        {interpretacion && <ConclusionesTablero i={interpretacion} />}
         <p className="rounded-md bg-alerta-suave px-3 py-2 text-sm text-alerta">
           <RotateCcw className="mr-1 inline size-4" /> Ahora tocá <b>«Restablecer»</b> en el tablero del camión para que el próximo viaje arranque de cero.
         </p>

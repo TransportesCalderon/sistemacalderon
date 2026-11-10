@@ -189,3 +189,58 @@ export function parsearSugerido(v: unknown): Sugerido {
     desde: typeof s.desde === 'string' ? (s.desde as FechaISO) : null,
   };
 }
+
+// ---- Migración 224: fotos del tablero en el llenado de corte (inicio de viaje), interpretadas ----
+export const VERSION_TABLERO_CARGA = 224;
+export type TonoConclusion = 'ok' | 'alerta' | 'info';
+export interface Interpretacion {
+  viaje: string | null;
+  alertas: number;
+  conclusiones: { tono: TonoConclusion; tema: string; texto: string }[];
+}
+export interface TablerosCarga {
+  cargaId: number;
+  camionId: number;
+  odometroCarga: number | null;
+  odometroFoto: number | null;
+  tableros: (Tablero & { interpretacion: Interpretacion | null })[];
+}
+export interface PendienteTablero {
+  cargaId: number;
+  patente: string;
+  fechaHora: string;
+  litros: number;
+}
+const tono = (v: unknown): TonoConclusion => (v === 'ok' || v === 'alerta' ? v : 'info');
+export function parsearInterpretacion(v: unknown): Interpretacion | null {
+  if (!v || typeof v !== 'object') return null;
+  const x = o(v);
+  return {
+    viaje: typeof x.viaje === 'string' ? x.viaje : null,
+    alertas: Number(x.alertas ?? 0),
+    conclusiones: (Array.isArray(x.conclusiones) ? (x.conclusiones as J[]) : []).map((c) => ({
+      tono: tono(c.tono),
+      tema: String(c.tema ?? ''),
+      texto: String(c.texto ?? ''),
+    })),
+  };
+}
+export function parsearTablerosCarga(v: unknown): TablerosCarga {
+  const x = o(v);
+  const lista = Array.isArray(x.tableros) ? (x.tableros as J[]) : [];
+  const tableros = parsearTableros(lista);
+  return {
+    cargaId: Number(x.carga_id ?? 0),
+    camionId: Number(x.camion_id ?? 0),
+    odometroCarga: num(x.odometro_carga) ?? null,
+    odometroFoto: num(x.odometro_foto) ?? null,
+    tableros: tableros.map((t, i) => ({ ...t, interpretacion: parsearInterpretacion(lista[i]?.interpretacion) })),
+  };
+}
+export const parsearPendientesTablero = (v: unknown): PendienteTablero[] =>
+  (Array.isArray(v) ? (v as J[]) : []).map((p) => ({
+    cargaId: Number(p.carga_id ?? 0),
+    patente: String(p.patente ?? ''),
+    fechaHora: String(p.fecha_hora ?? ''),
+    litros: Number(p.litros ?? 0),
+  }));

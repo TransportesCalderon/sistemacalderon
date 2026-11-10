@@ -45,6 +45,13 @@ export const guardarTableroOficina = createAction({
   handler: (d, { db }) => tableroRepository(db).guardar(d),
 });
 
+/** Migración 224: fotos subidas desde la carga (llenado de corte): quedan unidas a esa carga. */
+export const guardarTableroCarga = createAction({
+  permiso: 'combustible.cargas:editar',
+  schema: guardar.omit({ camionId: true }).extend({ cargaId: z.number().int().positive() }),
+  handler: (d, { db }) => tableroRepository(db).guardarDeCarga(d),
+});
+
 const anular = z.object({ id: z.number().int().positive() });
 export const anularTableroChofer = createAction({
   permiso: 'chofer.mi_carga:editar',
