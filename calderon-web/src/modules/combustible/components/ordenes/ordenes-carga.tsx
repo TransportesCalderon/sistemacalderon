@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { BadgeCheck, Fuel, KeyRound, Mail, QrCode, TriangleAlert, X } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { BadgeCheck, Fuel, KeyRound, Link2, Mail, QrCode, Send, TriangleAlert, X } from 'lucide-react';
 import { Cargando, Chip, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -12,6 +14,9 @@ import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
+import { browserDb } from '@/shared/supabase/browser';
+import { probarMail, urlPermisoMail } from '../../actions/orden-carga.actions';
+import { ordenCargaRepository } from '../../repositories/orden-carga.repository';
 import { ETIQUETA_ESTADO_ORDEN, VERSION_ORDEN_CARGA, type CreadaOrden, type EstadoOrden, type ModoOrden, type OrdenCarga } from '../../domain/orden-carga.types';
 import { useCamionesCombustible, useEstaciones } from '../../queries/hooks';
 import { useAnularOrdenCarga, useCorreoEstacion, useCrearOrdenCarga, useOrdenesCarga, usePrepararOrden, useRevisarOrdenCarga } from '../../queries/orden-carga.hooks';
@@ -46,6 +51,7 @@ export function OrdenesCarga() {
           </button>
         )}
       </div>
+      {puede && <CuentaMail />}
       {nueva && <NuevaOrden onCerrar={() => setNueva(false)} />}
       {isPending ? (
         <Cargando texto="Leyendo las órdenes…" />
@@ -357,6 +363,70 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
       >
         <QrCode className="size-4" /> Generar la orden
       </button>
+    </div>
+  );
+}
+
+/** Migración 236 · La cuenta que manda los mails (sistemacalderon@hotmail.com): conectarla con Microsoft y probar. */
+function CuentaMail() {
+  const sp = useSearchParams();
+  const vuelta = sp.get('mail');
+  const { data, refetch } = useQuery({ queryKey: ['combustible', 'ordenes', 'mail'] as const, queryFn: () => ordenCargaRepository(browserDb()).estadoMail() });
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(
+    vuelta ? { ok: vuelta === 'ok', texto: vuelta === 'ok' ? 'Cuenta de mail conectada.' : vuelta } : null,
+  );
+  const [ocupado, setOcupado] = useState(false);
+  if (!data) return null;
+  const conectada = data.activo && data.modo === 'cuenta';
+  return (
+    <div className={cn(TARJETA, 'flex flex-wrap items-center gap-3 px-4 py-3 text-sm')}>
+      <Mail className={cn('size-5', data.activo ? 'text-exito' : 'text-alerta')} />
+      <span className="flex-1 text-tinta">
+        {data.activo
+          ? `Los mails salen desde ${data.remitente ?? '—'}${data.pendientes > 0 ? ` · ${data.pendientes} en cola` : ''}.`
+          : !data.conClaves
+            ? 'Mails sin configurar: faltan las claves de la aplicación de Microsoft en el Vault (ver el LEEME).'
+            : !data.conHttp
+              ? 'Mails sin configurar: falta activar la extensión «http» en Supabase.'
+              : 'Falta conectar la cuenta de mail.'}
+        {msg && <span className={cn('block text-xs', msg.ok ? 'text-exito' : 'text-error')}>{msg.texto}</span>}
+      </span>
+      {data.conClaves && data.conHttp && (
+        <button
+          type="button"
+          className={BOTON_SECUNDARIO}
+          disabled={ocupado}
+          onClick={async () => {
+            setOcupado(true);
+            setMsg(null);
+            const r = await urlPermisoMail({ volver: `${window.location.origin}/api/mail/microsoft` });
+            if (r.ok) window.location.href = r.data;
+            else {
+              setMsg({ ok: false, texto: r.error.mensaje });
+              setOcupado(false);
+            }
+          }}
+        >
+          <Link2 className="size-4" /> {conectada ? 'Volver a conectar' : 'Conectar la cuenta de mail'}
+        </button>
+      )}
+      {data.activo && (
+        <button
+          type="button"
+          className={BOTON_SECUNDARIO}
+          disabled={ocupado}
+          onClick={async () => {
+            setOcupado(true);
+            const r = await probarMail({});
+            setOcupado(false);
+            if (!r.ok) setMsg({ ok: false, texto: r.error.mensaje });
+            else setMsg(r.data.enviado ? { ok: true, texto: `Mail de prueba enviado a ${r.data.para}.` } : { ok: false, texto: r.data.error ?? 'El mail no salió.' });
+            void refetch();
+          }}
+        >
+          <Send className="size-4" /> Probar el envío
+        </button>
+      )}
     </div>
   );
 }

@@ -1461,6 +1461,11 @@ export type Database = {
         Returns: number;
       };
       // Migración 176: llegó el conforme de descarga
+      // Migraciones 234 y 236: envío de mails (Microsoft) y permiso de la cuenta
+      fn_estado_mail: { Args: Record<string, never>; Returns: Json };
+      fn_mail_url_permiso: { Args: { p_volver: string }; Returns: string };
+      fn_mail_conectar: { Args: { p_codigo: string; p_estado: string; p_volver: string }; Returns: Json };
+      fn_mail_probar: { Args: Record<string, never>; Returns: Json };
       fn_marcar_conforme: { Args: { p_servicio: number; p_llego: boolean; p_motivo?: string | null }; Returns: Json };
       // Migración 174: pasa a un fletero en ruta (trasbordo)
       fn_pasar_a_fletero: {

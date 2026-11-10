@@ -64,3 +64,16 @@ export const leerTicketChofer = createAction({
   }),
   handler: (d, { db }) => iaRepository(db).leer('ticket_combustible', d.base64, d.mediaType),
 });
+
+// Migración 236: conectar la cuenta de mail (Hotmail) y probar el envío. La base exige TI o Gerencia.
+export const urlPermisoMail = createAction({
+  permiso: 'combustible.ordenes:editar',
+  schema: z.object({ volver: z.string().url().max(300) }),
+  handler: (d, { db }) => ordenCargaRepository(db).urlPermisoMail(d.volver),
+});
+
+export const probarMail = createAction({
+  permiso: 'combustible.ordenes:editar',
+  schema: z.object({}),
+  handler: (_d, { db }) => ordenCargaRepository(db).probarMail(),
+});

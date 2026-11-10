@@ -22,6 +22,9 @@ export interface EstadoMail {
   conClaves: boolean;
   conHttp: boolean;
   pendientes: number;
+  /** Migración 236: la cuenta dio el permiso (Hotmail) o se usa Microsoft 365 de empresa. */
+  conPermiso: boolean;
+  modo: 'cuenta' | 'empresa' | null;
 }
 
 export interface PreparadoOrden {
@@ -111,7 +114,15 @@ const estado = (v: unknown): EstadoOrden => (ESTADOS.includes(v as EstadoOrden) 
 
 export const parsearEstadoMail = (d: unknown): EstadoMail => {
   const x = o(d);
-  return { activo: x.activo === true, remitente: t(x.remitente), conClaves: x.con_claves === true, conHttp: x.con_http === true, pendientes: n(x.pendientes) ?? 0 };
+  return {
+    activo: x.activo === true,
+    remitente: t(x.remitente),
+    conClaves: x.con_claves === true,
+    conHttp: x.con_http === true,
+    pendientes: n(x.pendientes) ?? 0,
+    conPermiso: x.con_permiso === true,
+    modo: x.modo === 'cuenta' || x.modo === 'empresa' ? x.modo : null,
+  };
 };
 
 export const parsearPreparado = (d: unknown): PreparadoOrden => {

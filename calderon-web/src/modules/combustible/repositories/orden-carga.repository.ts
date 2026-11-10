@@ -2,11 +2,13 @@ import { RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/db';
 import {
   parsearCreada,
+  parsearEstadoMail,
   parsearMisOrdenes,
   parsearOrdenPublica,
   parsearOrdenes,
   parsearPreparado,
   type CreadaOrden,
+  type EstadoMail,
   type MiOrden,
   type ModoOrden,
   type OrdenCarga,
@@ -46,6 +48,12 @@ export const ordenCargaRepository = (db: Db) => {
     misOrdenes: async (): Promise<MiOrden[]> => parsearMisOrdenes(ok(await fue().rpc('fn_mis_ordenes_carga'))),
     terminar: async (id: number, fotos: { ruta: string; hash: string }[], lecturas: number[], litros: number | null) =>
       ok(await fue().rpc('fn_terminar_orden_carga', { p_id: id, p_fotos: fotos as unknown as Json, p_lecturas: lecturas, p_litros: litros })),
+    // Migración 236: la cuenta de mail (Hotmail con permiso de Microsoft)
+    estadoMail: async (): Promise<EstadoMail> => parsearEstadoMail(ok(await db.schema('ops').rpc('fn_estado_mail'))),
+    urlPermisoMail: async (volver: string): Promise<string> => String(ok(await db.schema('ops').rpc('fn_mail_url_permiso', { p_volver: volver }))),
+    conectarMail: async (codigo: string, estado: string, volver: string) =>
+      ok(await db.schema('ops').rpc('fn_mail_conectar', { p_codigo: codigo, p_estado: estado, p_volver: volver })) as { ok: boolean; cuenta: string | null },
+    probarMail: async () => ok(await db.schema('ops').rpc('fn_mail_probar')) as { enviado: boolean; error: string | null; para: string },
     correoEstacion: async (estacionId: number, correo: string) =>
       void ok(await db.schema('mae').rpc('fn_estacion_correo', { p_estacion: estacionId, p_correo: correo })),
     // Playero, sin usuario
