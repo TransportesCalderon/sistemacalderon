@@ -161,3 +161,11 @@ describe('claims del token', () => {
     expect(identidadDesdeClaims(decodificarClaims(token({ sub: 'x', usuario_id: 1, rol_bd: 'tc_owner' })))?.rolBd).toBeNull();
   });
 });
+
+describe('líneas (cambio 211)', () => {
+  it('Telemetría, Operaciones y TI crean y editan líneas; Telemetría no edita operaciones', () => {
+    for (const rol of ['analista_control', 'operaciones', 'ti'] as const) expect(can(permisosDe([rol], agregado), 'operacion.lineas:editar'), rol).toBe(true);
+    for (const rol of ['gerencia', 'finanzas', 'chofer', 'comercial'] as const) expect(can(permisosDe([rol], agregado), 'operacion.lineas:editar'), rol).toBe(false);
+    expect(can(permisosDe(['analista_control'], agregado), 'operacion.servicios:editar')).toBe(false);
+  });
+});

@@ -18,7 +18,7 @@ type Abierto = { modo: 'nuevo' } | { modo: 'editar' | 'eliminar'; l: Linea } | n
 
 /** Operación > Líneas (migración 41): los recorridos de REDLINE (SAI-BSAS, MZA-VALP…). */
 export function LineasPantalla() {
-  const puede = useCan('operacion.servicios:editar');
+  const puede = useCan('operacion.lineas:editar');
   const { data, isPending, isError, refetch } = useLineas();
   const { data: op } = useOpcionesViaje();
   const [abierto, setAbierto] = useState<Abierto>(null);

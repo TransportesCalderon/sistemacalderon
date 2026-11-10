@@ -74,6 +74,8 @@ export const PANTALLAS = {
   // El alta y la edición del tanque son configuración (configuracion.catalogos: solo TI; la base solo deja a tc_admin).
   'combustible.depositos':   { etiqueta: 'Tanque de base', fila: ['L', 'L', 'E', '—', 'E A', 'L', '—', 'L', 'E A', 'L', '—', '—', '—'] },
   'operacion.servicios':     { etiqueta: 'Servicios comerciales', fila: ['L', 'E A', '—', '—', '—', 'L', 'L', 'L A', 'E A', 'L', 'L', '—', '—'] },
+  // 10/11/2026 (cambio 211): las líneas las crean y editan también Telemetría (analista_control); verlas sigue con operacion.servicios.
+  'operacion.lineas':        { etiqueta: 'Líneas', fila: ['L', 'E', '—', '—', '—', 'E', 'L', 'L', 'E A', 'L', 'L', '—', '—'] },
   // 21/10/2026: Adm. de combustible ve los viajes (el cierre de combustible está adentro del viaje).
   'operacion.tramos':        { etiqueta: 'Tramos operativos y composición', fila: ['L', 'E A', 'L', '—', 'L', 'L', 'L', 'L', 'E A', 'L', '—', '—', '—'] },
   'operacion.planificacion': { etiqueta: 'Planificación de flota', fila: ['L', 'E', 'L', '—', '—', 'L', '—', '—', 'E A', 'L', '—', '—', '—'] },

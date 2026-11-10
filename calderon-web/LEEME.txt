@@ -1,8 +1,14 @@
-ÍCONO DE LA PESTAÑA SIN FONDO
-=============================
-Solo web. Subí a GitHub, reemplazando:
-  src/app/icon.png          (pestaña del navegador, sin fondo)
-  src/app/apple-icon.png    (acceso directo del celular, sobre blanco)
-  docs/DECISIONES.md
-Después recargá con Ctrl+Shift+R (el navegador guarda el ícono viejo un rato).
-¿HAY QUE BORRAR ALGO? No.
+Cambio 211 · Telemetría puede crear y editar líneas
+
+SUPABASE: no hay nada que correr.
+
+GITHUB: subí estos 4 archivos, reemplazando los que están:
+  src/modules/core/permissions/matriz.ts
+  src/modules/logistica/actions/operaciones.actions.ts
+  src/modules/logistica/components/lineas.tsx
+  tests/permisos.test.ts
+
+BORRAR: nada.
+
+Qué cambia: hay un permiso nuevo «Líneas» en la matriz. Crean y editan líneas Operaciones, Telemetría y TI.
+Los demás las siguen viendo como antes. Telemetría sigue sin poder editar operaciones.

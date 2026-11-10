@@ -127,14 +127,14 @@ export const cancelarOperacion = createAction({
 });
 
 export const guardarLinea = createAction({
-  permiso: PERMISO,
+  permiso: 'operacion.lineas:editar',
   schema: lineaSchema,
   handler: (d, { db }) => operacionesRepository(db).guardarLinea(d),
   invalida: catalogos,
 });
 
 export const eliminarLinea = createAction({
-  permiso: PERMISO,
+  permiso: 'operacion.lineas:editar',
   schema: eliminarSchema,
   handler: (d, { db }) => operacionesRepository(db).eliminarLinea(d),
   invalida: catalogos,
