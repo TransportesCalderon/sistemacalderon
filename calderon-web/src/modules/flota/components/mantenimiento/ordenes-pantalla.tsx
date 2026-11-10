@@ -59,7 +59,7 @@ const decimal = (s: string) => {
  */
 export function OrdenesPantalla() {
   const hay = useBaseTiene(VERSION_MANTENIMIENTO);
-  const { rolesApp } = useSesion();
+  const { rolesApp, zonaHoraria } = useSesion();
   const pide = (['gerencia', 'operaciones', 'analista_control', 'mantenimiento_jefe', 'ti'] as const).some((r) => rolesApp.includes(r));
   const [filtro, setFiltro] = useState<Filtro>(rolesApp.includes('mecanico') ? 'mias' : 'abiertas');
   const [abierta, setAbierta] = useState<number | null>(null);
@@ -224,6 +224,11 @@ export function OrdenesPantalla() {
                     </td>
                     <td className={TD}>
                       <Chip tono={o.atrasada ? 'error' : TONO_ESTADO[o.estado]}>{o.atrasada ? 'Atrasada' : ETIQUETA_ESTADO_OT[o.estado]}</Chip>
+                      {o.enBaseDesde && (
+                        <span className="mt-1 block" title={`Está en ${o.enBaseLugar ?? 'la base'} desde ${formatearFechaHora(o.enBaseDesde, zonaHoraria)}`}>
+                          <Chip tono="error">En la base</Chip>
+                        </span>
+                      )}
                     </td>
                     <td className={cn(TD, 'text-tinta-suave')}>{o.asignado ?? 'Sin asignar'}</td>
                   </tr>

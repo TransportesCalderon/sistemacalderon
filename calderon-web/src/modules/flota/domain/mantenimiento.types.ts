@@ -103,6 +103,9 @@ export interface OrdenTrabajo {
   /** Migración 216: costo (CLP) de los insumos del stock usados en la orden (null si no se usó ninguno). */
   costoInsumos: number | null;
   notas: NotaOt[];
+  /** Migración 225: si está abierta y el equipo está ahora en la base, desde cuándo y en cuál. */
+  enBaseDesde: string | null;
+  enBaseLugar: string | null;
 }
 
 export interface EquipoPlan {
@@ -146,7 +149,8 @@ export interface TareaPlan {
 export interface AvisoOt {
   id: number;
   numero: string;
-  tipo: 'nueva' | 'atrasada';
+  /** Migración 225: «en_base» = el equipo está en la base ahora (un aviso por equipo con todas sus órdenes abiertas). */
+  tipo: 'nueva' | 'atrasada' | 'en_base';
   patente: string;
   equipo: Equipo;
   titulo: string;
@@ -155,6 +159,10 @@ export interface AvisoOt {
   kmLimite: number | null;
   asignada: boolean;
   mensaje: string;
+  /** Migración 225 (solo «en_base»): cuántas órdenes abiertas tiene el equipo y desde cuándo está en la base. */
+  cantidad: number;
+  enBaseDesde: string | null;
+  lugar: string | null;
 }
 
 type J = Record<string, unknown>;
@@ -217,6 +225,8 @@ export const parsearOrdenes = (d: unknown): OrdenTrabajo[] =>
     mensaje: txt(o.mensaje) ?? '',
     costoInsumos: n(o.costo_insumos),
     notas: arr(o.notas).map((x) => ({ texto: txt(x.texto) ?? '', por: txt(x.por), en: (txt(x.en) ?? '') as FechaISO })),
+    enBaseDesde: txt(o.en_base_desde),
+    enBaseLugar: txt(o.en_base_lugar),
   }));
 
 export const parsearPlan = (d: unknown): TareaPlan[] =>
@@ -263,7 +273,7 @@ export const parsearAvisosOt = (d: unknown): AvisoOt[] =>
   arr(d).map((a) => ({
     id: Number(a.id),
     numero: txt(a.numero) ?? '',
-    tipo: a.tipo === 'atrasada' ? 'atrasada' : 'nueva',
+    tipo: a.tipo === 'atrasada' || a.tipo === 'en_base' ? a.tipo : 'nueva',
     patente: txt(a.patente) ?? '',
     equipo: equipo(a.equipo),
     titulo: txt(a.titulo) ?? '',
@@ -272,6 +282,9 @@ export const parsearAvisosOt = (d: unknown): AvisoOt[] =>
     kmLimite: n(a.km_limite),
     asignada: a.asignada === true,
     mensaje: txt(a.mensaje) ?? '',
+    cantidad: n(a.cantidad) ?? 1,
+    enBaseDesde: txt(a.en_base_desde),
+    lugar: txt(a.lugar),
   }));
 
 /** «cada 30 días o cada 30.000 km» (texto para mostrar; la base guarda los números). */
