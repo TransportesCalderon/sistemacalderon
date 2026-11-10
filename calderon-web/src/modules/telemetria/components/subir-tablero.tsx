@@ -27,7 +27,7 @@ async function aBase64(blob: Blob): Promise<string> {
   return btoa(bin);
 }
 
-type Foto = { clave: string; nombre: string; vista: string; estado: 'subiendo' | 'leyendo' | 'lista' | 'error'; error?: string; ruta?: string; hash?: string; lectura?: number };
+type Foto = { clave: string; nombre: string; vista: string; estado: 'subiendo' | 'leyendo' | 'lista' | 'sin_leer' | 'error'; error?: string; ruta?: string; hash?: string; lectura?: number };
 
 /**
  * Fotos del tablero del camión (migración 88): se suben como respaldo, la IA lee cada una y la base
@@ -69,7 +69,8 @@ export function SubirTablero({
       const sub = await browserDb().storage.from(BUCKET_OPERACION).upload(ruta, blob, { contentType: tipo, upsert: false });
       if (sub.error) throw new Error(`No se pudo subir la foto: ${sub.error.message}`);
       if (!ia.data || !['image/jpeg', 'image/png', 'image/webp'].includes(tipo)) {
-        const f = { ruta, hash, estado: 'lista' as const };
+        // Migración 229: sin IA la foto queda subida pero sin leer (antes decía «Lista» y confundía)
+        const f = { ruta, hash, estado: 'sin_leer' as const };
         cambiar(clave, f);
         return { clave, nombre: archivo.name, vista: '', ...f };
       }
@@ -223,11 +224,22 @@ export function SubirTablero({
                 title={f.error}
               >
                 {(f.estado === 'subiendo' || f.estado === 'leyendo') && <LoaderCircle className="size-3 animate-spin" />}
-                {f.estado === 'subiendo' ? 'Subiendo' : f.estado === 'leyendo' ? 'Leyendo' : f.estado === 'lista' ? 'Lista' : 'Error'}
+                {f.estado === 'subiendo'
+                  ? 'Subiendo'
+                  : f.estado === 'leyendo'
+                    ? 'Leyendo'
+                    : f.estado === 'lista'
+                      ? 'Leída'
+                      : f.estado === 'sin_leer'
+                        ? 'Subida, sin leer'
+                        : 'Error'}
               </span>
             </li>
           ))}
         </ul>
+      )}
+      {fotos.some((f) => f.estado === 'sin_leer') && (
+        <p className="text-sm text-alerta">La lectura automática con IA no está activa: las fotos quedan guardadas, pero los números hay que cargarlos a mano.</p>
       )}
       {fotos.some((f) => f.estado === 'error') && (
         <p className="text-sm text-error">{fotos.find((f) => f.estado === 'error')?.error} Podés completar los números a mano.</p>
