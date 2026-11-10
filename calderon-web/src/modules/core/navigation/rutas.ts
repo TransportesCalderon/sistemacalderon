@@ -231,7 +231,8 @@ export const RUTAS_MOVIDAS: readonly { desde: string; hasta: string }[] = [
 ];
 
 /** Rutas que no requieren sesión. */
-export const RUTAS_PUBLICAS = ['/login', '/recuperar', '/auth/callback', '/api/health', '/api/publico'] as const;
+// Migración 234: /qr/<código> es la página del playero (sin usuario) para autorizar una orden de carga
+export const RUTAS_PUBLICAS = ['/login', '/recuperar', '/auth/callback', '/api/health', '/api/publico', '/qr'] as const;
 
 /** Rutas que requieren sesión pero no un permiso de pantalla. */
 export const RUTAS_SIN_PANTALLA = ['/sin-acceso', '/perfil'] as const;

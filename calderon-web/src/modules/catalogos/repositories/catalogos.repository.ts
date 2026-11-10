@@ -96,7 +96,7 @@ export const catalogosRepository = (db: Db) => {
     async estaciones(): Promise<Estacion[]> {
       const { data, error } = await mae()
         .from('estacion_servicio')
-        .select('id, codigo, nombre, proveedor_id, pais, es_tanque_propio, version_fila, ubicacion_id')
+        .select('id, codigo, nombre, proveedor_id, pais, es_tanque_propio, version_fila, ubicacion_id, correo')
         .is('eliminado_en', null)
         .order('nombre');
       if (error) throw new RepoError(error);
@@ -118,6 +118,7 @@ export const catalogosRepository = (db: Db) => {
         versionFila: e.version_fila,
         latitud: e.ubicacion_id === null ? null : (puntos.get(e.ubicacion_id)?.latitud ?? null),
         longitud: e.ubicacion_id === null ? null : (puntos.get(e.ubicacion_id)?.longitud ?? null),
+        correo: e.correo ?? null,
       }));
     },
     async guardarEstacion(d: EstacionDatos): Promise<void> {

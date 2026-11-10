@@ -13,6 +13,8 @@ export const PESTANAS_REVISAR = [
   { href: '/analisis/cargas/por-validar', etiqueta: 'Por validar' },
   { href: '/analisis/cargas/sin-ticket', etiqueta: 'Sin ticket' },
   { href: '/analisis/movimientos', etiqueta: 'Movimientos del camión' },
+  // Migración 234: órdenes de carga con QR (Gerencia)
+  { href: '/analisis/cargas?vista=ordenes', etiqueta: 'Órdenes de carga' },
 ] as const;
 
 /** Las cargas y sus bandejas. */

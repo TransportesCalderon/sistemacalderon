@@ -62,6 +62,8 @@ type EstacionIns = {
   ubicacion_id?: number | null;
   es_tanque_propio?: boolean;
   pais: string;
+  /** Migración 234: correo para las órdenes de carga. */
+  correo?: string | null;
 };
 /** fin.tipo_cambio: tasa = unidades de moneda_destino por 1 de moneda_origen. */
 type TipoCambioIns = {
@@ -1109,6 +1111,8 @@ export type Database = {
       fn_ordenes_trabajo: { Args: { p_cerradas_dias?: number | null }; Returns: Json };
       fn_plan_mantenimiento: { Args: Record<string, never>; Returns: Json };
       fn_avisos_ot: { Args: Record<string, never>; Returns: Json };
+      // Migración 234: correo de la estación (órdenes de carga)
+      fn_estacion_correo: { Args: { p_estacion: number; p_correo: string }; Returns: undefined };
       fn_ot_visto: { Args: { p_id: number }; Returns: undefined };
       fn_guardar_tarea: {
         Args: {
@@ -2106,6 +2110,26 @@ export type Database = {
       // Migración 89: litros a cargar
       fn_litros_sugeridos: { Args: { p_camion: number; p_hasta?: string | null }; Returns: Json };
       fn_mis_avisos_carga: { Args: Record<string, never>; Returns: Json };
+      // Migración 234: órdenes de carga con QR
+      fn_preparar_orden_carga: { Args: { p_camion: number; p_estacion?: number | null }; Returns: Json };
+      fn_crear_orden_carga: {
+        Args: {
+          p_camion: number;
+          p_estacion: number;
+          p_modo: string;
+          p_litros?: number | null;
+          p_importe?: number | null;
+          p_moneda?: string | null;
+          p_chofer?: number | null;
+          p_observacion?: string | null;
+        };
+        Returns: Json;
+      };
+      fn_anular_orden_carga: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      fn_ordenes_carga: { Args: { p_dias?: number }; Returns: Json };
+      fn_revisar_orden_carga: { Args: { p_id: number }; Returns: undefined };
+      fn_mis_ordenes_carga: { Args: Record<string, never>; Returns: Json };
+      fn_terminar_orden_carga: { Args: { p_id: number; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null }; Returns: Json };
       fn_aviso_carga_visto: { Args: { p_id: number }; Returns: undefined };
       fn_avisos_carga: { Args: { p_horas?: number }; Returns: Json };
       // Migración 90: Puntaje Calderón
@@ -2316,6 +2340,17 @@ export type Database = {
           cantidad: number;
         }[];
       };
+    };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
+  /** Migración 234: las dos funciones del playero (sin usuario), solo con el código del QR. */
+  public: {
+    Tables: { [_ in never]: never };
+    Views: { [_ in never]: never };
+    Functions: {
+      fn_orden_carga_qr: { Args: { p_token: string }; Returns: Json };
+      fn_orden_carga_autorizar: { Args: { p_token: string; p_palabra: string; p_dispositivo?: string | null }; Returns: Json };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

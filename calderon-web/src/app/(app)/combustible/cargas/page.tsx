@@ -5,6 +5,7 @@ import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_CARGAS } from '@/shared/ui/pestanas-secciones';
 import { CargasLista } from '@/modules/combustible/components/cargas/cargas-lista';
 import { CargasGensetLista } from '@/modules/combustible/components/genset/cargas-genset-lista';
+import { OrdenesCarga } from '@/modules/combustible/components/ordenes/ordenes-carga';
 import { parsearListaCargas } from '@/modules/combustible/domain/carga.lista';
 import { combustibleQueries as q } from '@/modules/combustible/queries/keys';
 import { createSupabaseServerClient } from '@/server/supabase/server';
@@ -18,6 +19,14 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 export default async function CargasPage({ searchParams }: Props) {
   await requirePermiso('combustible.cargas:ver');
   const sp = await searchParams;
+  // Migración 234: órdenes de carga con QR, como pestaña de Cargas
+  if (sp.vista === 'ordenes')
+    return (
+      <>
+        <Pestanas items={PESTANAS_CARGAS} />
+        <OrdenesCarga />
+      </>
+    );
   // Migración 202: las cargas de genset, en la misma pantalla (Tractores | Gensets)
   if (sp.destino === 'genset')
     return (

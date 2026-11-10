@@ -17,6 +17,7 @@ import { useMiFondo, useMiRuta, useMisCargas } from '../queries/hooks';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { RutaDelChofer } from './ruta-chofer';
 import { CompartirUbicacion } from './compartir-ubicacion';
+import { OrdenCargaChofer } from './orden-carga-chofer';
 import { CargaSiguiente, TarjetaCarga } from './mi-carga';
 import { TextoSaldo } from './mis-gastos';
 
@@ -48,6 +49,8 @@ export function MiViaje() {
         {data.chofer && <p className="text-sm text-tinta-suave">{data.chofer}</p>}
       </header>
 
+      {/* Migración 234: la orden de carga con su QR */}
+      <OrdenCargaChofer />
       <AvisoCargaChofer />
       <AvisoTableroInicio />
 

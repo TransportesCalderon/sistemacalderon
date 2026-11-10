@@ -11,6 +11,8 @@ import { Cargando, Chip, Encabezado, ErrorLectura, Vacio } from '@/modules/combu
 import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
+import { VERSION_ORDEN_CARGA } from '@/modules/combustible/domain/orden-carga.types';
+import { useCorreoEstacion } from '@/modules/combustible/queries/orden-carga.hooks';
 import type { Estacion } from '../domain/catalogos.types';
 import { useEliminarEstacion, useEstaciones, useGuardarEstacion, usePaises, useProveedores } from '../queries/hooks';
 import { abrirLinkEstacion } from '../actions/catalogos.actions';
@@ -178,6 +180,8 @@ function FilaEstacion({
 
 function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
   const guardar = useGuardarEstacion();
+  const guardarCorreo = useCorreoEstacion();
+  const [correo, setCorreo] = useState(e?.correo ?? '');
   const { data: paises } = usePaises();
   const { data: proveedores } = useProveedores();
   const { error, enviar, campo } = useEnvio();
@@ -188,6 +192,7 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
     pais: e?.pais ?? '',
     esTanquePropio: e?.esTanquePropio ?? false,
   });
+  const conCorreo = useBaseTiene(VERSION_ORDEN_CARGA);
   const conMapa = useBaseTiene(VERSION_UBICACION);
   const [punto, setPunto] = useState<{ lat: number; lng: number } | null>(
     e?.latitud != null && e.longitud != null ? { lat: e.latitud, lng: e.longitud } : null,
@@ -204,12 +209,15 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
       onCerrar={onCerrar}
       onConfirmar={() =>
         enviar(
-          guardar.mutateAsync({
-            ...v,
-            id: e?.id ?? null,
-            versionFila: e?.versionFila ?? null,
-            ...(conMapa ? { latitud: punto?.lat ?? null, longitud: punto?.lng ?? null } : {}),
-          }),
+          guardar
+            .mutateAsync({
+              ...v,
+              id: e?.id ?? null,
+              versionFila: e?.versionFila ?? null,
+              ...(conMapa ? { latitud: punto?.lat ?? null, longitud: punto?.lng ?? null } : {}),
+            })
+            // Migración 234: el correo para las órdenes de carga (lo valida la base)
+            .then((r) => (r.ok && e && correo.trim() !== (e.correo ?? '') ? guardarCorreo.mutateAsync({ estacionId: e.id, correo }) : r)),
           onCerrar,
         )
       }
@@ -244,6 +252,11 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
         <input type="checkbox" className="size-4 accent-marca" checked={v.esTanquePropio} onChange={(ev) => setV({ ...v, esTanquePropio: ev.target.checked })} />
         Surtidor propio de la empresa (Base Mendoza)
       </label>
+      {e && conCorreo && (
+        <Campo label="Correo para las órdenes de carga" ayuda="Adonde llega la palabra de seguridad. Para varios, separalos con coma.">
+          <input type="email" maxLength={500} value={correo} onChange={(ev) => setCorreo(ev.target.value)} />
+        </Campo>
+      )}
       {conMapa && <UbicacionEstacion nombre={v.nombre} punto={punto} onCambiar={setPunto} />}
     </Panel>
   );

@@ -57,6 +57,8 @@ export const PANTALLAS = {
   // Sprint 3 (migración 116): «Hoy», la lista de lo que le toca a cada uno. Todos menos el chofer, que tiene su pantalla.
   'inicio.hoy':              { etiqueta: 'Hoy', fila: ['L', 'L', 'L', '—', 'L', 'L', 'L', 'L', 'E A', 'L', 'L', 'L', 'L'] },
   'combustible.cargas':      { etiqueta: 'Cargas y ficha de carga', fila: ['L', 'L', 'E', '—', 'E A', 'L', '—', 'L', 'E A', 'L', '—', '—', '—'] },
+  // Migración 234: órdenes de carga con QR. Las genera Gerencia; las ven Adm. de combustible, Telemetría, Finanzas y Auditoría.
+  'combustible.ordenes':     { etiqueta: 'Órdenes de carga', fila: ['E', '—', '—', '—', 'L', 'L', '—', 'L', 'E A', 'L', '—', '—', '—'] },
   'combustible.documentos':  { etiqueta: 'Documentos de carga', fila: ['—', 'L', 'E', '—', 'E', 'L', '—', 'L', 'E A', 'L', '—', '—', '—'] },
   'combustible.bandejas':    { etiqueta: 'Bandejas de cargas', fila: ['—', '—', '—', '—', 'A', 'L', '—', '—', 'E A', 'L', '—', '—', '—'] },
   'combustible.mediciones':  { etiqueta: 'Mediciones manuales', fila: ['—', 'L', 'E', '—', 'E', 'L', '—', '—', 'E A', 'L', '—', '—', '—'] },
