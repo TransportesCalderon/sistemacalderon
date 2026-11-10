@@ -599,7 +599,7 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
 
       {/* Migración 176: la tilde del conforme de descarga */}
       {conConforme && extra && o.estado !== 'cancelado' && o.estado !== 'sin_confirmar' && (
-        <ConformeDescarga servicioId={o.servicioId} conformeEn={extra.conformeEn} conformePor={extra.conformePor} zona={zona} />
+        <ConformeDescarga servicioId={o.servicioId} conformeEn={extra.conformeEn} conformePor={extra.conformePor} historial={extra.conformeHistorial} zona={zona} />
       )}
       {puede && (o.estado !== 'cancelado' || o.gensetId) && <GensetOperacion o={o} />}
       {/* Migración 136: la ruta que recibe el chofer. Desde la 156 se carga en Viajes › Rutas para choferes */}

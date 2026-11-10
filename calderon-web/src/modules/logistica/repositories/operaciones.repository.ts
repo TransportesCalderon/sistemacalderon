@@ -16,7 +16,7 @@ import type {
   TerceroDatos,
   TransportistaDatos,
 } from '../domain/operacion.schemas';
-import { esEstadoLogistica, esPasoOperacion, parsearFacturacionOp, type GensetOpcion, type Hito, type SugerenciaCliente, type Linea, type Operacion, type TramosOperacion, type Transportista } from '../domain/operacion.types';
+import { esEstadoLogistica, esPasoOperacion, parsearFacturacionOp, type GensetOpcion, type HistorialConforme, type Hito, type SugerenciaCliente, type Linea, type Operacion, type TramosOperacion, type Transportista } from '../domain/operacion.types';
 
 /** Datos de la operación como los recibe la base (ops.fn_guardar_operacion / fn_alta_operaciones). */
 const datosOperacion = (d: OperacionDatos) => ({
@@ -282,7 +282,14 @@ export const operacionesRepository = (db: Db) => {
     /** Migraciones 166 y 172: el precio del viaje y la tara del contenedor cargados (para «Modificar» y la ficha). */
     async precio(
       servicio: number,
-    ): Promise<{ precio: string | null; moneda: string; tara: number | null; conformeEn: FechaISO | null; conformePor: string | null } | null> {
+    ): Promise<{
+      precio: string | null;
+      moneda: string;
+      tara: number | null;
+      conformeEn: FechaISO | null;
+      conformePor: string | null;
+      conformeHistorial: HistorialConforme[];
+    } | null> {
       const { data, error } = await ops().rpc('fn_precio_de_operacion', { p_servicio: servicio });
       if (error) throw new RepoError(error);
       const o = (data ?? null) as {
@@ -291,6 +298,7 @@ export const operacionesRepository = (db: Db) => {
         tara_contenedor_kg?: number | string | null;
         conforme_en?: string | null;
         conforme_por?: string | null;
+        conforme_historial?: { accion?: string; en?: string; por?: string | null; motivo?: string | null }[] | null;
       } | null;
       if (!o) return null;
       const tara = o.tara_contenedor_kg === null || o.tara_contenedor_kg === undefined ? null : Number(o.tara_contenedor_kg);
@@ -301,10 +309,18 @@ export const operacionesRepository = (db: Db) => {
         // Migración 176: el conforme de descarga
         conformeEn: (o.conforme_en ?? null) as FechaISO | null,
         conformePor: o.conforme_por ?? null,
+        // Migración 227: quién lo marcó y quién lo quitó (con el motivo)
+        conformeHistorial: (o.conforme_historial ?? []).map((h) => ({
+          accion: h.accion === 'quitado' ? 'quitado' : 'marcado',
+          en: (h.en ?? '') as FechaISO,
+          por: h.por ?? null,
+          motivo: h.motivo ?? null,
+        })),
       };
     },
-    /** Migración 176: llegó (o no) el conforme de descarga. */
-    marcarConforme: (servicioId: number, llego: boolean) => llamar(ops().rpc('fn_marcar_conforme', { p_servicio: servicioId, p_llego: llego })),
+    /** Migraciones 176 y 227: llegó (o no) el conforme de descarga; para quitarlo, el motivo. */
+    marcarConforme: (servicioId: number, llego: boolean, motivo?: string) =>
+      llamar(ops().rpc('fn_marcar_conforme', { p_servicio: servicioId, p_llego: llego, ...(motivo === undefined ? {} : { p_motivo: motivo }) })),
     async guardar(d: OperacionDatos): Promise<number> {
       const { data, error } = await ops().rpc('fn_guardar_operacion', {
         p_servicio: d.servicioId,

@@ -298,3 +298,11 @@ export interface Transportista {
   activo: boolean;
   versionFila: number;
 }
+
+/** Migración 227: cada vez que se marcó o se quitó el conforme de descarga (quitarlo pide motivo). */
+export interface HistorialConforme {
+  accion: 'marcado' | 'quitado';
+  en: FechaISO;
+  por: string | null;
+  motivo: string | null;
+}

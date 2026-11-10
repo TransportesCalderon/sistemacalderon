@@ -161,11 +161,11 @@ export const dejarEnBase = createAction({
   handler: (d, { db }) => operacionesRepository(db).dejarEnBase(d),
   invalida: rutas,
 });
-/** Migración 176: llegó (o no) el conforme de descarga (la base exige Operaciones, Finanzas o TI). */
+/** Migraciones 176 y 227: llegó (o no) el conforme de descarga (la base exige Operaciones, Finanzas o TI; quitarlo pide motivo). */
 export const marcarConforme = createAction({
   permiso: 'operacion.servicios:ver',
-  schema: z.object({ servicioId: z.number().int().positive(), llego: z.boolean() }),
-  handler: (d, { db }) => operacionesRepository(db).marcarConforme(d.servicioId, d.llego),
+  schema: z.object({ servicioId: z.number().int().positive(), llego: z.boolean(), motivo: z.string().max(500).optional() }),
+  handler: (d, { db }) => operacionesRepository(db).marcarConforme(d.servicioId, d.llego, d.motivo),
   invalida: rutas,
 });
 /** Migración 174: pasa a un fletero en ruta (la base exige Operaciones o TI). */

@@ -1457,7 +1457,7 @@ export type Database = {
         Returns: number;
       };
       // Migración 176: llegó el conforme de descarga
-      fn_marcar_conforme: { Args: { p_servicio: number; p_llego: boolean }; Returns: Json };
+      fn_marcar_conforme: { Args: { p_servicio: number; p_llego: boolean; p_motivo?: string | null }; Returns: Json };
       // Migración 174: pasa a un fletero en ruta (trasbordo)
       fn_pasar_a_fletero: {
         Args: {
