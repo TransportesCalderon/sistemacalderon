@@ -152,6 +152,8 @@ export interface CierreResumen {
   /** Diferencia del camión (v2) o, en un cierre del modelo anterior, la del tractor más la de la mochila. */
   diferenciaL: number | null;
   imputableTotalL: number | null;
+  /** Migración 235: cuándo se creó el borrador (el historial completo, en la ficha). */
+  creadoEn: FechaISO;
 }
 
 export interface CierreListaParams {

@@ -111,6 +111,7 @@ export function CierresLista() {
                   <th className="px-3 py-2.5 text-right">Diferencia</th>
                   <th className="px-3 py-2.5 text-right">A descontar</th>
                   <th className="px-3 py-2.5">Estado</th>
+                  <th className="px-3 py-2.5">Borrador creado</th>
                 </tr>
               </thead>
               <tbody className={cn('divide-y divide-borde', isFetching && 'opacity-70')}>
@@ -132,6 +133,7 @@ export function CierresLista() {
                     <td className="px-3 py-2.5">
                       <EstadoCierreChip estado={c.estado} />
                     </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap tabular-nums text-tinta-suave">{formatearFechaHora(c.creadoEn, zonaHoraria)}</td>
                   </tr>
                 ))}
               </tbody>

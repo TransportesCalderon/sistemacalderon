@@ -1,5 +1,6 @@
 'use client';
 
+import { HistorialRegistro } from '@/modules/actividad/components/historial-registro';
 import { usePuedeAprobarCierres } from '../../queries/puede-aprobar';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { VERSION_DECISION } from '../../domain/decision.types';
@@ -169,6 +170,10 @@ function Identificacion({ cierre, resultado }: { cierre: CierreViaje; resultado:
           </>
         )}
       </dl>
+      {/* Migración 235: cada paso del cierre con día, hora y quién */}
+      <div className="mt-4">
+        <HistorialRegistro tabla="fue.cierre_viaje" id={cierre.id} />
+      </div>
     </Seccion>
   );
 }

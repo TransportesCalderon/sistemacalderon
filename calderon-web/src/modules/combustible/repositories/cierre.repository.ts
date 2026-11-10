@@ -74,7 +74,7 @@ const COLS =
   'id, numero, camion_id, carga_salida_id, carga_llegada_id, salida_ts, llegada_ts, estado, chofer_responsable_id, motivo_chofer, programador_velocidad_pct, test_alcohol, km_manual, consumo_plataforma_manual_l, motivo_ajuste, tractor_no_imputable_l, tractor_no_imputable_ralenti_h, tractor_no_imputable_motivo, tractor_justificacion, observaciones, version_calculo, cargas_l, entradas_l, salidas_l, faltante_salida_l, faltante_llegada_l, libro_l, diferencia_l, tolerancia_l, km_recorridos, fuente_km, consumo_plataforma_l, fuente_consumo_plataforma, horas_motor, horas_ralenti, dias_parado, consumo_l_100km, tractor_diferencia_l, mochila_diferencia_l, imputable_total_l, linea_viaje, huella, detalle, calculado_en, aprobado_por, aprobado_en, motivo_anulacion, anulado_por, anulado_en, creado_en, eliminado_en, version_fila';
 
 const COLS_RESUMEN =
-  'id, numero, camion_id, chofer_responsable_id, salida_ts, llegada_ts, estado, linea_viaje, version_calculo, diferencia_l, tractor_diferencia_l, mochila_diferencia_l, imputable_total_l';
+  'id, numero, camion_id, chofer_responsable_id, salida_ts, llegada_ts, estado, linea_viaje, version_calculo, diferencia_l, tractor_diferencia_l, mochila_diferencia_l, imputable_total_l, creado_en';
 
 export function aCierre(f: FilaCierre): CierreViaje {
   const estado = esEstadoCierre(f.estado) ? f.estado : 'borrador';
@@ -161,6 +161,7 @@ export const cierreRepository = (db: Db) => ({
       | 'tractor_diferencia_l'
       | 'mochila_diferencia_l'
       | 'imputable_total_l'
+      | 'creado_en'
     >[];
     const nombres = await nombresDe(db, { camiones: filas.map((f) => f.camion_id), choferes: filas.map((f) => f.chofer_responsable_id ?? NaN) });
     return {
@@ -180,6 +181,7 @@ export const cierreRepository = (db: Db) => ({
             ? Number(f.tractor_diferencia_l) + (num(f.mochila_diferencia_l) ?? 0)
             : num(f.diferencia_l),
         imputableTotalL: num(f.imputable_total_l),
+        creadoEn: f.creado_en as FechaISO,
       })),
       total: count,
     };

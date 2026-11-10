@@ -1671,6 +1671,20 @@ export type Database = {
         };
         Returns: number;
       };
+      // Migración 235: registro de actividad en palabras
+      fn_actividad: {
+        Args: {
+          p_desde?: string | null;
+          p_hasta?: string | null;
+          p_tabla?: string | null;
+          p_fila?: number | null;
+          p_usuario?: number | null;
+          p_grupo?: string | null;
+          p_limite?: number;
+        };
+        Returns: Json;
+      };
+      fn_actividad_usuarios: { Args: Record<string, never>; Returns: Json };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
