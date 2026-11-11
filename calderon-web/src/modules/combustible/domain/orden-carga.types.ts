@@ -41,6 +41,8 @@ export interface PreparadoOrden {
   litrosParaLlenar: number | null;
   /** Migración 248: capacidad de la mochila (tanques de tipo mochila); null si no tiene. */
   capacidadMochilaL: number | null;
+  /** Migración 249: de dónde salen los litros para llenar (motor o km × consumo). */
+  estimacionTexto: string | null;
   litrosActuales: number | null;
   capacidadL: number | null;
   motivoSinCalculo: string | null;
@@ -143,6 +145,7 @@ export const parsearPreparado = (d: unknown): PreparadoOrden => {
     chofer: t(x.chofer),
     litrosParaLlenar: n(x.litros_para_llenar),
     capacidadMochilaL: n(x.capacidad_mochila_l),
+    estimacionTexto: t(o(x.estimacion).texto),
     litrosActuales: n(c.litros),
     capacidadL: n(c.capacidad_l),
     motivoSinCalculo: t(c.motivo),

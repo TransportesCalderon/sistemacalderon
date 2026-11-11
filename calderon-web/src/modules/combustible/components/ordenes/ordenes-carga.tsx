@@ -262,6 +262,19 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
           : ''
       }`
     : null;
+  // Migración 249: cuántos litros aproximados (lo que le falta al camión, o la suma si todo va en litros)
+  const lt = tanques === 'litros' ? aNumero(litrosTanques) : null;
+  const lm = destino === 'tanques_mochila' && mochila === 'litros' ? aNumero(litrosMochila) : null;
+  const algoLleno = tanques === 'lleno' || (destino === 'tanques_mochila' && mochila === 'llena');
+  const aproximado = !destino
+    ? null
+    : !algoLleno
+      ? lt !== null && (destino === 'tanques' || lm !== null)
+        ? `${formatearNumero(lt + (lm ?? 0), 0)} L`
+        : null
+      : p?.litrosParaLlenar != null
+        ? `${lt !== null || lm !== null ? 'hasta ' : ''}≈ ${formatearNumero(p.litrosParaLlenar, 0)} L`
+        : null;
   const listo =
     !!camion &&
     !!estacion &&
@@ -320,13 +333,13 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
             </Campo>
             {p.litrosParaLlenar !== null ? (
               <p>
-                Para quedar lleno le faltan <strong>≈ {formatearNumero(p.litrosParaLlenar, 0)} L</strong>
-                <span className="block text-xs text-tinta-suave">
-                  Tiene ≈ {formatearNumero(p.litrosActuales ?? 0, 0)} de {formatearNumero(p.capacidadL ?? 0, 0)} L
-                </span>
+                Para quedar lleno le faltan <strong className="text-base">≈ {formatearNumero(p.litrosParaLlenar, 0)} L</strong>
+                {p.estimacionTexto && <span className="block text-xs text-tinta-suave">({p.estimacionTexto})</span>}
               </p>
             ) : (
-              <p className="text-xs text-tinta-suave">No se puede calcular cuánto le falta para llenar{p.motivoSinCalculo ? `: ${p.motivoSinCalculo}` : ''}.</p>
+              <p className="text-xs text-tinta-suave">
+                No se puede calcular cuánto le falta para llenar{p.estimacionTexto ? `: ${p.estimacionTexto}` : p.motivoSinCalculo ? `: ${p.motivoSinCalculo}` : ''}.
+              </p>
             )}
             {p.precio !== null && (
               <p className="text-xs text-tinta-suave">
@@ -378,7 +391,7 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
               activa={tanques === 'lleno'}
               onClick={() => setTanques('lleno')}
               titulo="Llenos"
-              detalle={p?.litrosParaLlenar != null && destino === 'tanques' ? `≈ ${formatearNumero(p.litrosParaLlenar, 0)} L` : undefined}
+              detalle={p?.litrosParaLlenar != null ? `≈ ${formatearNumero(p.litrosParaLlenar, 0)} L${destino === 'tanques_mochila' ? ' con la mochila' : ''}` : undefined}
             />
             <Opcion activa={tanques === 'litros'} onClick={() => setTanques('litros')} titulo="Litros" detalle="Escribís cuántos" />
           </div>
@@ -393,7 +406,7 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
               activa={mochila === 'llena'}
               onClick={() => setMochila('llena')}
               titulo="Llena"
-              detalle={p?.capacidadMochilaL != null ? `${formatearNumero(p.capacidadMochilaL, 0)} L` : undefined}
+              detalle={p?.capacidadMochilaL != null ? `capacidad ${formatearNumero(p.capacidadMochilaL, 0)} L` : undefined}
             />
             <Opcion activa={mochila === 'litros'} onClick={() => setMochila('litros')} titulo="Litros" detalle="Escribís cuántos" />
           </div>
@@ -409,6 +422,7 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
         <div className="rounded-lg border border-marca/30 bg-marca-suave p-3">
           <p className="text-xs font-medium tracking-wide text-tinta-suave uppercase">Vas a autorizar</p>
           <p className="text-base font-semibold text-tinta">{resumen}</p>
+          {aproximado && <p className="text-sm text-tinta">Aproximado a cargar: <strong>{aproximado}</strong></p>}
           {(tanques === 'lleno' || mochila === 'llena') && (
             <p className="mt-1 text-xs text-tinta-suave">Lleno va sin tope; si se carga más de lo que le faltaba al camión, queda una alerta.</p>
           )}
