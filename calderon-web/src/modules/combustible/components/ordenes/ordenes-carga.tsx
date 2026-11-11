@@ -135,7 +135,10 @@ function FilaOrden({ o, zona, puede }: { o: OrdenCarga; zona: string; puede: boo
         </td>
         <td className={TD}>
           <Chip tono={TONO[o.estado]}>{ETIQUETA_ESTADO_ORDEN[o.estado]}</Chip>
-          {o.estado === 'emitida' && <span className="block text-xs text-tinta-suave">vence {formatearFechaHora(o.venceEn, zona)}</span>}
+          {/* Migración 250: vence a las 24 del día; se muestra «hasta las 23:59» de ese día */}
+          {o.estado === 'emitida' && (
+            <span className="block text-xs text-tinta-suave">vence {formatearFechaHora(new Date(new Date(o.venceEn).getTime() - 60_000).toISOString(), zona)}</span>
+          )}
           {o.autorizadaEn && <span className="block text-xs text-tinta-suave">autorizó la estación {formatearFechaHora(o.autorizadaEn, zona)}</span>}
           {o.motivoAnulacion && <span className="block text-xs text-tinta-suave">{o.motivoAnulacion}</span>}
         </td>
