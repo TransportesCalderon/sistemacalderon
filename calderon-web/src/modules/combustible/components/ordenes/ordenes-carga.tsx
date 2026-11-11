@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BadgeCheck, Fuel, KeyRound, Link2, Mail, QrCode, Send, TriangleAlert, X } from 'lucide-react';
 import { Cargando, Chip, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
+import { useAsegurarFotoMail } from '@/modules/flota/components/choferes/foto-chofer';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { BotonCopiar } from '@/modules/telemetria/components/boton-copiar';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
@@ -204,6 +205,8 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
   const crear = useCrearOrdenCarga();
   const guardarCorreo = useCorreoEstacion();
   const p = prep.data;
+  // Migración 246: que la foto del chofer salga en el mail aunque se haya cargado antes del cambio 232
+  useAsegurarFotoMail(chofer ? Number(chofer) : (p?.choferId ?? null));
 
   if (creada)
     return (

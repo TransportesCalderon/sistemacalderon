@@ -1113,6 +1113,7 @@ export type Database = {
       fn_avisos_ot: { Args: Record<string, never>; Returns: Json };
       // Migración 239: foto de perfil del chofer
       fn_foto_chofer: { Args: { p_chofer: number; p_ruta: string | null; p_mini?: string | null }; Returns: Json };
+      fn_foto_chofer_mini: { Args: { p_chofer: number; p_mini: string }; Returns: undefined };
       // Migración 234: correo de la estación (órdenes de carga)
       fn_estacion_correo: { Args: { p_estacion: number; p_correo: string }; Returns: undefined };
       fn_ot_visto: { Args: { p_id: number }; Returns: undefined };

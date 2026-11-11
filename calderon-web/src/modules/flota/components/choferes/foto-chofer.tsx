@@ -10,10 +10,12 @@ import { idAleatorio } from '@/shared/lib/archivo';
 import { invalidar } from '@/shared/query/invalidar';
 import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
-import { guardarFotoChofer } from '../../actions/chofer.actions';
+import { asegurarMiniFoto, guardarFotoChofer } from '../../actions/chofer.actions';
 
 /** Migración 239 · Foto de perfil del chofer. */
 export const VERSION_FOTO_CHOFER = 239;
+/** Migración 246: copia chica de la foto para el mail, completada sola. */
+export const VERSION_FOTO_MAIL = 246;
 
 /**
  * Las fotos de varios choferes (enlaces temporales de 1 hora: el bucket es privado). La base dice qué rutas puede
@@ -71,7 +73,7 @@ export function FotoChofer({ url, nombre, className }: { url: string | null | un
 }
 
 /** Recorta al centro en cuadrado y achica a 400 px (JPEG): pesa poco y carga rápido en todas las listas. */
-async function recortarCuadrado(archivo: File, maximo = 400): Promise<Blob> {
+async function recortarCuadrado(archivo: Blob, maximo = 400): Promise<Blob> {
   const img = await createImageBitmap(archivo);
   const lado = Math.min(img.width, img.height);
   const tam = Math.min(maximo, lado);
@@ -89,6 +91,30 @@ async function aBase64(blob: Blob): Promise<string> {
   return btoa(bin);
 }
 
+/**
+ * Migración 246 · Si la foto del chofer no tiene la copia chica para el mail (fotos cargadas antes del cambio 232),
+ * la arma con la foto guardada y la manda a la base. No muestra nada; si falla, el mail sale sin foto.
+ */
+export function useAsegurarFotoMail(choferId: number | null) {
+  const hay = useBaseTiene(VERSION_FOTO_MAIL);
+  useQuery({
+    queryKey: ['flota', 'choferes', 'lista', 'foto-mail', choferId] as const,
+    enabled: hay && choferId !== null,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: async () => {
+      const db = browserDb();
+      const { data } = await db.schema('ops').rpc('fn_fotos_chofer', { p_ids: [choferId!] });
+      const fila = (Array.isArray(data) ? data[0] : null) as { ruta?: string; mini?: boolean } | null;
+      if (!fila?.ruta || fila.mini !== false) return true;
+      const descarga = await db.storage.from(BUCKET_OPERACION).download(fila.ruta);
+      if (!descarga.data) return false;
+      const r = await asegurarMiniFoto({ choferId: choferId!, mini: await aBase64(await recortarCuadrado(descarga.data, 160)) });
+      return r.ok;
+    },
+  });
+}
+
 /** Ficha del chofer: la foto grande con «Cambiar foto» y «Quitar» (solo la oficina). */
 export function FotoChoferFicha({ choferId, nombre, puedeEditar }: { choferId: number; nombre: string; puedeEditar: boolean }) {
   const hay = useBaseTiene(VERSION_FOTO_CHOFER);
@@ -97,6 +123,7 @@ export function FotoChoferFicha({ choferId, nombre, puedeEditar }: { choferId: n
   const entrada = useRef<HTMLInputElement>(null);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useAsegurarFotoMail(puedeEditar ? choferId : null);
   if (!hay) return null;
   const url = fotos.get(choferId);
 

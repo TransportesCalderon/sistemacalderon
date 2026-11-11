@@ -70,3 +70,14 @@ export const guardarFotoChofer = createAction({
     return { anterior: typeof anterior === 'string' ? anterior : null };
   },
 });
+
+/** Migración 246: completar la copia chica de una foto cargada antes (para el mail de la orden de carga). */
+export const asegurarMiniFoto = createAction({
+  permiso: ['flota.choferes:editar', 'combustible.ordenes:editar'],
+  schema: z.object({ choferId: z.number().int().positive(), mini: z.string().max(80_000).regex(/^[A-Za-z0-9+/=]+$/) }),
+  handler: async ({ choferId, mini }, { db }) => {
+    const { error } = await db.schema('mae').rpc('fn_foto_chofer_mini', { p_chofer: choferId, p_mini: mini });
+    if (error) throw error;
+    return null;
+  },
+});
