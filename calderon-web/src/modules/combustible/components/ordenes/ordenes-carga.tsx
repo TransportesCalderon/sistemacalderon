@@ -55,17 +55,19 @@ export function OrdenesCarga() {
   if (!hay) return <Vacio icono={<QrCode className="size-6" />} texto="Falta aplicar en la base el cambio de las órdenes de carga." />;
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-tinta-suave">
-          La estación recibe un mail con la palabra de seguridad; el chofer, un QR. El playero escanea el QR, escribe la palabra y confirma la carga.
-        </p>
-        {puede && !nueva && (
-          <button type="button" className={BOTON_PRIMARIO} onClick={() => setNueva(true)}>
-            <Fuel className="size-4" /> Nueva orden de carga
-          </button>
-        )}
-      </div>
-      {configuraMail && <CuentaMail />}
+      {!nueva && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-tinta-suave">
+            La estación recibe un mail con la palabra de seguridad; el chofer, un QR. El playero escanea el QR, escribe la palabra y confirma la carga.
+          </p>
+          {puede && (
+            <button type="button" className={cn(BOTON_PRIMARIO, 'h-12 w-full justify-center text-base sm:w-auto')} onClick={() => setNueva(true)}>
+              <Fuel className="size-5" /> Nueva orden de carga
+            </button>
+          )}
+        </div>
+      )}
+      {configuraMail && !nueva && <CuentaMail />}
       {nueva && <NuevaOrden onCerrar={() => setNueva(false)} />}
       {isPending ? (
         <Cargando texto="Leyendo las órdenes…" />
@@ -251,43 +253,61 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
       </div>
     );
 
+  const resumen = destino
+    ? `Tanques: ${tanques === 'lleno' ? 'llenos' : tanques === 'litros' ? `${litrosTanques || '…'} L` : '…'}${
+        destino === 'tanques_mochila'
+          ? ` · Mochila: ${
+              mochila === 'llena' ? `llena${p?.capacidadMochilaL != null ? ` (${formatearNumero(p.capacidadMochilaL, 0)} L)` : ''}` : mochila === 'litros' ? `${litrosMochila || '…'} L` : '…'
+            }`
+          : ''
+      }`
+    : null;
+  const listo =
+    !!camion &&
+    !!estacion &&
+    !!destino &&
+    (tanques === 'lleno' || (tanques === 'litros' && aNumero(litrosTanques) !== null)) &&
+    (destino === 'tanques' || mochila === 'llena' || (mochila === 'litros' && aNumero(litrosMochila) !== null));
+
   return (
-    <div className={cn(TARJETA, 'space-y-4 p-4')}>
+    <div className={cn(TARJETA, 'mb-20 space-y-5 p-4 sm:mb-0')}>
       <div className="flex items-center justify-between">
-        <p className="font-semibold text-tinta">Nueva orden de carga</p>
+        <p className="text-lg font-semibold text-tinta">Nueva orden de carga</p>
         <button type="button" aria-label="Cerrar" className="rounded p-1 text-tinta-suave hover:bg-hover" onClick={onCerrar}>
-          <X className="size-5" />
+          <X className="size-6" />
         </button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Campo label="Camión">
-          <select value={camion} onChange={(e) => setCamion(e.target.value)}>
-            <option value="">Elegí…</option>
-            {camiones.data?.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.patente}
-              </option>
-            ))}
-          </select>
-        </Campo>
-        <Campo label="Estación de servicio">
-          <select value={estacion} onChange={(e) => setEstacion(e.target.value)}>
-            <option value="">Elegí…</option>
-            {estaciones.data
-              ?.filter((e) => !e.esTanquePropio)
-              .map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.nombre}
+
+      <Paso numero={1} titulo="Camión y estación">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo label="Camión">
+            <select className="h-12 text-base" value={camion} onChange={(e) => setCamion(e.target.value)}>
+              <option value="">Elegí…</option>
+              {camiones.data?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.patente}
                 </option>
               ))}
-          </select>
-        </Campo>
-      </div>
-      {p && (
-        <div className="space-y-1 rounded-md bg-hover px-3 py-2 text-sm text-tinta">
-          <div className="max-w-sm">
+            </select>
+          </Campo>
+          <Campo label="Estación de servicio">
+            <select className="h-12 text-base" value={estacion} onChange={(e) => setEstacion(e.target.value)}>
+              <option value="">Elegí…</option>
+              {estaciones.data
+                ?.filter((e) => !e.esTanquePropio)
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nombre}
+                  </option>
+                ))}
+            </select>
+          </Campo>
+        </div>
+        {camion && prep.isFetching && !p && <p className="text-sm text-tinta-suave">Leyendo el camión…</p>}
+        {p && (
+          <div className="space-y-2 rounded-lg bg-hover p-3 text-sm text-tinta">
             <Campo label="Chofer (ve el QR en «Mi viaje»)">
-              <select value={chofer} onChange={(e) => setChofer(e.target.value)}>
+              <select className="h-12 text-base" value={chofer} onChange={(e) => setChofer(e.target.value)}>
                 <option value="">{p.chofer ? `${p.chofer} (el de la Pizarra)` : 'Elegí… (no tiene chofer en la Pizarra)'}</option>
                 {choferes.data
                   ?.filter((c) => c.id !== p.choferId)
@@ -298,121 +318,107 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
                   ))}
               </select>
             </Campo>
-          </div>
-          <p>
             {p.litrosParaLlenar !== null ? (
-              <>
-                Para llenar le faltan <strong>{formatearNumero(p.litrosParaLlenar, 0)} L</strong> (tiene ≈ {formatearNumero(p.litrosActuales ?? 0, 0)} de{' '}
-                {formatearNumero(p.capacidadL ?? 0, 0)} L)
-              </>
+              <p>
+                Para quedar lleno le faltan <strong>≈ {formatearNumero(p.litrosParaLlenar, 0)} L</strong>
+                <span className="block text-xs text-tinta-suave">
+                  Tiene ≈ {formatearNumero(p.litrosActuales ?? 0, 0)} de {formatearNumero(p.capacidadL ?? 0, 0)} L
+                </span>
+              </p>
             ) : (
-              <span className="text-tinta-suave">No se puede calcular cuánto le falta para llenar{p.motivoSinCalculo ? `: ${p.motivoSinCalculo}` : ''}.</span>
+              <p className="text-xs text-tinta-suave">No se puede calcular cuánto le falta para llenar{p.motivoSinCalculo ? `: ${p.motivoSinCalculo}` : ''}.</p>
             )}
-          </p>
-          {p.precio !== null && (
-            <p className="text-tinta-suave">
-              Último precio en la estación: {p.moneda} {formatearNumero(p.precio, 2)} por litro
-            </p>
-          )}
-          {p.vigente && <p className="text-alerta">Este camión ya tiene la orden {p.vigente} vigente: anulala antes de hacer otra.</p>}
-          {estacion && !p.correo && (
-            <div className="flex flex-wrap items-end gap-2 pt-1">
-              <div className="min-w-64 flex-1">
-                <Campo label="Correo de la estación (no tiene)" ayuda="Para varios, separalos con coma.">
-                  <input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} />
+            {p.precio !== null && (
+              <p className="text-xs text-tinta-suave">
+                Último precio en la estación: {p.moneda} {formatearNumero(p.precio, 2)} por litro
+              </p>
+            )}
+            {p.vigente && <p className="font-medium text-alerta">Este camión ya tiene la orden {p.vigente} vigente: anulala antes de hacer otra.</p>}
+            {estacion && !p.correo && (
+              <div className="space-y-2 pt-1">
+                <Campo label="Correo de la estación (no tiene)" ayuda="Sin correo no se puede generar la orden. Para varios, separalos con coma.">
+                  <input type="email" className="h-12 text-base" value={correo} onChange={(e) => setCorreo(e.target.value)} />
                 </Campo>
+                <button
+                  type="button"
+                  className={cn(BOTON_SECUNDARIO, 'w-full justify-center sm:w-auto')}
+                  disabled={guardarCorreo.isPending}
+                  onClick={async () => {
+                    setError(null);
+                    const r = await guardarCorreo.mutateAsync({ estacionId: Number(estacion), correo });
+                    if (!r.ok) setError(r.error.mensaje);
+                    else void prep.refetch();
+                  }}
+                >
+                  <Mail className="size-4" /> Guardar correo
+                </button>
               </div>
-              <button
-                type="button"
-                className={BOTON_SECUNDARIO}
-                disabled={guardarCorreo.isPending}
-                onClick={async () => {
-                  setError(null);
-                  const r = await guardarCorreo.mutateAsync({ estacionId: Number(estacion), correo });
-                  if (!r.ok) setError(r.error.mensaje);
-                  else void prep.refetch();
-                }}
-              >
-                <Mail className="size-4" /> Guardar correo
-              </button>
-            </div>
+            )}
+          </div>
+        )}
+      </Paso>
+
+      <Paso numero={2} titulo="¿Qué se carga?">
+        <div className="grid grid-cols-2 gap-2">
+          <Opcion activa={destino === 'tanques'} onClick={() => setDestino('tanques')} titulo="Solo tanques" />
+          <Opcion
+            activa={destino === 'tanques_mochila'}
+            onClick={() => setDestino('tanques_mochila')}
+            deshabilitada={p ? p.capacidadMochilaL === null : false}
+            titulo="Tanques y mochila"
+            detalle={p ? (p.capacidadMochilaL === null ? 'Sin mochila cargada' : `Mochila de ${formatearNumero(p.capacidadMochilaL, 0)} L`) : undefined}
+          />
+        </div>
+      </Paso>
+
+      {destino && (
+        <Paso numero={3} titulo="Tanques">
+          <div className="grid grid-cols-2 gap-2">
+            <Opcion
+              activa={tanques === 'lleno'}
+              onClick={() => setTanques('lleno')}
+              titulo="Llenos"
+              detalle={p?.litrosParaLlenar != null && destino === 'tanques' ? `≈ ${formatearNumero(p.litrosParaLlenar, 0)} L` : undefined}
+            />
+            <Opcion activa={tanques === 'litros'} onClick={() => setTanques('litros')} titulo="Litros" detalle="Escribís cuántos" />
+          </div>
+          {tanques === 'litros' && <Litros valor={litrosTanques} onCambiar={setLitrosTanques} etiqueta="Litros para los tanques" ejemplo="100" />}
+        </Paso>
+      )}
+
+      {destino === 'tanques_mochila' && (
+        <Paso numero={4} titulo="Mochila">
+          <div className="grid grid-cols-2 gap-2">
+            <Opcion
+              activa={mochila === 'llena'}
+              onClick={() => setMochila('llena')}
+              titulo="Llena"
+              detalle={p?.capacidadMochilaL != null ? `${formatearNumero(p.capacidadMochilaL, 0)} L` : undefined}
+            />
+            <Opcion activa={mochila === 'litros'} onClick={() => setMochila('litros')} titulo="Litros" detalle="Escribís cuántos" />
+          </div>
+          {mochila === 'litros' && <Litros valor={litrosMochila} onCambiar={setLitrosMochila} etiqueta="Litros para la mochila" ejemplo="300" />}
+        </Paso>
+      )}
+
+      <Campo label="Observación (opcional)">
+        <input className="h-12 text-base" maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} />
+      </Campo>
+
+      {resumen && (
+        <div className="rounded-lg border border-marca/30 bg-marca-suave p-3">
+          <p className="text-xs font-medium tracking-wide text-tinta-suave uppercase">Vas a autorizar</p>
+          <p className="text-base font-semibold text-tinta">{resumen}</p>
+          {(tanques === 'lleno' || mochila === 'llena') && (
+            <p className="mt-1 text-xs text-tinta-suave">Lleno va sin tope; si se carga más de lo que le faltaba al camión, queda una alerta.</p>
           )}
-          {!p.mail.activo && <p className="text-xs text-tinta-suave">El envío de mails todavía no está configurado: la palabra se te muestra para mandarla a mano.</p>}
         </div>
       )}
-      <fieldset className="space-y-3">
-        <legend className="text-sm font-medium text-tinta">¿Qué se carga?</legend>
-        <div className="flex flex-wrap gap-2">
-          <Opcion activa={destino === 'tanques'} onClick={() => setDestino('tanques')}>
-            Solo los tanques
-          </Opcion>
-          <Opcion activa={destino === 'tanques_mochila'} onClick={() => setDestino('tanques_mochila')} deshabilitada={p ? p.capacidadMochilaL === null : false}>
-            Los tanques y la mochila
-          </Opcion>
-        </div>
-        {p && p.capacidadMochilaL === null && (
-          <p className="text-xs text-tinta-suave">Este camión no tiene la mochila cargada en Flota › Camiones › Tanques.</p>
-        )}
-        {destino && (
-          <div className="space-y-2 rounded-md border border-borde p-3">
-            <p className="text-sm font-medium text-tinta">Tanques</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Opcion activa={tanques === 'lleno'} onClick={() => setTanques('lleno')}>
-                Tanques llenos{p?.litrosParaLlenar != null && destino === 'tanques' ? ` (≈ ${formatearNumero(p.litrosParaLlenar, 0)} L)` : ''}
-              </Opcion>
-              <Opcion activa={tanques === 'litros'} onClick={() => setTanques('litros')}>
-                Una cantidad de litros
-              </Opcion>
-              {tanques === 'litros' && (
-                <input
-                  className="h-9 w-32 rounded-md border border-borde px-2"
-                  inputMode="decimal"
-                  aria-label="Litros para los tanques"
-                  value={litrosTanques}
-                  onChange={(e) => setLitrosTanques(e.target.value)}
-                  placeholder="Ej. 100"
-                />
-              )}
-            </div>
-          </div>
-        )}
-        {destino === 'tanques_mochila' && (
-          <div className="space-y-2 rounded-md border border-borde p-3">
-            <p className="text-sm font-medium text-tinta">Mochila</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Opcion activa={mochila === 'llena'} onClick={() => setMochila('llena')}>
-                Mochila llena{p?.capacidadMochilaL != null ? ` (${formatearNumero(p.capacidadMochilaL, 0)} L)` : ''}
-              </Opcion>
-              <Opcion activa={mochila === 'litros'} onClick={() => setMochila('litros')}>
-                Una cantidad de litros
-              </Opcion>
-              {mochila === 'litros' && (
-                <input
-                  className="h-9 w-32 rounded-md border border-borde px-2"
-                  inputMode="decimal"
-                  aria-label="Litros para la mochila"
-                  value={litrosMochila}
-                  onChange={(e) => setLitrosMochila(e.target.value)}
-                  placeholder="Ej. 300"
-                />
-              )}
-            </div>
-          </div>
-        )}
-        {(tanques === 'lleno' || mochila === 'llena') && (
-          <p className="text-xs text-tinta-suave">
-            Lleno se autoriza sin tope. Si al final se carga más de lo que le faltaba al camión, queda una alerta (posible faltante de combustible en el viaje).
-          </p>
-        )}
-      </fieldset>
-      <Campo label="Observación (opcional)">
-        <input maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} />
-      </Campo>
       {error && <p className="text-sm text-error">{error}</p>}
       <button
         type="button"
-        className={BOTON_PRIMARIO}
-        disabled={crear.isPending || !destino || !tanques || (destino === 'tanques_mochila' && !mochila)}
+        className={cn(BOTON_PRIMARIO, 'h-12 w-full justify-center text-base')}
+        disabled={crear.isPending || !listo}
         onClick={async () => {
           setError(null);
           const r = await crear.mutateAsync({
@@ -438,25 +444,70 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
           else setCreada(r.data);
         }}
       >
-        <QrCode className="size-4" /> Generar la orden
+        <QrCode className="size-5" /> {crear.isPending ? 'Generando…' : 'Generar la orden'}
       </button>
     </div>
   );
 }
 
-/** Botón de elección (pastilla). */
-function Opcion({ activa, onClick, deshabilitada, children }: { activa: boolean; onClick: () => void; deshabilitada?: boolean; children: React.ReactNode }) {
+/** Un paso del formulario, numerado. */
+function Paso({ numero, titulo, children }: { numero: number; titulo: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-2">
+      <p className="flex items-center gap-2 text-sm font-semibold text-tinta">
+        <span className="flex size-6 items-center justify-center rounded-full bg-marca text-xs text-white">{numero}</span>
+        {titulo}
+      </p>
+      {children}
+    </section>
+  );
+}
+
+/** Casillero de litros, grande para el celular. */
+function Litros({ valor, onCambiar, etiqueta, ejemplo }: { valor: string; onCambiar: (v: string) => void; etiqueta: string; ejemplo: string }) {
+  return (
+    <label className="flex items-center gap-2 rounded-lg border border-borde bg-panel px-3">
+      <span className="sr-only">{etiqueta}</span>
+      <input
+        className="h-12 min-w-0 flex-1 border-0 bg-transparent text-lg outline-none"
+        inputMode="decimal"
+        autoFocus
+        value={valor}
+        onChange={(e) => onCambiar(e.target.value)}
+        placeholder={`Ej. ${ejemplo}`}
+      />
+      <span className="text-base font-medium text-tinta-suave">litros</span>
+    </label>
+  );
+}
+
+/** Opción grande para tocar con el dedo (título y un detalle chico). */
+function Opcion({
+  activa,
+  onClick,
+  deshabilitada,
+  titulo,
+  detalle,
+}: {
+  activa: boolean;
+  onClick: () => void;
+  deshabilitada?: boolean;
+  titulo: string;
+  detalle?: string;
+}) {
   return (
     <button
       type="button"
       disabled={deshabilitada}
       onClick={onClick}
+      aria-pressed={activa}
       className={cn(
-        'rounded-full border px-3 py-1.5 text-sm disabled:opacity-50',
-        activa ? 'border-marca bg-marca-suave text-marca' : 'border-borde text-tinta hover:bg-hover',
+        'flex min-h-16 flex-col items-start justify-center rounded-lg border-2 px-3 py-2 text-left disabled:opacity-50',
+        activa ? 'border-marca bg-marca-suave' : 'border-borde bg-panel hover:bg-hover',
       )}
     >
-      {children}
+      <span className={cn('text-base font-semibold', activa ? 'text-marca' : 'text-tinta')}>{titulo}</span>
+      {detalle && <span className="text-xs text-tinta-suave">{detalle}</span>}
     </button>
   );
 }
