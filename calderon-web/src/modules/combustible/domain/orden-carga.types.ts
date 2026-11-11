@@ -24,7 +24,7 @@ export interface EstadoMail {
   pendientes: number;
   /** Migración 236: la cuenta dio el permiso (Hotmail) o se usa Microsoft 365 de empresa. */
   conPermiso: boolean;
-  modo: 'cuenta' | 'empresa' | null;
+  modo: 'cuenta' | 'empresa' | 'smtp' | null;
 }
 
 export interface PreparadoOrden {
@@ -121,7 +121,7 @@ export const parsearEstadoMail = (d: unknown): EstadoMail => {
     conHttp: x.con_http === true,
     pendientes: n(x.pendientes) ?? 0,
     conPermiso: x.con_permiso === true,
-    modo: x.modo === 'cuenta' || x.modo === 'empresa' ? x.modo : null,
+    modo: x.modo === 'cuenta' || x.modo === 'empresa' || x.modo === 'smtp' ? x.modo : null,
   };
 };
 

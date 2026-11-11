@@ -399,13 +399,13 @@ function CuentaMail() {
         {data.activo
           ? `Los mails salen desde ${data.remitente ?? '—'}${data.pendientes > 0 ? ` · ${data.pendientes} en cola` : ''}.`
           : !data.conClaves
-            ? 'Mails sin configurar: faltan las claves de la aplicación de Microsoft en el Vault (ver el LEEME).'
+            ? 'Mails sin configurar: falta la cuenta SMTP (servidor, usuario y la contraseña en el Vault) o la aplicación de Microsoft (ver el LEEME).'
             : !data.conHttp
               ? 'Mails sin configurar: falta activar la extensión «http» en Supabase.'
               : 'Falta conectar la cuenta de mail.'}
         {msg && <span className={cn('block text-xs', msg.ok ? 'text-exito' : 'text-error')}>{msg.texto}</span>}
       </span>
-      {data.conClaves && data.conHttp && (
+      {data.conClaves && data.conHttp && data.modo !== 'smtp' && (
         <button
           type="button"
           className={BOTON_SECUNDARIO}
