@@ -43,6 +43,29 @@ export interface DetalleMapa {
   /** Migración 103: el chofer del camión y su consumo del mes (motor o cierres de viaje). */
   choferId: number | null;
   consumoMes: ConsumoMes | null;
+  /** Migración 237: consumo del último bloque cerrado de 4 h (solo camiones con telemetría del motor). */
+  consumo4h: Consumo4h | null;
+}
+
+export interface Consumo4h {
+  l100km: number | null;
+  km: number;
+  litros: number | null;
+  desde: string;
+  hasta: string;
+  motivo: string | null;
+}
+function parsearConsumo4h(v: unknown): Consumo4h | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const c = v as Record<string, unknown>;
+  return {
+    l100km: c.l_100km == null ? null : Number(c.l_100km),
+    km: Number(c.km ?? 0),
+    litros: c.litros == null ? null : Number(c.litros),
+    desde: String(c.desde ?? ''),
+    hasta: String(c.hasta ?? ''),
+    motivo: typeof c.motivo === 'string' ? c.motivo : null,
+  };
 }
 
 export interface ConsumoMes {
@@ -187,6 +210,7 @@ export function parsearMapa(v: unknown): DetalleMapa[] {
         hoy: parsearHoy(d.hoy),
         choferId: d.chofer_id == null ? null : Number(d.chofer_id),
         consumoMes: parsearConsumoMes(d.consumo_mes),
+        consumo4h: parsearConsumo4h(d.consumo_4h),
         operacion: op
           ? {
               numero: Number(op.numero),

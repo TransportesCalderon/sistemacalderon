@@ -282,6 +282,7 @@ export function MapaFlota({
 
   function ficha(c: CamionEnVivo, d: DetalleMapa | undefined): string {
     const min = minutosDesde(c.ts);
+    const hora = (iso: string) => formatearFechaHora(iso, zonaHoraria).slice(-5);
     const fila = (k: string, v: string) => `<tr><td style="color:#64748b;padding:1px 8px 1px 0;vertical-align:top">${k}</td><td style="padding:1px 0">${v}</td></tr>`;
     const filas = [
       fila('Chofer', d?.chofer ? `${escapar(d.chofer)}${d.choferFuente === 'asignado' ? ' <span style="color:#64748b">(asignado)</span>' : ''}` : '—'),
@@ -347,6 +348,19 @@ export function MapaFlota({
             })</span>`
           : `<span style="color:#64748b">— ${d?.choferId ? '(menos de 100 km este mes)' : '(sin chofer)'}</span>`,
       ),
+      // Migración 237: consumo del último bloque de 4 h (solo con telemetría del motor)
+      ...(d?.consumo4h
+        ? [
+            fila(
+              'Consumo últimas 4 h',
+              `${
+                d.consumo4h.l100km != null
+                  ? `<b>${formatearNumero(d.consumo4h.l100km, 1)} L/100 km</b>`
+                  : `<span style="color:#64748b">— (${escapar(d.consumo4h.motivo ?? 'sin dato')})</span>`
+              } <span style="color:#64748b">(de ${hora(d.consumo4h.desde)} a ${hora(d.consumo4h.hasta)}, ${formatearNumero(d.consumo4h.km, 0)} km)</span>`,
+            ),
+          ]
+        : []),
       // Migración 100: uso abusivo según la marca
       ...(d?.hoy?.abusivo
         ? [
