@@ -17,6 +17,7 @@ import { ETIQUETA_VISA, nombreCompleto } from '../../domain/chofer.types';
 import { useBases, useCatalogosFlota, useChofer, useEliminarChofer } from '../../queries/hooks';
 import { AccionConMotivo } from '@/modules/combustible/components/comun/ui';
 import { DocumentoChofer } from './documento-chofer';
+import { FotoChoferFicha } from './foto-chofer';
 import { EstadoChoferChip, LicenciaChip } from './estado-chofer';
 import { SoloEnPagina, useFicha, useNombreFicha } from '@/modules/core/fichas/contexto';
 
@@ -104,6 +105,9 @@ export function ChoferFicha({ id }: { id: ChoferId }) {
           </div>
         )}
       </header>
+
+      {/* Migración 239: foto de perfil (la carga la oficina) */}
+      <FotoChoferFicha choferId={chofer.id} nombre={nombreCompleto(chofer)} puedeEditar={!eliminado && alcanceEditar === 'todo'} />
 
       {eliminado && (
         <p className="flex items-start gap-2 rounded-lg border border-error/30 bg-error-suave p-3 text-sm text-error">

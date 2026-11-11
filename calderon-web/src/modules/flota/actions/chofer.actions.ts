@@ -1,6 +1,7 @@
 'use server';
 
 import { headers } from 'next/headers';
+import { z } from 'zod';
 import { isIP } from 'node:net';
 import { alcanceDe } from '@/modules/core/permissions/resolver';
 import { createAction } from '@/server/actions/create-action';
@@ -48,4 +49,19 @@ export const eliminarChofer = createAction({
   schema: eliminarChoferSchema,
   handler: ({ id, motivo }, { db, alcance }) => choferService(db).eliminar(id, motivo, { alcance }),
   invalida: ({ id }) => ({ paths: ['/flota/choferes', `/flota/choferes/${id}`] }),
+});
+
+/**
+ * Migración 239: poner, cambiar o quitar la foto de perfil (la oficina; la base exige Operaciones, RRHH o TI).
+ * La foto ya está subida a la carpeta del chofer; devuelve la anterior para borrar el archivo.
+ */
+export const guardarFotoChofer = createAction({
+  permiso: 'flota.choferes:editar',
+  schema: z.object({ choferId: z.number().int().positive(), ruta: z.string().max(200).nullable() }),
+  handler: async ({ choferId, ruta }, { db }) => {
+    const { data, error } = await db.schema('mae').rpc('fn_foto_chofer', { p_chofer: choferId, p_ruta: ruta });
+    if (error) throw error;
+    const anterior = (data as { anterior?: string | null } | null)?.anterior;
+    return { anterior: typeof anterior === 'string' ? anterior : null };
+  },
 });

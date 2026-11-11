@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Trophy } from 'lucide-react';
 import { Cargando, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
+import { FotoChofer, useFotosChofer } from '@/modules/flota/components/choferes/foto-chofer';
 import { RepoError } from '@/shared/repository/types';
 import { cn } from '@/shared/lib/cn';
 import { hoyEnZona } from '@/shared/lib/fechas';
@@ -120,6 +121,7 @@ export function RankingMensualPantalla() {
     queryFn: () => leer(`${mes}-01`),
   });
   const conPuesto = (data?.choferes ?? []).filter((c) => c.posicion !== null);
+  const fotos = useFotosChofer((data?.choferes ?? []).map((c) => c.choferId));
   const sinPuesto = (data?.choferes ?? []).filter((c) => c.posicion === null);
   const todos = [...conPuesto, ...sinPuesto];
 
@@ -161,7 +163,7 @@ export function RankingMensualPantalla() {
         </p>
         {conPuesto.length > 0 && (
           <div className="mx-auto mt-6 max-w-2xl">
-            <Podio top={conPuesto.slice(0, 3).map((c, i) => ({ ...c, clave: c.choferId ?? i, nombre: c.chofer }))} />
+            <Podio top={conPuesto.slice(0, 3).map((c, i) => ({ ...c, clave: c.choferId ?? i, nombre: c.chofer, foto: c.choferId ? fotos.get(c.choferId) : null }))} />
           </div>
         )}
       </section>
@@ -215,7 +217,10 @@ export function RankingMensualPantalla() {
                           <Cambio c={c} />
                         </td>
                         <td className="px-3 py-2.5">
-                          <span className="font-semibold text-tinta">{nombreCorto(c.chofer)}</span>
+                          <span className="flex items-center gap-2">
+                            <FotoChofer url={c.choferId ? fotos.get(c.choferId) : null} nombre={c.chofer} className="size-8" />
+                            <span className="font-semibold text-tinta">{nombreCorto(c.chofer)}</span>
+                          </span>
                           {!c.compite && (
                             <span className="block">
                               <NoCompite />

@@ -19,6 +19,7 @@ import {
   type ChoferListaParams,
 } from '../../domain/chofer.types';
 import { useBases, useCatalogosFlota, useChoferes } from '../../queries/hooks';
+import { FotoChofer, useFotosChofer } from './foto-chofer';
 import { EstadoChoferChip, LicenciaChip } from './estado-chofer';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { useAbrirFicha } from '@/modules/core/fichas/contexto';
@@ -38,6 +39,7 @@ export function ChoferesLista() {
   const puedeCrear = useAlcance('flota.choferes:editar') === 'todo';
 
   const { data, isPending, isError, isFetching, refetch } = useChoferes(params);
+  const fotos = useFotosChofer(data?.filas.map((c) => c.id) ?? []);
   const { data: catalogos } = useCatalogosFlota();
   const { data: bases } = useBases();
   const hoy = hoyEnZona(useSesion().zonaHoraria);
@@ -190,7 +192,12 @@ export function ChoferesLista() {
                       </NombreEnlazado>
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className="font-medium text-tinta">{c.apellido}</span>, {c.nombre}
+                      <span className="flex items-center gap-2">
+                        <FotoChofer url={fotos.get(c.id)} nombre={`${c.nombre} ${c.apellido}`} className="size-8" />
+                        <span>
+                          <span className="font-medium text-tinta">{c.apellido}</span>, {c.nombre}
+                        </span>
+                      </span>
                     </td>
                     <td className="px-3 py-2.5">{c.paisResidencia}</td>
                     <td className="px-3 py-2.5">{c.baseUbicacionId === null ? '—' : (nombreBase.get(c.baseUbicacionId) ?? '—')}</td>

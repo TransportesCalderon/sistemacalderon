@@ -75,6 +75,8 @@ export interface EnPodio extends Puesto {
   clave: string | number;
   nombre: string;
   puntaje: number | null;
+  /** Migración 239: foto de perfil (enlace temporal), si tiene. */
+  foto?: string | null;
 }
 
 /** 2.º a la izquierda, 1.º al medio (más alto), 3.º a la derecha. Va sobre un fondo oscuro. */
@@ -88,9 +90,14 @@ export function Podio({ top }: { top: EnPodio[] }) {
         <div key={puesto[i]} className="flex flex-col items-center">
           {c ? (
             <>
-              <div className={cn('mb-2 flex size-14 items-center justify-center rounded-full text-lg font-black shadow-lg ring-4 ring-white/20', MEDALLA[puesto[i]! - 1])}>
-                {iniciales(c.nombre)}
-              </div>
+              {c.foto ? (
+                // eslint-disable-next-line @next/next/no-img-element -- enlace temporal de Storage
+                <img src={c.foto} alt={c.nombre} className="mb-2 size-14 rounded-full object-cover shadow-lg ring-4 ring-white/20" />
+              ) : (
+                <div className={cn('mb-2 flex size-14 items-center justify-center rounded-full text-lg font-black shadow-lg ring-4 ring-white/20', MEDALLA[puesto[i]! - 1])}>
+                  {iniciales(c.nombre)}
+                </div>
+              )}
               <p className="max-w-full truncate text-center text-sm font-bold text-white">{nombreCorto(c.nombre)}</p>
               <p className="text-3xl font-black text-white tabular-nums">{formatearNumero(c.puntaje ?? 0, 0)}</p>
               <div className="mb-2 h-5">

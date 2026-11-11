@@ -8,6 +8,7 @@ import { Cargando, ErrorLectura, Vacio } from '@/modules/combustible/components/
 import { usePeriodo } from '@/modules/combustible/components/consumo/periodo';
 import { useCamionesCombustible } from '@/modules/combustible/queries/hooks';
 import { useSesion } from '@/modules/core/session/session-provider';
+import { FotoChofer, useFotosChofer } from '@/modules/flota/components/choferes/foto-chofer';
 import { RepoError } from '@/shared/repository/types';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
@@ -147,6 +148,7 @@ export function PuntajeChoferesPantalla() {
     queryFn: () => leer(p.desde, p.hasta),
   });
   const conPuesto = (data?.choferes ?? []).filter((c) => c.posicion !== null);
+  const fotos = useFotosChofer((data?.choferes ?? []).map((c) => c.choferId));
   const rapidos: [string, string, string][] = [
     ['Este mes', primeroDelMes(hoy), hoy],
     ['Mes pasado', primeroDelMes(finDelMesAnterior(hoy)), finDelMesAnterior(hoy)],
@@ -197,7 +199,7 @@ export function PuntajeChoferesPantalla() {
         </p>
         {conPuesto.length > 0 && (
           <div className="mx-auto mt-6 max-w-2xl">
-            <Podio top={conPuesto.slice(0, 3).map((c) => ({ ...c, clave: c.choferId, nombre: c.chofer }))} />
+            <Podio top={conPuesto.slice(0, 3).map((c) => ({ ...c, clave: c.choferId, nombre: c.chofer, foto: fotos.get(c.choferId) }))} />
           </div>
         )}
       </section>
@@ -259,7 +261,10 @@ export function PuntajeChoferesPantalla() {
                           <Cambio c={c} />
                         </td>
                         <td className="px-3 py-2.5">
-                          <span className="font-semibold text-tinta">{nombreCorto(c.chofer)}</span>
+                          <span className="flex items-center gap-2">
+                            <FotoChofer url={fotos.get(c.choferId)} nombre={c.chofer} className="size-8" />
+                            <span className="font-semibold text-tinta">{nombreCorto(c.chofer)}</span>
+                          </span>
                           <span className="block text-[11px] text-tinta-suave">
                             {c.dias} {c.dias === 1 ? 'día' : 'días'}
                             {c.camiones && ` · ${c.camiones}`}

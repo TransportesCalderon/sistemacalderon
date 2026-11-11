@@ -10,6 +10,8 @@ import { ETIQUETA_ESTADO_LIQ } from '@/modules/liquidacion/domain/liquidacion.ty
 import { useMisLiquidaciones } from '@/modules/liquidacion/queries/hooks';
 import { AvisoCargaChofer } from '@/modules/telemetria/components/aviso-carga-chofer';
 import { AvisoTableroInicio } from '@/modules/telemetria/components/aviso-tablero-inicio';
+import { useSesion } from '@/modules/core/session/session-provider';
+import { FotoChofer, useFotosChofer } from '@/modules/flota/components/choferes/foto-chofer';
 import { cn } from '@/shared/lib/cn';
 import { TARJETA } from '@/shared/ui/clases';
 import { nombrePeriodo } from '../domain/chofer.types';
@@ -31,6 +33,8 @@ const BOTON_CHICO =
  */
 export function MiViaje() {
   const { data, isLoading, isError, refetch } = useMisCargas();
+  const { choferId } = useSesion();
+  const fotos = useFotosChofer([choferId]);
   const verGastos = useCan('chofer.mis_gastos:ver');
   const verLiquidaciones = useCan('chofer.mis_liquidaciones:ver');
   // Migración 161: la ruta en curso es del chofer (puede ser un movimiento sin operación): va arriba de todo
@@ -44,9 +48,13 @@ export function MiViaje() {
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <header>
-        <h1 className="text-2xl font-semibold text-tinta">Mi viaje</h1>
-        {data.chofer && <p className="text-sm text-tinta-suave">{data.chofer}</p>}
+      <header className="flex items-center gap-3">
+        {/* Migración 239: su foto de perfil */}
+        {choferId && <FotoChofer url={fotos.get(choferId)} nombre={data.chofer ?? ''} className="size-12" />}
+        <div>
+          <h1 className="text-2xl font-semibold text-tinta">Mi viaje</h1>
+          {data.chofer && <p className="text-sm text-tinta-suave">{data.chofer}</p>}
+        </div>
       </header>
 
       {/* Migración 234: la orden de carga con su QR */}
