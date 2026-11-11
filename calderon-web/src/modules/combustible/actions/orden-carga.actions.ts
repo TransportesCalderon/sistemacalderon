@@ -12,7 +12,8 @@ import { ordenCargaRepository } from '../repositories/orden-carga.repository';
 const id = z.number().int().positive();
 
 export const crearOrdenCarga = createAction({
-  permiso: 'combustible.ordenes:editar',
+  // Migración 247: lo decide la marca «Autoriza cargas» de cada usuario (lo controla la base)
+  permiso: ['combustible.ordenes:editar', 'combustible.cargas:ver'],
   schema: z.object({
     camionId: id.nullable(),
     estacionId: id.nullable(),
@@ -27,7 +28,7 @@ export const crearOrdenCarga = createAction({
 });
 
 export const anularOrdenCarga = createAction({
-  permiso: 'combustible.ordenes:editar',
+  permiso: ['combustible.ordenes:editar', 'combustible.cargas:ver'],
   schema: z.object({ id, motivo: z.string().max(500) }),
   handler: (d, { db }) => ordenCargaRepository(db).anular(d.id, d.motivo),
 });
@@ -39,7 +40,7 @@ export const revisarOrdenCarga = createAction({
 });
 
 export const guardarCorreoEstacion = createAction({
-  permiso: 'combustible.ordenes:ver',
+  permiso: ['combustible.ordenes:ver', 'combustible.cargas:ver'],
   schema: z.object({ estacionId: id, correo: z.string().max(500) }),
   handler: (d, { db }) => ordenCargaRepository(db).correoEstacion(d.estacionId, d.correo),
 });

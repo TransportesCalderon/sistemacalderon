@@ -34,7 +34,20 @@ const aNumero = (s: string) => (s.trim() === '' ? null : Number(s.replace(/\./g,
  */
 export function OrdenesCarga() {
   const hay = useBaseTiene(VERSION_ORDEN_CARGA);
-  const puede = useCan('combustible.ordenes:editar');
+  const configuraMail = useCan('combustible.ordenes:editar');
+  // Migración 247: autoriza cargas quien tiene la marca (la pone TI en Ajustes › Usuarios)
+  const conMarca = useBaseTiene(247);
+  const marca = useQuery({
+    queryKey: ['combustible', 'ordenes', 'puedo-autorizar'] as const,
+    queryFn: async () => {
+      const { data, error } = await browserDb().schema('fue').rpc('fn_puedo_autorizar_cargas');
+      if (error) throw error;
+      return data === true;
+    },
+    enabled: conMarca,
+    staleTime: 60_000,
+  });
+  const puede = conMarca ? marca.data === true : configuraMail;
   const { zonaHoraria } = useSesion();
   const { data, isPending, isError, error, refetch } = useOrdenesCarga(hay);
   const [nueva, setNueva] = useState(false);
@@ -52,7 +65,7 @@ export function OrdenesCarga() {
           </button>
         )}
       </div>
-      {puede && <CuentaMail />}
+      {configuraMail && <CuentaMail />}
       {nueva && <NuevaOrden onCerrar={() => setNueva(false)} />}
       {isPending ? (
         <Cargando texto="Leyendo las órdenes…" />

@@ -19,6 +19,7 @@ import {
   marcarAprobadorCierre,
   marcarAprobadorSegundoNivel,
   marcarAvisoTanqueBajo,
+  marcarAutorizaCargas,
   marcarRecibeEscalamiento,
   restablecerClave,
 } from '../usuarios.actions';
@@ -88,7 +89,16 @@ export function UsuariosPantalla() {
     enabled: hayEscalamiento,
     staleTime: FRESCURA.maestro,
   });
-  const columnas = 5 + (hayAprobadores ? 1 : 0) + (haySegundoNivel ? 1 : 0) + (hayAvisoTanque ? 1 : 0) + (hayEscalamiento ? 1 : 0);
+  // Migración 247: quién autoriza cargas (órdenes de carga)
+  const hayAutorizaCargas = useBaseTiene(247);
+  const autorizan = useQuery({
+    queryKey: ['usuarios', 'autoriza-cargas'],
+    queryFn: () => usuariosRepository(db).autorizanCargas(),
+    enabled: hayAutorizaCargas,
+    staleTime: FRESCURA.maestro,
+  });
+  const columnas =
+    5 + (hayAprobadores ? 1 : 0) + (haySegundoNivel ? 1 : 0) + (hayAvisoTanque ? 1 : 0) + (hayEscalamiento ? 1 : 0) + (hayAutorizaCargas ? 1 : 0);
 
   return (
     <div className="space-y-5">
@@ -176,6 +186,11 @@ export function UsuariosPantalla() {
                       Recibe escalamientos
                     </th>
                   )}
+                  {hayAutorizaCargas && (
+                    <th className={TH} title="Puede generar y anular órdenes de carga de combustible">
+                      Autoriza cargas
+                    </th>
+                  )}
                   <th className={TH} />
                 </tr>
               </thead>
@@ -233,6 +248,20 @@ export function UsuariosPantalla() {
                             cargando={escalamiento.isPending}
                             accion={marcarRecibeEscalamiento}
                           />
+                        </td>
+                      )}
+                      {hayAutorizaCargas && (
+                        <td className={TD}>
+                          {u.choferId === null ? (
+                            <AprobadorCierre
+                              usuario={u.id}
+                              marcado={(autorizan.data ?? []).includes(u.id)}
+                              cargando={autorizan.isPending}
+                              accion={marcarAutorizaCargas}
+                            />
+                          ) : (
+                            <span className="text-xs text-tinta-suave">—</span>
+                          )}
                         </td>
                       )}
                       <td className={cn(TD, 'text-right')}>

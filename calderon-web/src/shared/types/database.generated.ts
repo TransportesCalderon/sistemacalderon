@@ -1655,6 +1655,8 @@ export type Database = {
       fn_aprobadores_segundo_nivel: { Args: Record<string, never>; Returns: number[] };
       fn_marcar_aprobador_segundo_nivel: { Args: { p_usuario: number; p_aprueba: boolean }; Returns: undefined };
       fn_avisados_tanque_bajo: { Args: Record<string, never>; Returns: number[] };
+      fn_autorizan_cargas: { Args: Record<string, never>; Returns: number[] };
+      fn_marcar_autoriza_cargas: { Args: { p_usuario: number; p_autoriza: boolean }; Returns: undefined };
       fn_marcar_aviso_tanque_bajo: { Args: { p_usuario: number; p_recibe: boolean }; Returns: undefined };
       // Migración 189: quién recibe las alertas vencidas (escalamiento)
       fn_reciben_escalamiento: { Args: Record<string, never>; Returns: number[] };
@@ -2176,6 +2178,7 @@ export type Database = {
       fn_revisar_orden_carga: { Args: { p_id: number }; Returns: undefined };
       fn_mis_ordenes_carga: { Args: Record<string, never>; Returns: Json };
       fn_terminar_orden_carga: { Args: { p_id: number; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null }; Returns: Json };
+      fn_puedo_autorizar_cargas: { Args: Record<string, never>; Returns: boolean };
       fn_aviso_carga_visto: { Args: { p_id: number }; Returns: undefined };
       fn_avisos_carga: { Args: { p_horas?: number }; Returns: Json };
       // Migración 90: Puntaje Calderón

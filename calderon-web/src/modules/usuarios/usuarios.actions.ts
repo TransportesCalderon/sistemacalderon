@@ -68,3 +68,10 @@ export const restablecerClave = createAction({
   schema: z.object({ usuario: z.number().int().positive(), clave: z.string().max(72, 'Máximo 72 caracteres.') }),
   handler: (d, { db }) => usuariosRepository(db).restablecerClave(d.usuario, d.clave),
 });
+
+/** Migración 247: marcar quién autoriza cargas (órdenes de carga). Solo TI. */
+export const marcarAutorizaCargas = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
+  handler: (d, { db }) => usuariosRepository(db).marcarAutorizaCargas(d.usuario, d.aprueba),
+});
