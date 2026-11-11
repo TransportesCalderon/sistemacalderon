@@ -18,7 +18,7 @@ import { browserDb } from '@/shared/supabase/browser';
 import { probarMail, urlPermisoMail } from '../../actions/orden-carga.actions';
 import { ordenCargaRepository } from '../../repositories/orden-carga.repository';
 import { ETIQUETA_ESTADO_ORDEN, VERSION_ORDEN_CARGA, type CreadaOrden, type EstadoOrden, type ModoOrden, type OrdenCarga } from '../../domain/orden-carga.types';
-import { useCamionesCombustible, useEstaciones } from '../../queries/hooks';
+import { useCamionesCombustible, useChoferesCombustible, useEstaciones } from '../../queries/hooks';
 import { useAnularOrdenCarga, useCorreoEstacion, useCrearOrdenCarga, useOrdenesCarga, usePrepararOrden, useRevisarOrdenCarga } from '../../queries/orden-carga.hooks';
 
 const TONO: Record<EstadoOrden, Tono> = { emitida: 'marca', autorizada: 'alerta', cargada: 'exito', anulada: 'neutro', bloqueada: 'error', vencida: 'neutro' };
@@ -194,6 +194,9 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
   const [litros, setLitros] = useState('');
   const [importe, setImporte] = useState('');
   const [obs, setObs] = useState('');
+  // Otro chofer que el de la Pizarra (vacío = el de la Pizarra): es quien ve el QR en «Mi viaje»
+  const [chofer, setChofer] = useState('');
+  const choferes = useChoferesCombustible();
   const [correo, setCorreo] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [creada, setCreada] = useState<CreadaOrden | null>(null);
@@ -263,9 +266,20 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
       </div>
       {p && (
         <div className="space-y-1 rounded-md bg-hover px-3 py-2 text-sm text-tinta">
-          <p>
-            Chofer: <strong>{p.chofer ?? 'sin chofer en la Pizarra'}</strong>
-          </p>
+          <div className="max-w-sm">
+            <Campo label="Chofer (ve el QR en «Mi viaje»)">
+              <select value={chofer} onChange={(e) => setChofer(e.target.value)}>
+                <option value="">{p.chofer ? `${p.chofer} (el de la Pizarra)` : 'Elegí… (no tiene chofer en la Pizarra)'}</option>
+                {choferes.data
+                  ?.filter((c) => c.id !== p.choferId)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+              </select>
+            </Campo>
+          </div>
           <p>
             {p.litrosParaLlenar !== null ? (
               <>
@@ -354,7 +368,7 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
             litros: modo === 'litros' ? aNumero(litros) : null,
             importe: modo === 'importe' ? aNumero(importe) : null,
             moneda: modo === 'importe' ? (p?.moneda ?? null) : null,
-            choferId: p?.choferId ?? null,
+            choferId: chofer ? Number(chofer) : (p?.choferId ?? null),
             observacion: obs.trim() || null,
           });
           if (!r.ok) setError(r.error.mensaje);
