@@ -259,7 +259,11 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
             <Dato etiqueta="Litros">{num(n.litros, 0)}</Dato>
             <Dato etiqueta="L/100 km">
               <span className={e.estadoConsumo ? COLOR_ESTADO[e.estadoConsumo] : undefined}>{num(e.l100km)}</span>
-              {e.objetivoL100km !== null && <span className="block text-xs text-tinta-suave">objetivo {num(e.objetivoL100km)}</span>}
+              {e.objetivoL100km !== null ? (
+                <span className="block text-xs text-tinta-suave">objetivo {num(e.objetivoL100km)}</span>
+              ) : (
+                e.l100km !== null && <span className="block text-xs text-alerta">sin objetivo</span>
+              )}
             </Dato>
             <Dato etiqueta="Programador">
               <span className={e.estadoProgramador ? COLOR_ESTADO[e.estadoProgramador] : undefined}>
@@ -267,6 +271,8 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
               </span>
             </Dato>
           </dl>
+          {/* Migración 241: nota para la oficina (no va en el mensaje al chofer) */}
+          {e.nota && <p className="rounded-md bg-alerta-suave p-2 text-xs text-alerta">{e.nota}</p>}
           {!n.conTelemetria && (
             <p className="text-xs text-alerta">{n.motivoSinLitros ?? 'La telemetría de esta marca no da el consumo: cargá los números de su plataforma.'}</p>
           )}
@@ -425,7 +431,7 @@ function Historial({ viajeId }: { viajeId: number }) {
         <li key={c.id} className="space-y-1">
           <p className="flex flex-wrap items-center gap-2 text-xs text-tinta-suave">
             <Chip tono={TONO_RESULTADO[c.resultado]}>{ETIQUETA_RESULTADO[c.resultado]}</Chip>
-            {formatearFechaHora(c.en, zonaHoraria)} · {c.por ?? '—'} · {num(c.km, 0)} km · {num(c.l100km)} L/100 km
+            {formatearFechaHora(c.en, zonaHoraria)} · {c.por ?? '—'} · {num(c.km, 0)} km · {num(c.litros, 0)} L · {num(c.l100km)} L/100 km
             {c.programadorPct !== null && ` · ${num(c.programadorPct, 0)} % programador`}
             {c.fuente === 'manual' && ' · cargado a mano'}
             {c.fuente === 'foto' && ' · de la foto'}

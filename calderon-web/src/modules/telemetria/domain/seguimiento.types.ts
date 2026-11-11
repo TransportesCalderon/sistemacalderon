@@ -22,6 +22,8 @@ export interface Evaluacion {
   estadoConsumo: Estado;
   estadoProgramador: Estado;
   mensaje: string;
+  /** Migración 241: nota para la oficina (consumo alto con buen programador, línea sin objetivo). */
+  nota: string | null;
 }
 
 export interface ControlViaje {
@@ -102,6 +104,7 @@ export function parsearEvaluacion(d: unknown): Evaluacion {
     estadoConsumo: estado(e.estado_consumo),
     estadoProgramador: estado(e.estado_programador),
     mensaje: txt(e.mensaje) ?? '',
+    nota: txt(e.nota),
   };
 }
 
