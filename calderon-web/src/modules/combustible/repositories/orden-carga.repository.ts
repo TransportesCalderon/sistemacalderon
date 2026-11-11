@@ -45,9 +45,10 @@ export const ordenCargaRepository = (db: Db) => {
       ),
     anular: async (id: number, motivo: string) => void ok(await fue().rpc('fn_anular_orden_carga', { p_id: id, p_motivo: motivo })),
     revisar: async (id: number) => void ok(await fue().rpc('fn_revisar_orden_carga', { p_id: id })),
-    misOrdenes: async (): Promise<MiOrden[]> => parsearMisOrdenes(ok(await fue().rpc('fn_mis_ordenes_carga'))),
+    // Migración 243: las del chofer van por «ops» (el usuario del chofer no puede usar el esquema «fue»)
+    misOrdenes: async (): Promise<MiOrden[]> => parsearMisOrdenes(ok(await db.schema('ops').rpc('fn_mis_ordenes_carga'))),
     terminar: async (id: number, fotos: { ruta: string; hash: string }[], lecturas: number[], litros: number | null) =>
-      ok(await fue().rpc('fn_terminar_orden_carga', { p_id: id, p_fotos: fotos as unknown as Json, p_lecturas: lecturas, p_litros: litros })),
+      ok(await db.schema('ops').rpc('fn_terminar_orden_carga', { p_id: id, p_fotos: fotos as unknown as Json, p_lecturas: lecturas, p_litros: litros })),
     // Migración 236: la cuenta de mail (Hotmail con permiso de Microsoft)
     estadoMail: async (): Promise<EstadoMail> => parsearEstadoMail(ok(await db.schema('ops').rpc('fn_estado_mail'))),
     urlPermisoMail: async (volver: string): Promise<string> => String(ok(await db.schema('ops').rpc('fn_mail_url_permiso', { p_volver: volver }))),

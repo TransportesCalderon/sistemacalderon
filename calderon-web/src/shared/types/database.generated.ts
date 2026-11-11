@@ -1474,6 +1474,9 @@ export type Database = {
       fn_push_suscribir: { Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_dispositivo?: string | null }; Returns: Json };
       fn_push_desuscribir: { Args: { p_endpoint: string }; Returns: undefined };
       fn_push_probar: { Args: Record<string, never>; Returns: undefined };
+      // Migración 243: la orden de carga del chofer
+      fn_mis_ordenes_carga: { Args: Record<string, never>; Returns: Json };
+      fn_terminar_orden_carga: { Args: { p_id: number; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null }; Returns: Json };
       fn_fotos_chofer: { Args: { p_ids: number[] }; Returns: Json };
       fn_marcar_conforme: { Args: { p_servicio: number; p_llego: boolean; p_motivo?: string | null }; Returns: Json };
       // Migración 174: pasa a un fletero en ruta (trasbordo)
