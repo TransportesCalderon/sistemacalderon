@@ -11,7 +11,7 @@ import { flotaRepository } from '../repositories/flota.repository';
 import { tableroRepository } from '../repositories/tablero.repository';
 import { trackerwayRepository } from '../repositories/trackerway.repository';
 import { seguimientoRepository } from '../repositories/seguimiento.repository';
-import { pedirCarga, registrarSeguimiento } from '../actions/seguimiento.actions';
+import { pedirCarga, registrarSeguimiento, registrarSeguimientoFoto } from '../actions/seguimiento.actions';
 import { telemetriaQueries as q } from './keys';
 import { invalidar } from '@/shared/query/invalidar';
 
@@ -122,6 +122,11 @@ export const useSeguimientoDesde = (viajeId: number, desde: string | null) =>
 export function useRegistrarSeguimiento() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: registrarSeguimiento, onSuccess: (r) => (r.ok ? invalidar(qc, 'telemetria') : undefined) });
+}
+/** Migración 240: con la foto de la computadora de a bordo. */
+export function useRegistrarSeguimientoFoto() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: registrarSeguimientoFoto, onSuccess: (r) => (r.ok ? invalidar(qc, 'telemetria') : undefined) });
 }
 
 // ---- Migración 195: pedido de carga ----

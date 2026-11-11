@@ -18,12 +18,14 @@ import {
   VERSION_PEDIDO_CARGA,
   VERSION_SEGUIMIENTO,
   VERSION_SEGUIMIENTO_DESDE,
+  VERSION_SEGUIMIENTO_FOTO,
   type Estado,
   type Evaluacion,
   type Resultado,
   type ViajeEnCurso,
 } from '../domain/seguimiento.types';
-import { useControlesViaje, useRegistrarSeguimiento, useSeguimientoDesde, useViajesEnCurso } from '../queries/hooks';
+import { useControlesViaje, useRegistrarSeguimiento, useRegistrarSeguimientoFoto, useSeguimientoDesde, useViajesEnCurso } from '../queries/hooks';
+import { SubirFotoComputadora, VerFotoControl, type FotoLeida } from './foto-computadora';
 import { BotonCopiar } from './boton-copiar';
 import { PedidoCarga } from './pedido-carga';
 
@@ -163,7 +165,12 @@ export function SeguimientoViajes() {
 function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
   const { zonaHoraria } = useSesion();
   const registrar = useRegistrarSeguimiento();
+  const registrarFoto = useRegistrarSeguimientoFoto();
   const envio = useEnvio();
+  // Migración 240: foto de la computadora de a bordo (la IA la lee; la base calcula los litros)
+  const conFoto = useBaseTiene(VERSION_SEGUIMIENTO_FOTO);
+  const [foto, setFoto] = useState<FotoLeida | null>(null);
+  const aTexto = (x: number | null) => (x === null ? '' : String(x));
   const [manual, setManual] = useState(!v.conTelemetria);
   const [km, setKm] = useState('');
   const [litros, setLitros] = useState('');
@@ -273,6 +280,56 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
 
       {registra && (
         <div className="space-y-2">
+          {conFoto && (
+            <div className="space-y-2 rounded-md border border-borde p-3">
+              {foto ? (
+                <div className="flex flex-wrap items-start gap-3">
+                  {foto.url && (
+                    <a href={foto.url} target="_blank" rel="noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- enlace temporal de Storage */}
+                      <img src={foto.url} alt="Computadora de a bordo" className="h-24 rounded object-cover" />
+                    </a>
+                  )}
+                  <div className="space-y-1 text-sm">
+                    <p className="text-tinta">
+                      La IA leyó: <b>{num(foto.datos.km)} km</b>
+                      {foto.datos.l100km !== null && (
+                        <>
+                          {' '}
+                          · <b>{num(foto.datos.l100km)} L/100 km</b>
+                        </>
+                      )}
+                      {foto.datos.litros !== null && <> → {num(foto.datos.litros, 0)} L</>}
+                    </p>
+                    {foto.datos.avisos.map((a) => (
+                      <p key={a} className="text-xs text-alerta">
+                        {a}
+                      </p>
+                    ))}
+                    <p className="text-xs text-tinta-suave">Revisá los números de abajo antes de registrar.</p>
+                    <button type="button" className="text-xs text-marca hover:underline" onClick={() => setFoto(null)}>
+                      Quitar la foto
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <SubirFotoComputadora
+                  viajeId={v.viajeId}
+                  onLeida={(f) => {
+                    setFoto(f);
+                    setManual(true);
+                    setKm(aTexto(f.datos.km));
+                    setLitros(aTexto(f.datos.litros));
+                    setProg(aTexto(f.datos.programadorPct));
+                    setHecho(null);
+                  }}
+                />
+              )}
+              <p className="text-xs text-tinta-suave">
+                Para que los números sean del viaje, el chofer tiene que poner en cero «Desde reset» al salir (o medí «desde» el momento del reset).
+              </p>
+            </div>
+          )}
           <label className="inline-flex items-center gap-2 text-xs text-tinta-suave">
             <input type="checkbox" className="accent-marca" checked={manual} onChange={(x) => setManual(x.target.checked)} /> Cargar los números a mano (de la
             plataforma de la marca)
@@ -288,26 +345,38 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
           <button
             type="button"
             className={BOTON_PRIMARIO}
-            disabled={registrar.isPending}
+            disabled={registrar.isPending || registrarFoto.isPending}
             onClick={() =>
               void envio.enviar(
-                registrar
-                  .mutateAsync({
+                (foto
+                  ? registrarFoto.mutateAsync({
+                      viajeId: v.viajeId,
+                      lecturaId: foto.lecturaId,
+                      foto: foto.ruta,
+                      desde: conDesde && desde ? desde : null,
+                      km: decimal(km),
+                      litros: decimal(litros),
+                      programador: decimal(prog),
+                    })
+                  : registrar.mutateAsync({
                     viajeId: v.viajeId,
                     km: manual ? decimal(km) : null,
                     litros: manual ? decimal(litros) : null,
                     programador: manual ? decimal(prog) : null,
-                    ...(conDesde && desde ? { desde } : {}),
-                  })
-                  .then((r) => {
-                    if (r.ok) setHecho(r.data);
-                    return r;
-                  }),
+                      ...(conDesde && desde ? { desde } : {}),
+                    })
+                ).then((r) => {
+                  if (r.ok) {
+                    setHecho(r.data);
+                    setFoto(null);
+                  }
+                  return r;
+                }),
                 () => undefined,
               )
             }
           >
-            {registrar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Registrar control
+            {registrar.isPending || registrarFoto.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Registrar control
           </button>
         </div>
       )}
@@ -359,6 +428,8 @@ function Historial({ viajeId }: { viajeId: number }) {
             {formatearFechaHora(c.en, zonaHoraria)} · {c.por ?? '—'} · {num(c.km, 0)} km · {num(c.l100km)} L/100 km
             {c.programadorPct !== null && ` · ${num(c.programadorPct, 0)} % programador`}
             {c.fuente === 'manual' && ' · cargado a mano'}
+            {c.fuente === 'foto' && ' · de la foto'}
+            {c.foto && <VerFotoControl ruta={c.foto} />}
             {c.desde && ` · desde ${formatearFechaHora(c.desde, zonaHoraria)}`}
           </p>
           <p className="text-tinta">{c.mensaje}</p>

@@ -1992,6 +1992,20 @@ export type Database = {
         Args: { p_viaje: number; p_km?: number | null; p_litros?: number | null; p_programador?: number | null; p_desde?: string | null };
         Returns: Json;
       };
+      // Migración 240: control con la foto de la computadora de a bordo
+      fn_seguimiento_lectura: { Args: { p_lectura: number }; Returns: Json };
+      fn_registrar_seguimiento_foto: {
+        Args: {
+          p_viaje: number;
+          p_lectura: number;
+          p_foto: string;
+          p_desde?: string | null;
+          p_km?: number | null;
+          p_litros?: number | null;
+          p_programador?: number | null;
+        };
+        Returns: Json;
+      };
       // Migración 197: medir desde un momento elegido
       fn_seguimiento_desde: { Args: { p_viaje: number; p_desde: string }; Returns: Json };
       fn_tramo_telemetria: { Args: { p_camion: number; p_desde: string; p_hasta: string }; Returns: Json };

@@ -18,6 +18,21 @@ export const registrarSeguimiento = createAction({
   handler: (d, { db }) => seguimientoRepository(db).registrar(d.viajeId, d.km, d.litros, d.programador, d.desde ?? null),
 });
 
+/** Migración 240: registrar el control con la foto de la computadora de a bordo (los números los puede corregir). */
+export const registrarSeguimientoFoto = createAction({
+  permiso: 'telemetria.mapa:ver',
+  schema: z.object({
+    viajeId: z.number().int().positive(),
+    lecturaId: z.number().int().positive(),
+    foto: z.string().max(200),
+    desde: z.string().datetime({ offset: true }).nullable(),
+    km: z.number().positive().nullable(),
+    litros: z.number().positive().nullable(),
+    programador: z.number().min(0).max(100).nullable(),
+  }),
+  handler: (d, { db }) => seguimientoRepository(db).registrarConFoto(d),
+});
+
 const opcional = z.number().min(0).nullable();
 
 /** Migración 195: pedir la carga de combustible de un viaje en curso. Lo puede hacer Telemetría o TI (lo controla la base). */

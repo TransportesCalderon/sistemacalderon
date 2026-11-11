@@ -36,6 +36,13 @@ export const leerTableroOficina = createAction({
   handler: (d, { db }) => iaRepository(db).leer(d.tipo, d.base64, d.mediaType),
 });
 
+/* Migración 240: la foto de la computadora de a bordo en Seguimiento de viajes (Telemetría o TI, lo controla la base). */
+export const leerTableroSeguimiento = createAction({
+  permiso: 'telemetria.mapa:ver',
+  schema: lectura('tablero_camion'),
+  handler: (d, { db }) => iaRepository(db).leer(d.tipo, d.base64, d.mediaType),
+});
+
 const usada = z.object({ lecturaId: z.number().int().positive(), guardado: z.record(z.string(), z.unknown()) });
 export const marcarLecturaCombustible = createAction({
   permiso: 'combustible.cargas:editar',

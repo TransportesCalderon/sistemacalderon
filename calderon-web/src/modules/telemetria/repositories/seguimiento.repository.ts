@@ -1,12 +1,14 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import {
   parsearControles,
+  parsearLecturaFoto,
   parsearDatosPedido,
   parsearEvaluacion,
   parsearPedidos,
   parsearTramo,
   parsearViajesEnCurso,
   type ControlViaje,
+  type LecturaFoto,
   type DatosPedidoCarga,
   type Evaluacion,
   type PedidoCarga,
@@ -20,6 +22,33 @@ export const seguimientoRepository = (db: Db) => ({
     const { data, error } = await db.schema('tel').rpc('fn_seguimiento_viajes');
     if (error) throw new RepoError(error);
     return parsearViajesEnCurso(data);
+  },
+  /** Migración 240: lo que leyó la IA de la foto, con los litros calculados por la base. */
+  async lecturaFoto(lecturaId: number): Promise<LecturaFoto> {
+    const { data, error } = await db.schema('tel').rpc('fn_seguimiento_lectura', { p_lectura: lecturaId });
+    if (error) throw new RepoError(error);
+    return parsearLecturaFoto(data);
+  },
+  async registrarConFoto(d: {
+    viajeId: number;
+    lecturaId: number;
+    foto: string;
+    desde: string | null;
+    km: number | null;
+    litros: number | null;
+    programador: number | null;
+  }): Promise<Evaluacion> {
+    const { data, error } = await db.schema('tel').rpc('fn_registrar_seguimiento_foto', {
+      p_viaje: d.viajeId,
+      p_lectura: d.lecturaId,
+      p_foto: d.foto,
+      p_desde: d.desde,
+      p_km: d.km,
+      p_litros: d.litros,
+      p_programador: d.programador,
+    });
+    if (error) throw new RepoError(error);
+    return parsearEvaluacion(data);
   },
   async controles(viajeId: number): Promise<ControlViaje[]> {
     const { data, error } = await db.schema('tel').rpc('fn_controles_viaje', { p_viaje: viajeId });

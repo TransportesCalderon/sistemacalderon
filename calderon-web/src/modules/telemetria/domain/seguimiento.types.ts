@@ -33,12 +33,34 @@ export interface ControlViaje {
   l100km: number | null;
   programadorPct: number | null;
   objetivoL100km: number | null;
-  fuente: 'telemetria' | 'manual';
+  fuente: 'telemetria' | 'manual' | 'foto';
   resultado: Resultado;
   mensaje: string;
   /** Migración 197: desde cuándo se midió (null = desde la salida). */
   desde: FechaISO | null;
+  /** Migración 240: foto de la computadora de a bordo (ruta en Storage). */
+  foto: string | null;
 }
+
+/** Migración 240: lo que leyó la IA de la foto de la computadora de a bordo. */
+export interface LecturaFoto {
+  km: number | null;
+  litros: number | null;
+  l100km: number | null;
+  programadorPct: number | null;
+  avisos: string[];
+}
+export const VERSION_SEGUIMIENTO_FOTO = 240;
+export const parsearLecturaFoto = (d: unknown): LecturaFoto => {
+  const o = (d && typeof d === 'object' ? d : {}) as Record<string, unknown>;
+  return {
+    km: n(o.km),
+    litros: n(o.litros),
+    l100km: n(o.l_100km),
+    programadorPct: n(o.programador_pct),
+    avisos: Array.isArray(o.avisos) ? o.avisos.map(String) : [],
+  };
+};
 
 export interface ViajeEnCurso {
   viajeId: number;
@@ -127,10 +149,11 @@ export const parsearControles = (d: unknown): ControlViaje[] =>
     l100km: n(c.l_100km),
     programadorPct: n(c.programador_pct),
     objetivoL100km: n(c.objetivo_l_100km),
-    fuente: c.fuente === 'manual' ? 'manual' : 'telemetria',
+    fuente: c.fuente === 'manual' ? 'manual' : c.fuente === 'foto' ? 'foto' : 'telemetria',
     resultado: resultado(c.resultado),
     mensaje: txt(c.mensaje) ?? '',
     desde: txt(c.desde) as FechaISO | null,
+    foto: txt(c.foto),
   }));
 
 /** Migración 197: los números de un viaje en curso desde el momento elegido. */
