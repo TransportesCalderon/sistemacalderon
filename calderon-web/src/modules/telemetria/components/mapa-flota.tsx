@@ -8,6 +8,7 @@ import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { NIVEL_HEX } from '@/shared/ui/niveles';
+import logoIronTrack from '@/shared/ui/marca/irontrack-logo.png';
 import { FUENTE_CONSUMO_MES, haceTexto, minutosDesde, senalDe, type CamionEnVivo, type DetalleMapa, type EstadoMotor } from '../domain/flota.types';
 import { RankingMapa } from './ranking-mapa';
 import {
@@ -386,7 +387,10 @@ export function MapaFlota({
     }
     if (d?.viaje) filas.push(fila('Viaje del chofer', `<a href="/operacion/viajes-chofer/${d.viaje.id}" style="color:#0f5fa8">${escapar(d.viaje.numero)}</a>`));
     return `<div style="font:12px/1.35 system-ui;min-width:220px">
-              <div style="font-weight:700;font-size:13px;margin-bottom:4px">${escapar(c.patente)} <span style="font-weight:400;color:#64748b">${escapar(c.codigoInterno)}</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;padding-right:16px">
+                <span style="font-weight:700;font-size:13px">${escapar(c.patente)} <span style="font-weight:400;color:#64748b">${escapar(c.codigoInterno)}</span></span>
+                <img src="${logoIronTrack.src}" alt="IronTrack" style="height:20px;width:auto;flex-shrink:0" />
+              </div>
               <table>${filas.join('')}</table>
             </div>`;
   }
