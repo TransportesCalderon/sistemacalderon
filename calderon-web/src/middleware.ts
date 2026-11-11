@@ -48,6 +48,7 @@ export async function middleware(request: NextRequest) {
   return sesion.response();
 }
 
+// Migración 238: sw.js (alertas del teléfono) y manifest.webmanifest (instalar) no pasan por la sesión
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
 };

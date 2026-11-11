@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { requireSession } from '@/modules/core/auth/guards';
 import { ETIQUETA_ROL } from '@/modules/core/permissions/roles';
+import { AlertasTelefono } from '@/modules/core/push/alertas-telefono';
 import { CambiarPasswordForm } from './cambiar-password-form';
 
 export const metadata: Metadata = { title: 'Mi perfil' };
@@ -18,6 +19,8 @@ export default async function PerfilPage() {
         <h2 className="mb-4 font-medium text-tinta">Cambiar contraseña</h2>
         <CambiarPasswordForm />
       </section>
+      {/* Migración 238: alertas en el teléfono */}
+      <AlertasTelefono />
     </div>
   );
 }

@@ -1466,6 +1466,12 @@ export type Database = {
       fn_mail_url_permiso: { Args: { p_volver: string }; Returns: string };
       fn_mail_conectar: { Args: { p_codigo: string; p_estado: string; p_volver: string }; Returns: Json };
       fn_mail_probar: { Args: Record<string, never>; Returns: Json };
+      // Migración 238: alertas en el teléfono
+      fn_push_clave_publica: { Args: Record<string, never>; Returns: string };
+      fn_push_estado: { Args: Record<string, never>; Returns: Json };
+      fn_push_suscribir: { Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_dispositivo?: string | null }; Returns: Json };
+      fn_push_desuscribir: { Args: { p_endpoint: string }; Returns: undefined };
+      fn_push_probar: { Args: Record<string, never>; Returns: undefined };
       fn_marcar_conforme: { Args: { p_servicio: number; p_llego: boolean; p_motivo?: string | null }; Returns: Json };
       // Migración 174: pasa a un fletero en ruta (trasbordo)
       fn_pasar_a_fletero: {
