@@ -18,7 +18,7 @@ import { Campo } from '@/shared/ui/campo';
 import { browserDb } from '@/shared/supabase/browser';
 import { probarMail, urlPermisoMail } from '../../actions/orden-carga.actions';
 import { ordenCargaRepository } from '../../repositories/orden-carga.repository';
-import { ETIQUETA_ESTADO_ORDEN, VERSION_ORDEN_CARGA, type CreadaOrden, type EstadoOrden, type ModoOrden, type OrdenCarga } from '../../domain/orden-carga.types';
+import { ETIQUETA_ESTADO_ORDEN, VERSION_ORDEN_CARGA, type CreadaOrden, type DetalleOrden, type EstadoOrden, type OrdenCarga } from '../../domain/orden-carga.types';
 import { useCamionesCombustible, useChoferesCombustible, useEstaciones } from '../../queries/hooks';
 import { useAnularOrdenCarga, useCorreoEstacion, useCrearOrdenCarga, useOrdenesCarga, usePrepararOrden, useRevisarOrdenCarga } from '../../queries/orden-carga.hooks';
 
@@ -204,9 +204,12 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
   const estaciones = useEstaciones();
   const [camion, setCamion] = useState('');
   const [estacion, setEstacion] = useState('');
-  const [modo, setModo] = useState<ModoOrden>('llenar');
-  const [litros, setLitros] = useState('');
-  const [importe, setImporte] = useState('');
+  // Migración 248: 1) solo tanques o tanques y mochila; 2) cada uno lleno o con litros
+  const [destino, setDestino] = useState<DetalleOrden['destino'] | null>(null);
+  const [tanques, setTanques] = useState<'lleno' | 'litros' | null>(null);
+  const [litrosTanques, setLitrosTanques] = useState('');
+  const [mochila, setMochila] = useState<'llena' | 'litros' | null>(null);
+  const [litrosMochila, setLitrosMochila] = useState('');
   const [obs, setObs] = useState('');
   // Otro chofer que el de la Pizarra (vacío = el de la Pizarra): es quien ve el QR en «Mi viaje»
   const [chofer, setChofer] = useState('');
@@ -337,33 +340,68 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
           {!p.mail.activo && <p className="text-xs text-tinta-suave">El envío de mails todavía no está configurado: la palabra se te muestra para mandarla a mano.</p>}
         </div>
       )}
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-tinta">Qué se autoriza</legend>
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium text-tinta">¿Qué se carga?</legend>
         <div className="flex flex-wrap gap-2">
-          {(['llenar', 'litros', 'importe'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setModo(m)}
-              className={cn('rounded-full border px-3 py-1.5 text-sm', modo === m ? 'border-marca bg-marca-suave text-marca' : 'border-borde text-tinta')}
-            >
-              {m === 'llenar' ? 'Llenar tanques y mochila' : m === 'litros' ? 'Una cantidad de litros' : 'Un importe'}
-            </button>
-          ))}
+          <Opcion activa={destino === 'tanques'} onClick={() => setDestino('tanques')}>
+            Solo los tanques
+          </Opcion>
+          <Opcion activa={destino === 'tanques_mochila'} onClick={() => setDestino('tanques_mochila')} deshabilitada={p ? p.capacidadMochilaL === null : false}>
+            Los tanques y la mochila
+          </Opcion>
         </div>
-        {modo === 'litros' && (
-          <Campo label="Litros">
-            <input inputMode="decimal" value={litros} onChange={(e) => setLitros(e.target.value)} placeholder="Ej. 300" />
-          </Campo>
+        {p && p.capacidadMochilaL === null && (
+          <p className="text-xs text-tinta-suave">Este camión no tiene la mochila cargada en Flota › Camiones › Tanques.</p>
         )}
-        {modo === 'importe' && (
-          <Campo label={`Importe${p?.moneda ? ` (${p.moneda})` : ''}`}>
-            <input inputMode="decimal" value={importe} onChange={(e) => setImporte(e.target.value)} placeholder="Ej. 1.000.000" />
-          </Campo>
+        {destino && (
+          <div className="space-y-2 rounded-md border border-borde p-3">
+            <p className="text-sm font-medium text-tinta">Tanques</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Opcion activa={tanques === 'lleno'} onClick={() => setTanques('lleno')}>
+                Tanques llenos{p?.litrosParaLlenar != null && destino === 'tanques' ? ` (≈ ${formatearNumero(p.litrosParaLlenar, 0)} L)` : ''}
+              </Opcion>
+              <Opcion activa={tanques === 'litros'} onClick={() => setTanques('litros')}>
+                Una cantidad de litros
+              </Opcion>
+              {tanques === 'litros' && (
+                <input
+                  className="h-9 w-32 rounded-md border border-borde px-2"
+                  inputMode="decimal"
+                  aria-label="Litros para los tanques"
+                  value={litrosTanques}
+                  onChange={(e) => setLitrosTanques(e.target.value)}
+                  placeholder="Ej. 100"
+                />
+              )}
+            </div>
+          </div>
         )}
-        {modo === 'llenar' && (
+        {destino === 'tanques_mochila' && (
+          <div className="space-y-2 rounded-md border border-borde p-3">
+            <p className="text-sm font-medium text-tinta">Mochila</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Opcion activa={mochila === 'llena'} onClick={() => setMochila('llena')}>
+                Mochila llena{p?.capacidadMochilaL != null ? ` (${formatearNumero(p.capacidadMochilaL, 0)} L)` : ''}
+              </Opcion>
+              <Opcion activa={mochila === 'litros'} onClick={() => setMochila('litros')}>
+                Una cantidad de litros
+              </Opcion>
+              {mochila === 'litros' && (
+                <input
+                  className="h-9 w-32 rounded-md border border-borde px-2"
+                  inputMode="decimal"
+                  aria-label="Litros para la mochila"
+                  value={litrosMochila}
+                  onChange={(e) => setLitrosMochila(e.target.value)}
+                  placeholder="Ej. 300"
+                />
+              )}
+            </div>
+          </div>
+        )}
+        {(tanques === 'lleno' || mochila === 'llena') && (
           <p className="text-xs text-tinta-suave">
-            Se autoriza a llenar sin tope. Si al final se carga más de lo calculado, queda una alerta (posible faltante de combustible en el viaje).
+            Lleno se autoriza sin tope. Si al final se carga más de lo que le faltaba al camión, queda una alerta (posible faltante de combustible en el viaje).
           </p>
         )}
       </fieldset>
@@ -374,16 +412,25 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
       <button
         type="button"
         className={BOTON_PRIMARIO}
-        disabled={crear.isPending}
+        disabled={crear.isPending || !destino || !tanques || (destino === 'tanques_mochila' && !mochila)}
         onClick={async () => {
           setError(null);
           const r = await crear.mutateAsync({
             camionId: camion ? Number(camion) : null,
             estacionId: estacion ? Number(estacion) : null,
-            modo,
-            litros: modo === 'litros' ? aNumero(litros) : null,
-            importe: modo === 'importe' ? aNumero(importe) : null,
-            moneda: modo === 'importe' ? (p?.moneda ?? null) : null,
+            modo: 'llenar',
+            litros: null,
+            importe: null,
+            moneda: null,
+            detalle: destino
+              ? {
+                  destino,
+                  tanques: { modo: tanques ?? 'lleno', litros: tanques === 'litros' ? aNumero(litrosTanques) : null },
+                  ...(destino === 'tanques_mochila'
+                    ? { mochila: { modo: mochila ?? 'llena', litros: mochila === 'litros' ? aNumero(litrosMochila) : null } }
+                    : {}),
+                }
+              : null,
             choferId: chofer ? Number(chofer) : (p?.choferId ?? null),
             observacion: obs.trim() || null,
           });
@@ -394,6 +441,23 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
         <QrCode className="size-4" /> Generar la orden
       </button>
     </div>
+  );
+}
+
+/** Botón de elección (pastilla). */
+function Opcion({ activa, onClick, deshabilitada, children }: { activa: boolean; onClick: () => void; deshabilitada?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      disabled={deshabilitada}
+      onClick={onClick}
+      className={cn(
+        'rounded-full border px-3 py-1.5 text-sm disabled:opacity-50',
+        activa ? 'border-marca bg-marca-suave text-marca' : 'border-borde text-tinta hover:bg-hover',
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

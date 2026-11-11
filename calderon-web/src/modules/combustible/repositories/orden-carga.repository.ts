@@ -8,6 +8,7 @@ import {
   parsearOrdenes,
   parsearPreparado,
   type CreadaOrden,
+  type DetalleOrden,
   type EstadoMail,
   type MiOrden,
   type ModoOrden,
@@ -28,7 +29,7 @@ export const ordenCargaRepository = (db: Db) => {
     preparar: async (camionId: number, estacionId: number | null): Promise<PreparadoOrden> =>
       parsearPreparado(ok(await fue().rpc('fn_preparar_orden_carga', { p_camion: camionId, p_estacion: estacionId }))),
     lista: async (dias: number): Promise<OrdenCarga[]> => parsearOrdenes(ok(await fue().rpc('fn_ordenes_carga', { p_dias: dias }))),
-    crear: async (d: { camionId: number | null; estacionId: number | null; modo: ModoOrden; litros: number | null; importe: number | null; moneda: string | null; choferId: number | null; observacion: string | null }): Promise<CreadaOrden> =>
+    crear: async (d: { camionId: number | null; estacionId: number | null; modo: ModoOrden; litros: number | null; importe: number | null; moneda: string | null; choferId: number | null; observacion: string | null; detalle?: DetalleOrden | null }): Promise<CreadaOrden> =>
       parsearCreada(
         ok(
           await fue().rpc('fn_crear_orden_carga', {
@@ -40,6 +41,7 @@ export const ordenCargaRepository = (db: Db) => {
             p_moneda: d.moneda,
             p_chofer: d.choferId,
             p_observacion: d.observacion,
+            ...(d.detalle ? { p_detalle: d.detalle as unknown as Json } : {}),
           }),
         ),
       ),

@@ -23,6 +23,15 @@ export const crearOrdenCarga = createAction({
     moneda: z.string().max(5).nullable(),
     choferId: id.nullable(),
     observacion: z.string().max(500).nullable(),
+    /** Migración 248: solo tanques o tanques y mochila (la base valida y calcula). */
+    detalle: z
+      .object({
+        destino: z.enum(['tanques', 'tanques_mochila']),
+        tanques: z.object({ modo: z.enum(['lleno', 'litros']), litros: z.number().finite().nullable().optional() }),
+        mochila: z.object({ modo: z.enum(['llena', 'litros']), litros: z.number().finite().nullable().optional() }).optional(),
+      })
+      .nullable()
+      .optional(),
   }),
   handler: (d, { db }) => ordenCargaRepository(db).crear(d),
 });

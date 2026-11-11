@@ -2170,6 +2170,8 @@ export type Database = {
           p_moneda?: string | null;
           p_chofer?: number | null;
           p_observacion?: string | null;
+          /** Migración 248: solo tanques o tanques y mochila. */
+          p_detalle?: Json | null;
         };
         Returns: Json;
       };

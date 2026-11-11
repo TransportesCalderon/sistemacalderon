@@ -27,11 +27,20 @@ export interface EstadoMail {
   modo: 'cuenta' | 'empresa' | 'smtp' | null;
 }
 
+/** Migración 248: qué se carga (solo tanques o tanques y mochila) y cómo cada uno. */
+export interface DetalleOrden {
+  destino: 'tanques' | 'tanques_mochila';
+  tanques: { modo: 'lleno' | 'litros'; litros?: number | null };
+  mochila?: { modo: 'llena' | 'litros'; litros?: number | null };
+}
+
 export interface PreparadoOrden {
   patente: string;
   choferId: number | null;
   chofer: string | null;
   litrosParaLlenar: number | null;
+  /** Migración 248: capacidad de la mochila (tanques de tipo mochila); null si no tiene. */
+  capacidadMochilaL: number | null;
   litrosActuales: number | null;
   capacidadL: number | null;
   motivoSinCalculo: string | null;
@@ -133,6 +142,7 @@ export const parsearPreparado = (d: unknown): PreparadoOrden => {
     choferId: n(x.chofer_id),
     chofer: t(x.chofer),
     litrosParaLlenar: n(x.litros_para_llenar),
+    capacidadMochilaL: n(x.capacidad_mochila_l),
     litrosActuales: n(c.litros),
     capacidadL: n(c.capacidad_l),
     motivoSinCalculo: t(c.motivo),
