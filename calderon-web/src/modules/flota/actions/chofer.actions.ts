@@ -57,9 +57,14 @@ export const eliminarChofer = createAction({
  */
 export const guardarFotoChofer = createAction({
   permiso: 'flota.choferes:editar',
-  schema: z.object({ choferId: z.number().int().positive(), ruta: z.string().max(200).nullable() }),
-  handler: async ({ choferId, ruta }, { db }) => {
-    const { data, error } = await db.schema('mae').rpc('fn_foto_chofer', { p_chofer: choferId, p_ruta: ruta });
+  schema: z.object({
+    choferId: z.number().int().positive(),
+    ruta: z.string().max(200).nullable(),
+    /** Migración 245: copia chica (JPEG base64) para el mail de la orden de carga. */
+    mini: z.string().max(80_000).regex(/^[A-Za-z0-9+/=]+$/).nullable().optional(),
+  }),
+  handler: async ({ choferId, ruta, mini }, { db }) => {
+    const { data, error } = await db.schema('mae').rpc('fn_foto_chofer', { p_chofer: choferId, p_ruta: ruta, p_mini: mini ?? null });
     if (error) throw error;
     const anterior = (data as { anterior?: string | null } | null)?.anterior;
     return { anterior: typeof anterior === 'string' ? anterior : null };

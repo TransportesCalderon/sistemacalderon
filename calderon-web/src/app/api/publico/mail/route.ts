@@ -28,6 +28,16 @@ export async function POST(request: Request) {
     .filter(Boolean);
   const asunto = String(b.asunto ?? '').slice(0, 300);
   const html = String(b.html ?? '');
+  // Migración 245: imágenes dentro del mail (la foto del chofer), referenciadas con cid:
+  const adjuntos = (Array.isArray(b.adjuntos) ? (b.adjuntos as Record<string, unknown>[]) : [])
+    .slice(0, 3)
+    .filter((a) => typeof a.base64 === 'string' && /^[A-Za-z0-9+/=]+$/.test(a.base64) && a.base64.length <= 200_000 && /^[a-z0-9-]+$/.test(String(a.cid)))
+    .map((a) => ({
+      filename: String(a.nombre ?? 'imagen.jpg').replace(/[^\w.-]/g, '').slice(0, 60) || 'imagen.jpg',
+      content: Buffer.from(String(a.base64), 'base64'),
+      contentType: ['image/jpeg', 'image/png'].includes(String(a.tipo)) ? String(a.tipo) : 'image/jpeg',
+      cid: String(a.cid),
+    }));
   if (!/^[a-z0-9.-]+$/i.test(servidor) || ![25, 465, 587, 2525].includes(puerto) || !usuario || !clave || !MAIL.test(de)) {
     return Response.json({ ok: false, error: 'Faltan o están mal los datos de la cuenta SMTP' });
   }
@@ -44,7 +54,7 @@ export async function POST(request: Request) {
       greetingTimeout: 10_000,
       socketTimeout: 15_000,
     });
-    await t.sendMail({ from: de, to: para, subject: asunto, html });
+    await t.sendMail({ from: de, to: para, subject: asunto, html, attachments: adjuntos });
     return Response.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     const err = e as { code?: string; responseCode?: number; message?: string };

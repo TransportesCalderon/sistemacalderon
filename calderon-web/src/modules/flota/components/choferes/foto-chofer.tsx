@@ -71,15 +71,22 @@ export function FotoChofer({ url, nombre, className }: { url: string | null | un
 }
 
 /** Recorta al centro en cuadrado y achica a 400 px (JPEG): pesa poco y carga rápido en todas las listas. */
-async function recortarCuadrado(archivo: File): Promise<Blob> {
+async function recortarCuadrado(archivo: File, maximo = 400): Promise<Blob> {
   const img = await createImageBitmap(archivo);
   const lado = Math.min(img.width, img.height);
-  const tam = Math.min(400, lado);
+  const tam = Math.min(maximo, lado);
   const lienzo = document.createElement('canvas');
   lienzo.width = tam;
   lienzo.height = tam;
   lienzo.getContext('2d')!.drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, tam, tam);
   return new Promise((ok, mal) => lienzo.toBlob((b) => (b ? ok(b) : mal(new Error('No se pudo leer la foto.'))), 'image/jpeg', 0.85));
+}
+
+async function aBase64(blob: Blob): Promise<string> {
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return btoa(bin);
 }
 
 /** Ficha del chofer: la foto grande con «Cambiar foto» y «Quitar» (solo la oficina). */
@@ -93,8 +100,8 @@ export function FotoChoferFicha({ choferId, nombre, puedeEditar }: { choferId: n
   if (!hay) return null;
   const url = fotos.get(choferId);
 
-  const guardar = async (ruta: string | null) => {
-    const r = await guardarFotoChofer({ choferId, ruta });
+  const guardar = async (ruta: string | null, mini: string | null = null) => {
+    const r = await guardarFotoChofer({ choferId, ruta, mini });
     if (!r.ok) {
       if (ruta) await browserDb().storage.from(BUCKET_OPERACION).remove([ruta]);
       setError(r.error.mensaje);
@@ -112,7 +119,8 @@ export function FotoChoferFicha({ choferId, nombre, puedeEditar }: { choferId: n
       const ruta = `${choferId}/perfil/${idAleatorio()}.jpg`;
       const up = await browserDb().storage.from(BUCKET_OPERACION).upload(ruta, blob, { contentType: 'image/jpeg', upsert: false });
       if (up.error) throw new Error(`No se pudo subir la foto: ${up.error.message}`);
-      await guardar(ruta);
+      // Migración 245: copia chica (160 px) para que la foto vaya dentro del mail de la orden de carga
+      await guardar(ruta, await aBase64(await recortarCuadrado(archivo, 160)));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo subir la foto.');
     } finally {
