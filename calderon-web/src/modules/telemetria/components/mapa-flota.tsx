@@ -388,7 +388,7 @@ export function MapaFlota({
     return `<div style="font:12px/1.35 system-ui;min-width:220px">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;padding-right:16px">
                 <span style="font-weight:700;font-size:13px">${escapar(c.patente)} <span style="font-weight:400;color:#64748b">${escapar(c.codigoInterno)}</span></span>
-                <span style="font-weight:800;font-size:12px;letter-spacing:0.06em;flex-shrink:0"><span style="color:#374151">IRON</span><span style="color:#f07c00">TRACK</span></span>
+                <span style="font-weight:700;font-size:15px;letter-spacing:-0.025em;flex-shrink:0;color:#1b2330">Iron<span style="color:#f07b08">Track</span></span>
               </div>
               <table>${filas.join('')}</table>
             </div>`;
