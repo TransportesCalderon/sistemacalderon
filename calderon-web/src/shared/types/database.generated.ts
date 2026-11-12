@@ -1477,7 +1477,7 @@ export type Database = {
       fn_push_probar: { Args: Record<string, never>; Returns: undefined };
       // Migración 243: la orden de carga del chofer
       fn_mis_ordenes_carga: { Args: Record<string, never>; Returns: Json };
-      fn_terminar_orden_carga: { Args: { p_id: number; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null }; Returns: Json };
+      fn_terminar_orden_carga: { Args: { p_id: number; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null; p_horometro?: number | null }; Returns: Json };
       fn_fotos_chofer: { Args: { p_ids: number[] }; Returns: Json };
       fn_marcar_conforme: { Args: { p_servicio: number; p_llego: boolean; p_motivo?: string | null }; Returns: Json };
       // Migración 174: pasa a un fletero en ruta (trasbordo)
@@ -2176,10 +2176,17 @@ export type Database = {
         Returns: Json;
       };
       fn_anular_orden_carga: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      // Migración 252: órdenes de carga para gensets
+      fn_gensets_para_orden: { Args: Record<string, never>; Returns: Json };
+      fn_preparar_orden_genset: { Args: { p_genset: number; p_estacion?: number | null }; Returns: Json };
+      fn_crear_orden_genset: {
+        Args: { p_genset: number; p_estacion: number; p_modo: string; p_litros?: number | null; p_chofer?: number | null; p_observacion?: string | null };
+        Returns: Json;
+      };
       fn_ordenes_carga: { Args: { p_dias?: number }; Returns: Json };
       fn_revisar_orden_carga: { Args: { p_id: number }; Returns: undefined };
       fn_mis_ordenes_carga: { Args: Record<string, never>; Returns: Json };
-      fn_terminar_orden_carga: { Args: { p_id: number; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null }; Returns: Json };
+      fn_terminar_orden_carga: { Args: { p_id: number; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null; p_horometro?: number | null }; Returns: Json };
       fn_puedo_autorizar_cargas: { Args: Record<string, never>; Returns: boolean };
       fn_aviso_carga_visto: { Args: { p_id: number }; Returns: undefined };
       fn_avisos_carga: { Args: { p_horas?: number }; Returns: Json };

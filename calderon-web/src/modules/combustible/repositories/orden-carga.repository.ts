@@ -2,6 +2,10 @@ import { RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/db';
 import {
   parsearCreada,
+  parsearGensetsOrden,
+  parsearPreparadoGenset,
+  type GensetOpcion,
+  type PreparadoGenset,
   parsearEstadoMail,
   parsearMisOrdenes,
   parsearOrdenPublica,
@@ -49,8 +53,33 @@ export const ordenCargaRepository = (db: Db) => {
     revisar: async (id: number) => void ok(await fue().rpc('fn_revisar_orden_carga', { p_id: id })),
     // Migración 243: las del chofer van por «ops» (el usuario del chofer no puede usar el esquema «fue»)
     misOrdenes: async (): Promise<MiOrden[]> => parsearMisOrdenes(ok(await db.schema('ops').rpc('fn_mis_ordenes_carga'))),
-    terminar: async (id: number, fotos: { ruta: string; hash: string }[], lecturas: number[], litros: number | null) =>
-      ok(await db.schema('ops').rpc('fn_terminar_orden_carga', { p_id: id, p_fotos: fotos as unknown as Json, p_lecturas: lecturas, p_litros: litros })),
+    // Migración 252: órdenes para gensets
+    gensets: async (): Promise<GensetOpcion[]> => parsearGensetsOrden(ok(await fue().rpc('fn_gensets_para_orden'))),
+    prepararGenset: async (gensetId: number, estacionId: number | null): Promise<PreparadoGenset> =>
+      parsearPreparadoGenset(ok(await fue().rpc('fn_preparar_orden_genset', { p_genset: gensetId, p_estacion: estacionId }))),
+    crearGenset: async (d: { gensetId: number; estacionId: number | null; modo: 'lleno' | 'litros'; litros: number | null; choferId: number | null; observacion: string | null }) =>
+      parsearCreada(
+        ok(
+          await fue().rpc('fn_crear_orden_genset', {
+            p_genset: d.gensetId,
+            p_estacion: d.estacionId as number,
+            p_modo: d.modo,
+            p_litros: d.litros,
+            p_chofer: d.choferId,
+            p_observacion: d.observacion,
+          }),
+        ),
+      ),
+    terminar: async (id: number, fotos: { ruta: string; hash: string }[], lecturas: number[], litros: number | null, horometro: number | null = null) =>
+      ok(
+        await db.schema('ops').rpc('fn_terminar_orden_carga', {
+          p_id: id,
+          p_fotos: fotos as unknown as Json,
+          p_lecturas: lecturas,
+          p_litros: litros,
+          ...(horometro !== null ? { p_horometro: horometro } : {}),
+        }),
+      ),
     // Migración 236: la cuenta de mail (Hotmail con permiso de Microsoft)
     estadoMail: async (): Promise<EstadoMail> => parsearEstadoMail(ok(await db.schema('ops').rpc('fn_estado_mail'))),
     urlPermisoMail: async (volver: string): Promise<string> => String(ok(await db.schema('ops').rpc('fn_mail_url_permiso', { p_volver: volver }))),

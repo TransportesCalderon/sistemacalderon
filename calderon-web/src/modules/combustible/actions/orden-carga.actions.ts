@@ -36,6 +36,20 @@ export const crearOrdenCarga = createAction({
   handler: (d, { db }) => ordenCargaRepository(db).crear(d),
 });
 
+/** Migración 252: orden de carga para un genset (aparte de la del camión). */
+export const crearOrdenGenset = createAction({
+  permiso: ['combustible.ordenes:editar', 'combustible.cargas:ver'],
+  schema: z.object({
+    gensetId: id,
+    estacionId: id.nullable(),
+    modo: z.enum(['lleno', 'litros']),
+    litros: z.number().finite().nullable(),
+    choferId: id.nullable(),
+    observacion: z.string().max(500).nullable(),
+  }),
+  handler: (d, { db }) => ordenCargaRepository(db).crearGenset(d),
+});
+
 export const anularOrdenCarga = createAction({
   permiso: ['combustible.ordenes:editar', 'combustible.cargas:ver'],
   schema: z.object({ id, motivo: z.string().max(500) }),
@@ -62,8 +76,10 @@ export const terminarOrdenCarga = createAction({
     fotos: z.array(z.object({ ruta: z.string().min(1).max(300), hash: z.string().max(100) })).min(1).max(5),
     lecturas: z.array(id).max(5),
     litros: z.number().finite().positive().nullable(),
+    /** Migración 252: horómetro del genset (solo en órdenes de genset; la base lo exige). */
+    horometro: z.number().finite().min(0).nullable().optional(),
   }),
-  handler: (d, { db }) => ordenCargaRepository(db).terminar(d.id, d.fotos, d.lecturas, d.litros),
+  handler: (d, { db }) => ordenCargaRepository(db).terminar(d.id, d.fotos, d.lecturas, d.litros, d.horometro ?? null),
 });
 
 export const leerTicketChofer = createAction({

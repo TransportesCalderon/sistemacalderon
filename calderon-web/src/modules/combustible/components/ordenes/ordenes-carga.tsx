@@ -20,7 +20,17 @@ import { probarMail, urlPermisoMail } from '../../actions/orden-carga.actions';
 import { ordenCargaRepository } from '../../repositories/orden-carga.repository';
 import { ETIQUETA_ESTADO_ORDEN, VERSION_ORDEN_CARGA, type CreadaOrden, type DetalleOrden, type EstadoOrden, type OrdenCarga } from '../../domain/orden-carga.types';
 import { useCamionesCombustible, useChoferesCombustible, useEstaciones } from '../../queries/hooks';
-import { useAnularOrdenCarga, useCorreoEstacion, useCrearOrdenCarga, useOrdenesCarga, usePrepararOrden, useRevisarOrdenCarga } from '../../queries/orden-carga.hooks';
+import {
+  useAnularOrdenCarga,
+  useCorreoEstacion,
+  useCrearOrdenCarga,
+  useCrearOrdenGenset,
+  useGensetsOrden,
+  useOrdenesCarga,
+  usePrepararGenset,
+  usePrepararOrden,
+  useRevisarOrdenCarga,
+} from '../../queries/orden-carga.hooks';
 
 const TONO: Record<EstadoOrden, Tono> = { emitida: 'marca', autorizada: 'alerta', cargada: 'exito', anulada: 'neutro', bloqueada: 'error', vencida: 'neutro' };
 const TH = 'px-3 py-2.5 whitespace-nowrap';
@@ -210,6 +220,7 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
   const [camion, setCamion] = useState('');
   const [estacion, setEstacion] = useState('');
   // Migración 248: 1) solo tanques o tanques y mochila; 2) cada uno lleno o con litros
+  const [tipo, setTipo] = useState<'camion' | 'genset'>('camion');
   const [destino, setDestino] = useState<DetalleOrden['destino'] | null>(null);
   const [tanques, setTanques] = useState<'lleno' | 'litros' | null>(null);
   const [litrosTanques, setLitrosTanques] = useState('');
@@ -229,32 +240,9 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
   // Migración 246: que la foto del chofer salga en el mail aunque se haya cargado antes del cambio 232
   useAsegurarFotoMail(chofer ? Number(chofer) : (p?.choferId ?? null));
 
-  if (creada)
-    return (
-      <div className={cn(TARJETA, 'space-y-3 border-exito/40 p-4')}>
-        <p className="flex items-center gap-2 font-semibold text-tinta">
-          <BadgeCheck className="size-5 text-exito" /> Orden {creada.numero} creada
-        </p>
-        <p className="text-sm text-tinta">
-          {creada.mail === 'en_cola'
-            ? `El mail con la palabra de seguridad sale en un minuto a ${creada.correo}.`
-            : creada.mail === 'sin_correo'
-              ? 'La estación no tiene correo: mandale la palabra de seguridad por otro medio.'
-              : 'El envío de mails todavía no está configurado (Microsoft 365): mandale la palabra a la estación por otro medio. El mail queda en cola y sale cuando se configure.'}{' '}
-          El chofer ya tiene su QR en «Mi viaje».
-        </p>
-        <div className="flex flex-wrap items-center gap-3 rounded-md bg-hover px-3 py-2">
-          <KeyRound className="size-5 text-marca" />
-          <span className="text-sm text-tinta-suave">Palabra de seguridad (solo para la estación):</span>
-          <span className="font-mono text-lg font-bold tracking-wider text-tinta">{creada.palabra}</span>
-          <BotonCopiar texto={creada.palabra} />
-        </div>
-        <p className="text-xs text-tinta-suave">La palabra se muestra solo ahora. No se la pases al chofer.</p>
-        <button type="button" className={BOTON_SECUNDARIO} onClick={onCerrar}>
-          Listo
-        </button>
-      </div>
-    );
+  // Migración 252: orden para un genset (aparte)
+  if (tipo === 'genset') return <NuevaOrdenGenset onCerrar={onCerrar} onTipo={setTipo} />;
+  if (creada) return <OrdenCreada creada={creada} onCerrar={onCerrar} />;
 
   const resumen = destino
     ? `Tanques: ${tanques === 'lleno' ? 'llenos' : tanques === 'litros' ? `${litrosTanques || '…'} L` : '…'}${
@@ -293,6 +281,8 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
           <X className="size-6" />
         </button>
       </div>
+
+      <TipoOrden valor="camion" onCambiar={setTipo} />
 
       <Paso numero={1} titulo="Camión y estación">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -462,6 +452,216 @@ function NuevaOrden({ onCerrar }: { onCerrar: () => void }) {
         }}
       >
         <QrCode className="size-5" /> {crear.isPending ? 'Generando…' : 'Generar la orden'}
+      </button>
+    </div>
+  );
+}
+
+/** Migración 252 · ¿La orden es para un camión o para un genset? (solo si la base ya lo tiene) */
+function TipoOrden({ valor, onCambiar }: { valor: 'camion' | 'genset'; onCambiar: (t: 'camion' | 'genset') => void }) {
+  const hay = useBaseTiene(252);
+  if (!hay) return null;
+  return (
+    <section className="space-y-2">
+      <p className="text-sm font-semibold text-tinta">¿Para qué es la orden?</p>
+      <div className="grid grid-cols-2 gap-2">
+        <Opcion activa={valor === 'camion'} onClick={() => onCambiar('camion')} titulo="Camión" detalle="Tanques y mochila" />
+        <Opcion activa={valor === 'genset'} onClick={() => onCambiar('genset')} titulo="Genset" detalle="Generador del equipo de frío" />
+      </div>
+    </section>
+  );
+}
+
+/** Migración 252 · Orden de carga para un genset: aparte de la del camión, con su palabra y su QR. */
+function NuevaOrdenGenset({ onCerrar, onTipo }: { onCerrar: () => void; onTipo: (t: 'camion' | 'genset') => void }) {
+  const gensets = useGensetsOrden(true);
+  const estaciones = useEstaciones();
+  const choferes = useChoferesCombustible();
+  const [genset, setGenset] = useState('');
+  const [estacion, setEstacion] = useState('');
+  const [chofer, setChofer] = useState('');
+  const [modo, setModo] = useState<'lleno' | 'litros' | null>(null);
+  const [litros, setLitros] = useState('');
+  const [obs, setObs] = useState('');
+  const [correo, setCorreo] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [creada, setCreada] = useState<CreadaOrden | null>(null);
+  const prep = usePrepararGenset(genset ? Number(genset) : null, estacion ? Number(estacion) : null);
+  const crear = useCrearOrdenGenset();
+  const guardarCorreo = useCorreoEstacion();
+  const p = prep.data;
+  const choferElegido = chofer ? Number(chofer) : (p?.choferId ?? null);
+  useAsegurarFotoMail(choferElegido);
+
+  if (creada) return <OrdenCreada creada={creada} onCerrar={onCerrar} />;
+  const lit = modo === 'litros' ? aNumero(litros) : null;
+  const listo = !!genset && !!estacion && choferElegido !== null && (modo === 'lleno' || (modo === 'litros' && lit !== null));
+  const resumen =
+    modo === 'lleno'
+      ? `Genset: lleno${p?.capacidadL != null ? ` (capacidad ${formatearNumero(p.capacidadL, 0)} L)` : ''}`
+      : modo === 'litros'
+        ? `Genset: ${litros || '…'} L`
+        : null;
+
+  return (
+    <div className={cn(TARJETA, 'mb-20 space-y-5 p-4 sm:mb-0')}>
+      <div className="flex items-center justify-between">
+        <p className="text-lg font-semibold text-tinta">Nueva orden de carga</p>
+        <button type="button" aria-label="Cerrar" className="rounded p-1 text-tinta-suave hover:bg-hover" onClick={onCerrar}>
+          <X className="size-6" />
+        </button>
+      </div>
+
+      <TipoOrden valor="genset" onCambiar={onTipo} />
+
+      <Paso numero={1} titulo="Genset y estación">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo label="Genset">
+            <select className="h-12 text-base" value={genset} onChange={(e) => setGenset(e.target.value)}>
+              <option value="">Elegí…</option>
+              {gensets.data?.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.codigo}
+                  {g.tractor ? ` · tractor ${g.tractor}` : ''}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          <Campo label="Estación de servicio">
+            <select className="h-12 text-base" value={estacion} onChange={(e) => setEstacion(e.target.value)}>
+              <option value="">Elegí…</option>
+              {estaciones.data
+                ?.filter((e) => !e.esTanquePropio)
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nombre}
+                  </option>
+                ))}
+            </select>
+          </Campo>
+        </div>
+        {p && (
+          <div className="space-y-2 rounded-lg bg-hover p-3 text-sm text-tinta">
+            <p>
+              {p.tractor ? (
+                <>
+                  Va en el tractor <strong>{p.tractor}</strong>
+                  {p.semi && <> (semi {p.semi})</>}
+                </>
+              ) : (
+                <span className="text-tinta-suave">No se sabe en qué camión está: elegí el chofer que lo lleva.</span>
+              )}
+            </p>
+            <Campo label="Chofer (ve el QR en «Mi viaje»)">
+              <select className="h-12 text-base" value={chofer} onChange={(e) => setChofer(e.target.value)}>
+                <option value="">{p.chofer ? `${p.chofer} (el que lo lleva)` : 'Elegí…'}</option>
+                {choferes.data
+                  ?.filter((c) => c.id !== p.choferId)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+              </select>
+            </Campo>
+            {p.vigente && <p className="font-medium text-alerta">Este genset ya tiene la orden {p.vigente} vigente: anulala antes de hacer otra.</p>}
+            {estacion && !p.correo && (
+              <div className="space-y-2 pt-1">
+                <Campo label="Correo de la estación (no tiene)" ayuda="Sin correo no se puede generar la orden. Para varios, separalos con coma.">
+                  <input type="email" className="h-12 text-base" value={correo} onChange={(e) => setCorreo(e.target.value)} />
+                </Campo>
+                <button
+                  type="button"
+                  className={cn(BOTON_SECUNDARIO, 'w-full justify-center sm:w-auto')}
+                  disabled={guardarCorreo.isPending}
+                  onClick={async () => {
+                    setError(null);
+                    const r = await guardarCorreo.mutateAsync({ estacionId: Number(estacion), correo });
+                    if (!r.ok) setError(r.error.mensaje);
+                    else void prep.refetch();
+                  }}
+                >
+                  <Mail className="size-4" /> Guardar correo
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </Paso>
+
+      <Paso numero={2} titulo="Genset">
+        <div className="grid grid-cols-2 gap-2">
+          <Opcion
+            activa={modo === 'lleno'}
+            onClick={() => setModo('lleno')}
+            titulo="Lleno"
+            detalle={p?.capacidadL != null ? `capacidad ${formatearNumero(p.capacidadL, 0)} L` : undefined}
+          />
+          <Opcion activa={modo === 'litros'} onClick={() => setModo('litros')} titulo="Litros" detalle="Escribís cuántos" />
+        </div>
+        {modo === 'litros' && <Litros valor={litros} onCambiar={setLitros} etiqueta="Litros para el genset" ejemplo="150" />}
+      </Paso>
+
+      <Campo label="Observación (opcional)">
+        <input className="h-12 text-base" maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} />
+      </Campo>
+
+      {resumen && (
+        <div className="rounded-lg border border-marca/30 bg-marca-suave p-3">
+          <p className="text-xs font-medium tracking-wide text-tinta-suave uppercase">Vas a autorizar</p>
+          <p className="text-base font-semibold text-tinta">{resumen}</p>
+          <p className="mt-1 text-xs text-tinta-suave">Al terminar, el chofer sube el ticket y anota el horómetro: la carga queda registrada sola en el genset.</p>
+        </div>
+      )}
+      {error && <p className="text-sm text-error">{error}</p>}
+      <button
+        type="button"
+        className={cn(BOTON_PRIMARIO, 'h-12 w-full justify-center text-base')}
+        disabled={crear.isPending || !listo}
+        onClick={async () => {
+          setError(null);
+          const r = await crear.mutateAsync({
+            gensetId: Number(genset),
+            estacionId: estacion ? Number(estacion) : null,
+            modo: modo ?? 'lleno',
+            litros: lit,
+            choferId: choferElegido,
+            observacion: obs.trim() || null,
+          });
+          if (!r.ok) setError(r.error.mensaje);
+          else setCreada(r.data);
+        }}
+      >
+        <QrCode className="size-5" /> {crear.isPending ? 'Generando…' : 'Generar la orden'}
+      </button>
+    </div>
+  );
+}
+
+/** La orden recién creada: la palabra de seguridad se muestra una sola vez. */
+function OrdenCreada({ creada, onCerrar }: { creada: CreadaOrden; onCerrar: () => void }) {
+  return (
+    <div className={cn(TARJETA, 'space-y-3 border-exito/40 p-4')}>
+      <p className="flex items-center gap-2 font-semibold text-tinta">
+        <BadgeCheck className="size-5 text-exito" /> Orden {creada.numero} creada
+      </p>
+      <p className="text-sm text-tinta">
+        {creada.mail === 'en_cola'
+          ? `El mail con la palabra de seguridad sale en un minuto a ${creada.correo}.`
+          : creada.mail === 'sin_correo'
+            ? 'La estación no tiene correo: mandale la palabra de seguridad por otro medio.'
+            : 'El envío de mails todavía no está configurado (Microsoft 365): mandale la palabra a la estación por otro medio. El mail queda en cola y sale cuando se configure.'}{' '}
+        El chofer ya tiene su QR en «Mi viaje».
+      </p>
+      <div className="flex flex-wrap items-center gap-3 rounded-md bg-hover px-3 py-2">
+        <KeyRound className="size-5 text-marca" />
+        <span className="text-sm text-tinta-suave">Palabra de seguridad (solo para la estación):</span>
+        <span className="font-mono text-lg font-bold tracking-wider text-tinta">{creada.palabra}</span>
+        <BotonCopiar texto={creada.palabra} />
+      </div>
+      <p className="text-xs text-tinta-suave">La palabra se muestra solo ahora. No se la pases al chofer.</p>
+      <button type="button" className={BOTON_SECUNDARIO} onClick={onCerrar}>
+        Listo
       </button>
     </div>
   );

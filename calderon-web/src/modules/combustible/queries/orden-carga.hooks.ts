@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { browserDb } from '@/shared/supabase/browser';
 import { invalidar } from '@/shared/query/invalidar';
-import { anularOrdenCarga, crearOrdenCarga, guardarCorreoEstacion, revisarOrdenCarga, terminarOrdenCarga } from '../actions/orden-carga.actions';
+import { anularOrdenCarga, crearOrdenCarga, crearOrdenGenset, guardarCorreoEstacion, revisarOrdenCarga, terminarOrdenCarga } from '../actions/orden-carga.actions';
 import { ordenCargaRepository } from '../repositories/orden-carga.repository';
 
 /** Migración 234 · Órdenes de carga de combustible. */
@@ -34,6 +34,16 @@ function useAccion<A, R>(accion: (a: A) => Promise<R>, objeto: 'combustible' | '
 }
 
 export const useCrearOrdenCarga = () => useAccion(crearOrdenCarga, 'combustible');
+// Migración 252: gensets
+export const useCrearOrdenGenset = () => useAccion(crearOrdenGenset, 'combustible');
+export const useGensetsOrden = (activo: boolean) =>
+  useQuery({ queryKey: ['combustible', 'ordenes', 'gensets'] as const, queryFn: () => repo().gensets(), enabled: activo, staleTime: 60_000 });
+export const usePrepararGenset = (gensetId: number | null, estacionId: number | null) =>
+  useQuery({
+    queryKey: ['combustible', 'ordenes', 'preparar-genset', gensetId, estacionId] as const,
+    queryFn: () => repo().prepararGenset(gensetId!, estacionId),
+    enabled: gensetId !== null,
+  });
 export const useAnularOrdenCarga = () => useAccion(anularOrdenCarga, 'combustible');
 export const useRevisarOrdenCarga = () => useAccion(revisarOrdenCarga, 'combustible');
 export const useCorreoEstacion = () => useAccion(guardarCorreoEstacion, 'catalogo');

@@ -101,7 +101,44 @@ export interface MiOrden {
   token: string;
   patente: string;
   estacion: string;
+  /** Migración 252: orden de un genset (al terminar se anota el horómetro). */
+  genset: boolean;
 }
+
+/** Migración 252 · Órdenes de carga para gensets. */
+export interface GensetOpcion {
+  id: number;
+  codigo: string;
+  capacidadL: number | null;
+  tractor: string | null;
+}
+export interface PreparadoGenset {
+  codigo: string;
+  capacidadL: number | null;
+  semi: string | null;
+  tractor: string | null;
+  choferId: number | null;
+  chofer: string | null;
+  correo: string | null;
+  vigente: string | null;
+  mail: EstadoMail;
+}
+export const parsearGensetsOrden = (d: unknown): GensetOpcion[] =>
+  a(d).map((x) => ({ id: Number(x.id), codigo: t(x.codigo) ?? '', capacidadL: n(x.capacidad_l), tractor: t(x.tractor) }));
+export const parsearPreparadoGenset = (d: unknown): PreparadoGenset => {
+  const x = o(d);
+  return {
+    codigo: t(x.codigo) ?? '',
+    capacidadL: n(x.capacidad_l),
+    semi: t(x.semi),
+    tractor: t(x.tractor),
+    choferId: n(x.chofer_id),
+    chofer: t(x.chofer),
+    correo: t(x.correo),
+    vigente: t(x.vigente),
+    mail: parsearEstadoMail(x.mail),
+  };
+};
 
 export interface OrdenPublica {
   estado: EstadoOrden | 'no_existe';
@@ -210,6 +247,7 @@ export const parsearMisOrdenes = (d: unknown): MiOrden[] =>
     token: t(x.token) ?? '',
     patente: t(x.patente) ?? '',
     estacion: t(x.estacion) ?? '',
+    genset: x.genset === true,
   }));
 
 export const parsearOrdenPublica = (d: unknown): OrdenPublica => {

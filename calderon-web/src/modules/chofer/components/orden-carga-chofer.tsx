@@ -30,9 +30,13 @@ async function aBase64(blob: Blob): Promise<string> {
 export function OrdenCargaChofer() {
   const hay = useBaseTiene(234);
   const { data } = useMisOrdenesCarga(hay);
-  const o = data?.[0];
-  if (!o) return null;
-  return o.estado === 'emitida' ? <Autorizado o={o} /> : <Terminar o={o} />;
+  // Migración 252: puede haber una del camión y otra del genset al mismo tiempo
+  if (!data || data.length === 0) return null;
+  return (
+    <>
+      {data.map((o) => (o.estado === 'emitida' ? <Autorizado key={o.id} o={o} /> : <Terminar key={o.id} o={o} />))}
+    </>
+  );
 }
 
 function Autorizado({ o }: { o: MiOrden }) {
@@ -48,6 +52,7 @@ function Autorizado({ o }: { o: MiOrden }) {
         <p className="flex items-center gap-2 text-lg font-semibold text-marca">
           <Fuel className="size-6" /> Estás autorizado a cargar combustible
         </p>
+        <p className="text-sm font-medium text-tinta">{o.patente}</p>
         <button type="button" className={`${BOTON_PRIMARIO} w-full justify-center`} onClick={() => setVer(true)}>
           <QrCode className="size-5" /> Mostrar el QR
         </button>
@@ -76,6 +81,8 @@ function Terminar({ o }: { o: MiOrden }) {
   const [abierto, setAbierto] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [litros, setLitros] = useState('');
+  // Migración 252: en la orden de un genset se anota el horómetro
+  const [horometro, setHorometro] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [hecho, setHecho] = useState<{ litros: number | null } | null>(null);
   const terminar = useTerminarOrdenCarga();
@@ -195,11 +202,23 @@ function Terminar({ o }: { o: MiOrden }) {
               onChange={(e) => setLitros(e.target.value)}
             />
           )}
+          {o.genset && (
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-tinta">Horómetro del genset (horas)</span>
+              <input
+                inputMode="decimal"
+                className="h-12 w-full rounded-md border border-borde bg-panel px-3 text-base"
+                placeholder="Ej. 1234,5"
+                value={horometro}
+                onChange={(e) => setHorometro(e.target.value)}
+              />
+            </label>
+          )}
           {error && <p className="text-sm text-error">{error}</p>}
           <button
             type="button"
             className={`${BOTON_PRIMARIO} w-full justify-center`}
-            disabled={ocupado || terminar.isPending}
+            disabled={ocupado || terminar.isPending || (o.genset && horometro.trim() === '')}
             onClick={async () => {
               setError(null);
               const manual = litros.trim() === '' ? null : Number(litros.replace(/\./g, '').replace(',', '.'));
@@ -208,6 +227,7 @@ function Terminar({ o }: { o: MiOrden }) {
                 fotos: tickets.flatMap((t) => (t.ruta ? [{ ruta: t.ruta, hash: t.hash ?? '' }] : [])),
                 lecturas: tickets.flatMap((t) => (t.lectura ? [t.lectura] : [])),
                 litros: manual !== null && Number.isFinite(manual) && manual > 0 ? manual : null,
+                ...(o.genset ? { horometro: Number(horometro.replace(/\./g, '').replace(',', '.')) } : {}),
               });
               if (!r.ok) setError(r.error.mensaje);
               else setHecho({ litros: (r.data as { litros?: number | null }).litros ?? null });
