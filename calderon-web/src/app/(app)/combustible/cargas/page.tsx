@@ -6,6 +6,7 @@ import { PESTANAS_CARGAS } from '@/shared/ui/pestanas-secciones';
 import { CargasLista } from '@/modules/combustible/components/cargas/cargas-lista';
 import { CargasGensetLista } from '@/modules/combustible/components/genset/cargas-genset-lista';
 import { OrdenesCarga } from '@/modules/combustible/components/ordenes/ordenes-carga';
+import { OrdenesPorRegistrar } from '@/modules/combustible/components/ordenes/ordenes-por-registrar';
 import { parsearListaCargas } from '@/modules/combustible/domain/carga.lista';
 import { combustibleQueries as q } from '@/modules/combustible/queries/keys';
 import { createSupabaseServerClient } from '@/server/supabase/server';
@@ -42,6 +43,8 @@ export default async function CargasPage({ searchParams }: Props) {
   return (
     <>
       <Pestanas items={PESTANAS_CARGAS} />
+      {/* Migración 253: cargas de órdenes terminadas, para dar el OK */}
+      <OrdenesPorRegistrar />
       <HydrationBoundary state={dehydrate(qc)}>
         <CargasLista />
       </HydrationBoundary>

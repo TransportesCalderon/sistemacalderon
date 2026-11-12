@@ -3,6 +3,8 @@ import type { Json } from '@/shared/types/db';
 import {
   parsearCreada,
   parsearGensetsOrden,
+  parsearPorRegistrar,
+  type PorRegistrar,
   parsearPreparadoGenset,
   type GensetOpcion,
   type PreparadoGenset,
@@ -53,6 +55,10 @@ export const ordenCargaRepository = (db: Db) => {
     revisar: async (id: number) => void ok(await fue().rpc('fn_revisar_orden_carga', { p_id: id })),
     // Migración 243: las del chofer van por «ops» (el usuario del chofer no puede usar el esquema «fue»)
     misOrdenes: async (): Promise<MiOrden[]> => parsearMisOrdenes(ok(await db.schema('ops').rpc('fn_mis_ordenes_carga'))),
+    // Migración 253: cargas de órdenes terminadas, para dar el OK
+    porRegistrar: async (): Promise<PorRegistrar[]> => parsearPorRegistrar(ok(await fue().rpc('fn_ordenes_por_registrar'))),
+    registrarCarga: async (ordenId: number, iniciaViaje: boolean, ajustes: Record<string, unknown>) =>
+      ok(await fue().rpc('fn_registrar_carga_orden', { p_orden: ordenId, p_inicia_viaje: iniciaViaje, p_ajustes: ajustes as Json })) as { carga_id: number },
     // Migración 252: órdenes para gensets
     gensets: async (): Promise<GensetOpcion[]> => parsearGensetsOrden(ok(await fue().rpc('fn_gensets_para_orden'))),
     prepararGenset: async (gensetId: number, estacionId: number | null): Promise<PreparadoGenset> =>

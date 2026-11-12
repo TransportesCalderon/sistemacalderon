@@ -36,6 +36,25 @@ export const crearOrdenCarga = createAction({
   handler: (d, { db }) => ordenCargaRepository(db).crear(d),
 });
 
+/** Migración 253: registrar la carga de una orden terminada (con «inicia viaje» y lo que se corrigió). */
+export const registrarCargaOrden = createAction({
+  permiso: 'combustible.cargas:editar',
+  schema: z.object({
+    ordenId: id,
+    iniciaViaje: z.boolean(),
+    ajustes: z.object({
+      litros: z.number().finite().positive().nullable().optional(),
+      precio_unitario: z.number().finite().min(0).nullable().optional(),
+      odometro_km: z.number().finite().min(0).nullable().optional(),
+      ticket_numero: z.string().max(60).nullable().optional(),
+      tanque_lleno: z.boolean().optional(),
+      faltante_lleno_l: z.number().finite().min(0).nullable().optional(),
+      faltante_observacion: z.string().max(500).nullable().optional(),
+    }),
+  }),
+  handler: (d, { db }) => ordenCargaRepository(db).registrarCarga(d.ordenId, d.iniciaViaje, d.ajustes),
+});
+
 /** Migración 252: orden de carga para un genset (aparte de la del camión). */
 export const crearOrdenGenset = createAction({
   permiso: ['combustible.ordenes:editar', 'combustible.cargas:ver'],

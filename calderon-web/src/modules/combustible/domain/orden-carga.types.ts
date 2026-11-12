@@ -140,6 +140,45 @@ export const parsearPreparadoGenset = (d: unknown): PreparadoGenset => {
   };
 };
 
+/** Migración 253 · Carga de una orden terminada, lista para registrar (la propuesta la arma la base). */
+export interface PorRegistrar {
+  ordenId: number;
+  numero: string;
+  patente: string;
+  chofer: string | null;
+  estacion: string;
+  fechaHora: string | null;
+  litros: number | null;
+  precioUnitario: number | null;
+  moneda: string | null;
+  importe: number | null;
+  odometroKm: number | null;
+  tanqueLleno: boolean;
+  autorizado: string;
+  ticketNumero: string | null;
+  tickets: string[];
+  alerta: string | null;
+}
+export const parsearPorRegistrar = (d: unknown): PorRegistrar[] =>
+  a(d).map((x) => ({
+    ordenId: Number(x.orden_id),
+    numero: t(x.numero) ?? '',
+    patente: t(x.patente) ?? '',
+    chofer: t(x.chofer),
+    estacion: t(x.estacion) ?? '',
+    fechaHora: t(x.fecha_hora),
+    litros: n(x.litros),
+    precioUnitario: n(x.precio_unitario),
+    moneda: t(x.moneda),
+    importe: n(x.importe),
+    odometroKm: n(x.odometro_km),
+    tanqueLleno: x.tanque_lleno === true,
+    autorizado: t(x.autorizado) ?? '',
+    ticketNumero: t(x.ticket_numero),
+    tickets: (Array.isArray(x.tickets) ? (x.tickets as Record<string, unknown>[]) : []).map((f) => String(f.ruta ?? '')).filter(Boolean),
+    alerta: t(x.alerta),
+  }));
+
 export interface OrdenPublica {
   estado: EstadoOrden | 'no_existe';
   numero: string | null;

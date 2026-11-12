@@ -2176,6 +2176,9 @@ export type Database = {
         Returns: Json;
       };
       fn_anular_orden_carga: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      // Migración 253: carga de la orden, para dar el OK
+      fn_ordenes_por_registrar: { Args: Record<string, never>; Returns: Json };
+      fn_registrar_carga_orden: { Args: { p_orden: number; p_inicia_viaje: boolean; p_ajustes?: Json }; Returns: Json };
       // Migración 252: órdenes de carga para gensets
       fn_gensets_para_orden: { Args: Record<string, never>; Returns: Json };
       fn_preparar_orden_genset: { Args: { p_genset: number; p_estacion?: number | null }; Returns: Json };
