@@ -20,6 +20,7 @@ import {
   marcarAprobadorSegundoNivel,
   marcarAvisoTanqueBajo,
   marcarAutorizaCargas,
+  marcarApruebaFondos,
   marcarRecibeEscalamiento,
   restablecerClave,
 } from '../usuarios.actions';
@@ -97,8 +98,22 @@ export function UsuariosPantalla() {
     enabled: hayAutorizaCargas,
     staleTime: FRESCURA.maestro,
   });
+  // Migración 256: quién aprueba el FF Chofer
+  const hayApruebaFondos = useBaseTiene(256);
+  const apruebanFondos = useQuery({
+    queryKey: ['usuarios', 'aprueba-fondos'],
+    queryFn: () => usuariosRepository(db).apruebanFondos(),
+    enabled: hayApruebaFondos,
+    staleTime: FRESCURA.maestro,
+  });
   const columnas =
-    5 + (hayAprobadores ? 1 : 0) + (haySegundoNivel ? 1 : 0) + (hayAvisoTanque ? 1 : 0) + (hayEscalamiento ? 1 : 0) + (hayAutorizaCargas ? 1 : 0);
+    5 +
+    (hayAprobadores ? 1 : 0) +
+    (haySegundoNivel ? 1 : 0) +
+    (hayAvisoTanque ? 1 : 0) +
+    (hayEscalamiento ? 1 : 0) +
+    (hayAutorizaCargas ? 1 : 0) +
+    (hayApruebaFondos ? 1 : 0);
 
   return (
     <div className="space-y-5">
@@ -191,6 +206,11 @@ export function UsuariosPantalla() {
                       Autoriza cargas
                     </th>
                   )}
+                  {hayApruebaFondos && (
+                    <th className={TH} title="Aprueba o rechaza los pedidos de FF Chofer (dinero del viaje)">
+                      Aprueba fondos fijos
+                    </th>
+                  )}
                   <th className={TH} />
                 </tr>
               </thead>
@@ -258,6 +278,20 @@ export function UsuariosPantalla() {
                               marcado={(autorizan.data ?? []).includes(u.id)}
                               cargando={autorizan.isPending}
                               accion={marcarAutorizaCargas}
+                            />
+                          ) : (
+                            <span className="text-xs text-tinta-suave">—</span>
+                          )}
+                        </td>
+                      )}
+                      {hayApruebaFondos && (
+                        <td className={TD}>
+                          {u.choferId === null ? (
+                            <AprobadorCierre
+                              usuario={u.id}
+                              marcado={(apruebanFondos.data ?? []).includes(u.id)}
+                              cargando={apruebanFondos.isPending}
+                              accion={marcarApruebaFondos}
                             />
                           ) : (
                             <span className="text-xs text-tinta-suave">—</span>

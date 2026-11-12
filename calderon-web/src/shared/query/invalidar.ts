@@ -94,6 +94,10 @@ export const OBJETOS = {
   telemetria: [['telemetria']],
   /** Migración 122: actas de infracción (el descuento cambia la liquidación; el acta sale de una alerta). */
   acta: [['actas'], ['liquidacion'], ['anomalias']],
+  /** Migración 256: subió el acta firmada de un cierre. */
+  firma_cierre: [['combustible', 'cierres', 'firmas']],
+  /** Migración 256: pedido de FF Chofer (al depositarse cambia el fondo del chofer). */
+  fondo: [['chofer']],
   /** Usuarios del sistema. */
   usuario: [['usuarios']],
   /** Aprobar cierres o completar operaciones de un viaje: toca casi todo. */

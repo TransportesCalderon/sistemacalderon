@@ -35,6 +35,7 @@ import { AccionConMotivo, Cargando, Dato, DiferenciaL, ErrorBase, ErrorLectura, 
 import { TableroCierre } from '@/modules/telemetria/components/tablero-cierre';
 import { BorradorForm } from './borrador-form';
 import { EstadoCierreChip, VerificacionChip } from './estado-cierre';
+import { FirmaCierreSeccion } from './firma-cierre';
 import { SoloEnPagina, useFicha, useNombreFicha } from '@/modules/core/fichas/contexto';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { CargarEnViajeChofer } from '@/modules/logistica/components/viaje-del-cierre';
@@ -76,6 +77,8 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
       </header>
 
       <Identificacion cierre={cierre} resultado={resultado} />
+      {/* Migración 256: aprobado, queda pendiente de la firma del chofer (se sube el escaneo del acta) */}
+      {cierre.estado === 'aprobado' && <FirmaCierreSeccion cierreId={cierre.id} />}
 
       {esBorrador && vivo.isPending ? (
         <Cargando texto="Calculando el resultado…" />

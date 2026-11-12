@@ -22,6 +22,7 @@ import { useCamionesCombustible, useCierres } from '../../queries/hooks';
 import { useFiltrosUrl } from '../comun/filtros';
 import { Cargando, DiferenciaL, Encabezado, ErrorLectura, Paginador, Vacio } from '../comun/ui';
 import { EstadoCierreChip } from './estado-cierre';
+import { FirmaChip, useFirmasCierre } from './firma-cierre';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import { useAbrirFicha } from '@/modules/core/fichas/contexto';
 
@@ -34,6 +35,8 @@ export function CierresLista() {
   const { actualizar, limpiar, navegando } = useFiltrosUrl<CierreListaParams>(params, serializarListaCierres);
   const { data, isPending, isError, isFetching, refetch } = useCierres(params);
   const { data: camiones } = useCamionesCombustible();
+  // Migración 256: los aprobados muestran si falta la firma del chofer
+  const firmas = useFirmasCierre((data?.filas ?? []).filter((c) => c.estado === 'aprobado').map((c) => c.id));
   const hayFiltros = Boolean(params.camionId || params.estado || params.desde || params.hasta || params.conImputable);
 
   return (
@@ -131,7 +134,10 @@ export function CierresLista() {
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{c.imputableTotalL === null ? '—' : `${formatearNumero(c.imputableTotalL)} L`}</td>
                     <td className="px-3 py-2.5">
-                      <EstadoCierreChip estado={c.estado} />
+                      <span className="flex flex-wrap gap-1">
+                        <EstadoCierreChip estado={c.estado} />
+                        <FirmaChip firma={firmas.get(c.id)} />
+                      </span>
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap tabular-nums text-tinta-suave">{formatearFechaHora(c.creadoEn, zonaHoraria)}</td>
                   </tr>

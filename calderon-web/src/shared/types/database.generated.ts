@@ -1069,6 +1069,8 @@ export type Database = {
       };
     };
     Functions: {
+      /** Migración 255: el próximo legajo correlativo (orientativo; el final lo pone la base al guardar). */
+      fn_siguiente_legajo: { Args: Record<string, never>; Returns: string };
       /** Migración 45: elimina un chofer (borrado si nunca se usó, ocultado si ya se usó). */
       fn_eliminar_chofer: { Args: { p_chofer: number; p_motivo: string }; Returns: string };
       /** Migración 46: chofer fijo del tractor desde una fecha (null = sin chofer). */
@@ -1657,6 +1659,9 @@ export type Database = {
       fn_avisados_tanque_bajo: { Args: Record<string, never>; Returns: number[] };
       fn_autorizan_cargas: { Args: Record<string, never>; Returns: number[] };
       fn_marcar_autoriza_cargas: { Args: { p_usuario: number; p_autoriza: boolean }; Returns: undefined };
+      /** Migración 256: quién aprueba los pedidos de FF Chofer. */
+      fn_aprueban_fondos: { Args: Record<string, never>; Returns: number[] };
+      fn_marcar_aprueba_fondos: { Args: { p_usuario: number; p_aprueba: boolean }; Returns: undefined };
       fn_marcar_aviso_tanque_bajo: { Args: { p_usuario: number; p_recibe: boolean }; Returns: undefined };
       // Migración 189: quién recibe las alertas vencidas (escalamiento)
       fn_reciben_escalamiento: { Args: Record<string, never>; Returns: number[] };
@@ -1806,6 +1811,12 @@ export type Database = {
       fn_gastos_por_revisar: { Args: Record<string, never>; Returns: Json };
       /** Migración 164 */
       fn_apelar_gasto: { Args: { p_gasto: number; p_explicacion: string }; Returns: undefined };
+      /** Migración 256: pedidos de FF Chofer. */
+      fn_pedir_fondo: { Args: { p_chofer: number; p_moneda: string; p_importe: number; p_detalle: string }; Returns: Json };
+      fn_resolver_pedido_fondo: { Args: { p_pedido: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: Json };
+      fn_depositar_pedido_fondo: { Args: { p_pedido: number; p_fecha: string; p_ruta?: string | null; p_nombre?: string | null }; Returns: Json };
+      fn_anular_pedido_fondo: { Args: { p_pedido: number; p_motivo: string }; Returns: undefined };
+      fn_pedidos_fondo: { Args: { p_todos?: boolean }; Returns: Json };
       fn_entregar_fondo: {
         Args: { p_chofer: number; p_moneda: string; p_importe: number; p_fecha: string; p_detalle?: string | null; p_servicio?: number | null; p_cuenta?: number | null };
         Returns: number;
@@ -2148,6 +2159,9 @@ export type Database = {
     };
     Functions: {
       fn_resultado_cierre: { Args: { p_id: number }; Returns: Json };
+      /** Migración 256: firma (escaneo del acta firmada por el chofer) del cierre aprobado. */
+      fn_subir_firma_cierre: { Args: { p_cierre: number; p_ruta: string; p_nombre: string | null }; Returns: string | null };
+      fn_firmas_cierre: { Args: { p_ids: number[] }; Returns: Json };
       // Migración 206: con cuántos litros salió, cargó y llegó
       fn_tanque_cierre: { Args: { p_id: number }; Returns: Json };
       /** Migración 53: lo que toma el sistema de la telemetría para el cierre, sin los ajustes manuales. */

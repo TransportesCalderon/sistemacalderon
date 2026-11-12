@@ -87,6 +87,8 @@ export const PESTANAS_LIQUIDACIONES = [
   { href: '/liquidaciones', etiqueta: 'Liquidaciones' },
   { href: '/liquidaciones/resumen', etiqueta: 'Resumen para liquidar' },
   { href: '/liquidaciones/fondos', etiqueta: 'Fondos de choferes' },
+  // Migración 256: pedidos de FF Chofer (los piden Operaciones y Telemetría, aprueba el gerente, deposita Administración)
+  { href: '/liquidaciones/fondos?vista=pedidos', etiqueta: 'Pedidos de FF' },
   { href: '/ajustes/liquidacion', etiqueta: 'Tarifas y conceptos' },
   { href: '/ajustes/liquidacion/datos-legales', etiqueta: 'Datos legales' },
 ] as const;

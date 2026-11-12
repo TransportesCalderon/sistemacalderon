@@ -74,6 +74,16 @@ export const usuariosRepository = (db: Db) => ({
     const { error } = await db.schema('seg').rpc('fn_marcar_autoriza_cargas', { p_usuario: usuario, p_autoriza: autoriza });
     if (error) throw new RepoError(error);
   },
+  /** Migración 256: ids de quienes aprueban el FF Chofer. */
+  async apruebanFondos(): Promise<number[]> {
+    const { data, error } = await db.schema('seg').rpc('fn_aprueban_fondos');
+    if (error) throw new RepoError(error);
+    return (data ?? []).map(Number);
+  },
+  async marcarApruebaFondos(usuario: number, aprueba: boolean): Promise<void> {
+    const { error } = await db.schema('seg').rpc('fn_marcar_aprueba_fondos', { p_usuario: usuario, p_aprueba: aprueba });
+    if (error) throw new RepoError(error);
+  },
   /** Migración 189: ids de quienes reciben las alertas vencidas (escalamiento) y resuelven prórrogas. */
   async recibenEscalamiento(): Promise<number[]> {
     const { data, error } = await db.schema('seg').rpc('fn_reciben_escalamiento');

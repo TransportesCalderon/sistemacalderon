@@ -75,3 +75,10 @@ export const marcarAutorizaCargas = createAction({
   schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
   handler: (d, { db }) => usuariosRepository(db).marcarAutorizaCargas(d.usuario, d.aprueba),
 });
+
+/** Migración 256: marcar quién aprueba los pedidos de FF Chofer. Solo TI. */
+export const marcarApruebaFondos = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
+  handler: (d, { db }) => usuariosRepository(db).marcarApruebaFondos(d.usuario, d.aprueba),
+});
