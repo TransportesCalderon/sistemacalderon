@@ -11,8 +11,13 @@ const TAMANO_MAXIMO = 15 * 1024 * 1024;
  * (se lee igual y sube rápido con poca señal). Storage solo deja al chofer escribir en la
  * carpeta con su número; la oficina usa la carpeta «oficina».
  */
-export async function subirArchivo(archivo: File, carpeta: string): Promise<{ ruta: string; hash: string; nombre: string }> {
-  const { blob, extension, tipo } = await prepararArchivo(archivo);
+export async function subirArchivo(
+  archivo: File,
+  carpeta: string,
+  /** Migración 257: el archivo ya preparado (el mismo que leyó la IA), para que la base compruebe que es la misma foto. */
+  preparado?: { blob: Blob; extension: string; tipo: string } | null,
+): Promise<{ ruta: string; hash: string; nombre: string }> {
+  const { blob, extension, tipo } = preparado ?? (await prepararArchivo(archivo));
   if (blob.size > TAMANO_MAXIMO) throw new Error('El archivo supera los 15 MB.');
   const hash = await sha256Hex(blob);
   const ruta = `${carpeta}/${idAleatorio()}.${extension.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'}`;

@@ -1778,6 +1778,26 @@ export type Database = {
       fn_vincular_cargas: { Args: { p_gasto: number; p_cargas: number[] }; Returns: number };
       // Fondo fijo del chofer, gastos y resumen para liquidar (61)
       fn_mi_fondo: { Args: Record<string, never>; Returns: Json };
+      /** Migración 257: el chofer sube el gasto con la lectura de la IA; si el comprobante ya está cargado, devuelve repetido. */
+      fn_subir_gasto_verificado: {
+        Args: {
+          p_categoria: string;
+          p_moneda: string;
+          p_importe: number;
+          p_fecha: string;
+          p_comprobante: string | null;
+          p_hash: string | null;
+          p_nombre_archivo: string | null;
+          p_detalle: string | null;
+          p_lugar: string | null;
+          p_latitud: number | null;
+          p_longitud: number | null;
+          p_lectura: number | null;
+        };
+        Returns: Json;
+      };
+      fn_intentos_gasto_repetido: { Args: { p_dias?: number }; Returns: Json };
+      fn_revisar_intento_repetido: { Args: { p_intento: number; p_nota: string | null }; Returns: undefined };
       fn_subir_gasto: {
         Args: {
           p_categoria: string;

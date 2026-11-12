@@ -12,6 +12,14 @@ import {
 } from '../domain/chofer.types';
 import type { Entrega, GastoOficina, PosicionEntrada, SubirDocumento, SubirGasto } from '../domain/chofer.schemas';
 
+/** Migración 257: resultado de subir un gasto (repetido = ese comprobante ya estaba cargado). */
+export interface ResultadoSubirGasto {
+  ok: boolean;
+  repetido: boolean;
+  mensaje: string | null;
+  numero: string | null;
+}
+
 /**
  * Módulo del chofer (migraciones 60 y 61). Todo pasa por funciones de la base, que deciden
  * quién puede qué (el chofer, solo lo suyo). El mensaje de la base se muestra tal cual.
@@ -84,9 +92,10 @@ export const choferRepository = (db: Db) => {
     async miFondo() {
       return parsearMiFondo(await leer(fin().rpc('fn_mi_fondo')));
     },
-    async subirGasto(g: SubirGasto): Promise<number> {
-      return leer(
-        fin().rpc('fn_subir_gasto', {
+    /** Migración 257: con la lectura de la IA; si el comprobante ya está cargado no se carga (repetido). */
+    async subirGasto(g: SubirGasto): Promise<ResultadoSubirGasto> {
+      const r = (await leer(
+        fin().rpc('fn_subir_gasto_verificado', {
           p_categoria: g.categoria,
           p_moneda: g.moneda,
           p_importe: g.importe,
@@ -98,8 +107,15 @@ export const choferRepository = (db: Db) => {
           p_lugar: g.lugar,
           p_latitud: g.latitud,
           p_longitud: g.longitud,
+          p_lectura: g.lecturaId,
         }),
-      );
+      )) as Record<string, unknown> | null;
+      return {
+        ok: r?.ok === true,
+        repetido: r?.repetido === true,
+        mensaje: typeof r?.mensaje === 'string' ? r.mensaje : null,
+        numero: typeof r?.numero === 'string' ? r.numero : null,
+      };
     },
     async apelarGasto(gastoId: number, explicacion: string) {
       await leer(fin().rpc('fn_apelar_gasto', { p_gasto: gastoId, p_explicacion: explicacion }));

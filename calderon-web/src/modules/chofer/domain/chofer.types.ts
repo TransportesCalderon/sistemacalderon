@@ -323,6 +323,12 @@ export interface GastoPorRevisar {
   apelado: boolean;
   apelacion: string | null;
   motivoRechazo: string | null;
+  /** Migración 257: lo que leyó la IA y si coincide con otro gasto vigente. */
+  verificacion: 'ia' | 'ia_sin_numero' | 'sin_ia' | null;
+  comprobanteNro: string | null;
+  operacionNro: string | null;
+  emisor: string | null;
+  coincideCon: { numero: string; chofer: string; fecha: string; estado: string; regla: string } | null;
 }
 export const parsearGastosPorRevisar = (v: Json | unknown): GastoPorRevisar[] =>
   arr(v).map((g) => {
@@ -345,6 +351,16 @@ export const parsearGastosPorRevisar = (v: Json | unknown): GastoPorRevisar[] =>
       apelado: x.apelado === true,
       apelacion: s(x.apelacion),
       motivoRechazo: s(x.motivo_rechazo),
+      verificacion: (s(x.verificacion) as GastoPorRevisar['verificacion']) ?? null,
+      comprobanteNro: s(x.comprobante_nro),
+      operacionNro: s(x.operacion_nro),
+      emisor: s(x.emisor),
+      coincideCon: x.coincide_con
+        ? (() => {
+            const c = o(x.coincide_con);
+            return { numero: s(c.numero) ?? '', chofer: s(c.chofer) ?? '', fecha: s(c.fecha) ?? '', estado: s(c.estado) ?? '', regla: s(c.regla) ?? '' };
+          })()
+        : null,
     };
   });
 

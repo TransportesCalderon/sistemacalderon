@@ -200,10 +200,18 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
 
   const enviar = async () => {
     setError(null);
+    // Migración 257: con la IA activada, el comprobante se carga después de que la IA lo leyó (la base compara los números)
+    if (lector.disponible && lector.estado.fase === 'leyendo') {
+      setError({ codigo: 'validacion', mensaje: 'Esperá a que la IA termine de leer el comprobante.' });
+      return;
+    }
     setSubiendo(true);
     let ruta: string | null = null;
     try {
-      const [subido, donde] = await Promise.all([archivo ? subirArchivo(archivo, `${choferId}/gastos`) : Promise.resolve(null), posicionActual()]);
+      const [subido, donde] = await Promise.all([
+        archivo ? subirArchivo(archivo, `${choferId}/gastos`, lector.preparado) : Promise.resolve(null),
+        posicionActual(),
+      ]);
       ruta = subido?.ruta ?? null;
       setSubiendo(false);
       const r = await subir.mutateAsync({
@@ -218,10 +226,16 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
         nombreArchivo: subido?.nombre ?? null,
         latitud: donde?.latitud ?? null,
         longitud: donde?.longitud ?? null,
+        lecturaId: lector.lecturaId,
       });
       if (!r.ok) {
         await borrarArchivo(ruta);
         setError(r.error);
+        return;
+      }
+      // Migración 257: el comprobante ya estaba cargado (la foto queda como prueba del intento)
+      if (r.data.repetido) {
+        setError({ codigo: 'duplicado', mensaje: r.data.mensaje ?? 'Este comprobante ya está cargado: no se puede cargar dos veces.' });
         return;
       }
       await lector.marcarUsada({ categoria: v.categoria, importe_total: v.importe, moneda: v.moneda, fecha: v.fecha });
@@ -253,6 +267,13 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
       </label>
       {!archivo && <p className="text-xs text-tinta-suave">La foto del comprobante es obligatoria.</p>}
       <AvisoIA estado={lector.estado} />
+      {lector.estado.fase === 'listo' && (lector.estado.propuesta.numero_comprobante || lector.estado.propuesta.numero_operacion) && (
+        <p className="rounded-md bg-fondo px-3 py-2 text-xs text-tinta-suave">
+          {lector.estado.propuesta.numero_comprobante && <>Comprobante n.º {lector.estado.propuesta.numero_comprobante}</>}
+          {lector.estado.propuesta.numero_comprobante && lector.estado.propuesta.numero_operacion && ' · '}
+          {lector.estado.propuesta.numero_operacion && <>Operación n.º {lector.estado.propuesta.numero_operacion}</>}
+        </p>
+      )}
       <Campo label="¿Qué gasto es?" error={campo('categoria')}>
         <select value={v.categoria} onChange={(e) => setV({ ...v, categoria: e.target.value })}>
           <option value="">Elegí…</option>
