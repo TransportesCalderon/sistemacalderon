@@ -2191,6 +2191,8 @@ export type Database = {
       fn_eco_score_cierre: { Args: { p_cierre: number }; Returns: Json };
       // Migración 89: litros a cargar
       fn_litros_sugeridos: { Args: { p_camion: number; p_hasta?: string | null }; Returns: Json };
+      // Migración 258: moneda del país de la estación y precio habitual por litro
+      fn_referencia_carga: { Args: { p_estacion: number; p_fecha?: string | null }; Returns: Json };
       fn_mis_avisos_carga: { Args: Record<string, never>; Returns: Json };
       // Migración 234: órdenes de carga con QR
       fn_preparar_orden_carga: { Args: { p_camion: number; p_estacion?: number | null }; Returns: Json };

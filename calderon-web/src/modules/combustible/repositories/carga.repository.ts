@@ -4,6 +4,7 @@ import type { CamionId, CargaId, ChoferId, DepositoId, FechaISO, SolicitudId } f
 import { diaSiguiente, num } from '../domain/comun';
 import type { CargaAlta, CargaEdicion } from '../domain/carga.schemas';
 import { BUCKET_DOCUMENTOS } from '../domain/documento.types';
+import { parsearReferencia, type ReferenciaPrecio } from '../domain/precio-referencia';
 import {
   TAMANO_PAGINA_CARGAS,
   esEstadoValidacion,
@@ -258,6 +259,13 @@ export const cargaRepository = (db: Db) => ({
     if (error) throw new RepoError(error);
     const o = data as { odometro_km?: number | string; ts?: string } | null;
     return o && o.odometro_km !== undefined && o.ts ? { km: Number(o.odometro_km), ts: o.ts as FechaISO } : null;
+  },
+
+  /** Migración 258: moneda que corresponde a la estación y precio habitual por litro en ese país. */
+  async referenciaPrecio(estacionId: number, fechaHora: string | null): Promise<ReferenciaPrecio | null> {
+    const { data, error } = await db.schema('fue').rpc('fn_referencia_carga', { p_estacion: estacionId, p_fecha: fechaHora });
+    if (error) throw new RepoError(error);
+    return parsearReferencia(data);
   },
 
   /** Chofer fijo del tractor en esa fecha (migración 46): se propone en el formulario de la carga. */

@@ -19,6 +19,8 @@ import { formatearNumero } from '@/shared/lib/numeros';
 import { formatearFechaHora, horaLocalAIso, hoyEnZona, isoAHoraLocal } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { VERSION_CONTROL_PRECIO, evaluarPrecio } from '../../domain/precio-referencia';
 import { cargaFormSchema, type CargaFormEntrada } from '../../domain/carga.schemas';
 import { ETIQUETA_MEDIO_PAGO, MEDIOS_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
 import {
@@ -32,6 +34,7 @@ import {
   useEstaciones,
   useMonedas,
   useOdometroTelemetria,
+  useReferenciaPrecio,
 } from '../../queries/hooks';
 import { CLASE_TEXTAREA, ErrorBase } from '../comun/ui';
 import { DestinoCargaSelector } from './destino-carga';
@@ -154,6 +157,40 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
     setOdometroAuto(valor);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando llega la lectura de otra fecha o camión
   }, [telemetria.data, telemetria.isFetching]);
+
+  // Migración 258: la carga va en la moneda del país de la estación y el precio se compara con lo que
+  // se viene pagando ahí. La base es la que bloquea; acá se avisa antes de guardar.
+  const hayControlPrecio = useBaseTiene(VERSION_CONTROL_PRECIO);
+  const estacionId = Number(watch('estacionId')) || null;
+  const referencia = useReferenciaPrecio(hayControlPrecio ? estacionId : null, fechaIso).data ?? null;
+  const monedaElegida = watch('moneda');
+  const monedaDelPais = referencia && monedas?.some((m) => m.codigo === referencia.moneda) ? referencia.moneda : null;
+  const surtidorPropio = estaciones?.find((s) => s.id === estacionId)?.esTanquePropio ?? false;
+  useEffect(() => {
+    // En el alta se pone sola al elegir la estación; en la edición no se pisa (se avisa abajo del campo)
+    if (carga || !hayControlPrecio) return;
+    const moneda = monedaDelPais ?? (surtidorPropio ? (monedaBase ?? null) : null);
+    if (moneda && watch('moneda') !== moneda) setValue('moneda', moneda, { shouldValidate: true, shouldDirty: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando cambia la estación o llega su moneda
+  }, [estacionId, monedaDelPais, surtidorPropio]);
+  const monedaMal =
+    monedaDelPais && monedaElegida && monedaElegida !== monedaDelPais
+      ? `La estación está en ${referencia?.pais}: la carga va en ${monedaDelPais}, no en ${monedaElegida}.`
+      : undefined;
+  const precioEvaluado = referencia && !monedaMal ? evaluarPrecio(referencia, precioN, litrosN) : null;
+  const precioHabitual = referencia?.precio != null ? `${formatearNumero(referencia.precio)} ${referencia.moneda}` : null;
+  const precioImposible =
+    precioEvaluado?.nivel === 'imposible'
+      ? `No puede ser: en ${referencia?.pais} se viene pagando ≈ ${precioHabitual} por litro. ${
+          precioEvaluado.porLitro !== null
+            ? `Parece el total del ticket: por litro serían ${formatearNumero(precioEvaluado.porLitro)}.`
+            : 'Va el precio de un litro, no el total.'
+        }`
+      : undefined;
+  const precioDudoso =
+    precioEvaluado?.nivel === 'dudoso'
+      ? `${formatearNumero(Math.abs(precioEvaluado.desvioPct), 0)} % ${precioEvaluado.desvioPct > 0 ? 'por encima' : 'por debajo'} de lo habitual (≈ ${precioHabitual}). Revisá el ticket: si está bien se guarda, y queda una alerta para revisar.`
+      : null;
 
   // Chofer fijo del tractor a la fecha de la carga: se propone si no se eligió otro
   const choferTractor = useChoferDeTractor(camionId, fechaIso ? fechaLocal.slice(0, 10) : hoyEnZona(zonaHoraria));
@@ -446,10 +483,25 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
             )}
           </div>
         </Campo>
-        <Campo label="Precio unitario *" error={e.precioUnitario?.message}>
-          <input inputMode="decimal" {...register('precioUnitario')} />
-        </Campo>
-        <Campo label="Moneda *" error={e.moneda?.message} ayuda="En otra moneda, la cotización de ese día tiene que estar cargada (Finanzas > Tipos de cambio).">
+        <div className="space-y-1">
+          <Campo
+            label="Precio unitario *"
+            error={e.precioUnitario?.message ?? precioImposible}
+            {...(precioHabitual ? { ayuda: `Por litro. En ${referencia?.pais} se viene pagando ≈ ${precioHabitual}.` } : {})}
+          >
+            <input inputMode="decimal" {...register('precioUnitario')} />
+          </Campo>
+          {precioDudoso && !e.precioUnitario && <p className="text-xs text-alerta">{precioDudoso}</p>}
+        </div>
+        <Campo
+          label="Moneda *"
+          error={e.moneda?.message ?? monedaMal}
+          ayuda={
+            monedaDelPais
+              ? `La del país de la estación (${monedaDelPais}). La cotización de ese día tiene que estar cargada (Finanzas > Tipos de cambio).`
+              : 'En otra moneda, la cotización de ese día tiene que estar cargada (Finanzas > Tipos de cambio).'
+          }
+        >
           <select {...register('moneda')}>
             <option value="">Elegí…</option>
             {monedas?.map((m) => (

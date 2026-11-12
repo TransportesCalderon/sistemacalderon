@@ -131,6 +131,15 @@ export const useOdometroTelemetria = (camionId: number | null, fechaHora: string
     enabled: !!camionId && !!fechaHora,
     staleTime: 60_000,
   });
+/** Migración 258: moneda del país de la estación y precio habitual por litro (aviso antes de guardar). */
+export const useReferenciaPrecio = (estacionId: number | null, fechaHora: string | null) =>
+  useQuery({
+    queryKey: ['combustible', 'referencia-precio', estacionId, fechaHora] as const,
+    queryFn: () => cargaRepository(browserDb()).referenciaPrecio(estacionId!, fechaHora),
+    enabled: !!estacionId,
+    staleTime: 60_000,
+    retry: false,
+  });
 /** Chofer fijo del tractor a la fecha de la carga (se propone; se puede cambiar). */
 export const useChoferDeTractor = (camionId: number | null, fecha: string | null) =>
   useQuery({
