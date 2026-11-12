@@ -18,6 +18,10 @@ export interface PropuestaIA {
   estacion_id?: number;
   estacion_nombre?: string;
   numero_comprobante?: string;
+  /** Migración 257: número de operación o transacción, emisor y su CUIT/RUT (comprobantes de gasto). */
+  numero_operacion?: string;
+  emisor?: string;
+  cuit_rut?: string;
   patente?: string;
   camion_id?: number;
   odometro_km?: number;

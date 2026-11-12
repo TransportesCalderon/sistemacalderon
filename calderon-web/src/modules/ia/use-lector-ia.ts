@@ -29,11 +29,18 @@ export type EstadoLector =
 export function useLectorIA(tipo: TipoLectura) {
   const disponible = useQuery({ queryKey: ['ia', 'estado'], queryFn: () => iaRepository(browserDb()).estado(), staleTime: 300_000 });
   const [estado, setEstado] = useState<EstadoLector>({ fase: 'quieto' });
+  // Migración 257: la foto preparada que se mandó a la IA (se sube esa misma) y la lectura, aunque haya fallado
+  const [preparado, setPreparado] = useState<{ blob: Blob; extension: string; tipo: string } | null>(null);
+  const [lecturaId, setLecturaId] = useState<number | null>(null);
 
   const leer = async (archivo: File) => {
     setEstado({ fase: 'leyendo' });
+    setPreparado(null);
+    setLecturaId(null);
     try {
-      const { blob, tipo: media } = await prepararArchivo(archivo);
+      const prep = await prepararArchivo(archivo);
+      setPreparado(prep);
+      const { blob, tipo: media } = prep;
       if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(media)) {
         setEstado({ fase: 'error', mensaje: 'La IA no puede leer este formato de foto: completá a mano.' });
         return null;
@@ -45,6 +52,7 @@ export function useLectorIA(tipo: TipoLectura) {
         setEstado({ fase: 'error', mensaje: r.error.mensaje });
         return null;
       }
+      setLecturaId(r.data);
       const repo = iaRepository(browserDb());
       for (let i = 0; i < 50; i++) {
         const res = await repo.resultado(r.data);
@@ -77,5 +85,17 @@ export function useLectorIA(tipo: TipoLectura) {
     }
   };
 
-  return { disponible: disponible.data === true, estado, leer, marcarUsada, reiniciar: () => setEstado({ fase: 'quieto' }) };
+  return {
+    disponible: disponible.data === true,
+    estado,
+    leer,
+    marcarUsada,
+    preparado,
+    lecturaId,
+    reiniciar: () => {
+      setEstado({ fase: 'quieto' });
+      setPreparado(null);
+      setLecturaId(null);
+    },
+  };
 }

@@ -61,6 +61,8 @@ export const subirGastoSchema = z.object({
   lugar: textoOpc(120),
   latitud: coord,
   longitud: coord,
+  /** Migración 257: la lectura de la IA de esa foto (la base toma de ahí los números del comprobante). */
+  lecturaId: id.nullish().transform((v) => v ?? null),
 });
 export type SubirGasto = z.infer<typeof subirGastoSchema>;
 

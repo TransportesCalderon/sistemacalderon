@@ -28,6 +28,7 @@ import {
   useRevisarGasto,
 } from '../queries/hooks';
 import { abrirArchivo, borrarArchivo, subirArchivo } from './archivos';
+import { IntentosRepetidos } from './intentos-repetidos';
 import { TONO_ESTADO } from './mis-gastos';
 
 const Saldos = ({ saldos }: { saldos: Saldo[] }) =>
@@ -61,6 +62,8 @@ export function FondosPantalla() {
     <div className="space-y-6">
       <Encabezado titulo="Fondos de choferes" subtitulo="Administración" />
       <GastosPorRevisar />
+      {/* Migración 257: intentos de cargar un comprobante que ya estaba cargado */}
+      <IntentosRepetidos />
       <section className={cn(TARJETA, 'overflow-x-auto')}>
         <h2 className="px-4 pt-4 font-semibold text-tinta">Saldo de cada chofer</h2>
         <p className="px-4 pb-2 text-sm text-tinta-suave">
@@ -152,6 +155,22 @@ function FilaRevisar({ g }: { g: GastoPorRevisar }) {
             {g.motivoRechazo && <p className="text-tinta-suave">Se rechazó por: {g.motivoRechazo}</p>}
             <p className="text-tinta">Explicación: «{g.apelacion}»</p>
           </div>
+        )}
+        {/* Migración 257: números leídos por la IA y control de comprobante repetido */}
+        {(g.comprobanteNro || g.operacionNro || g.emisor) && (
+          <p className="text-xs text-tinta-suave">
+            {[g.emisor, g.comprobanteNro && `Comprobante n.º ${g.comprobanteNro}`, g.operacionNro && `Operación de pago n.º ${g.operacionNro}`]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        )}
+        {g.verificacion === 'sin_ia' && <p className="mt-1 text-xs text-alerta">La IA no pudo leer el comprobante: revisalo con cuidado.</p>}
+        {g.verificacion === 'ia_sin_numero' && <p className="mt-1 text-xs text-alerta">La IA no encontró el número del comprobante: revisalo con cuidado.</p>}
+        {g.coincideCon && (
+          <p className="mt-1 flex items-start gap-1 rounded-md bg-error-suave px-2 py-1 text-xs text-error">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> Tiene {g.coincideCon.regla} que el gasto {g.coincideCon.numero} de {g.coincideCon.chofer} (
+            {formatearFechaDia(g.coincideCon.fecha)}, {g.coincideCon.estado.replace('_', ' ')}).
+          </p>
         )}
         {g.repetido && (
           <p className="mt-1 inline-flex items-center gap-1 text-xs text-alerta">
