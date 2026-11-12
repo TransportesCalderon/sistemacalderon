@@ -51,7 +51,31 @@ export interface PreparadoOrden {
   precio: number | null;
   moneda: string | null;
   vigente: string | null;
+  /** Migración 259: solicitud de carga pendiente del camión (Seguimiento). */
+  pendiente?: { id: number; por: string | null; en: FechaISO } | null;
   mail: EstadoMail;
+}
+
+/** Migración 259 · Solicitud de carga pedida desde Seguimiento de viaje (espera que alguien con «Autoriza cargas» la apruebe). */
+export const VERSION_SOLICITUD_CARGA = 259;
+export interface SolicitudCarga {
+  id: number;
+  en: FechaISO;
+  por: string | null;
+  viaje: string | null;
+  camionId: number;
+  patente: string;
+  choferId: number | null;
+  chofer: string | null;
+  estacionId: number | null;
+  estacion: string | null;
+  correo: string | null;
+  detalle: DetalleOrden | null;
+  aCargar: string | null;
+  /** Litros aproximados que pidió. */
+  litros: number;
+  observacion: string | null;
+  mensaje: string;
 }
 
 export interface OrdenCarga {
@@ -230,9 +254,43 @@ export const parsearPreparado = (d: unknown): PreparadoOrden => {
     precio: n(x.precio),
     moneda: t(x.moneda),
     vigente: t(x.vigente),
+    pendiente: x.pendiente ? { id: Number(o(x.pendiente).id), por: t(o(x.pendiente).por), en: (t(o(x.pendiente).en) ?? '') as FechaISO } : null,
     mail: parsearEstadoMail(x.mail),
   };
 };
+
+/** Migración 259: lo que se carga, como lo guarda la base (fue.fn_detalle_orden). */
+export const parsearDetalle = (d: unknown): DetalleOrden | null => {
+  const x = o(d);
+  if (x.destino !== 'tanques' && x.destino !== 'tanques_mochila') return null;
+  const tq = o(x.tanques);
+  const mo = o(x.mochila);
+  return {
+    destino: x.destino,
+    tanques: { modo: tq.modo === 'litros' ? 'litros' : 'lleno', litros: n(tq.litros) },
+    ...(x.destino === 'tanques_mochila' ? { mochila: { modo: mo.modo === 'litros' ? ('litros' as const) : ('llena' as const), litros: n(mo.litros) } } : {}),
+  };
+};
+
+export const parsearSolicitudes = (d: unknown): SolicitudCarga[] =>
+  a(d).map((x) => ({
+    id: Number(x.id),
+    en: (t(x.en) ?? '') as FechaISO,
+    por: t(x.por),
+    viaje: t(x.viaje),
+    camionId: Number(x.camion_id),
+    patente: t(x.patente) ?? '',
+    choferId: n(x.chofer_id),
+    chofer: t(x.chofer),
+    estacionId: n(x.estacion_id),
+    estacion: t(x.estacion),
+    correo: t(x.correo),
+    detalle: parsearDetalle(x.detalle),
+    aCargar: t(x.a_cargar),
+    litros: n(x.litros) ?? 0,
+    observacion: t(x.observacion),
+    mensaje: t(x.mensaje) ?? '',
+  }));
 
 export const parsearOrdenes = (d: unknown): OrdenCarga[] =>
   a(d).map((x) => ({

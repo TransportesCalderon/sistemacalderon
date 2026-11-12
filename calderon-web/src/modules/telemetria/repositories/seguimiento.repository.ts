@@ -1,4 +1,6 @@
 import { RepoError, type Db } from '@/shared/repository/types';
+import type { Json } from '@/shared/types/db';
+import type { DetalleOrden } from '@/modules/combustible/domain/orden-carga.types';
 import {
   parsearControles,
   parsearLecturaFoto,
@@ -74,7 +76,7 @@ export const seguimientoRepository = (db: Db) => ({
     if (error) throw new RepoError(error);
     return parsearDatosPedido(data);
   },
-  async pedirCarga(d: PedirCargaDatos): Promise<{ mensaje: string }> {
+  async pedirCarga(d: PedirCargaDatos): Promise<{ mensaje: string; pendiente: boolean }> {
     const { data, error } = await db.schema('tel').rpc('fn_pedir_carga', {
       p_viaje: d.viajeId,
       p_estacion: d.estacionId,
@@ -85,10 +87,12 @@ export const seguimientoRepository = (db: Db) => ({
       p_tanques: d.tanques,
       p_mochila: d.mochila,
       p_programador: d.programador,
+      // Migración 259: qué se carga y cómo se manda (solo si vienen: la base anterior no los conoce)
+      ...(d.detalle ? { p_detalle: d.detalle as unknown as Json, p_via: d.via ?? 'mensaje', p_observacion: d.observacion ?? null } : {}),
     });
     if (error) throw new RepoError(error);
-    const x = (data ?? {}) as { mensaje?: unknown };
-    return { mensaje: typeof x.mensaje === 'string' ? x.mensaje : '' };
+    const x = (data ?? {}) as { mensaje?: unknown; estado?: unknown };
+    return { mensaje: typeof x.mensaje === 'string' ? x.mensaje : '', pendiente: x.estado === 'pendiente' };
   },
   async pedidos(viajeId: number): Promise<PedidoCarga[]> {
     const { data, error } = await db.schema('tel').rpc('fn_pedidos_carga_viaje', { p_viaje: viajeId });
@@ -107,4 +111,8 @@ export interface PedirCargaDatos {
   tanques: number | null;
   mochila: number | null;
   programador: number | null;
+  /** Migración 259: lo mismo que la orden de carga (solo tanques o tanques y mochila). */
+  detalle?: DetalleOrden | null;
+  via?: 'mensaje' | 'sistema';
+  observacion?: string | null;
 }

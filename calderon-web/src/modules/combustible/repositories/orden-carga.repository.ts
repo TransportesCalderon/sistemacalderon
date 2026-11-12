@@ -13,6 +13,8 @@ import {
   parsearOrdenPublica,
   parsearOrdenes,
   parsearPreparado,
+  parsearSolicitudes,
+  type SolicitudCarga,
   type CreadaOrden,
   type DetalleOrden,
   type EstadoMail,
@@ -55,6 +57,29 @@ export const ordenCargaRepository = (db: Db) => {
     revisar: async (id: number) => void ok(await fue().rpc('fn_revisar_orden_carga', { p_id: id })),
     // Migración 243: las del chofer van por «ops» (el usuario del chofer no puede usar el esquema «fue»)
     misOrdenes: async (): Promise<MiOrden[]> => parsearMisOrdenes(ok(await db.schema('ops').rpc('fn_mis_ordenes_carga'))),
+    // Migración 259: solicitudes de carga pedidas desde Seguimiento de viaje
+    solicitudes: async (): Promise<SolicitudCarga[]> => parsearSolicitudes(ok(await fue().rpc('fn_solicitudes_carga'))),
+    /** Sin `cambios` aprueba lo pedido; con `cambios` (Editar) aprueba lo que quedó en el formulario. */
+    aprobarSolicitud: async (
+      id: number,
+      cambios?: { estacionId: number | null; detalle: DetalleOrden | null; choferId: number | null; observacion: string | null } | null,
+    ): Promise<CreadaOrden> =>
+      parsearCreada(
+        ok(
+          await fue().rpc('fn_aprobar_solicitud_carga', {
+            p_id: id,
+            ...(cambios
+              ? {
+                  p_estacion: cambios.estacionId,
+                  p_detalle: cambios.detalle as unknown as Json,
+                  p_chofer: cambios.choferId,
+                  p_observacion: cambios.observacion,
+                }
+              : {}),
+          }),
+        ),
+      ),
+    rechazarSolicitud: async (id: number, motivo: string) => void ok(await fue().rpc('fn_rechazar_solicitud_carga', { p_id: id, p_motivo: motivo })),
     // Migración 253: cargas de órdenes terminadas, para dar el OK
     porRegistrar: async (): Promise<PorRegistrar[]> => parsearPorRegistrar(ok(await fue().rpc('fn_ordenes_por_registrar'))),
     registrarCarga: async (ordenId: number, iniciaViaje: boolean, ajustes: Record<string, unknown>) =>

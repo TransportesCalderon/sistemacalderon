@@ -41,13 +41,24 @@ export const pedirCarga = createAction({
   schema: z.object({
     viajeId: z.number().int().positive(),
     estacionId: z.number().int().positive({ message: 'Elegí la estación.' }),
-    litros: z.number().positive({ message: 'Indicá los litros a cargar.' }),
+    litros: z.number().positive({ message: 'Indicá los litros aproximados a cargar.' }),
     precio: z.number().positive().nullable(),
     km: opcional,
     gasto: opcional,
     tanques: opcional,
     mochila: opcional,
     programador: z.number().min(0).max(100).nullable(),
+    /** Migración 259: lo mismo que la orden de carga, y cómo se manda (la base valida todo). */
+    detalle: z
+      .object({
+        destino: z.enum(['tanques', 'tanques_mochila']),
+        tanques: z.object({ modo: z.enum(['lleno', 'litros']), litros: z.number().finite().nullable().optional() }),
+        mochila: z.object({ modo: z.enum(['llena', 'litros']), litros: z.number().finite().nullable().optional() }).optional(),
+      })
+      .nullable()
+      .optional(),
+    via: z.enum(['mensaje', 'sistema']).optional(),
+    observacion: z.string().max(500).nullable().optional(),
   }),
   handler: (d, { db }) => seguimientoRepository(db).pedirCarga(d),
 });

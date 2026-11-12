@@ -85,6 +85,8 @@ export interface ViajeEnCurso {
   evaluacion: Evaluacion;
   ultimoControl: { en: FechaISO; por: string | null; resultado: Resultado; l100km: number | null; programadorPct: number | null; fuente: string } | null;
   controlesHoy: number;
+  /** Migración 259: última solicitud de carga por sistema del viaje. */
+  solicitudCarga?: { estado: EstadoSolicitud; en: FechaISO; orden: string | null; motivoRechazo: string | null } | null;
 }
 
 type J = Record<string, unknown>;
@@ -139,6 +141,14 @@ export const parsearViajesEnCurso = (d: unknown): ViajeEnCurso[] =>
           }
         : null,
       controlesHoy: Number(v.controles_hoy ?? 0),
+      solicitudCarga: v.solicitud_carga
+        ? {
+            estado: estadoSolicitud(obj(v.solicitud_carga).estado) ?? 'pendiente',
+            en: (txt(obj(v.solicitud_carga).en) ?? '') as FechaISO,
+            orden: txt(obj(v.solicitud_carga).orden),
+            motivoRechazo: txt(obj(v.solicitud_carga).motivo_rechazo),
+          }
+        : null,
     };
   });
 
@@ -224,7 +234,22 @@ export interface PedidoCarga {
   importe: number | null;
   moneda: string | null;
   mensaje: string;
+  /** Migración 259: por mensaje (WhatsApp) o por sistema (solicitud que aprueba quien autoriza cargas). */
+  via?: 'mensaje' | 'sistema';
+  estado?: EstadoSolicitud | null;
+  aCargar?: string | null;
+  orden?: string | null;
+  ordenEstado?: string | null;
+  motivoRechazo?: string | null;
+  resueltoEn?: FechaISO | null;
+  resueltoPor?: string | null;
 }
+
+// ---- Migración 259: solicitud de carga por sistema ----
+export const VERSION_SOLICITUD_CARGA = 259;
+export type EstadoSolicitud = 'pendiente' | 'aprobada' | 'rechazada';
+export const ETIQUETA_SOLICITUD: Record<EstadoSolicitud, string> = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada' };
+const estadoSolicitud = (v: unknown): EstadoSolicitud | null => (v === 'pendiente' || v === 'aprobada' || v === 'rechazada' ? v : null);
 
 export function parsearDatosPedido(d: unknown): DatosPedidoCarga {
   const x = obj(d);
@@ -265,4 +290,12 @@ export const parsearPedidos = (d: unknown): PedidoCarga[] =>
     importe: n(p.importe),
     moneda: txt(p.moneda),
     mensaje: txt(p.mensaje) ?? '',
+    via: p.via === 'sistema' ? 'sistema' : 'mensaje',
+    estado: estadoSolicitud(p.estado),
+    aCargar: txt(p.a_cargar),
+    orden: txt(p.orden),
+    ordenEstado: txt(p.orden_estado),
+    motivoRechazo: txt(p.motivo_rechazo),
+    resueltoEn: txt(p.resuelto_en) as FechaISO | null,
+    resueltoPor: txt(p.resuelto_por),
   }));

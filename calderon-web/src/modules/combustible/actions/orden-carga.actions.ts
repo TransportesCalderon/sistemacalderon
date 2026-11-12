@@ -10,6 +10,12 @@ import { ordenCargaRepository } from '../repositories/orden-carga.repository';
  * termina la suya) y valida todo; acá solo se revisa la forma de los datos.
  */
 const id = z.number().int().positive();
+/** Migración 248: solo tanques o tanques y mochila (la base valida y calcula). */
+const detalleOrden = z.object({
+  destino: z.enum(['tanques', 'tanques_mochila']),
+  tanques: z.object({ modo: z.enum(['lleno', 'litros']), litros: z.number().finite().nullable().optional() }),
+  mochila: z.object({ modo: z.enum(['llena', 'litros']), litros: z.number().finite().nullable().optional() }).optional(),
+});
 
 export const crearOrdenCarga = createAction({
   // Migración 247: lo decide la marca «Autoriza cargas» de cada usuario (lo controla la base)
@@ -23,17 +29,37 @@ export const crearOrdenCarga = createAction({
     moneda: z.string().max(5).nullable(),
     choferId: id.nullable(),
     observacion: z.string().max(500).nullable(),
-    /** Migración 248: solo tanques o tanques y mochila (la base valida y calcula). */
-    detalle: z
+    detalle: detalleOrden.nullable().optional(),
+  }),
+  handler: (d, { db }) => ordenCargaRepository(db).crear(d),
+});
+
+/**
+ * Migración 259: aprobar una solicitud de carga de Seguimiento (genera la orden y el mail a la estación).
+ * Con `cambios` (Editar) se aprueba lo que quedó en el formulario. Lo decide la marca «Autoriza cargas» (la base).
+ */
+export const aprobarSolicitudCarga = createAction({
+  permiso: ['combustible.ordenes:editar', 'combustible.cargas:ver'],
+  schema: z.object({
+    id,
+    cambios: z
       .object({
-        destino: z.enum(['tanques', 'tanques_mochila']),
-        tanques: z.object({ modo: z.enum(['lleno', 'litros']), litros: z.number().finite().nullable().optional() }),
-        mochila: z.object({ modo: z.enum(['llena', 'litros']), litros: z.number().finite().nullable().optional() }).optional(),
+        estacionId: id.nullable(),
+        detalle: detalleOrden.nullable(),
+        choferId: id.nullable(),
+        observacion: z.string().max(500).nullable(),
       })
       .nullable()
       .optional(),
   }),
-  handler: (d, { db }) => ordenCargaRepository(db).crear(d),
+  handler: (d, { db }) => ordenCargaRepository(db).aprobarSolicitud(d.id, d.cambios ?? null),
+});
+
+/** Migración 259: rechazar una solicitud de carga (la base exige el motivo y le avisa a quien la pidió). */
+export const rechazarSolicitudCarga = createAction({
+  permiso: ['combustible.ordenes:editar', 'combustible.cargas:ver'],
+  schema: z.object({ id, motivo: z.string().max(500) }),
+  handler: (d, { db }) => ordenCargaRepository(db).rechazarSolicitud(d.id, d.motivo),
 });
 
 /** Migración 253: registrar la carga de una orden terminada (con «inicia viaje» y lo que se corrigió). */

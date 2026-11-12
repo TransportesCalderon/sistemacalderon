@@ -141,6 +141,8 @@ export const usePedidosCarga = (viajeId: number | null) =>
     queryKey: ['telemetria', 'pedidos-carga', viajeId] as const,
     queryFn: () => seguimientoRepository(browserDb()).pedidos(viajeId!),
     enabled: viajeId !== null,
+    // Migración 259: si hay una solicitud pendiente, se vuelve a leer para ver si la aprobaron o rechazaron
+    refetchInterval: (q) => (q.state.data?.some((p) => p.estado === 'pendiente') ? 30_000 : false),
   });
 export function usePedirCarga() {
   const qc = useQueryClient();

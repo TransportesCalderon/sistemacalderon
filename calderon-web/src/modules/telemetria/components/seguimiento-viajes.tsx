@@ -134,6 +134,23 @@ export function SeguimientoViajes() {
                         <td className={cn(TD, 'text-xs text-tinta-suave')}>
                           {v.ultimoControl ? formatearFechaHora(v.ultimoControl.en, zonaHoraria) : '—'}
                           {v.controlesHoy > 0 && ` · ${v.controlesHoy} hoy`}
+                          {/* Migración 259: cómo va la última solicitud de carga por sistema */}
+                          {v.solicitudCarga && (
+                            <span
+                              className={cn(
+                                'block',
+                                v.solicitudCarga.estado === 'pendiente' ? 'text-alerta' : v.solicitudCarga.estado === 'aprobada' ? 'text-exito' : 'text-error',
+                              )}
+                              title={v.solicitudCarga.motivoRechazo ?? undefined}
+                            >
+                              <Fuel className="mr-1 inline size-3" />
+                              {v.solicitudCarga.estado === 'pendiente'
+                                ? 'Carga pendiente'
+                                : v.solicitudCarga.estado === 'aprobada'
+                                  ? `Carga aprobada${v.solicitudCarga.orden ? ` · ${v.solicitudCarga.orden}` : ''}`
+                                  : 'Carga rechazada'}
+                            </span>
+                          )}
                         </td>
                       </tr>
                       {ab && (
@@ -177,7 +194,7 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
   const [prog, setProg] = useState('');
   const [hecho, setHecho] = useState<Evaluacion | null>(null);
   const [historial, setHistorial] = useState(false);
-  // Migración 195: pedido de carga de combustible para Gerencia
+  // Migración 195: pedido de carga de combustible para Gerencia (259: solicitud con el formulario de la orden)
   const conPedido = useBaseTiene(VERSION_PEDIDO_CARGA);
   const [pedido, setPedido] = useState(false);
   // Migración 197: desde qué momento se mide (salida, último control u otro momento)
@@ -397,7 +414,7 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
         <span className="flex items-center gap-3">
           {conPedido && (
             <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setPedido(!pedido)}>
-              <Fuel className="size-3.5" /> {pedido ? 'Cerrar pedido de carga' : 'Pedir carga'}
+              <Fuel className="size-3.5" /> {pedido ? 'Cerrar la solicitud de carga' : 'Solicitar carga'}
             </button>
           )}
           <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setHistorial(!historial)}>
@@ -405,7 +422,7 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
           </button>
         </span>
       </div>
-      {pedido && <PedidoCarga viajeId={v.viajeId} registra={registra} />}
+      {pedido && <PedidoCarga viajeId={v.viajeId} camionId={v.camionId} registra={registra} onCerrar={() => setPedido(false)} />}
       {historial && <Historial viajeId={v.viajeId} />}
     </div>
   );

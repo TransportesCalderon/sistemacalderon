@@ -2059,6 +2059,10 @@ export type Database = {
           p_tanques?: number | null;
           p_mochila?: number | null;
           p_programador?: number | null;
+          /** Migración 259: qué se carga, cómo se manda (mensaje o sistema) y la observación. */
+          p_detalle?: Json | null;
+          p_via?: string;
+          p_observacion?: string | null;
         };
         Returns: Json;
       };
@@ -2212,6 +2216,13 @@ export type Database = {
         Returns: Json;
       };
       fn_anular_orden_carga: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      // Migración 259: solicitudes de carga desde Seguimiento de viaje
+      fn_solicitudes_carga: { Args: Record<string, never>; Returns: Json };
+      fn_aprobar_solicitud_carga: {
+        Args: { p_id: number; p_estacion?: number | null; p_detalle?: Json | null; p_chofer?: number | null; p_observacion?: string | null };
+        Returns: Json;
+      };
+      fn_rechazar_solicitud_carga: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       // Migración 253: carga de la orden, para dar el OK
       fn_ordenes_por_registrar: { Args: Record<string, never>; Returns: Json };
       fn_registrar_carga_orden: { Args: { p_orden: number; p_inicia_viaje: boolean; p_ajustes?: Json }; Returns: Json };
