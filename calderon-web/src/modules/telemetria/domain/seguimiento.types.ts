@@ -243,6 +243,11 @@ export interface PedidoCarga {
   motivoRechazo?: string | null;
   resueltoEn?: FechaISO | null;
   resueltoPor?: string | null;
+  /** Migración 263: lo que recomendó el sistema al pedir y lo que decidió la orden al aprobar. */
+  recomendadoL?: number | null;
+  ordenACargar?: string | null;
+  ordenLitros?: number | null;
+  ordenConCambios?: boolean | null;
 }
 
 // ---- Migración 259: solicitud de carga por sistema ----
@@ -298,4 +303,8 @@ export const parsearPedidos = (d: unknown): PedidoCarga[] =>
     motivoRechazo: txt(p.motivo_rechazo),
     resueltoEn: txt(p.resuelto_en) as FechaISO | null,
     resueltoPor: txt(p.resuelto_por),
+    recomendadoL: n(p.recomendado_l),
+    ordenACargar: txt(p.orden_a_cargar),
+    ordenLitros: n(p.orden_litros),
+    ordenConCambios: typeof p.orden_con_cambios === 'boolean' ? p.orden_con_cambios : null,
   }));

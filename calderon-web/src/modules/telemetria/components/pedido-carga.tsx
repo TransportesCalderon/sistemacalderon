@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Fuel, LoaderCircle, MessageCircle, Send } from 'lucide-react';
 import { NuevaOrden, Opcion, Paso, type DatosFormularioOrden } from '@/modules/combustible/components/ordenes/ordenes-carga';
 import { Cargando, Chip, type Tono } from '@/modules/combustible/components/comun/ui';
+import { compararLitros } from '@/modules/combustible/domain/orden-carga.types';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
@@ -104,6 +105,18 @@ export function PedidoCarga({ viajeId, camionId, registra, onCerrar }: { viajeId
           <Recorrido p={d.necesario} />
         </div>
       )}
+      {/* Migración 263: la recomendación con su nombre y de dónde sale; la orden la decide quien autoriza */}
+      {d.litrosSugeridos !== null && (
+        <p className="text-xs text-tinta-suave">
+          <strong className="text-tinta">Recomendación del sistema: cargar ≈ {formatearNumero(d.litrosSugeridos, 0)} L.</strong>{' '}
+          {d.litrosParaLlegar !== null && d.litrosParaLlenar !== null
+            ? `Es lo menor entre lo que hace falta para llegar con reserva (${formatearNumero(d.litrosParaLlegar, 0)} L) y lo que entra hasta llenar (${formatearNumero(d.litrosParaLlenar, 0)} L).`
+            : d.litrosParaLlegar !== null
+              ? 'Es lo que hace falta para llegar con reserva.'
+              : 'Es lo que entra hasta llenar; faltan datos de la ruta para calcular cuánto necesita.'}{' '}
+          Es una recomendación: vos escribís el pedido y quien autoriza decide la orden.
+        </p>
+      )}
       {d.aviso && <p className="text-xs text-alerta">{d.aviso}</p>}
 
       {registra && !conSolicitud && <p className="text-xs text-alerta">Falta aplicar en la base el cambio 249 (migración 259) para pedir la carga.</p>}
@@ -129,7 +142,7 @@ export function PedidoCarga({ viajeId, camionId, registra, onCerrar }: { viajeId
             camionFijo={camionId}
             titulo="Solicitar carga"
             sinChofer
-            pie={(f) => <PieSolicitud f={f} viajeId={viajeId} correccion={manual ? m : null} onListo={setResultado} />}
+            pie={(f) => <PieSolicitud f={f} viajeId={viajeId} correccion={manual ? m : null} recomendadoL={d.litrosSugeridos} onListo={setResultado} />}
           />
         </>
       )}
@@ -175,11 +188,13 @@ function PieSolicitud({
   f,
   viajeId,
   correccion,
+  recomendadoL,
   onListo,
 }: {
   f: DatosFormularioOrden;
   viajeId: number;
   correccion: Correccion | null;
+  recomendadoL: number | null;
   onListo: (r: Resultado) => void;
 }) {
   const pedir = usePedirCarga();
@@ -191,6 +206,8 @@ function PieSolicitud({
   const precioTxt = precio ?? texto(f.prep?.precio ?? null, 2);
   const listo = f.listo && via !== null && decimal(litrosTxt) !== null;
   const paso = f.detalle?.destino === 'tanques_mochila' ? 5 : 4;
+  // Migración 263: cuánto se aparta lo que se pide de lo recomendado
+  const frente = compararLitros(decimal(litrosTxt), recomendadoL);
 
   return (
     <div className="space-y-5">
@@ -207,6 +224,12 @@ function PieSolicitud({
           <span className="text-base font-medium text-tinta-suave">litros</span>
         </label>
         <p className="text-xs text-tinta-suave">Para el mensaje y el aviso. La estación carga lo que diga la orden.</p>
+        {recomendadoL !== null && (
+          <p className="text-xs text-tinta-suave">
+            El sistema recomienda ≈ {formatearNumero(recomendadoL, 0)} L.
+            {frente && (frente.diferencia === 0 ? ' Pedís lo mismo.' : ` Pedís ${frente.texto} que lo recomendado.`)}
+          </p>
+        )}
       </Paso>
 
       <Paso numero={paso + 1} titulo="¿Cómo lo mandás?">
@@ -287,11 +310,24 @@ function Pedidos({ pedidos, zona }: { pedidos: Pedido[]; zona: string }) {
           <span>
             {formatearFechaHora(p.en, zona)} · {p.por ?? '—'} · {p.aCargar ? `${p.aCargar} · ≈ ` : ''}
             {formatearNumero(p.litros, 0)} L{p.estacion && ` en ${p.estacion}`}
+            {p.recomendadoL != null && ` · el sistema recomendaba ≈ ${formatearNumero(p.recomendadoL, 0)} L`}
           </span>
           {p.estado === 'aprobada' && p.orden && (
             <span className="text-exito">
               Orden {p.orden}
               {p.resueltoPor && ` (aprobó ${p.resueltoPor})`}
+            </span>
+          )}
+          {/* Migración 263: lo que decidió la orden, y si es distinto de lo pedido */}
+          {p.estado === 'aprobada' && p.ordenACargar && (
+            <span className="w-full">
+              La orden autoriza: <span className="text-tinta">{p.ordenACargar}</span>
+              {p.ordenLitros != null && ` · ≈ ${formatearNumero(p.ordenLitros, 0)} L`}
+              {p.ordenConCambios === true ? (
+                <span className="text-alerta"> · distinto de lo pedido</span>
+              ) : p.ordenConCambios === false ? (
+                ' · igual a lo pedido'
+              ) : null}
             </span>
           )}
           {p.estado === 'rechazada' && (

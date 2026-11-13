@@ -74,6 +74,10 @@ export interface SolicitudCarga {
   aCargar: string | null;
   /** Litros aproximados que pidió. */
   litros: number;
+  /** Migración 263: lo que recomendó el sistema al pedirla (null en pedidos anteriores o sin datos del camión). */
+  recomendadoL: number | null;
+  paraLlegarL: number | null;
+  paraLlenarL: number | null;
   observacion: string | null;
   mensaje: string;
 }
@@ -288,9 +292,23 @@ export const parsearSolicitudes = (d: unknown): SolicitudCarga[] =>
     detalle: parsearDetalle(x.detalle),
     aCargar: t(x.a_cargar),
     litros: n(x.litros) ?? 0,
+    recomendadoL: n(x.recomendado_l),
+    paraLlegarL: n(x.para_llegar_l),
+    paraLlenarL: n(x.para_llenar_l),
     observacion: t(x.observacion),
     mensaje: t(x.mensaje) ?? '',
   }));
+
+/**
+ * Migración 263 · Pedido y orden de carga. La recomendación (la calcula el sistema), el pedido (lo escribe
+ * Telemetría) y la orden (la decide quien autoriza) pueden ser distintos: acá se dice cuánto se aparta un
+ * número de otro, en palabras. null si falta alguno de los dos.
+ */
+export function compararLitros(valor: number | null, referencia: number | null): { diferencia: number; texto: string } | null {
+  if (valor === null || referencia === null || !Number.isFinite(valor) || !Number.isFinite(referencia)) return null;
+  const diferencia = Math.round(valor - referencia);
+  return { diferencia, texto: diferencia === 0 ? 'igual' : `${Math.abs(diferencia).toLocaleString('es-AR')} L ${diferencia > 0 ? 'más' : 'menos'}` };
+}
 
 export const parsearOrdenes = (d: unknown): OrdenCarga[] =>
   a(d).map((x) => ({

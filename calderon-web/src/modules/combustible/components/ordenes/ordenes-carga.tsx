@@ -28,6 +28,7 @@ import {
   type OrdenCarga,
   type PreparadoOrden,
   type SolicitudCarga,
+  compararLitros,
 } from '../../domain/orden-carga.types';
 import { useCamionesCombustible, useChoferesCombustible, useEstaciones } from '../../queries/hooks';
 import {
@@ -926,6 +927,20 @@ function SolicitudesPendientes({ puede, zona }: { puede: boolean; zona: string }
   );
 }
 
+/** Migración 263: lo que recomendó el sistema al pedirla y cuánto se aparta el pedido. La orden la decide quien aprueba. */
+function RecomendacionSolicitud({ s }: { s: SolicitudCarga }) {
+  if (s.recomendadoL === null) return null;
+  const frente = compararLitros(s.litros, s.recomendadoL);
+  return (
+    <p className="text-xs text-tinta-suave">
+      Recomendación del sistema: <span className="font-medium text-tinta">≈ {formatearNumero(s.recomendadoL, 0)} L</span>
+      {s.paraLlegarL !== null && ` · para llegar con reserva ${formatearNumero(s.paraLlegarL, 0)} L`}
+      {s.paraLlenarL !== null && ` · hasta llenar ${formatearNumero(s.paraLlenarL, 0)} L`}
+      {frente && (frente.diferencia === 0 ? ' · el pedido coincide' : ` · el pedido es ${frente.texto}`)}
+    </p>
+  );
+}
+
 function TarjetaSolicitud({
   s,
   zona,
@@ -966,8 +981,9 @@ function TarjetaSolicitud({
           {!s.correo && <span className="text-alerta"> (sin correo: cargalo al editar)</span>}
         </p>
         <p>
-          <span className="text-tinta-suave">A cargar:</span> <strong>{s.aCargar ?? '—'}</strong> · ≈ {formatearNumero(s.litros, 0)} L
+          <span className="text-tinta-suave">Pedido{s.por ? ` de ${s.por}` : ''}:</span> <strong>{s.aCargar ?? '—'}</strong> · ≈ {formatearNumero(s.litros, 0)} L
         </p>
+        <RecomendacionSolicitud s={s} />
         {s.observacion && <p className="text-tinta-suave">{s.observacion}</p>}
       </div>
       {error && <p className="text-sm text-error">{error}</p>}
@@ -993,6 +1009,9 @@ function TarjetaSolicitud({
             Rechazar
           </button>
         </div>
+      )}
+      {puede && !rechazando && (
+        <p className="text-xs text-tinta-suave">Aprobar genera la orden tal como se pidió. Con Editar decidís otra cosa antes de generarla.</p>
       )}
       {!puede && <p className="text-xs text-tinta-suave">La aprueba quien tiene «Autoriza cargas».</p>}
       {rechazando && (
