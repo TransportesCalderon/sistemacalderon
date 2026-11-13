@@ -3,6 +3,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { conSigno, formatearNumero } from '@/shared/lib/numeros';
 import { resumenViento } from '../../domain/viento.types';
+import { repartoFaltante } from '../../domain/cierre-tanque.types';
 import { GRUPOS_ECO, type ActaExtra, type EcoScore, type Nivel, type PuntajeCalderon } from '../../domain/acta.types';
 import type { CierreViaje } from '../../domain/cierre.types';
 import { BotonImprimir } from './boton-imprimir';
@@ -39,6 +40,9 @@ const FONDO: Record<Nivel, string> = { verde: 'border-green-600 bg-green-50', na
 const BARRA: Record<Nivel, string> = { verde: 'bg-green-600', naranja: 'bg-yellow-500', rojo: 'bg-red-600' };
 
 export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHoraria }: DatosActa) {
+  // Migración 268: de lo que faltó llenar, cuánto fue en la mochila (si la carga lo tiene)
+  const repSalida = repartoFaltante(x.salida.faltanteL, x.salida.faltanteMochilaL);
+  const repLlegada = repartoFaltante(x.llegada.faltanteL, x.llegada.faltanteMochilaL);
   const anulado = cierre.estado === 'anulado';
   const fecha = (v: string | null) => formatearFechaHora(v, zonaHoraria);
   const obj = x.objetivo;
@@ -178,12 +182,12 @@ export function ActaCierre({ cierre, camion, chofer, aprobador, extra: x, zonaHo
                 </Renglon>
               ))}
               {(x.faltanteLlegadaL ?? 0) > 0 && (
-                <Renglon etiqueta="Faltó llenar al llegar" suave>
+                <Renglon etiqueta={`Faltó llenar al llegar${repLlegada ? ` (${repLlegada})` : ''}`} suave>
                   + {formatearNumero(x.faltanteLlegadaL ?? 0, 1)}
                 </Renglon>
               )}
               {(x.faltanteSalidaL ?? 0) > 0 && (
-                <Renglon etiqueta="Faltó llenar al salir" suave>
+                <Renglon etiqueta={`Faltó llenar al salir${repSalida ? ` (${repSalida})` : ''}`} suave>
                   − {formatearNumero(x.faltanteSalidaL ?? 0, 1)}
                 </Renglon>
               )}

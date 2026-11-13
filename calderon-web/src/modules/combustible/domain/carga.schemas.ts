@@ -22,6 +22,10 @@ export const cargaFormSchema = z.object({
   esFrontera: z.boolean(),
   faltanteLlenoL: decimalTexto(true, 'Litros con hasta 2 decimales.').transform((v) => v ?? 0),
   faltanteObservacion: textoOpcional(500),
+  /** Migración 268: de lo que faltó, cuánto fue en la mochila. Vacío = lo propone la base (todo a la mochila, hasta su capacidad). */
+  faltanteMochilaL: decimalTexto(true, 'Litros con hasta 2 decimales.')
+    .optional()
+    .transform((v) => v ?? null),
 });
 export type CargaFormEntrada = z.input<typeof cargaFormSchema>;
 
@@ -43,6 +47,8 @@ export const cargaAltaSchema = z.object({
   esFrontera: z.boolean(),
   faltanteLlenoL: z.number().min(0),
   faltanteObservacion: z.string().nullable(),
+  /** Migración 268: no se envía (undefined) si no se tocó; null = que lo proponga la base. */
+  faltanteMochilaL: z.number().min(0).nullable().optional(),
   anulaId: id().nullable(),
 });
 export type CargaAlta = z.output<typeof cargaAltaSchema>;

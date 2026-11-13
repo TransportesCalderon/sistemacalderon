@@ -316,6 +316,8 @@ type CargaRow = {
   mismo_ticket: boolean;
   faltante_lleno_l: number;
   faltante_observacion: string | null;
+  /** Migración 268: parte del faltante que es de la mochila (vacío = sin repartir). */
+  faltante_mochila_l: number | null;
   validada_por: number | null;
   validada_en: string | null;
   motivo_validacion: string | null;
@@ -347,6 +349,7 @@ type CargaInsert = Pick<
       | 'es_frontera'
       | 'faltante_lleno_l'
       | 'faltante_observacion'
+      | 'faltante_mochila_l'
       | 'anula_id'
     >
   >;

@@ -5,6 +5,7 @@ import { TriangleAlert } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { formatearNumero } from '@/shared/lib/numeros';
 import type { CierreViajeId } from '@/shared/types/dominio';
+import { repartoFaltante } from '../../domain/cierre-tanque.types';
 import { useTanqueCierre } from '../../queries/hooks';
 import { DiferenciaL } from '../comun/ui';
 
@@ -39,6 +40,8 @@ export function TanqueCierre({
   const { data: t } = useTanqueCierre(cierreId, true);
   if (!t || !t.disponible) return null;
   const salio = t.salioConL !== null ? litros(t.salioConL) : (t.faltanteSalidaL ?? 0) > 0 ? `Lleno − ${litros(t.faltanteSalidaL)}` : 'Lleno';
+  const repartoSalida = repartoFaltante(t.faltanteSalidaL, t.faltanteSalidaMochilaL);
+  const repartoLlegada = repartoFaltante(t.faltanteLlegadaL, t.faltanteLlegadaMochilaL);
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -53,6 +56,12 @@ export function TanqueCierre({
           <DiferenciaL litros={diferenciaL} toleranciaL={toleranciaL} />
         </Paso>
       </div>
+      {(repartoSalida || repartoLlegada) && (
+        <p className="text-xs text-tinta-suave">
+          {repartoSalida && <>Faltó llenar al salir ({litros(t.faltanteSalidaL)}): {repartoSalida}. </>}
+          {repartoLlegada && <>Faltó llenar al llegar ({litros(t.faltanteLlegadaL)}): {repartoLlegada}.</>}
+        </p>
+      )}
       {t.aviso && (
         <p className="flex items-start gap-1.5 text-sm text-alerta">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" /> {t.aviso}

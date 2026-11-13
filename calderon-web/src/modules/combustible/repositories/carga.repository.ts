@@ -165,6 +165,13 @@ export const cargaRepository = (db: Db) => ({
     return { filas: resumen, total: count };
   },
 
+  /** Migración 268: de lo que faltó para quedar lleno, cuánto fue en la mochila (null = carga anterior sin repartir). */
+  async faltanteMochila(id: CargaId): Promise<number | null> {
+    const { data, error } = await db.schema('fue').from('carga_combustible').select('faltante_mochila_l').eq('id', id).maybeSingle();
+    if (error) throw new RepoError(error);
+    return data?.faltante_mochila_l ?? null;
+  },
+
   async obtener(id: CargaId): Promise<Carga | null> {
     const { data, error } = await db.schema('fue').from('carga_combustible').select(COLS).eq('id', id).maybeSingle();
     if (error) throw new RepoError(error);
@@ -221,6 +228,7 @@ export const cargaRepository = (db: Db) => ({
         es_frontera: d.esFrontera,
         faltante_lleno_l: d.esFrontera ? d.faltanteLlenoL : 0,
         faltante_observacion: d.esFrontera ? d.faltanteObservacion : null,
+        ...(d.esFrontera && d.faltanteMochilaL != null ? { faltante_mochila_l: d.faltanteMochilaL } : {}),
         anula_id: d.anulaId,
       })
       .select('id')
@@ -247,6 +255,7 @@ export const cargaRepository = (db: Db) => ({
         es_frontera: d.esFrontera,
         faltante_lleno_l: d.esFrontera ? d.faltanteLlenoL : 0,
         faltante_observacion: d.esFrontera ? d.faltanteObservacion : null,
+        ...(d.faltanteMochilaL !== undefined ? { faltante_mochila_l: d.esFrontera ? d.faltanteMochilaL : null } : {}),
       },
       p_motivo: d.motivo,
     });
