@@ -22,6 +22,7 @@ import {
   nombreCompleto,
   type Chofer, ESTADOS_VISA, ETIQUETA_VISA } from '../../domain/chofer.types';
 import { useBases, useCatalogosFlota, useChofer, useCrearChofer, useEditarChofer } from '../../queries/hooks';
+import { PendientesChofer } from './pendientes-chofer';
 
 type Props = { modo: 'alta' } | { modo: 'edicion'; chofer: Chofer };
 
@@ -321,6 +322,7 @@ export function ChoferForm(props: Props) {
         <Campo label="Fecha de egreso" error={e.fechaEgreso?.message} ayuda="Solo para la baja (estado Baja).">
           <input type="date" {...register('fechaEgreso')} />
         </Campo>
+        {original && <PendientesChofer id={original.id} estado={watch('estado')} />}
       </Bloque>
 
       <div className="flex flex-wrap items-center gap-3">

@@ -13,7 +13,9 @@ import {
   type ChoferResumen,
   type DatosReservadosChofer,
   type DocumentoChofer,
+  type PendientesChofer,
   type ReservadosChofer,
+  parsearPendientesChofer,
 } from '../domain/chofer.types';
 
 /**
@@ -138,6 +140,8 @@ export interface ChoferRepository {
   revelarDocumento(id: ChoferId, contexto: { motivo: string; ip: string | null }): Promise<DatosReservadosChofer | null>;
   /** Migración 45: 'borrado' (nunca usado) u 'ocultado' (ya usado: se conserva para la historia). */
   eliminar(id: ChoferId, motivo: string): Promise<'borrado' | 'ocultado'>;
+  /** Migración 265: lo que el chofer tiene abierto (tractores asignados, relevos, viajes). */
+  pendientes(id: ChoferId): Promise<PendientesChofer>;
 }
 
 export const choferRepository = (db: Db): ChoferRepository => ({
@@ -203,6 +207,12 @@ export const choferRepository = (db: Db): ChoferRepository => ({
     const { data, error } = await db.schema('mae').rpc('fn_eliminar_chofer', { p_chofer: id, p_motivo: motivo });
     if (error) throw new RepoError(error);
     return data === 'borrado' ? 'borrado' : 'ocultado';
+  },
+
+  async pendientes(id) {
+    const { data, error } = await db.schema('mae').rpc('fn_chofer_pendientes', { p_chofer: id });
+    if (error) throw new RepoError(error);
+    return parsearPendientesChofer(data);
   },
 
   async revelarDocumento(id, { motivo, ip }) {

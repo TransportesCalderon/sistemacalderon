@@ -70,6 +70,8 @@ export interface ViajeEnCurso {
   chofer: string | null;
   /** Migración 214: el chofer del viaje, si no es el que maneja ahora (a él se le hace el cierre). */
   choferViaje: string | null;
+  /** Migración 265: el chofer que marca la tarjeta de la telemetría, si no es el que figura manejando. Es solo un aviso. */
+  choferTarjeta: string | null;
   salidaTs: FechaISO;
   linea: string | null;
   km: number | null;
@@ -118,6 +120,7 @@ export const parsearViajesEnCurso = (d: unknown): ViajeEnCurso[] =>
       choferId: n(v.chofer_id),
       chofer: txt(v.chofer),
       choferViaje: txt(v.chofer_viaje),
+      choferTarjeta: txt(v.chofer_tarjeta),
       salidaTs: (txt(v.salida_ts) ?? '') as FechaISO,
       linea: txt(v.linea),
       km: n(v.km),

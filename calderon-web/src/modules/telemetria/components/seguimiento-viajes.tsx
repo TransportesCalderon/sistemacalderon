@@ -111,6 +111,7 @@ export function SeguimientoViajes() {
                         <td className={TD}>
                           {v.chofer ?? 'Sin chofer'}
                           {v.choferViaje && <span className="block text-xs text-alerta">Viaje de {v.choferViaje}</span>}
+                          {v.choferTarjeta && <span className="block text-xs text-alerta">Tarjeta: {v.choferTarjeta}</span>}
                         </td>
                         <td className={cn(TD, 'text-tinta-suave')}>{v.marca ?? '—'}</td>
                         <td className={cn(TD, 'tabular-nums')}>{formatearFechaHora(v.salidaTs, zonaHoraria)}</td>
@@ -213,6 +214,11 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
           </p>
           {v.choferViaje && (
             <p className="text-xs text-alerta">El viaje lo empezó {v.choferViaje}: si cambió el chofer, cambialo también en el viaje (para el cierre).</p>
+          )}
+          {v.choferTarjeta && (
+            <p className="text-xs text-alerta">
+              La tarjeta del camión marca a {v.choferTarjeta}. Si cambió el chofer, cargá el relevo en la operación o cambialo en el viaje.
+            </p>
           )}
         </div>
         {e && <Chip tono={TONO_RESULTADO[e.resultado]}>{ETIQUETA_RESULTADO[e.resultado]}</Chip>}
