@@ -6,13 +6,12 @@ import { Eye, FileText, LoaderCircle, Save, Send, Undo2, X } from 'lucide-react'
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { AccionConMotivo, Chip, ErrorBase, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { ETIQUETA_ESTADO_DTE, NOMBRE_DTE, VERSION_SII, type DocumentoSii, type VistaPreviaSii, type EstadoDte, type ResultadoSii, type SiiFactura } from '../domain/sii';
+import { ETIQUETA_ESTADO_DTE, NOMBRE_DTE, type DocumentoSii, type VistaPreviaSii, type EstadoDte, type ResultadoSii, type SiiFactura } from '../domain/sii';
 import { useEmitirSii, useGuardarClienteSii, useGuardarGlosaSii, useSiiVistaPrevia, useNotaCreditoSii, useProbarSii, useResolverDte, useSiiEstado, useSiiFactura } from '../queries/hooks';
 
 import logoAurea from './aurea-logo.png';
@@ -25,15 +24,14 @@ const TONO_DTE: Record<EstadoDte, Tono> = { aceptado: 'exito', rechazado: 'error
  * dice qué falta, arma y envía el documento; acá solo se muestra y se piden los datos del cliente.
  */
 export function FacturaSii({ facturaId, version, estado, fecha }: { facturaId: number; version: number; estado: string; fecha: string }) {
-  const hay = useBaseTiene(VERSION_SII);
   const puedeEstado = useCan('ventas.facturacion:transicionar');
-  const { data: s } = useSiiFactura(facturaId, hay && puedeEstado);
+  const { data: s } = useSiiFactura(facturaId, puedeEstado);
   const emitir = useEmitirSii();
   const envio = useEnvio();
   const [resultado, setResultado] = useState<ResultadoSii | null>(null);
   const [verPrevia, setVerPrevia] = useState(false);
 
-  if (!hay || !puedeEstado || !s) return null;
+  if (!puedeEstado || !s) return null;
   // Una factura hecha por fuera del sistema (sin envíos al SII) no muestra el recuadro
   if (estado !== 'borrador' && s.documentos.length === 0) return null;
   const prueba = s.ambiente === 'prueba';

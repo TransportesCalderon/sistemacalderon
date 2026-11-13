@@ -25,16 +25,12 @@ import {
   restablecerClave,
 } from '../usuarios.actions';
 import { BOTON_PRIMARIO } from '@/shared/ui/clases';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { usuariosRepository, type Usuario } from '../usuarios.repository';
 import { invalidar } from '@/shared/query/invalidar';
 
 /** Roles que se asignan desde acá. Migración 60: el chofer entra al celular (Mi carga, Mis gastos), vinculado a su ficha. */
 const ROLES_ASIGNABLES = ROLES_APP;
 
-/** Migración 150: desde esta versión TI crea la cuenta de acceso desde acá. */
-const VERSION_CREAR = 150;
-const VERSION_APROBADORES = 170;
 
 /**
  * Configuración > Usuarios y roles (migración 34). Migración 150: «Nuevo usuario» crea la cuenta de
@@ -55,88 +51,56 @@ export function UsuariosPantalla() {
     staleTime: FRESCURA.maestro,
   });
   const [abierto, setAbierto] = useState<string | null>(null);
-  const puedeCrear = useBaseTiene(VERSION_CREAR);
-  // Migración 192: TI pone una contraseña provisoria
-  const puedeRestablecer = useBaseTiene(192);
   // Migración 170: quién aprueba cierres de viaje
-  const hayAprobadores = useBaseTiene(VERSION_APROBADORES);
   const aprobadores = useQuery({
     queryKey: ['usuarios', 'aprobadores-cierre'],
     queryFn: () => usuariosRepository(db).aprobadoresCierre(),
-    enabled: hayAprobadores,
     staleTime: FRESCURA.maestro,
   });
   // Migración 200: quién da la segunda aprobación de cierres
-  const haySegundoNivel = useBaseTiene(200);
   const segundoNivel = useQuery({
     queryKey: ['usuarios', 'segundo-nivel'],
     queryFn: () => usuariosRepository(db).aprobadoresSegundoNivel(),
-    enabled: haySegundoNivel,
     staleTime: FRESCURA.maestro,
   });
   // Migración 177: quién recibe el aviso de tanque bajo
-  const hayAvisoTanque = useBaseTiene(177);
   const avisados = useQuery({
     queryKey: ['usuarios', 'aviso-tanque-bajo'],
     queryFn: () => usuariosRepository(db).avisadosTanqueBajo(),
-    enabled: hayAvisoTanque,
     staleTime: FRESCURA.maestro,
   });
   // Migración 189: quién recibe las alertas vencidas y resuelve las prórrogas
-  const hayEscalamiento = useBaseTiene(189);
   const escalamiento = useQuery({
     queryKey: ['usuarios', 'escalamiento'],
     queryFn: () => usuariosRepository(db).recibenEscalamiento(),
-    enabled: hayEscalamiento,
     staleTime: FRESCURA.maestro,
   });
   // Migración 247: quién autoriza cargas (órdenes de carga)
-  const hayAutorizaCargas = useBaseTiene(247);
   const autorizan = useQuery({
     queryKey: ['usuarios', 'autoriza-cargas'],
     queryFn: () => usuariosRepository(db).autorizanCargas(),
-    enabled: hayAutorizaCargas,
     staleTime: FRESCURA.maestro,
   });
   // Migración 256: quién aprueba el FF Chofer
-  const hayApruebaFondos = useBaseTiene(256);
   const apruebanFondos = useQuery({
     queryKey: ['usuarios', 'aprueba-fondos'],
     queryFn: () => usuariosRepository(db).apruebanFondos(),
-    enabled: hayApruebaFondos,
     staleTime: FRESCURA.maestro,
   });
-  const columnas =
-    5 +
-    (hayAprobadores ? 1 : 0) +
-    (haySegundoNivel ? 1 : 0) +
-    (hayAvisoTanque ? 1 : 0) +
-    (hayEscalamiento ? 1 : 0) +
-    (hayAutorizaCargas ? 1 : 0) +
-    (hayApruebaFondos ? 1 : 0);
+  const columnas = 11;
 
   return (
     <div className="space-y-5">
       <Encabezado titulo="Usuarios y roles" subtitulo="Configuración">
-        {puedeCrear && abierto !== 'nuevo' && (
+        {abierto !== 'nuevo' && (
           <button type="button" className={BOTON_PRIMARIO} onClick={() => setAbierto('nuevo')}>
             <UserPlus className="size-4" /> Nuevo usuario
           </button>
         )}
       </Encabezado>
       <p className="text-sm text-tinta-suave">
-        {puedeCrear ? (
-          <>
-            Para sumar a alguien: <span className="font-medium">Nuevo usuario</span>, con su email, nombre y roles. Los roles nuevos rigen
-            cuando la persona vuelve a entrar (hasta 1 hora); desactivar corta el acceso en el momento.
-          </>
-        ) : (
-          <>
-            Para sumar a alguien: en Supabase, <span className="font-medium">Authentication → Users → Add user</span> (email y contraseña, o
-            invitación por email). Después aparece abajo en «Cuentas sin vincular» para darle nombre y roles. Los roles nuevos rigen cuando la
-            persona vuelve a entrar (hasta 1 hora); desactivar corta el acceso en el momento.
-          </>
-        )}
+        Para sumar a alguien: <span className="font-medium">Nuevo usuario</span>, con su email, nombre y roles. Los roles nuevos rigen
+        cuando la persona vuelve a entrar (hasta 1 hora); desactivar corta el acceso en el momento.
       </p>
 
       {abierto === 'nuevo' && <FormUsuario nuevo onCerrar={() => setAbierto(null)} />}
@@ -189,28 +153,20 @@ export function UsuariosPantalla() {
                   <th className={TH}>Roles</th>
                   <th className={TH}>Último ingreso</th>
                   <th className={TH}>Estado</th>
-                  {hayAprobadores && <th className={TH}>Aprueba cierres de viaje</th>}
-                  {haySegundoNivel && (
-                    <th className={TH} title="Cuando se descuenta al chofer menos que la diferencia (o se quita un descuento)">
-                      Segunda aprobación de cierres
-                    </th>
-                  )}
-                  {hayAvisoTanque && <th className={TH} title="Además de Telemetría">Aviso de tanque bajo</th>}
-                  {hayEscalamiento && (
-                    <th className={TH} title="Le llegan las alertas vencidas con su historial y resuelve los pedidos de prórroga">
-                      Recibe escalamientos
-                    </th>
-                  )}
-                  {hayAutorizaCargas && (
-                    <th className={TH} title="Puede generar y anular órdenes de carga de combustible">
-                      Autoriza cargas
-                    </th>
-                  )}
-                  {hayApruebaFondos && (
-                    <th className={TH} title="Aprueba o rechaza los pedidos de FF Chofer (dinero del viaje)">
-                      Aprueba fondos fijos
-                    </th>
-                  )}
+                  <th className={TH}>Aprueba cierres de viaje</th>
+                  <th className={TH} title="Cuando se descuenta al chofer menos que la diferencia (o se quita un descuento)">
+                    Segunda aprobación de cierres
+                  </th>
+                  <th className={TH} title="Además de Telemetría">Aviso de tanque bajo</th>
+                  <th className={TH} title="Le llegan las alertas vencidas con su historial y resuelve los pedidos de prórroga">
+                    Recibe escalamientos
+                  </th>
+                  <th className={TH} title="Puede generar y anular órdenes de carga de combustible">
+                    Autoriza cargas
+                  </th>
+                  <th className={TH} title="Aprueba o rechaza los pedidos de FF Chofer (dinero del viaje)">
+                    Aprueba fondos fijos
+                  </th>
                   <th className={TH} />
                 </tr>
               </thead>
@@ -235,69 +191,57 @@ export function UsuariosPantalla() {
                         {u.ultimoIngreso ? formatearFechaHora(u.ultimoIngreso, zonaHoraria) : 'Nunca'}
                       </td>
                       <td className={TD}>{u.activo ? <Chip tono="exito">Activo</Chip> : <Chip tono="neutro">Desactivado</Chip>}</td>
-                      {hayAprobadores && (
-                        <td className={TD}>
-                          <AprobadorCierre usuario={u.id} marcado={(aprobadores.data ?? []).includes(u.id)} cargando={aprobadores.isPending} />
-                        </td>
-                      )}
-                      {haySegundoNivel && (
-                        <td className={TD}>
+                      <td className={TD}>
+                        <AprobadorCierre usuario={u.id} marcado={(aprobadores.data ?? []).includes(u.id)} cargando={aprobadores.isPending} />
+                      </td>
+                      <td className={TD}>
+                        <AprobadorCierre
+                          usuario={u.id}
+                          marcado={(segundoNivel.data ?? []).includes(u.id)}
+                          cargando={segundoNivel.isPending}
+                          accion={marcarAprobadorSegundoNivel}
+                        />
+                      </td>
+                      <td className={TD}>
+                        <AprobadorCierre
+                          usuario={u.id}
+                          marcado={(avisados.data ?? []).includes(u.id)}
+                          cargando={avisados.isPending}
+                          accion={marcarAvisoTanqueBajo}
+                        />
+                      </td>
+                      <td className={TD}>
+                        <AprobadorCierre
+                          usuario={u.id}
+                          marcado={(escalamiento.data ?? []).includes(u.id)}
+                          cargando={escalamiento.isPending}
+                          accion={marcarRecibeEscalamiento}
+                        />
+                      </td>
+                      <td className={TD}>
+                        {u.choferId === null ? (
                           <AprobadorCierre
                             usuario={u.id}
-                            marcado={(segundoNivel.data ?? []).includes(u.id)}
-                            cargando={segundoNivel.isPending}
-                            accion={marcarAprobadorSegundoNivel}
+                            marcado={(autorizan.data ?? []).includes(u.id)}
+                            cargando={autorizan.isPending}
+                            accion={marcarAutorizaCargas}
                           />
-                        </td>
-                      )}
-                      {hayAvisoTanque && (
-                        <td className={TD}>
+                        ) : (
+                          <span className="text-xs text-tinta-suave">—</span>
+                        )}
+                      </td>
+                      <td className={TD}>
+                        {u.choferId === null ? (
                           <AprobadorCierre
                             usuario={u.id}
-                            marcado={(avisados.data ?? []).includes(u.id)}
-                            cargando={avisados.isPending}
-                            accion={marcarAvisoTanqueBajo}
+                            marcado={(apruebanFondos.data ?? []).includes(u.id)}
+                            cargando={apruebanFondos.isPending}
+                            accion={marcarApruebaFondos}
                           />
-                        </td>
-                      )}
-                      {hayEscalamiento && (
-                        <td className={TD}>
-                          <AprobadorCierre
-                            usuario={u.id}
-                            marcado={(escalamiento.data ?? []).includes(u.id)}
-                            cargando={escalamiento.isPending}
-                            accion={marcarRecibeEscalamiento}
-                          />
-                        </td>
-                      )}
-                      {hayAutorizaCargas && (
-                        <td className={TD}>
-                          {u.choferId === null ? (
-                            <AprobadorCierre
-                              usuario={u.id}
-                              marcado={(autorizan.data ?? []).includes(u.id)}
-                              cargando={autorizan.isPending}
-                              accion={marcarAutorizaCargas}
-                            />
-                          ) : (
-                            <span className="text-xs text-tinta-suave">—</span>
-                          )}
-                        </td>
-                      )}
-                      {hayApruebaFondos && (
-                        <td className={TD}>
-                          {u.choferId === null ? (
-                            <AprobadorCierre
-                              usuario={u.id}
-                              marcado={(apruebanFondos.data ?? []).includes(u.id)}
-                              cargando={apruebanFondos.isPending}
-                              accion={marcarApruebaFondos}
-                            />
-                          ) : (
-                            <span className="text-xs text-tinta-suave">—</span>
-                          )}
-                        </td>
-                      )}
+                        ) : (
+                          <span className="text-xs text-tinta-suave">—</span>
+                        )}
+                      </td>
                       <td className={cn(TD, 'text-right')}>
                         {u.email && (
                           <button
@@ -308,7 +252,7 @@ export function UsuariosPantalla() {
                             <Pencil className="size-3.5" /> Editar
                           </button>
                         )}
-                        {puedeRestablecer && u.email && u.id !== usuarioId && (
+                        {u.email && u.id !== usuarioId && (
                           <button
                             type="button"
                             className="ml-3 inline-flex items-center gap-1 text-xs text-marca hover:underline"

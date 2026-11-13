@@ -11,7 +11,6 @@ import type { FechaISO } from '@/shared/types/dominio';
  * lista. La base decide qué entra y en qué grupo; acá solo se ordena y se filtra por pantalla.
  * Cada renglón abre su ficha en el panel (carga, cierre, viaje) o lleva a su lista.
  */
-export const VERSION_HOY = 116;
 
 export const GRUPOS_HOY = ['aprobar', 'revisar', 'esperando'] as const;
 export type GrupoHoy = (typeof GRUPOS_HOY)[number];

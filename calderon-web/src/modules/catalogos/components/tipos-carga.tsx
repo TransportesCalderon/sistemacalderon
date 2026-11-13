@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, type SelectHTMLAttributes } from 'react';
-import { Package, Pencil, Plus, Snowflake } from 'lucide-react';
-import { Cargando, Chip, Encabezado, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { Pencil, Plus, Snowflake } from 'lucide-react';
+import { Cargando, Chip, Encabezado, ErrorLectura } from '@/modules/combustible/components/comun/ui';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { opcionesTipoCarga, VERSION_TIPOS_CARGA, type TipoCarga } from '../domain/tipos-carga';
+import { opcionesTipoCarga, type TipoCarga } from '../domain/tipos-carga';
 import { useGuardarTipoCarga, useTiposCarga } from '../queries/hooks';
 import { Panel, TD, TH, useEnvio } from './comun';
 
@@ -17,8 +16,7 @@ import { Panel, TD, TH, useEnvio } from './comun';
  * nombre, se desactiva.
  */
 export function TiposCargaPantalla() {
-  const hay = useBaseTiene(VERSION_TIPOS_CARGA);
-  const { data, isPending, isError, error, refetch } = useTiposCarga(hay);
+  const { data, isPending, isError, error, refetch } = useTiposCarga(true);
   const [editando, setEditando] = useState<TipoCarga | 'nuevo' | null>(null);
 
   return (
@@ -34,9 +32,7 @@ export function TiposCargaPantalla() {
         La mercadería que se transporta. Se elige en cada operación, tarifa y cotización, y la tarifa puede tener un precio distinto para cada tipo.
         Los «con frío» avisan en Hoy si la operación no tiene genset.
       </p>
-      {!hay ? (
-        <Vacio icono={<Package className="size-6" />} texto="La base todavía no tiene los tipos de carga. Falta aplicar la migración 121 (106_tipos_carga.sql)." />
-      ) : isPending ? (
+      {isPending ? (
         <Cargando texto="Cargando los tipos de carga…" />
       ) : isError ? (
         <ErrorLectura texto={error instanceof Error ? error.message : 'No se pudieron leer los tipos de carga.'} onReintentar={() => refetch()} />
@@ -140,14 +136,7 @@ export function SelectTipoCarga({
   vacio = 'Elegí…',
   ...resto
 }: Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> & { value: string; onValor: (v: string) => void; vacio?: string }) {
-  const hay = useBaseTiene(VERSION_TIPOS_CARGA);
-  const { data } = useTiposCarga(hay);
-  if (!hay) {
-    const { className, id, disabled } = resto;
-    return (
-      <input id={id} className={cn('uppercase', className)} disabled={disabled} maxLength={30} value={value} onChange={(e) => onValor(e.target.value)} />
-    );
-  }
+  const { data } = useTiposCarga(true);
   return (
     <select {...resto} value={value} onChange={(e) => onValor(e.target.value)}>
       <option value="">{vacio}</option>

@@ -2,7 +2,6 @@ import { RepoError, type Db } from '@/shared/repository/types';
 import type { FechaISO } from '@/shared/types/dominio';
 
 /** Migración 235 · Registro de actividad: qué se hizo, cuándo y quién (lee la auditoría de la base). */
-export const VERSION_ACTIVIDAD = 235;
 
 export const GRUPOS_ACTIVIDAD = [
   { valor: '', etiqueta: 'Todo' },

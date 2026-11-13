@@ -5,8 +5,6 @@ import { FileText, LoaderCircle, Paperclip } from 'lucide-react';
 import { abrirArchivo, borrarArchivo, subirArchivo } from '@/modules/chofer/components/archivos';
 import { ErrorBase } from '@/modules/combustible/components/comun/ui';
 import type { ErrorAccion } from '@/server/actions/result';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
-import { VERSION_DETALLE } from '../domain/detalle';
 import type { Factura } from '../domain/ventas.types';
 import { useGuardarComprobanteCobro } from '../queries/hooks';
 
@@ -24,8 +22,6 @@ const errorDe = (e: unknown): ErrorAccion => ({ codigo: 'desconocido', mensaje: 
 
 /** Elegir el archivo (foto o PDF). */
 export function CampoComprobante({ archivo, onArchivo }: { archivo: File | null; onArchivo: (a: File | null) => void }) {
-  const hay = useBaseTiene(VERSION_DETALLE);
-  if (!hay) return null;
   return (
     <label className="flex cursor-pointer items-center gap-2 self-end pb-2 text-sm text-marca hover:underline">
       <Paperclip className="size-4" />
@@ -67,10 +63,9 @@ export function useAdjuntarComprobante() {
 
 /** En la factura emitida o cobrada: ver el comprobante, o subirlo / cambiarlo. */
 export function ComprobanteCobro({ f, puede }: { f: Factura; puede: boolean }) {
-  const hay = useBaseTiene(VERSION_DETALLE);
   const { adjuntar, ocupado } = useAdjuntarComprobante();
   const [error, setError] = useState<ErrorAccion | null>(null);
-  if (!hay || !['emitida', 'vencida', 'cobrada'].includes(f.estado)) return null;
+  if (!['emitida', 'vencida', 'cobrada'].includes(f.estado)) return null;
   if (!f.comprobanteRuta && (!puede || f.estado !== 'cobrada')) return null;
   return (
     <div className="space-y-1 text-sm">

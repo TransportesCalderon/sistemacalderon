@@ -5,7 +5,6 @@ import { Pencil, Save, X } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { ErrorBase } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import type { ClienteId } from '@/shared/types/dominio';
 import { valoresEdicionCliente } from '../../domain/cliente.schemas';
@@ -16,15 +15,14 @@ import { useCliente, useEditarCliente } from '../../queries/hooks';
  * Guarda con la edición de siempre del cliente: la base valida.
  */
 export function ClienteFantasia({ clienteId }: { clienteId: number }) {
-  const hay = useBaseTiene(154);
   const puede = useCan('comercial.clientes:editar');
-  const { data: c } = useCliente(clienteId as ClienteId, { enabled: hay });
+  const { data: c } = useCliente(clienteId as ClienteId);
   const editar = useEditarCliente();
   const envio = useEnvio();
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState('');
 
-  if (!hay || !c) return null;
+  if (!c) return null;
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
       <span className="text-tinta-suave">Nombre de fantasía:</span>

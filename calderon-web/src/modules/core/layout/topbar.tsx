@@ -5,14 +5,12 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ChevronDown, CircleDollarSign, Clock, House, LayoutGrid, LogOut, MapPin, Menu, UserRound } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { useCan } from '@/modules/core/permissions/can';
 import { ETIQUETA_ROL } from '@/modules/core/permissions/roles';
 import { cambiarZonaHoraria, cerrarSesion } from '@/modules/core/auth/actions';
 import { ZONAS_HORARIAS } from '@/modules/core/auth/zonas';
 import { Buscador } from '@/modules/core/buscador/buscador';
-import { VERSION_BUSCADOR } from '@/modules/core/buscador/resultados';
 import { contarPendientes } from '@/modules/hoy/hoy';
 import { useHoy } from '@/modules/hoy/use-hoy';
 
@@ -23,7 +21,7 @@ import { useHoy } from '@/modules/hoy/use-hoy';
  */
 export function BarraSuperior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
   const { rolesApp } = useSesion();
-  const hayBuscador = useBaseTiene(VERSION_BUSCADOR) && rolesApp.some((r) => r !== 'chofer');
+  const hayBuscador = rolesApp.some((r) => r !== 'chofer');
   const verPizarra = useCan('flota.pizarra:ver');
   const verHoy = useCan('inicio.hoy:ver');
   const verMapa = useCan('telemetria.mapa:ver');

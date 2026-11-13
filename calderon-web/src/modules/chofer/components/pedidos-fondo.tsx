@@ -8,7 +8,6 @@ import { AccionConMotivo, Cargando, Chip, Encabezado, ErrorLectura, Vacio, type 
 import { useChoferesCombustible, useMonedas } from '@/modules/combustible/queries/hooks';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ActionResult, ErrorAccion } from '@/server/actions/result';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, formatearFechaHora, hoyEnZona } from '@/shared/lib/fechas';
 import { browserDb } from '@/shared/supabase/browser';
@@ -19,7 +18,6 @@ import { dinero } from '../domain/chofer.types';
 import { abrirArchivo, borrarArchivo, subirArchivo } from './archivos';
 
 /** Migración 256 · Pedidos de FF Chofer: los piden Operaciones y Telemetría, aprueba el gerente, deposita Administración. */
-export const VERSION_PEDIDOS_FONDO = 256;
 
 type Estado = 'pendiente' | 'aprobado' | 'rechazado' | 'depositado' | 'anulado';
 interface CierrePendiente {
@@ -71,10 +69,8 @@ const aNumero = (s: string) => {
 };
 
 function usePedidos(todos: boolean) {
-  const hay = useBaseTiene(VERSION_PEDIDOS_FONDO);
   return useQuery({
     queryKey: [...CLAVE, todos] as const,
-    enabled: hay,
     refetchInterval: 60_000,
     queryFn: async (): Promise<Datos> => {
       const { data, error } = await browserDb().schema('fin').rpc('fn_pedidos_fondo', { p_todos: todos });
@@ -87,15 +83,9 @@ function usePedidos(todos: boolean) {
 
 /** Liquidaciones › Fondos de choferes › Pedidos de FF. */
 export function PedidosFondo() {
-  const hay = useBaseTiene(VERSION_PEDIDOS_FONDO);
   const [todos, setTodos] = useState(false);
   const [nuevo, setNuevo] = useState(false);
   const q = usePedidos(todos);
-
-  if (!hay)
-    return (
-      <p className={cn(TARJETA, 'p-4 text-sm text-tinta-suave')}>Falta aplicar en la base el cambio de los pedidos de FF Chofer (migración 256).</p>
-    );
 
   return (
     <div className="space-y-5">

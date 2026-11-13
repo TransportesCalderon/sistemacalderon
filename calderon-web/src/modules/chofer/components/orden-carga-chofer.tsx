@@ -8,7 +8,6 @@ import { urlQr, type MiOrden } from '@/modules/combustible/domain/orden-carga.ty
 import { useMisOrdenesCarga, useTerminarOrdenCarga } from '@/modules/combustible/queries/orden-carga.hooks';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { iaRepository } from '@/modules/ia/ia.repository';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { idAleatorio, prepararArchivo, sha256Hex } from '@/shared/lib/archivo';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { browserDb } from '@/shared/supabase/browser';
@@ -28,8 +27,7 @@ async function aBase64(blob: Blob): Promise<string> {
  * Cuando la estación confirma, «Terminé mi carga» → las fotos de los tickets.
  */
 export function OrdenCargaChofer() {
-  const hay = useBaseTiene(234);
-  const { data } = useMisOrdenesCarga(hay);
+  const { data } = useMisOrdenesCarga(true);
   // Migración 252: puede haber una del camión y otra del genset al mismo tiempo
   if (!data || data.length === 0) return null;
   return (

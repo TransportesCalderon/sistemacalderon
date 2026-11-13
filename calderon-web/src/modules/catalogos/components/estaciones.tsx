@@ -5,13 +5,11 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Fuel, Import, LoaderCircle, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { ErrorAccion } from '@/server/actions/result';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { useCan } from '@/modules/core/permissions/can';
 import { Cargando, Chip, Encabezado, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { VERSION_ORDEN_CARGA } from '@/modules/combustible/domain/orden-carga.types';
 import { useCorreoEstacion } from '@/modules/combustible/queries/orden-carga.hooks';
 import type { Estacion } from '../domain/catalogos.types';
 import { useEliminarEstacion, useEstaciones, useGuardarEstacion, usePaises, useProveedores } from '../queries/hooks';
@@ -20,8 +18,6 @@ import { coordenadasDeTexto } from '../domain/ubicacion-link';
 import { esLinkCorto, esLinkDeMaps } from '@/modules/logistica/domain/rutas';
 import { Panel, TD, TH, useEnvio } from './comun';
 
-/** Migración 143: desde esta versión se guarda el punto de la estación. */
-const VERSION_UBICACION = 143;
 
 const MapaRuta = dynamic(() => import('@/modules/logistica/components/rutas/mapa-ruta').then((m) => m.MapaRuta), {
   ssr: false,
@@ -42,7 +38,6 @@ export function EstacionesPantalla() {
   const proveedor = (id: number | null) => (id === null ? null : (proveedores?.find((p) => p.id === id)?.razonSocial ?? `#${id}`));
   const t = texto.trim().toLowerCase();
   const filas = (data ?? []).filter((e) => !t || `${e.codigo} ${e.nombre} ${proveedor(e.proveedorId) ?? ''}`.toLowerCase().includes(t));
-  const conMapa = useBaseTiene(VERSION_UBICACION);
   const sinUbicar = (data ?? []).filter((e) => !e.esTanquePropio && e.latitud === null).length;
 
   return (
@@ -65,7 +60,7 @@ export function EstacionesPantalla() {
         </p>
       )}
 
-      {conMapa && sinUbicar > 0 && (
+      {sinUbicar > 0 && (
         <p className="flex items-start gap-2 rounded-lg border border-alerta/30 bg-alerta-suave p-3 text-sm text-alerta">
           <MapPin className="mt-0.5 size-4 shrink-0" />
           {sinUbicar === 1 ? '1 estación no tiene' : `${sinUbicar} estaciones no tienen`} su lugar en el mapa: sin eso, el chofer no recibe el aviso de cuántos litros
@@ -98,7 +93,7 @@ export function EstacionesPantalla() {
                 <th className={TH}>Nombre</th>
                 <th className={TH}>Proveedor</th>
                 <th className={TH}>País</th>
-                {conMapa && <th className={TH}>En el mapa</th>}
+                <th className={TH}>En el mapa</th>
                 {puede && <th className={TH} />}
               </tr>
             </thead>
@@ -106,7 +101,7 @@ export function EstacionesPantalla() {
               {filas.map((e) => {
                 const modo = abierto && abierto.modo !== 'nuevo' && abierto.e.id === e.id ? abierto.modo : null;
                 return (
-                  <FilaEstacion key={e.id} e={e} proveedor={proveedor(e.proveedorId)} pais={pais(e.pais)} puede={puede} conMapa={conMapa} modo={modo} onAbrir={setAbierto} />
+                  <FilaEstacion key={e.id} e={e} proveedor={proveedor(e.proveedorId)} pais={pais(e.pais)} puede={puede} modo={modo} onAbrir={setAbierto} />
                 );
               })}
             </tbody>
@@ -122,7 +117,6 @@ function FilaEstacion({
   proveedor,
   pais,
   puede,
-  conMapa,
   modo,
   onAbrir,
 }: {
@@ -130,7 +124,6 @@ function FilaEstacion({
   proveedor: string | null;
   pais: string;
   puede: boolean;
-  conMapa: boolean;
   modo: 'editar' | 'eliminar' | null;
   onAbrir: (a: Abierto) => void;
 }) {
@@ -143,19 +136,17 @@ function FilaEstacion({
         </td>
         <td className={TD}>{proveedor ?? '—'}</td>
         <td className={TD}>{pais}</td>
-        {conMapa && (
-          <td className={TD}>
-            {e.latitud !== null ? (
-              <Chip tono="exito">
-                <MapPin className="size-3" /> Ubicada
-              </Chip>
-            ) : e.esTanquePropio ? (
-              '—'
-            ) : (
-              <Chip tono="alerta">Sin ubicar</Chip>
-            )}
-          </td>
-        )}
+        <td className={TD}>
+          {e.latitud !== null ? (
+            <Chip tono="exito">
+              <MapPin className="size-3" /> Ubicada
+            </Chip>
+          ) : e.esTanquePropio ? (
+            '—'
+          ) : (
+            <Chip tono="alerta">Sin ubicar</Chip>
+          )}
+        </td>
         {puede && (
           <td className={cn(TD, 'text-right whitespace-nowrap')}>
             <button type="button" className="mr-3 inline-flex items-center gap-1 text-xs text-marca hover:underline" onClick={() => onAbrir({ modo: 'editar', e })}>
@@ -192,8 +183,6 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
     pais: e?.pais ?? '',
     esTanquePropio: e?.esTanquePropio ?? false,
   });
-  const conCorreo = useBaseTiene(VERSION_ORDEN_CARGA);
-  const conMapa = useBaseTiene(VERSION_UBICACION);
   const [punto, setPunto] = useState<{ lat: number; lng: number } | null>(
     e?.latitud != null && e.longitud != null ? { lat: e.latitud, lng: e.longitud } : null,
   );
@@ -214,7 +203,8 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
               ...v,
               id: e?.id ?? null,
               versionFila: e?.versionFila ?? null,
-              ...(conMapa ? { latitud: punto?.lat ?? null, longitud: punto?.lng ?? null } : {}),
+              latitud: punto?.lat ?? null,
+              longitud: punto?.lng ?? null,
             })
             // Migración 234: el correo para las órdenes de carga (lo valida la base)
             .then((r) => (r.ok && e && correo.trim() !== (e.correo ?? '') ? guardarCorreo.mutateAsync({ estacionId: e.id, correo }) : r)),
@@ -252,12 +242,12 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
         <input type="checkbox" className="size-4 accent-marca" checked={v.esTanquePropio} onChange={(ev) => setV({ ...v, esTanquePropio: ev.target.checked })} />
         Surtidor propio de la empresa (Base Mendoza)
       </label>
-      {e && conCorreo && (
+      {e && (
         <Campo label="Correo para las órdenes de carga" ayuda="Adonde llega la palabra de seguridad. Para varios, separalos con coma.">
           <input type="email" maxLength={500} value={correo} onChange={(ev) => setCorreo(ev.target.value)} />
         </Campo>
       )}
-      {conMapa && <UbicacionEstacion nombre={v.nombre} punto={punto} onCambiar={setPunto} />}
+      <UbicacionEstacion nombre={v.nombre} punto={punto} onCambiar={setPunto} />
     </Panel>
   );
 }

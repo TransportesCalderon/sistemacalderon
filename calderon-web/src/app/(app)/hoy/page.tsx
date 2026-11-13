@@ -2,9 +2,8 @@ import type { Metadata } from 'next';
 import { requirePermiso } from '@/modules/core/auth/guards';
 import { HoyPantalla } from '@/modules/hoy/components/hoy-pantalla';
 import { RegistroActividad } from '@/modules/actividad/components/registro-actividad';
-import { VEN_ACTIVIDAD, VERSION_ACTIVIDAD } from '@/modules/actividad/actividad';
+import { VEN_ACTIVIDAD } from '@/modules/actividad/actividad';
 import { Encabezado } from '@/modules/combustible/components/comun/ui';
-import { baseTiene } from '@/shared/lib/version-base';
 import { Pestanas } from '@/shared/ui/pestanas';
 
 export const metadata: Metadata = { title: 'Hoy' };
@@ -17,7 +16,7 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
  */
 export default async function Pagina({ searchParams }: Props) {
   const ctx = await requirePermiso('inicio.hoy:ver');
-  const veActividad = baseTiene(ctx.versionBase, VERSION_ACTIVIDAD) && ctx.identidad.rolesApp.some((r) => (VEN_ACTIVIDAD as readonly string[]).includes(r));
+  const veActividad = ctx.identidad.rolesApp.some((r) => (VEN_ACTIVIDAD as readonly string[]).includes(r));
   if (!veActividad) return <HoyPantalla />;
   const pestanas = [
     { href: '/hoy', etiqueta: 'Lo que me toca' },

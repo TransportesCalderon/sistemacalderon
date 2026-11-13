@@ -7,7 +7,6 @@ import { useForm, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, CircleAlert, LoaderCircle, RefreshCw, TriangleAlert } from 'lucide-react';
 import type { ErrorAccion } from '@/server/actions/result';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
@@ -61,7 +60,6 @@ export function ClienteForm(props: Props) {
   const [error, setError] = useState<ErrorAccion | null>(null);
   const avisoRef = useRef<HTMLDivElement>(null);
   // Migración 154: nombre de fantasía (solo si la base ya lo tiene)
-  const conFantasia = useBaseTiene(154);
 
   // El aviso queda arriba del formulario: se lleva a la vista para que no pase inadvertido.
   useEffect(() => {
@@ -100,7 +98,6 @@ export function ClienteForm(props: Props) {
     setError(null);
     // La action vuelve a validar con el mismo esquema: recibe los valores crudos del formulario.
     const valores = form.getValues();
-    if (!conFantasia) delete valores.nombreFantasia;
     const r = original
       ? await editar.mutateAsync({ ...valores, id: original.id, versionFila: version })
       : await crear.mutateAsync(valores);
@@ -188,17 +185,15 @@ export function ClienteForm(props: Props) {
             </div>
           )}
         </div>
-        {conFantasia && (
-          <div className="sm:col-span-2">
-            <Campo
-              label="Nombre de fantasía (opcional)"
-              error={e.nombreFantasia?.message}
-              ayuda="Como se lo conoce. Se lo encuentra buscando por este nombre o por la razón social."
-            >
-              <input autoComplete="off" maxLength={120} {...register('nombreFantasia')} />
-            </Campo>
-          </div>
-        )}
+        <div className="sm:col-span-2">
+          <Campo
+            label="Nombre de fantasía (opcional)"
+            error={e.nombreFantasia?.message}
+            ayuda="Como se lo conoce. Se lo encuentra buscando por este nombre o por la razón social."
+          >
+            <input autoComplete="off" maxLength={120} {...register('nombreFantasia')} />
+          </Campo>
+        </div>
         <Campo
           label={`${nombreIdentificador(pais)} *`}
           error={e.identificadorFiscal?.message}

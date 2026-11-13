@@ -9,9 +9,6 @@ import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { useCrearFacturaLibre, useEmpresas } from '../queries/hooks';
 
-/** Migración 144: desde esta versión se puede facturar sin operación. */
-export const VERSION_FACTURA_LIBRE = 144;
-
 type Fila = { clave: number; descripcion: string; cantidad: string; precio: string };
 let k = 0;
 const nueva = (): Fila => ({ clave: ++k, descripcion: '', cantidad: '1', precio: '' });

@@ -19,8 +19,6 @@ export interface Resultado {
 
 const esPantalla = (v: string): v is PantallaId => (IDS_PANTALLA as readonly string[]).includes(v);
 
-/** Migración que trae el buscador: sin ella, el buscador no se muestra. */
-export const VERSION_BUSCADOR = 115;
 /** Letras mínimas para buscar (la base tampoco busca con menos). */
 export const MINIMO_LETRAS = 2;
 

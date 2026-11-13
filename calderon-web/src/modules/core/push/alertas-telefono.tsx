@@ -3,13 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BellOff, BellRing, LoaderCircle, Send } from 'lucide-react';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { clavePushPublica, desuscribirPush, probarPush, suscribirPush } from './push.actions';
 
 /** Migración 238 · Alertas en el teléfono. */
-export const VERSION_PUSH = 238;
 
 type Soporte = 'si' | 'instalar_iphone' | 'no';
 
@@ -38,7 +36,6 @@ async function suscripcionActual(): Promise<PushSubscription | null> {
  * sistema (fuera de ruta, tanque bajo, escalamientos, órdenes de trabajo): la base decide cuáles.
  */
 export function AlertasTelefono() {
-  const hay = useBaseTiene(VERSION_PUSH);
   const [sop, setSop] = useState<Soporte | null>(null);
   const [endpoint, setEndpoint] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -51,7 +48,6 @@ export function AlertasTelefono() {
       const d = (data ?? {}) as { endpoints?: string[] };
       return { endpoints: Array.isArray(d.endpoints) ? d.endpoints : [] };
     },
-    enabled: hay,
   });
 
   useEffect(() => {
@@ -60,7 +56,7 @@ export function AlertasTelefono() {
     if (s === 'si') void suscripcionActual().then((x) => setEndpoint(x?.endpoint ?? null));
   }, []);
 
-  if (!hay || sop === null) return null;
+  if (sop === null) return null;
   const activa = endpoint !== null && (estado.data?.endpoints ?? []).includes(endpoint);
   const bloqueadas = sop === 'si' && Notification.permission === 'denied';
 

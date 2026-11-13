@@ -1,7 +1,6 @@
 import type { FechaISO } from '@/shared/types/dominio';
 
 /** Migración 234: orden de carga de combustible (Gerencia) con QR para el chofer y palabra de seguridad para la estación. */
-export const VERSION_ORDEN_CARGA = 234;
 
 export type ModoOrden = 'litros' | 'importe' | 'llenar';
 export type EstadoOrden = 'emitida' | 'autorizada' | 'cargada' | 'anulada' | 'bloqueada' | 'vencida';

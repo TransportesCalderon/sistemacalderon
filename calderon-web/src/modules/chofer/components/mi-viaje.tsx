@@ -16,7 +16,6 @@ import { cn } from '@/shared/lib/cn';
 import { TARJETA } from '@/shared/ui/clases';
 import { nombrePeriodo } from '../domain/chofer.types';
 import { useMiFondo, useMiRuta, useMisCargas } from '../queries/hooks';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { RutaDelChofer } from './ruta-chofer';
 import { CompartirUbicacion } from './compartir-ubicacion';
 import { OrdenCargaChofer } from './orden-carga-chofer';
@@ -38,13 +37,12 @@ export function MiViaje() {
   const verGastos = useCan('chofer.mis_gastos:ver');
   const verLiquidaciones = useCan('chofer.mis_liquidaciones:ver');
   // Migración 161: la ruta en curso es del chofer (puede ser un movimiento sin operación): va arriba de todo
-  const porChofer = useBaseTiene(161);
-  const miRuta = useMiRuta(porChofer);
+  const miRuta = useMiRuta(true);
 
   if (isLoading) return <Cargando texto="Buscando tu viaje…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudo leer tu viaje." onReintentar={() => void refetch()} />;
   const [actual, ...despues] = data.cargas;
-  const ruta = porChofer ? (miRuta.data ?? null) : null;
+  const ruta = miRuta.data ?? null;
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
@@ -75,7 +73,7 @@ export function MiViaje() {
           <p className="text-sm text-tinta-suave">Cuando Logística te asigne una, aparece acá.</p>
         </div>
       ) : (
-        <TarjetaCarga c={actual} conRuta={!porChofer} />
+        <TarjetaCarga c={actual} conRuta={false} />
       )}
 
       {/* 3 · Lo que viene después, chiquito */}

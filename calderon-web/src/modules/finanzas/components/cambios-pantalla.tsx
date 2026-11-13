@@ -7,13 +7,12 @@ import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { Cifra, FiltroPeriodo, usePeriodo } from '@/modules/combustible/components/consumo/periodo';
 import { useCan } from '@/modules/core/permissions/can';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { TD, TH } from '@/modules/catalogos/components/comun';
-import { clavePar, VERSION_CAMBIOS, type ParCambio } from '../domain/cambios';
+import { clavePar, type ParCambio } from '../domain/cambios';
 import { useCambiosSugeridos, useConfirmarCambios, useCostoCambios } from '../queries/hooks';
 
 const dinero = (moneda: string, v: number | null, dec = 0) => (v === null ? '—' : `${moneda} ${formatearNumero(v, dec)}`);
@@ -27,10 +26,9 @@ const mesDe = (m: string) => new Date(`${m}T12:00:00`).toLocaleDateString('es-AR
  * cambiar la plata. Lo calcula todo la base.
  */
 export function CambiosPantalla() {
-  const hay = useBaseTiene(VERSION_CAMBIOS);
   const [p, setP] = usePeriodo('/conciliacion/cambios');
-  const sug = useCambiosSugeridos(p.desde, p.hasta, hay);
-  const costo = useCostoCambios(p.desde, p.hasta, hay);
+  const sug = useCambiosSugeridos(p.desde, p.hasta, true);
+  const costo = useCostoCambios(p.desde, p.hasta, true);
   const puede = useCan('finanzas.bancos:editar') && sug.data?.puedeConfirmar === true;
   const confirmar = useConfirmarCambios();
   const { error, setError } = useEnvio();
@@ -74,125 +72,121 @@ export function CambiosPantalla() {
         (cada aplicación es una cuenta, una por moneda). El sistema busca lo que salió de una cuenta y llegó a otra y arma el cambio con los dos montos
         reales. La diferencia con el tipo de cambio oficial es lo que costó cambiar la plata.
       </p>
-      {!hay ? (
-        <Vacio icono={<Repeat className="size-6" />} texto="La base todavía no arma los cambios de moneda. Falta aplicar la migración 123 (108_cambios_moneda.sql)." />
-      ) : (
-        <>
-          <FiltroPeriodo p={p} onCambiar={setP} />
+      <>
+        <FiltroPeriodo p={p} onCambiar={setP} />
 
-          <section className="space-y-3">
-            <h2 className="font-semibold text-tinta">Cambios encontrados en los resúmenes</h2>
-            {sug.isPending ? (
-              <Cargando texto="Buscando los cambios…" />
-            ) : sug.isError ? (
-              <ErrorLectura texto={sug.error instanceof Error ? sug.error.message : 'No se pudieron buscar los cambios.'} onReintentar={() => sug.refetch()} />
-            ) : (
-              <>
-                {sug.data.sinCotizacion > 0 && (
-                  <p className="rounded-lg bg-alerta-suave p-3 text-sm text-alerta">
-                    {sug.data.sinCotizacion === 1 ? 'Una salida' : `${sug.data.sinCotizacion} salidas`} podrían ser un cambio pero falta el tipo de cambio
-                    oficial de ese día (Configuración › Monedas y tipos de cambio).
-                  </p>
-                )}
-                {pares.length === 0 ? (
-                  <Vacio
-                    icono={<Repeat className="size-6" />}
-                    texto="No hay cambios sin registrar en el período. Si faltan, revisá que estén subidos los resúmenes de las dos cuentas."
+        <section className="space-y-3">
+          <h2 className="font-semibold text-tinta">Cambios encontrados en los resúmenes</h2>
+          {sug.isPending ? (
+            <Cargando texto="Buscando los cambios…" />
+          ) : sug.isError ? (
+            <ErrorLectura texto={sug.error instanceof Error ? sug.error.message : 'No se pudieron buscar los cambios.'} onReintentar={() => sug.refetch()} />
+          ) : (
+            <>
+              {sug.data.sinCotizacion > 0 && (
+                <p className="rounded-lg bg-alerta-suave p-3 text-sm text-alerta">
+                  {sug.data.sinCotizacion === 1 ? 'Una salida' : `${sug.data.sinCotizacion} salidas`} podrían ser un cambio pero falta el tipo de cambio
+                  oficial de ese día (Configuración › Monedas y tipos de cambio).
+                </p>
+              )}
+              {pares.length === 0 ? (
+                <Vacio
+                  icono={<Repeat className="size-6" />}
+                  texto="No hay cambios sin registrar en el período. Si faltan, revisá que estén subidos los resúmenes de las dos cuentas."
+                />
+              ) : (
+                <>
+                  <ListaPares
+                    titulo="Listos para confirmar"
+                    ayuda={`Llegaron dentro de ${sug.data.dias} días y a menos del 5 % del tipo de cambio oficial.`}
+                    pares={pares.filter((x) => x.seguro)}
+                    elegido={elegido}
+                    alternar={alternar}
+                    puede={puede}
                   />
-                ) : (
-                  <>
-                    <ListaPares
-                      titulo="Listos para confirmar"
-                      ayuda={`Llegaron dentro de ${sug.data.dias} días y a menos del 5 % del tipo de cambio oficial.`}
-                      pares={pares.filter((x) => x.seguro)}
-                      elegido={elegido}
-                      alternar={alternar}
-                      puede={puede}
-                    />
-                    <ListaPares
-                      titulo="Para revisar"
-                      ayuda={`Hay más de una llegada posible o el tipo de cambio se aparta más del 5 % (hasta ${formatearNumero(sug.data.toleranciaPct, 0)} %). Marcalos solo si son un cambio.`}
-                      pares={pares.filter((x) => !x.seguro)}
-                      elegido={elegido}
-                      alternar={alternar}
-                      puede={puede}
-                    />
-                  </>
-                )}
-                <ErrorBase error={error} />
-                {hecho && <p className="text-sm text-exito">{hecho}</p>}
-                {puede && pares.length > 0 && (
-                  <button type="button" className={BOTON_PRIMARIO} disabled={elegidos.length === 0 || confirmar.isPending} onClick={() => void confirmarElegidos()}>
-                    {confirmar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <CheckCheck className="size-4" />}
-                    {elegidos.length === 1 ? 'Confirmar 1 cambio' : `Confirmar ${elegidos.length} cambios`}
-                  </button>
-                )}
-              </>
-            )}
-          </section>
+                  <ListaPares
+                    titulo="Para revisar"
+                    ayuda={`Hay más de una llegada posible o el tipo de cambio se aparta más del 5 % (hasta ${formatearNumero(sug.data.toleranciaPct, 0)} %). Marcalos solo si son un cambio.`}
+                    pares={pares.filter((x) => !x.seguro)}
+                    elegido={elegido}
+                    alternar={alternar}
+                    puede={puede}
+                  />
+                </>
+              )}
+              <ErrorBase error={error} />
+              {hecho && <p className="text-sm text-exito">{hecho}</p>}
+              {puede && pares.length > 0 && (
+                <button type="button" className={BOTON_PRIMARIO} disabled={elegidos.length === 0 || confirmar.isPending} onClick={() => void confirmarElegidos()}>
+                  {confirmar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <CheckCheck className="size-4" />}
+                  {elegidos.length === 1 ? 'Confirmar 1 cambio' : `Confirmar ${elegidos.length} cambios`}
+                </button>
+              )}
+            </>
+          )}
+        </section>
 
-          <section className="space-y-3">
-            <h2 className="font-semibold text-tinta">Lo que costó cambiar la plata</h2>
-            {costo.isPending ? (
-              <Cargando texto="Calculando…" />
-            ) : costo.isError ? (
-              <ErrorLectura texto={costo.error instanceof Error ? costo.error.message : 'No se pudo calcular.'} onReintentar={() => costo.refetch()} />
-            ) : costo.data.filas.length === 0 ? (
-              <Vacio icono={<Repeat className="size-6" />} texto="No hay cambios ni transferencias registrados en el período." />
-            ) : (
-              <>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <Cifra
-                    etiqueta="Costo de cambiar en el período"
-                    valor={dinero(costo.data.moneda, costo.data.totalClp)}
-                    detalle="Contra el tipo de cambio oficial. Es lo que va a «Diferencia de cambio»."
-                  />
-                </div>
-                <section className={cn(TARJETA, 'overflow-x-auto')}>
-                  <table className="w-full min-w-[860px] text-sm">
-                    <thead className="border-b border-borde bg-fondo">
-                      <tr>
-                        <th className={TH}>Mes</th>
-                        <th className={TH}>De → a</th>
-                        <th className={cn(TH, 'text-right')}>Salió</th>
-                        <th className={cn(TH, 'text-right')}>Llegó</th>
-                        <th className={cn(TH, 'text-right')}>Cambio real</th>
-                        <th className={cn(TH, 'text-right')}>Oficial</th>
-                        <th className={cn(TH, 'text-right')}>Costó</th>
+        <section className="space-y-3">
+          <h2 className="font-semibold text-tinta">Lo que costó cambiar la plata</h2>
+          {costo.isPending ? (
+            <Cargando texto="Calculando…" />
+          ) : costo.isError ? (
+            <ErrorLectura texto={costo.error instanceof Error ? costo.error.message : 'No se pudo calcular.'} onReintentar={() => costo.refetch()} />
+          ) : costo.data.filas.length === 0 ? (
+            <Vacio icono={<Repeat className="size-6" />} texto="No hay cambios ni transferencias registrados en el período." />
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Cifra
+                  etiqueta="Costo de cambiar en el período"
+                  valor={dinero(costo.data.moneda, costo.data.totalClp)}
+                  detalle="Contra el tipo de cambio oficial. Es lo que va a «Diferencia de cambio»."
+                />
+              </div>
+              <section className={cn(TARJETA, 'overflow-x-auto')}>
+                <table className="w-full min-w-[860px] text-sm">
+                  <thead className="border-b border-borde bg-fondo">
+                    <tr>
+                      <th className={TH}>Mes</th>
+                      <th className={TH}>De → a</th>
+                      <th className={cn(TH, 'text-right')}>Salió</th>
+                      <th className={cn(TH, 'text-right')}>Llegó</th>
+                      <th className={cn(TH, 'text-right')}>Cambio real</th>
+                      <th className={cn(TH, 'text-right')}>Oficial</th>
+                      <th className={cn(TH, 'text-right')}>Costó</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-borde">
+                    {costo.data.filas.map((f) => (
+                      <tr key={`${f.mes}-${f.origen}-${f.destino}`}>
+                        <td className={cn(TD, 'first-letter:uppercase')}>{mesDe(f.mes)}</td>
+                        <td className={TD}>
+                          {f.origen} <ArrowRight className="inline size-3.5 text-tinta-suave" /> {f.destino}
+                          <span className="block text-xs text-tinta-suave">{f.cambios === 1 ? '1 movimiento' : `${f.cambios} movimientos`}</span>
+                        </td>
+                        <td className={cn(TD, 'text-right tabular-nums')}>{dinero(f.monedaOrigen, f.salio, 2)}</td>
+                        <td className={cn(TD, 'text-right tabular-nums')}>{dinero(f.monedaDestino, f.llego, 2)}</td>
+                        <td className={cn(TD, 'text-right tabular-nums')}>{tasa(f.tasaReal)}</td>
+                        <td className={cn(TD, 'text-right tabular-nums')}>{tasa(f.tasaOficial)}</td>
+                        <td className={cn(TD, 'text-right tabular-nums')}>
+                          {f.sinCotizacion ? (
+                            <span className="text-alerta">Falta el tipo de cambio</span>
+                          ) : (
+                            <>
+                              {dinero(costo.data.moneda, f.costoClp)}
+                              {f.costoPct !== null && <span className="block text-xs text-tinta-suave">{formatearNumero(f.costoPct, 2)} %</span>}
+                            </>
+                          )}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-borde">
-                      {costo.data.filas.map((f) => (
-                        <tr key={`${f.mes}-${f.origen}-${f.destino}`}>
-                          <td className={cn(TD, 'first-letter:uppercase')}>{mesDe(f.mes)}</td>
-                          <td className={TD}>
-                            {f.origen} <ArrowRight className="inline size-3.5 text-tinta-suave" /> {f.destino}
-                            <span className="block text-xs text-tinta-suave">{f.cambios === 1 ? '1 movimiento' : `${f.cambios} movimientos`}</span>
-                          </td>
-                          <td className={cn(TD, 'text-right tabular-nums')}>{dinero(f.monedaOrigen, f.salio, 2)}</td>
-                          <td className={cn(TD, 'text-right tabular-nums')}>{dinero(f.monedaDestino, f.llego, 2)}</td>
-                          <td className={cn(TD, 'text-right tabular-nums')}>{tasa(f.tasaReal)}</td>
-                          <td className={cn(TD, 'text-right tabular-nums')}>{tasa(f.tasaOficial)}</td>
-                          <td className={cn(TD, 'text-right tabular-nums')}>
-                            {f.sinCotizacion ? (
-                              <span className="text-alerta">Falta el tipo de cambio</span>
-                            ) : (
-                              <>
-                                {dinero(costo.data.moneda, f.costoClp)}
-                                {f.costoPct !== null && <span className="block text-xs text-tinta-suave">{formatearNumero(f.costoPct, 2)} %</span>}
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </section>
-              </>
-            )}
-          </section>
-        </>
-      )}
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            </>
+          )}
+        </section>
+      </>
     </div>
   );
 }

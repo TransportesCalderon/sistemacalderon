@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 import { CheckCheck, Navigation, TriangleAlert } from 'lucide-react';
 import { ErrorBase } from '@/modules/combustible/components/comun/ui';
-import { llegueDestino, llegueMiDestino } from '@/modules/logistica/actions/rutas.actions';
+import { llegueMiDestino } from '@/modules/logistica/actions/rutas.actions';
 import type { ErrorAccion } from '@/server/actions/result';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { useInvalidar } from '@/shared/query/invalidar';
 import { linkDesde, siguientePunto, type PuntoRuta } from '@/modules/logistica/domain/rutas';
 import { cn } from '@/shared/lib/cn';
@@ -27,7 +26,7 @@ export interface RutaParaChofer {
  * La ruta en curso del chofer (cargada por Telemetría). Un solo botón: «Continuar viaje». El sistema
  * ve dónde está el chofer y abre Google Maps desde ahí, con las paradas que le faltan (no se muestran).
  */
-export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofer; servicioId?: number | null }) {
+export function RutaDelChofer({ ruta }: { ruta: RutaParaChofer }) {
   const [pos, setPos] = useState<Pos | null>(null);
 
   const ubicar = useCallback(() => {
@@ -95,26 +94,22 @@ export function RutaDelChofer({ ruta, servicioId = null }: { ruta: RutaParaChofe
       <p className="text-xs text-tinta-suave">Te lleva desde donde estás hasta el final de la ruta. Si se cerró Google Maps, tocá «Continuar viaje» de nuevo.</p>
 
       {/* Migración 158: al llegar al destino (también lo detecta el GPS). El chofer no ve si hay otras rutas cargadas. */}
-      <LlegueAlDestino servicioId={servicioId} />
+      <LlegueAlDestino />
     </section>
   );
 }
 
-function LlegueAlDestino({ servicioId }: { servicioId: number | null }) {
-  const hay = useBaseTiene(158);
-  const porChofer = useBaseTiene(161);
-  const conUbicacion = useBaseTiene(177);
+function LlegueAlDestino() {
   const invalidar = useInvalidar();
   const [confirmar, setConfirmar] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<ErrorAccion | null>(null);
-  if (!hay || (!porChofer && servicioId === null)) return null;
   const enviar = async () => {
     setError(null);
     setOcupado(true);
     // Migración 177: la base controla que esté en el destino (GPS del camión o, si no manda, el celular)
-    const pos = conUbicacion ? await ubicacionCelular() : null;
-    const r = porChofer || servicioId === null ? await llegueMiDestino(pos ?? {}) : await llegueDestino({ servicioId });
+    const pos = await ubicacionCelular();
+    const r = await llegueMiDestino(pos ?? {});
     setOcupado(false);
     if (!r.ok) return setError(r.error);
     setConfirmar(false);

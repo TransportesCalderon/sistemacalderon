@@ -3,18 +3,16 @@
 import Link from 'next/link';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearFechaHora } from '@/shared/lib/fechas';
-import { ETIQUETA_ESTADO_ACTA, ETIQUETA_TIPO_ACTA, TIPOS_ACTA, VERSION_ACTAS } from '../domain/acta.types';
+import { ETIQUETA_ESTADO_ACTA, ETIQUETA_TIPO_ACTA, TIPOS_ACTA } from '../domain/acta.types';
 import { useActas } from '../queries/hooks';
 
 /** Migración 122 · El historial de actas de infracción en la ficha del chofer: cuántas de cada tipo y las últimas. */
 export function ActasDelChofer({ choferId }: { choferId: number }) {
   const ve = useCan('operacion.actas:ver');
-  const hay = useBaseTiene(VERSION_ACTAS);
   const { zonaHoraria } = useSesion();
-  const { data, isPending, isError } = useActas({ desde: null, hasta: null, choferId, tipo: null }, ve && hay);
-  if (!ve || !hay) return null;
+  const { data, isPending, isError } = useActas({ desde: null, hasta: null, choferId, tipo: null }, ve);
+  if (!ve) return null;
   return (
     <section className="space-y-2 rounded-xl border border-borde bg-panel p-4">
       <h2 className="font-semibold text-tinta">Actas de infracción</h2>
