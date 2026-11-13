@@ -2,14 +2,12 @@
 
 import { TanqueCierre } from '@/modules/combustible/components/cierres/tanque-cierre';
 import { TableroCierre } from '@/modules/telemetria/components/tablero-cierre';
-import { VERSION_TANQUE_CIERRE } from '@/modules/combustible/domain/cierre-tanque.types';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { usePuedeAprobarCierres } from '@/modules/combustible/queries/puede-aprobar';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Ban, Calculator, ChevronDown, CircleAlert, Flag, Fuel, LoaderCircle, Lock, Pencil, Plus, RotateCcw, Stamp, Trash2, TriangleAlert } from 'lucide-react';
 import { BorradorForm } from '@/modules/combustible/components/cierres/borrador-form';
-import { AccionConMotivo, Cargando, Chip, DiferenciaL, ErrorBase, ErrorLectura, Seccion } from '@/modules/combustible/components/comun/ui';
+import { AccionConMotivo, Cargando, Chip, ErrorBase, ErrorLectura, Seccion } from '@/modules/combustible/components/comun/ui';
 import { useCierre, useMonedas, useResultadoCierre } from '@/modules/combustible/queries/hooks';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -260,7 +258,6 @@ function CombustibleCalculado({ cierreId }: { cierreId: CierreViajeId }) {
   const puedeCompletar = useCan('combustible.cierre_viaje:editar');
   const resultado = esBorrador ? (vivo.data ?? null) : (cierre?.congelado ?? null);
   const c = resultado?.camion;
-  const conTanque = useBaseTiene(VERSION_TANQUE_CIERRE);
 
   return (
     <Seccion
@@ -281,21 +278,8 @@ function CombustibleCalculado({ cierreId }: { cierreId: CierreViajeId }) {
         <p className="text-sm text-tinta-suave">Sin resultado.</p>
       ) : (
         <>
-          {conTanque && <TanqueCierre cierreId={cierreId} consumoL={c.consumoPlataformaL} diferenciaL={c.diferenciaL} toleranciaL={c.toleranciaL} />}
+          <TanqueCierre cierreId={cierreId} consumoL={c.consumoPlataformaL} diferenciaL={c.diferenciaL} toleranciaL={c.toleranciaL} />
           <dl className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            {!conTanque && (
-              <>
-                <Dato etiqueta="Cargado (libro)" fuerte>
-                  {formatoNumero(c.libroL, 2)} L
-                </Dato>
-                <Dato etiqueta="Plataforma" fuerte>
-                  {formatoNumero(c.consumoPlataformaL, 2)} L
-                </Dato>
-                <Dato etiqueta="Diferencia" fuerte>
-                  <DiferenciaL litros={c.diferenciaL} toleranciaL={c.toleranciaL} />
-                </Dato>
-              </>
-            )}
             <Dato etiqueta="Km recorridos">{formatoNumero(c.kmRecorridos)}</Dato>
             <Dato etiqueta="Consumo">{c.consumoL100km === null ? '—' : `${formatoNumero(c.consumoL100km, 1)} L/100 km`}</Dato>
             <Dato etiqueta="Ralentí / días parado">

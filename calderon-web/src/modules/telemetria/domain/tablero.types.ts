@@ -191,7 +191,6 @@ export function parsearSugerido(v: unknown): Sugerido {
 }
 
 // ---- Migración 224: fotos del tablero en el llenado de corte (inicio de viaje), interpretadas ----
-export const VERSION_TABLERO_CARGA = 224;
 export type TonoConclusion = 'ok' | 'alerta' | 'info';
 export interface Interpretacion {
   viaje: string | null;

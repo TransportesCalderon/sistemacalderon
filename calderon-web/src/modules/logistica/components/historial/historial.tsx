@@ -5,13 +5,12 @@ import { History, ListChecks, LoaderCircle } from 'lucide-react';
 import { ErrorBase } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import type { FechaDia } from '@/shared/types/dominio';
-import { ETIQUETA_ESTADO_TRAMO, VERSION_HISTORIAL, type Movimiento } from '../../domain/historial';
+import { ETIQUETA_ESTADO_TRAMO, type Movimiento } from '../../domain/historial';
 import { useAgregarItemViaje, useHistorialChofer, useHistorialOperacion, useLineas, useTramosDelViaje } from '../../queries/hooks';
 
 const sumarDias = (dia: string, n: number) => {
@@ -25,9 +24,8 @@ const sumarDias = (dia: string, n: number) => {
  * (Operaciones › equipo, relevos y cambios de tractor). Se marcan los tramos que hizo y se agregan.
  */
 export function AsignadosDelViaje({ viajeId, onListo }: { viajeId: number; onListo: () => void }) {
-  const hay = useBaseTiene(VERSION_HISTORIAL);
   const { zonaHoraria } = useSesion();
-  const { data, isPending } = useTramosDelViaje(viajeId, hay);
+  const { data, isPending } = useTramosDelViaje(viajeId, true);
   const { data: lineas } = useLineas();
   const agregar = useAgregarItemViaje();
   const [marcados, setMarcados] = useState<Record<number, number | null>>({});
@@ -39,7 +37,6 @@ export function AsignadosDelViaje({ viajeId, onListo }: { viajeId: number; onLis
     setMarcados(Object.fromEntries(data.filter((t) => !t.yaCargado).map((t) => [t.tramoId, t.lineaId])));
   }, [data]);
 
-  if (!hay) return null;
   if (isPending) return <p className="text-sm text-tinta-suave">Buscando lo que tenía asignado el chofer…</p>;
   if (!data || data.length === 0)
     return <p className="rounded-md bg-fondo px-3 py-2 text-sm text-tinta-suave">El chofer no tenía operaciones asignadas en el período de este viaje: buscalas abajo.</p>;
@@ -184,12 +181,10 @@ function FilaMovimiento({ m, mostrarChofer, mostrarOperacion }: { m: Movimiento;
 
 /** Migración 153: historial del chofer: qué llevó, con qué tractor y semi, de dónde a dónde y cuándo. */
 export function HistorialChofer({ choferId }: { choferId: number }) {
-  const hay = useBaseTiene(VERSION_HISTORIAL);
   const { zonaHoraria } = useSesion();
   const hoy = hoyEnZona(zonaHoraria) as FechaDia;
   const [dias, setDias] = useState(90);
-  const { data, isPending, error } = useHistorialChofer(choferId, sumarDias(hoy, -dias), hoy, hay);
-  if (!hay) return null;
+  const { data, isPending, error } = useHistorialChofer(choferId, sumarDias(hoy, -dias), hoy, true);
   return (
     <section className={cn(TARJETA, 'space-y-3 p-5')}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -235,9 +230,8 @@ export function HistorialChofer({ choferId }: { choferId: number }) {
 
 /** Migración 153: quién llevó la operación y quién la trajo, tramo por tramo. */
 export function QuienLaLlevo({ servicioId }: { servicioId: number }) {
-  const hay = useBaseTiene(VERSION_HISTORIAL);
-  const { data } = useHistorialOperacion(servicioId, hay);
-  if (!hay || !data || data.length === 0) return null;
+  const { data } = useHistorialOperacion(servicioId, true);
+  if (!data || data.length === 0) return null;
   return (
     <div className="text-sm">
       <p className="text-xs font-medium text-tinta-suave uppercase">Quién la llevó</p>

@@ -6,9 +6,6 @@ import type { FechaISO } from '@/shared/types/dominio';
  * los compara con el objetivo del viaje, decide el resultado (bien / a mejorar / mal) y escribe
  * el mensaje para el chofer. Acá solo se convierten tipos.
  */
-export const VERSION_SEGUIMIENTO = 194;
-/** Migración 197: litros con lecturas mezcladas, motivo cuando faltan y medir «desde» un momento elegido. */
-export const VERSION_SEGUIMIENTO_DESDE = 197;
 
 export type Resultado = 'bien' | 'a_mejorar' | 'mal' | 'sin_datos';
 export type Estado = 'verde' | 'naranja' | 'rojo' | null;
@@ -52,7 +49,6 @@ export interface LecturaFoto {
   programadorPct: number | null;
   avisos: string[];
 }
-export const VERSION_SEGUIMIENTO_FOTO = 240;
 export const parsearLecturaFoto = (d: unknown): LecturaFoto => {
   const o = (d && typeof d === 'object' ? d : {}) as Record<string, unknown>;
   return {
@@ -194,7 +190,6 @@ export function parsearTramo(d: unknown): TramoSeguimiento {
 }
 
 // ---- Migración 195: pedido de carga de combustible (mensaje para Gerencia) ----
-export const VERSION_PEDIDO_CARGA = 195;
 
 export interface DatosPedidoCarga {
   inicialL: number | null;

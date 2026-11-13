@@ -8,7 +8,6 @@ import { esSituacionTractor, type SituacionTractor } from '@/modules/logistica/d
  * La base dice el paso que sigue, los posibles, la situación del tractor y si hay un tramo
  * para continuar; la web solo arma los botones con eso y llama a las acciones de siempre.
  */
-export const VERSION_SIGUE = 118;
 
 export interface SigueFila {
   semiId: number;

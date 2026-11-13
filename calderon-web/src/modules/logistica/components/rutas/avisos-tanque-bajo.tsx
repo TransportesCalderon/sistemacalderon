@@ -4,13 +4,11 @@ import { useState } from 'react';
 import { Check, ExternalLink, Fuel, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { useAvisosTanqueBajo, useTanqueBajoVisto } from '../../queries/hooks';
 
-export const VERSION_TANQUE_BAJO = 177;
 
 /**
  * Migración 177 · Ventana emergente «Tanque bajo» (sensor en 20 % o menos), en cualquier pantalla.
@@ -18,8 +16,7 @@ export const VERSION_TANQUE_BAJO = 177;
  */
 export function AvisosTanqueBajo() {
   const { zonaHoraria } = useSesion();
-  const hay = useBaseTiene(VERSION_TANQUE_BAJO);
-  const recibe = useCan('telemetria.mapa:ver') && hay;
+  const recibe = useCan('telemetria.mapa:ver');
   const { data } = useAvisosTanqueBajo(recibe);
   const visto = useTanqueBajoVisto();
   const [cerrados, setCerrados] = useState<number[]>([]);

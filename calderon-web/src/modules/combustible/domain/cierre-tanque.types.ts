@@ -3,7 +3,6 @@
  * con cuántos litros salió, cuánto cargó en el viaje, con cuánto llegó y cuánto consumió según el libro.
  * Lo calcula la base (fue.fn_tanque_cierre); acá solo se cambian los nombres.
  */
-export const VERSION_TANQUE_CIERRE = 206;
 
 export interface TanqueCierre {
   disponible: boolean;

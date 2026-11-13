@@ -66,24 +66,11 @@ import {
 import { Lista } from './viajes-pantalla';
 import { SeguimientoOperacion } from '@/modules/chofer/components/seguimiento-operacion';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
-import { RutaOperacion } from './rutas/ruta-operacion';
 import { ConformeDescarga } from './conforme-descarga';
-import { VERSION_RUTAS_PANTALLA } from '../domain/rutas';
 
-/** Migración 176: conforme de descarga, aduanas y chofer del tractor en el relevo. */
-const VERSION_CONFORME = 176;
-/** Migración 174: pasa a un fletero en ruta (trasbordo). */
-const VERSION_FLETERO = 174;
 const RELEVO_PASOS: readonly PasoOperacion[] = ['en_base', 'seguir'];
 const MONEDAS_COSTO = ['USD', 'CLP', 'ARS'] as const;
-/** Migración 173: cambio de tractor en ruta (relevo sin dejar en la base). */
-const VERSION_TRACTOR_EN_RUTA = 173;
-/** Migración 172: tara del contenedor (TARA CNTR). */
-const VERSION_TARA_CNTR = 172;
-/** Migración 166: precio del viaje en la operación. */
-const VERSION_PRECIO_VIAJE = 166;
 const MONEDAS_PRECIO = ['USD', 'CLP', 'ARS'] as const;
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 
 export type Abierto =
   | { tipo: 'nueva'; base?: Operacion }
@@ -445,7 +432,6 @@ function Dato({ label, children, mono }: { label: string; children: ReactNode; m
 /** Sprint 1: se exporta para la ficha de la operación en el panel (operacion-ficha.tsx). */
 export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zona: string; puede: boolean; abierto: Abierto; onAbrir: (a: Abierto) => void }) {
   const { hacer, enCurso } = useUnClic(o, onAbrir);
-  const rutasAparte = useBaseTiene(VERSION_RUTAS_PANTALLA);
   const anular = useAnularHito();
   const envioAnular = useEnvio();
   const cerrar = () => onAbrir({ tipo: 'detalle', o });
@@ -453,8 +439,7 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
   const abiertaOp = esAbierta(o);
   const cerrada = ['entregado', 'facturado', 'cancelado'].includes(o.estado);
   // Migración 172: la tara del contenedor (se lee aparte, como el precio)
-  const { data: extra } = usePrecioOperacion(o.servicioId, useBaseTiene(VERSION_TARA_CNTR));
-  const conConforme = useBaseTiene(VERSION_CONFORME);
+  const { data: extra } = usePrecioOperacion(o.servicioId, true);
   // Relevo de chofer desde la operación (el mismo de Viajes; la base controla todo)
   const puedeRelevo = useCan('operacion.tramos:editar') && !!o.tramoId && !o.transportistaId && o.estado === 'en_curso';
   // Todos los relevos (chofer, tractor, base, fletero) se hacen desde «Relevo»: no van como botones sueltos
@@ -598,12 +583,10 @@ export function Detalle({ o, zona, puede, abierto, onAbrir }: { o: Operacion; zo
       )}
 
       {/* Migración 176: la tilde del conforme de descarga */}
-      {conConforme && extra && o.estado !== 'cancelado' && o.estado !== 'sin_confirmar' && (
+      {extra && o.estado !== 'cancelado' && o.estado !== 'sin_confirmar' && (
         <ConformeDescarga servicioId={o.servicioId} conformeEn={extra.conformeEn} conformePor={extra.conformePor} historial={extra.conformeHistorial} zona={zona} />
       )}
       {puede && (o.estado !== 'cancelado' || o.gensetId) && <GensetOperacion o={o} />}
-      {/* Migración 136: la ruta que recibe el chofer. Desde la 156 se carga en Viajes › Rutas para choferes */}
-      {!rutasAparte && <RutaOperacion servicioId={o.servicioId} abierta={!cerrada} />}
       {puede && o.puedeVolver && <VolverPaso o={o} />}
 
       {tipo === 'paso' && abierto?.tipo === 'paso' && <PanelPaso o={o} paso={abierto.paso} errorInicial={abierto.error ?? null} zona={zona} onCerrar={cerrar} />}
@@ -966,9 +949,7 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
   });
   const [mas, setMas] = useState(editar);
   // Migración 166: precio del viaje (al modificar o duplicar se trae el cargado)
-  const conPrecio = useBaseTiene(VERSION_PRECIO_VIAJE);
-  const conTara = useBaseTiene(VERSION_TARA_CNTR);
-  const { data: precio } = usePrecioOperacion(base?.servicioId ?? null, conPrecio);
+  const { data: precio } = usePrecioOperacion(base?.servicioId ?? null, true);
   const precioCargado = useRef(false);
   useEffect(() => {
     if (!precio || precioCargado.current) return;
@@ -1041,8 +1022,9 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
     const { precioViaje, precioMoneda, taraContenedorKg, ...resto } = f;
     const comun = {
       ...resto,
-      ...(conPrecio ? { precioViaje, precioMoneda } : {}),
-      ...(conTara ? { taraContenedorKg } : {}),
+      precioViaje,
+      precioMoneda,
+      taraContenedorKg,
       tipoOperacion: f.tipoOperacion as AltaEntrada['tipoOperacion'],
       fechaPresentacion: aIso(f.fechaPresentacion, zona),
       fechaEntrega: aIso(f.fechaEntrega, zona),
@@ -1105,30 +1087,28 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
         <Campo label="Tipo de carga" error={campo('tipoContenedor')} ayuda="A granel, pallet, contenedor 40 RF…">
           <SelectTipoCarga value={f.tipoContenedor} onValor={(v) => setF((p) => ({ ...p, tipoContenedor: v }))} />
         </Campo>
-        {conPrecio && (
-          <Campo
-            label="Precio del viaje"
-            error={campo('precioViaje')}
-            ayuda={varias ? 'Para cada una de las operaciones. Vacío: se usa la tarifa de la línea.' : 'Vacío: se usa la tarifa de la línea.'}
-          >
-            <div className="flex gap-2">
-              <input
-                inputMode="decimal"
-                className="min-w-0 flex-1"
-                value={f.precioViaje}
-                onChange={ev('precioViaje')}
-                placeholder="Ej.: 1.850"
-              />
-              <select className="w-24" value={f.precioMoneda} onChange={ev('precioMoneda')} aria-label="Moneda del precio">
-                {MONEDAS_PRECIO.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </Campo>
-        )}
+        <Campo
+          label="Precio del viaje"
+          error={campo('precioViaje')}
+          ayuda={varias ? 'Para cada una de las operaciones. Vacío: se usa la tarifa de la línea.' : 'Vacío: se usa la tarifa de la línea.'}
+        >
+          <div className="flex gap-2">
+            <input
+              inputMode="decimal"
+              className="min-w-0 flex-1"
+              value={f.precioViaje}
+              onChange={ev('precioViaje')}
+              placeholder="Ej.: 1.850"
+            />
+            <select className="w-24" value={f.precioMoneda} onChange={ev('precioMoneda')} aria-label="Moneda del precio">
+              {MONEDAS_PRECIO.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Campo>
         <label className="flex items-center gap-2 self-center text-sm text-tinta">
           <input type="checkbox" checked={f.contenedorVacio} onChange={(e) => setF((p) => ({ ...p, contenedorVacio: e.target.checked }))} />
           Va con el contenedor vacío (sin mercadería)
@@ -1210,11 +1190,9 @@ export function FormOperacion({ base, duplicar, zona, onCerrar }: { base?: Opera
           <Campo label="Peso bruto (kg)" error={campo('pesoKg')}>
             <input inputMode="decimal" value={f.pesoKg} onChange={ev('pesoKg')} />
           </Campo>
-          {conTara && (
-            <Campo label="Tara CNTR (kg)" error={campo('taraContenedorKg')} ayuda="Tara del contenedor.">
-              <input inputMode="decimal" value={f.taraContenedorKg} onChange={ev('taraContenedorKg')} />
-            </Campo>
-          )}
+          <Campo label="Tara CNTR (kg)" error={campo('taraContenedorKg')} ayuda="Tara del contenedor.">
+            <input inputMode="decimal" value={f.taraContenedorKg} onChange={ev('taraContenedorKg')} />
+          </Campo>
           <Campo label="Tara que pide (días)" error={campo('taraMaxDias')} ayuda="Vacío si no pide.">
             <input inputMode="numeric" value={f.taraMaxDias} onChange={ev('taraMaxDias')} />
           </Campo>
@@ -1416,8 +1394,6 @@ function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: str
   const chofer = useCambiarChofer();
   const tractor = useCambiarTractorEnRuta();
   const fletero = usePasarAFletero();
-  const enRuta = useBaseTiene(VERSION_TRACTOR_EN_RUTA);
-  const conFletero = useBaseTiene(VERSION_FLETERO);
   const { data: transportistas } = useTransportistas();
   const { data: op } = useOpcionesViaje();
   const { error, enviar, campo, setError } = useEnvio();
@@ -1426,9 +1402,9 @@ function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: str
   // Migración 174: el fletero que sigue y los costos
   const [x, setX] = useState({ transportistaId: '', chofer: '', tractor: '', semi: '', costoTrasbordo: '', monedaTrasbordo: 'USD', costoFletero: '', monedaFletero: 'USD' });
   const setx = (k: keyof typeof x) => (v: string) => setX((p) => ({ ...p, [k]: v }));
-  const aFletero = conFletero && modo === 'fletero';
+  const aFletero = modo === 'fletero';
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
-  const cambiaTractor = enRuta && modo === 'tractor';
+  const cambiaTractor = modo === 'tractor';
   // Migración 176: al elegir el tractor nuevo se propone su chofer asignado (se puede cambiar)
   const { data: choferDelTractor } = useChoferDeTractor(cambiaTractor && f.camionId ? Number(f.camionId) : null);
   useEffect(() => {
@@ -1485,51 +1461,47 @@ function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: str
           : enviar(chofer.mutateAsync({ tramoId: o.tramoId ?? 0, choferId: f.choferId, desde: aIso(f.desde, zona) }), onCerrar)
       }
     >
-      {enRuta && (
-        <div className="flex flex-wrap gap-4 text-sm sm:col-span-full">
-          <label className="inline-flex items-center gap-2">
-            <input type="radio" name={`relevo-${o.servicioId}`} checked={modo === 'chofer'} onChange={() => (setModo('chofer'), setError(null))} />
-            Solo el chofer (mismo tractor)
-          </label>
-          <label className={cn('inline-flex items-center gap-2', !puedeTractor && 'text-tinta-suave')}>
-            <input
-              type="radio"
-              name={`relevo-${o.servicioId}`}
-              checked={modo === 'tractor'}
-              disabled={!puedeTractor}
-              onChange={() => (setModo('tractor'), setError(null))}
-            />
-            Pasa el semi a otro tractor
-            {!puedeTractor && <span className="text-xs">(después de que cargó)</span>}
-          </label>
-          {conFletero && (
-            <label className={cn('inline-flex items-center gap-2', !puedeTractor && 'text-tinta-suave')}>
-              <input
-                type="radio"
-                name={`relevo-${o.servicioId}`}
-                checked={modo === 'fletero'}
-                disabled={!puedeTractor}
-                onChange={() => (setModo('fletero'), setError(null))}
-              />
-              Pasa a un fletero (trasbordo)
-            </label>
-          )}
-          <label className={cn('inline-flex items-center gap-2', !puedeTractor && 'text-tinta-suave')}>
-            <input
-              type="radio"
-              name={`relevo-${o.servicioId}`}
-              checked={modo === 'base'}
-              disabled={!puedeTractor}
-              onChange={() => {
-                setModo('chofer');
-                setError(null);
-                onTractor();
-              }}
-            />
-            Deja el semi en la base o en una aduana (otro tractor sigue después)
-          </label>
-        </div>
-      )}
+      <div className="flex flex-wrap gap-4 text-sm sm:col-span-full">
+        <label className="inline-flex items-center gap-2">
+          <input type="radio" name={`relevo-${o.servicioId}`} checked={modo === 'chofer'} onChange={() => (setModo('chofer'), setError(null))} />
+          Solo el chofer (mismo tractor)
+        </label>
+        <label className={cn('inline-flex items-center gap-2', !puedeTractor && 'text-tinta-suave')}>
+          <input
+            type="radio"
+            name={`relevo-${o.servicioId}`}
+            checked={modo === 'tractor'}
+            disabled={!puedeTractor}
+            onChange={() => (setModo('tractor'), setError(null))}
+          />
+          Pasa el semi a otro tractor
+          {!puedeTractor && <span className="text-xs">(después de que cargó)</span>}
+        </label>
+        <label className={cn('inline-flex items-center gap-2', !puedeTractor && 'text-tinta-suave')}>
+          <input
+            type="radio"
+            name={`relevo-${o.servicioId}`}
+            checked={modo === 'fletero'}
+            disabled={!puedeTractor}
+            onChange={() => (setModo('fletero'), setError(null))}
+          />
+          Pasa a un fletero (trasbordo)
+        </label>
+        <label className={cn('inline-flex items-center gap-2', !puedeTractor && 'text-tinta-suave')}>
+          <input
+            type="radio"
+            name={`relevo-${o.servicioId}`}
+            checked={modo === 'base'}
+            disabled={!puedeTractor}
+            onChange={() => {
+              setModo('chofer');
+              setError(null);
+              onTractor();
+            }}
+          />
+          Deja el semi en la base o en una aduana (otro tractor sigue después)
+        </label>
+      </div>
       {aFletero ? (
         <>
           <Campo label="Transportista *" error={campo('transportistaId')}>
@@ -1606,14 +1578,6 @@ function PanelRelevo({ o, zona, onCerrar, onTractor }: { o: Operacion; zona: str
         </>
       )}
       </>
-      )}
-      {!enRuta && puedeTractor && (
-        <p className="self-end pb-1 text-sm text-tinta-suave">
-          ¿Cambia también el tractor?{' '}
-          <button type="button" className="font-medium text-marca hover:underline" onClick={onTractor}>
-            Dejar el semi en la base
-          </button>
-        </p>
       )}
     </Panel>
   );

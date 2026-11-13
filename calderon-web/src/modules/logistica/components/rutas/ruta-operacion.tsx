@@ -8,7 +8,6 @@ import { ErrorBase } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
 import type { ActionResult, ErrorAccion } from '@/server/actions/result';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { invalidar } from '@/shared/query/invalidar';
@@ -24,7 +23,7 @@ import {
   quitarRutaTramo,
 } from '../../actions/rutas.actions';
 import { esLinkCorto, esLinkDeMaps, leerLinkMaps, linkCompleto, MAX_PUNTOS, type PuntoRuta } from '../../domain/rutas';
-import { useRutaOperacion, useRutasTramo } from '../../queries/hooks';
+import { useRutasTramo } from '../../queries/hooks';
 import type { RutaOperacion as Ruta, RutaTramo } from '../../repositories/rutas.repository';
 
 const MapaRuta = dynamic(() => import('./mapa-ruta').then((m) => m.MapaRuta), {
@@ -39,13 +38,9 @@ const INPUT = 'h-9 w-full rounded-md border border-borde bg-panel px-3 text-sm o
  * por eso va en cada operación). Telemetría pega el link de Google Maps de siempre.
  */
 export function RutaOperacion({ servicioId, abierta }: { servicioId: number; abierta: boolean }) {
-  // Migración 158: varias rutas por operación
-  const varias = useBaseTiene(VERSION_VARIAS_RUTAS);
-  if (varias) return <RutasVarias servicioId={servicioId} abierta={abierta} />;
-  return <RutaUnica servicioId={servicioId} abierta={abierta} />;
+  return <RutasVarias servicioId={servicioId} abierta={abierta} />;
 }
 
-const VERSION_VARIAS_RUTAS = 158;
 const POR: Record<string, string> = { gps: 'por GPS', chofer: 'avisó el chofer', oficina: 'a mano' };
 
 /**
@@ -178,47 +173,6 @@ function RutasVarias({ servicioId, abierta }: { servicioId: number; abierta: boo
     </div>
   );
 }
-
-/** Hasta la migración 157: una sola ruta por operación. */
-function RutaUnica({ servicioId, abierta }: { servicioId: number; abierta: boolean }) {
-  const ver = useCan('operacion.rutas:ver');
-  const puede = useCan('operacion.rutas:editar') && abierta;
-  const { data: ruta, isPending } = useRutaOperacion(servicioId);
-  const [editando, setEditando] = useState(false);
-  if (!ver || isPending) return null;
-  if (editando) return <EditorRuta servicioId={servicioId} ruta={ruta ?? null} onCerrar={() => setEditando(false)} />;
-  const link = ruta ? linkCompleto(ruta.puntos) : null;
-  return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-      <MapaIcono className="size-4 text-marca" />
-      {ruta ? (
-        <>
-          <span className="text-tinta">
-            Ruta del chofer: <b>{ruta.puntos.length} puntos</b> ({ruta.puntos[0]?.nombre} → {ruta.puntos[ruta.puntos.length - 1]?.nombre})
-          </span>
-          {ruta.notas && <span className="text-xs text-alerta">{ruta.notas}</span>}
-          {link && (
-            <a href={link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-marca hover:underline">
-              <ExternalLink className="size-3.5" /> Ver en Google Maps
-            </a>
-          )}
-          {puede && (
-            <button type="button" onClick={() => setEditando(true)} className="inline-flex items-center gap-1 text-xs text-marca hover:underline">
-              <Pencil className="size-3.5" /> Editar
-            </button>
-          )}
-        </>
-      ) : puede ? (
-        <button type="button" onClick={() => setEditando(true)} className="inline-flex items-center gap-1 font-medium text-marca hover:underline">
-          <Plus className="size-4" /> Cargar la ruta para el chofer
-        </button>
-      ) : (
-        <span className="text-tinta-suave">Sin ruta para el chofer.</span>
-      )}
-    </div>
-  );
-}
-
 /** Datos que arma el editor (los guarda quien lo usa: por operación o por chofer). */
 export interface DatosEditorRuta {
   notas: string;

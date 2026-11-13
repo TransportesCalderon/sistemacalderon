@@ -5,9 +5,6 @@ import type { FechaISO } from '@/shared/types/dominio';
  * hacia su siguiente destino. La base detecta las salidas por GPS («detectada»), la oficina las
  * confirma o descarta, y también se cargan a mano. Acá solo se convierten tipos.
  */
-export const VERSION_LIBRO_SALIDAS = 196;
-/** Migración 205: dónde se devuelve el contenedor vacío. */
-export const VERSION_DEVOLUCION_VACIO = 205;
 
 export type EstadoSalida = 'detectada' | 'confirmada' | 'descartada';
 export type OrigenSalida = 'gps' | 'manual' | 'importado';

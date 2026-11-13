@@ -4,10 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Check, Siren, X } from 'lucide-react';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
-import { VERSION_GESTION_ALERTAS } from '../domain/gestion.types';
 import { useAvisosEscalamiento, useEscalamientoVisto } from '../queries/hooks';
 import { HistorialGestionLista, ResolverProrroga } from './gestion-alerta';
 
@@ -18,13 +16,12 @@ import { HistorialGestionLista, ResolverProrroga } from './gestion-alerta';
  */
 export function AvisosEscalamiento() {
   const { zonaHoraria } = useSesion();
-  const hay = useBaseTiene(VERSION_GESTION_ALERTAS);
-  const { data } = useAvisosEscalamiento(hay);
+  const { data } = useAvisosEscalamiento(true);
   const visto = useEscalamientoVisto();
   const [cerrados, setCerrados] = useState<string[]>([]);
   const pendientes = (data ?? []).filter((x) => !cerrados.includes(`${x.motivo}:${x.id}`));
   const a = pendientes[0];
-  if (!hay || !a) return null;
+  if (!a) return null;
   const cerrar = () => {
     setCerrados((c) => [...c, `${a.motivo}:${a.id}`]);
     visto.mutate({ alertaId: a.id });

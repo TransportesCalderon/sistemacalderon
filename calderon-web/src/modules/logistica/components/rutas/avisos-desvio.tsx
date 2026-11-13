@@ -4,10 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Check, ExternalLink, TriangleAlert, X } from 'lucide-react';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
-import { VERSION_RUTAS_PANTALLA } from '../../domain/rutas';
 import { useAvisosDesvio, useDesvioVisto } from '../../queries/hooks';
 
 /** Quiénes reciben la ventana emergente (la base decide además cuándo: Gerencia, pasados 30 minutos). */
@@ -20,8 +18,7 @@ const ROLES_AVISO = ['analista_control', 'gerencia'];
  */
 export function AvisosDesvio() {
   const { rolesApp, zonaHoraria } = useSesion();
-  const hay = useBaseTiene(VERSION_RUTAS_PANTALLA);
-  const recibe = hay && rolesApp.some((r) => ROLES_AVISO.includes(r));
+  const recibe = rolesApp.some((r) => ROLES_AVISO.includes(r));
   const { data } = useAvisosDesvio(recibe);
   const visto = useDesvioVisto();
   const [cerrados, setCerrados] = useState<number[]>([]);

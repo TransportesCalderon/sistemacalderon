@@ -6,12 +6,10 @@ import { Camera, Gauge } from 'lucide-react';
 import { Seccion } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
-import { VERSION_TABLERO_CARGA } from '../domain/tablero.types';
 import { tableroRepository } from '../repositories/tablero.repository';
 import { ConclusionesTablero } from './conclusiones-tablero';
 import { SubirTablero } from './subir-tablero';
@@ -23,7 +21,6 @@ import { invalidar } from '@/shared/query/invalidar';
  * y lo cargado). Desde acá la oficina las puede subir.
  */
 export function TableroCarga({ cargaId, camionId }: { cargaId: number; camionId: number }) {
-  const hay = useBaseTiene(VERSION_TABLERO_CARGA);
   const { zonaHoraria } = useSesion();
   const puede = useCan('combustible.cargas:editar');
   const qc = useQueryClient();
@@ -31,9 +28,8 @@ export function TableroCarga({ cargaId, camionId }: { cargaId: number; camionId:
   const { data } = useQuery({
     queryKey: ['tablero', 'carga', cargaId],
     queryFn: () => tableroRepository(browserDb()).deCarga(cargaId),
-    enabled: hay,
   });
-  if (!hay || !data) return null;
+  if (!data) return null;
   const refrescar = () => void invalidar(qc, 'tablero');
 
   return (

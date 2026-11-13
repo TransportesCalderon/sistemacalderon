@@ -3,11 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { BellRing, ChevronDown, ChevronUp, FileWarning, Hand, LoaderCircle, MapPin, MessageSquare, Undo2 } from 'lucide-react';
-import { VERSION_ACTAS } from '@/modules/actas/domain/acta.types';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { useCamionesCombustible, useChoferesCombustible } from '@/modules/combustible/queries/hooks';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { AccionConMotivo, Cargando, Chip, CLASE_TEXTAREA, Dato, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
@@ -23,14 +21,13 @@ import {
   estaAbierta,
   etiquetaUnidad,
   SEVERIDADES,
-  VERSION_FILTROS_ALERTAS,
   type Severidad,
   type Alerta,
   type Decision,
   type Vista,
 } from '../domain/alerta.types';
 import { useBandejaAlertas, useComentarAlerta, useDetalleAlerta, useGestionAlertas, useReabrirAlerta, useResolverAlerta, useTomarAlerta } from '../queries/hooks';
-import { VERSION_GESTION_ALERTAS, type GestionAlerta } from '../domain/gestion.types';
+import { type GestionAlerta } from '../domain/gestion.types';
 import { ChipsGestion, GestionAlertaPanel } from './gestion-alerta';
 import { ResponsablesAlertas, ResumenCargaImposible } from './responsables-alertas';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
@@ -67,16 +64,14 @@ export function AlertasPantalla() {
   const [hasta, setHasta] = useState('');
   const [camion, setCamion] = useState('');
   const [severidad, setSeveridad] = useState<Severidad | ''>('');
-  const conFiltros = useBaseTiene(VERSION_FILTROS_ALERTAS);
   const { data: camiones } = useCamionesCombustible();
-  const filtros = conFiltros ? { camionId: camion ? Number(camion) : null, severidad: severidad || null } : undefined;
+  const filtros = { camionId: camion ? Number(camion) : null, severidad: severidad || null };
   const { data, isPending, isError, error, isFetching, refetch } = useBandejaAlertas(vista, desde || null, hasta || null, filtros);
   const [abierta, setAbierta] = useState<number | null>(null);
   // Migración 189: responsable, vencimiento, días abierta y reasignaciones (filtros «Mías» y «Vencidas»)
-  const conGestion = useBaseTiene(VERSION_GESTION_ALERTAS);
   const [mias, setMias] = useState(false);
   const [vencidas, setVencidas] = useState(false);
-  const { data: gestiones } = useGestionAlertas((data ?? []).map((a) => a.id), conGestion);
+  const { data: gestiones } = useGestionAlertas((data ?? []).map((a) => a.id), true);
   const gestion = new Map((gestiones ?? []).map((g) => [g.id, g]));
   const lista = (data ?? []).filter((a) => (!mias || gestion.get(a.id)?.esMia) && (!vencidas || gestion.get(a.id)?.vencida));
 
@@ -108,42 +103,38 @@ export function AlertasPantalla() {
           <span className="block text-xs text-tinta-suave">Hasta</span>
           <input type="date" className={CONTROL_FILTRO} value={hasta} onChange={(e) => setHasta(e.target.value)} />
         </label>
-        {conFiltros && (
-          <>
-            <label className="space-y-1 text-sm">
-              <span className="block text-xs text-tinta-suave">Tractor</span>
-              <select className={CONTROL_FILTRO} value={camion} onChange={(e) => setCamion(e.target.value)}>
-                <option value="">Todos</option>
-                {camiones?.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.patente}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="block text-xs text-tinta-suave">Gravedad</span>
-              <select className={CONTROL_FILTRO} value={severidad} onChange={(e) => setSeveridad(e.target.value as Severidad | '')}>
-                <option value="">Todas</option>
-                {SEVERIDADES.map((s) => (
-                  <option key={s} value={s}>
-                    {ETIQUETA_SEVERIDAD[s]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </>
-        )}
-        {conGestion && (
-          <div className="flex gap-3 pb-2 text-sm">
-            <label className="inline-flex items-center gap-1.5">
-              <input type="checkbox" className="size-4 accent-marca" checked={mias} onChange={(e) => setMias(e.target.checked)} /> Mías
-            </label>
-            <label className="inline-flex items-center gap-1.5">
-              <input type="checkbox" className="size-4 accent-marca" checked={vencidas} onChange={(e) => setVencidas(e.target.checked)} /> Vencidas
-            </label>
-          </div>
-        )}
+        <>
+          <label className="space-y-1 text-sm">
+            <span className="block text-xs text-tinta-suave">Tractor</span>
+            <select className={CONTROL_FILTRO} value={camion} onChange={(e) => setCamion(e.target.value)}>
+              <option value="">Todos</option>
+              {camiones?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.patente}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="block text-xs text-tinta-suave">Gravedad</span>
+            <select className={CONTROL_FILTRO} value={severidad} onChange={(e) => setSeveridad(e.target.value as Severidad | '')}>
+              <option value="">Todas</option>
+              {SEVERIDADES.map((s) => (
+                <option key={s} value={s}>
+                  {ETIQUETA_SEVERIDAD[s]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+        <div className="flex gap-3 pb-2 text-sm">
+          <label className="inline-flex items-center gap-1.5">
+            <input type="checkbox" className="size-4 accent-marca" checked={mias} onChange={(e) => setMias(e.target.checked)} /> Mías
+          </label>
+          <label className="inline-flex items-center gap-1.5">
+            <input type="checkbox" className="size-4 accent-marca" checked={vencidas} onChange={(e) => setVencidas(e.target.checked)} /> Vencidas
+          </label>
+        </div>
         {isFetching && !isPending && <LoaderCircle className="mb-2 size-4 animate-spin text-tinta-suave" />}
       </div>
 
@@ -214,8 +205,7 @@ function DetalleFila({ a }: { a: Alerta }) {
   const puede = useCan('anomalias.alertas:transicionar');
   // Migración 122: de una alerta confirmada se hace el acta de infracción (la base valida todo)
   const puedeActa = useCan('operacion.actas:editar');
-  const hayActas = useBaseTiene(VERSION_ACTAS);
-  const hacerActa = puedeActa && hayActas && a.estado === 'confirmada_operativa';
+  const hacerActa = puedeActa && a.estado === 'confirmada_operativa';
   const datos = Object.entries(a.evidencia).filter(([k, v]) => !DATOS_OCULTOS.has(k) && v !== null && typeof v !== 'object');
   const lat = Number(a.evidencia.latitud);
   const lon = Number(a.evidencia.longitud);
