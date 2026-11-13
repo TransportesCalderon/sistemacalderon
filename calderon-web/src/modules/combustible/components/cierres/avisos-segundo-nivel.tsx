@@ -4,10 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ShieldCheck, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
-import { VERSION_SEGUNDO_NIVEL } from '../../domain/segundo-nivel.types';
 import { useEsperanSegundoNivel } from '../../queries/hooks';
 
 /**
@@ -16,8 +14,7 @@ import { useEsperanSegundoNivel } from '../../queries/hooks';
  * cierra hasta que se recargue la página.
  */
 export function AvisosSegundoNivel() {
-  const hay = useBaseTiene(VERSION_SEGUNDO_NIVEL);
-  const recibe = useCan('combustible.cierre_viaje:ver') && hay;
+  const recibe = useCan('combustible.cierre_viaje:ver');
   const { data } = useEsperanSegundoNivel(recibe);
   const [cerrada, setCerrada] = useState(false);
   const lista = data ?? [];

@@ -1,13 +1,12 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { Ban, Check, ChevronDown, ChevronRight, ClipboardList, LoaderCircle, MessageSquare, Play, Plus, RotateCcw, UserCheck, Wrench } from 'lucide-react';
+import { Ban, Check, ChevronDown, ChevronRight, ClipboardList, LoaderCircle, MessageSquare, Play, Plus, RotateCcw, UserCheck } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
-import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
+import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { BotonCopiar } from '@/modules/telemetria/components/boton-copiar';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
@@ -18,7 +17,6 @@ import {
   ETIQUETA_ESTADO_OT,
   ETIQUETA_ORIGEN,
   ETIQUETA_PRIORIDAD,
-  VERSION_MANTENIMIENTO,
   type EstadoOt,
   type OrdenTrabajo,
   type Prioridad,
@@ -58,7 +56,6 @@ const decimal = (s: string) => {
  * las puntuales las pide la oficina. Qué puede hacer cada uno lo decide la base (acá solo se ocultan botones).
  */
 export function OrdenesPantalla() {
-  const hay = useBaseTiene(VERSION_MANTENIMIENTO);
   const { rolesApp, zonaHoraria } = useSesion();
   const pide = (['gerencia', 'operaciones', 'analista_control', 'mantenimiento_jefe', 'ti'] as const).some((r) => rolesApp.includes(r));
   const [filtro, setFiltro] = useState<Filtro>(rolesApp.includes('mecanico') ? 'mias' : 'abiertas');
@@ -66,11 +63,10 @@ export function OrdenesPantalla() {
   const [nueva, setNueva] = useState(false);
   const [buscar, setBuscar] = useState('');
   const [equipoSel, setEquipoSel] = useState('');
-  const { data, isPending, isError, error, refetch, isFetching } = useOrdenesTrabajo(hay, 30);
-  const zonas = useZonasEquipo(hay).data ?? [];
+  const { data, isPending, isError, error, refetch, isFetching } = useOrdenesTrabajo(true, 30);
+  const zonas = useZonasEquipo(true).data ?? [];
   const nombres = Object.fromEntries(zonas.map((z) => [z.codigo, z.nombre]));
 
-  if (!hay) return <Vacio icono={<Wrench className="size-6" />} texto="Falta aplicar en la base el cambio de Mantenimiento (órdenes de trabajo)." />;
   if (isPending) return <Cargando texto="Leyendo las órdenes de trabajo…" />;
   if (isError) return <ErrorLectura texto="No se pudieron leer las órdenes de trabajo." error={error} onReintentar={() => void refetch()} />;
 

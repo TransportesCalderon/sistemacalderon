@@ -6,7 +6,6 @@ import type { FechaISO } from '@/shared/types/dominio';
  * compras desde facturas de Finanzas, consumo en las OT y cuadre con la cuenta contable 1.1.13.
  * Todo lo calcula y valida la base; acá solo se leen sus respuestas.
  */
-export const VERSION_STOCK = 216;
 
 export const UNIDADES = ['unidad', 'litro', 'kilo', 'metro', 'juego', 'caja'] as const;
 export type Unidad = (typeof UNIDADES)[number];

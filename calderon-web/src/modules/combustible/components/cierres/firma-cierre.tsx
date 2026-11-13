@@ -6,7 +6,6 @@ import { invalidar } from '@/shared/query/invalidar';
 import { CheckCircle2, ExternalLink, LoaderCircle, PenLine, Upload } from 'lucide-react';
 import { abrirArchivo, borrarArchivo, subirArchivo } from '@/modules/chofer/components/archivos';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { browserDb } from '@/shared/supabase/browser';
@@ -15,7 +14,6 @@ import { subirFirmaCierre } from '../../actions/firma-cierre.actions';
 import { Chip } from '../comun/ui';
 
 /** Migración 256 · El cierre aprobado queda pendiente de firma hasta que se sube el acta firmada por el chofer. */
-export const VERSION_FIRMA_CIERRE = 256;
 
 export interface FirmaCierre {
   id: number;
@@ -31,11 +29,10 @@ const CLAVE = ['combustible', 'cierres', 'firmas'] as const;
 
 /** Estado de firma de varios cierres (lista y ficha). */
 export function useFirmasCierre(ids: readonly number[]): Map<number, FirmaCierre> {
-  const hay = useBaseTiene(VERSION_FIRMA_CIERRE);
   const lista = [...new Set(ids)].sort((a, b) => a - b);
   const { data } = useQuery({
     queryKey: [...CLAVE, lista.join(',')] as const,
-    enabled: hay && lista.length > 0,
+    enabled: lista.length > 0,
     queryFn: async () => {
       const { data: filas, error } = await browserDb().schema('fue').rpc('fn_firmas_cierre', { p_ids: lista });
       if (error) throw error;

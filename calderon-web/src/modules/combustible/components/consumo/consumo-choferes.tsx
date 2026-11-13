@@ -4,12 +4,11 @@ import { Fragment, useState } from 'react';
 import { Check, ChevronDown, ChevronRight, LoaderCircle, RefreshCw, Sparkles, Users } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora, hoyEnZona } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
-import { VERSION_CONSUMO_APRENDIDO, type ConsumoChofer } from '../../domain/consumo-aprendido.types';
+import { type ConsumoChofer } from '../../domain/consumo-aprendido.types';
 import { useAnalizarConsumoChofer, useConsumoChoferes, useRecalcularConsumoChoferes, useRevisarConsumoChofer } from '../../queries/hooks';
 import { Cargando, Chip, ErrorBase, ErrorLectura, Vacio } from '../comun/ui';
 
@@ -25,7 +24,6 @@ const primerDia = (mes: string) => (mes ? `${mes}-01` : '');
  * IA que explique por qué. Lo calcula la base.
  */
 export function ConsumoChoferesPantalla() {
-  const hay = useBaseTiene(VERSION_CONSUMO_APRENDIDO);
   const { zonaHoraria } = useSesion();
   const [mes, setMes] = useState(() => {
     const h = hoyEnZona(zonaHoraria);
@@ -34,11 +32,10 @@ export function ConsumoChoferesPantalla() {
   });
   const [soloMarcados, setSoloMarcados] = useState(true);
   const [abierto, setAbierto] = useState<number | null>(null);
-  const { data, isPending, isError, error, refetch, isFetching } = useConsumoChoferes(primerDia(mes), hay);
+  const { data, isPending, isError, error, refetch, isFetching } = useConsumoChoferes(primerDia(mes), true);
   const recalcular = useRecalcularConsumoChoferes();
   const envio = useEnvio();
 
-  if (!hay) return <Vacio icono={<Users className="size-6" />} texto="Falta aplicar en la base el cambio del consumo de los choferes." />;
 
   const lista = (data?.choferes ?? []).filter((c) => !soloMarcados || c.marcado);
   return (

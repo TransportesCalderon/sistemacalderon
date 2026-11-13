@@ -5,7 +5,6 @@ import type { FechaISO } from '@/shared/types/dominio';
  * esperado por ruta, los litros que necesita cada camión para lo que le falta y la comparación de cada chofer
  * contra los demás en el mismo camión y ruta. Lo calcula la base; acá solo se lee.
  */
-export const VERSION_CONSUMO_APRENDIDO = 223;
 
 type J = Record<string, unknown>;
 const obj = (v: unknown): J => (v && typeof v === 'object' && !Array.isArray(v) ? (v as J) : {});

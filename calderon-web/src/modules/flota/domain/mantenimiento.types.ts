@@ -3,9 +3,6 @@ import type { Equipo as EquipoVenc } from './vencimientos.types';
 
 /** Migración 215: los gensets también tienen mantenimiento (por horas del horómetro). */
 export type Equipo = EquipoVenc | 'genset';
-export const VERSION_MANT_GENSET = 215;
-/** Migración 218: «no aplica a este equipo» en el plan. */
-export const VERSION_NO_APLICA = 218;
 export const ETIQUETA_EQUIPO: Record<Equipo, string> = { tractor: 'Tractor', semi: 'Semi', genset: 'Genset' };
 /** Unidad de la medida del equipo: km del tractor, horas del genset (el semi no tiene). */
 export const unidadDe = (e: Equipo): 'km' | 'h' => (e === 'genset' ? 'h' : 'km');
@@ -15,7 +12,6 @@ export const unidadDe = (e: Equipo): 'km' | 'h' => (e === 'genset' ? 'h' : 'km')
  * La base calcula cuándo toca cada tarea, genera las OT, controla quién hace qué y arma el mensaje.
  * Acá solo se convierten tipos.
  */
-export const VERSION_MANTENIMIENTO = 199;
 
 export type EstadoOt = 'pendiente' | 'en_curso' | 'terminada' | 'verificada' | 'anulada';
 export type Prioridad = 'normal' | 'alta' | 'urgente';

@@ -4,12 +4,11 @@ import { useState } from 'react';
 import { LoaderCircle, Package, Plus, Undo2 } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { ErrorBase, ErrorLectura } from '@/modules/combustible/components/comun/ui';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO } from '@/shared/ui/clases';
-import { VERSION_STOCK, cant, decimalLocal, pesos, stockEn } from '../../domain/stock.types';
+import { cant, decimalLocal, pesos, stockEn } from '../../domain/stock.types';
 import { useConsumirInsumo, useDevolverInsumo, useInsumosOt, useStockInsumos } from '../../queries/hooks';
 
 /**
@@ -17,12 +16,10 @@ import { useConsumirInsumo, useDevolverInsumo, useInsumosOt, useStockInsumos } f
  * «Mantenimiento y repuestos» (con el camión, si es un tractor). Lo que sobra se devuelve al mismo costo.
  */
 export function InsumosOt({ ot, puedeCargar }: { ot: number; puedeCargar: boolean }) {
-  const hay = useBaseTiene(VERSION_STOCK);
   const { zonaHoraria } = useSesion();
-  const { data, isPending, isError, error, refetch } = useInsumosOt(ot, hay);
+  const { data, isPending, isError, error, refetch } = useInsumosOt(ot, true);
   const [agregar, setAgregar] = useState(false);
   const [devolver, setDevolver] = useState<number | null>(null);
-  if (!hay) return null;
   if (isPending) return <p className="text-xs text-tinta-suave">Leyendo los insumos…</p>;
   if (isError) return <ErrorLectura texto="No se pudieron leer los insumos de la orden." error={error} onReintentar={() => void refetch()} />;
   if (data.consumos.length === 0 && !puedeCargar) return null;

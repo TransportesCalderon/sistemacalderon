@@ -2,10 +2,8 @@
 
 import { ShieldCheck } from 'lucide-react';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
-import { VERSION_SEGUNDO_NIVEL } from '../../domain/segundo-nivel.types';
 import { useSegundoNivelCierre } from '../../queries/hooks';
 import { Chip, Seccion } from '../comun/ui';
 
@@ -15,9 +13,8 @@ import { Chip, Seccion } from '../comun/ui';
  */
 export function SegundoNivel({ cierreId, estado }: { cierreId: number; estado: string }) {
   const { zonaHoraria } = useSesion();
-  const hay = useBaseTiene(VERSION_SEGUNDO_NIVEL);
-  const { data } = useSegundoNivelCierre(cierreId, hay && estado !== 'anulado');
-  if (!hay || !data || !data.requiere) return null;
+  const { data } = useSegundoNivelCierre(cierreId, estado !== 'anulado');
+  if (!data || !data.requiere) return null;
   const l = (v: number) => `${formatearNumero(v, 1)} L`;
   return (
     <Seccion titulo="Aprobación con segundo nivel">

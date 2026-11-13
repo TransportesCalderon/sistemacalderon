@@ -4,8 +4,6 @@
  * Lo calcula la base (fue.fn_tanque_cierre); acá solo se cambian los nombres.
  */
 export const VERSION_TANQUE_CIERRE = 206;
-/** Migración 208: cuánto debería haber cargado al llegar. */
-export const VERSION_DEBERIA_CARGAR = 208;
 
 export interface TanqueCierre {
   disponible: boolean;

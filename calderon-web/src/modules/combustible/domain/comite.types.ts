@@ -1,5 +1,4 @@
 /** Migración 179 · Comité mensual de consumo (fue.fn_comite_consumo). Lo calcula la base; acá solo se convierte. */
-export const VERSION_COMITE = 179;
 
 export interface RevisionEquipo {
   revisado: boolean;

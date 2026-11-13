@@ -2,12 +2,9 @@
 
 import { HistorialRegistro } from '@/modules/actividad/components/historial-registro';
 import { usePuedeAprobarCierres } from '../../queries/puede-aprobar';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
-import { VERSION_DECISION } from '../../domain/decision.types';
 import { DecisionDiferencia } from './decision-diferencia';
 import { SegundoNivel } from './segundo-nivel';
 import { TanqueCierre } from './tanque-cierre';
-import { VERSION_TANQUE_CIERRE } from '../../domain/cierre-tanque.types';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -50,7 +47,6 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
   useNombreFicha(cierre?.numero);
   const puedeEditar = useCan('combustible.cierre_viaje:editar');
   const esBorrador = cierre?.estado === 'borrador';
-  const conDecision = useBaseTiene(VERSION_DECISION);
   const vivo = useResultadoCierre(id, esBorrador);
 
   if (isPending) return <Cargando texto="Cargando el cierre…" />;
@@ -95,7 +91,7 @@ export function CierreFicha({ id }: { id: CierreViajeId }) {
           {resultado.versionCalculo === 1 ? <CalculoAnterior resultado={resultado} /> : <CombustibleCamion resultado={resultado} cierreId={cierre.id} />}
           <Resultado cierre={cierre} resultado={resultado} />
           {/* Migración 185: toda diferencia se resuelve (descontar o justificar) */}
-          {conDecision && <DecisionDiferencia cierreId={cierre.id} estado={cierre.estado} aDescontarL={resultado.imputableTotalL} />}
+          <DecisionDiferencia cierreId={cierre.id} estado={cierre.estado} aDescontarL={resultado.imputableTotalL} />
           {/* Migración 200: descontar menos que la diferencia pide una segunda aprobación (gerente) */}
           <SegundoNivel cierreId={cierre.id} estado={cierre.estado} />
         </>
@@ -217,26 +213,6 @@ function explicacionDiferencia(d: number | null): string {
   return 'Lo cargado coincide con lo que consumió el motor.';
 }
 
-/** Cuatro cifras principales de un componente (libro, físico, diferencia, tolerancia). */
-function Cuatro({ libro, fisico, etiquetaLibro, etiquetaFisico, diferencia, tolerancia }: { libro: number | null; fisico: number | null; etiquetaLibro: string; etiquetaFisico: string; diferencia: number | null; tolerancia: number | null }) {
-  return (
-    <dl className="grid gap-4 sm:grid-cols-4">
-      <Dato etiqueta={etiquetaLibro} destacado>
-        {conUnidad(libro, 'L')}
-      </Dato>
-      <Dato etiqueta={etiquetaFisico} destacado>
-        {conUnidad(fisico, 'L')}
-      </Dato>
-      <Dato etiqueta="Diferencia" destacado>
-        <DiferenciaL litros={diferencia} toleranciaL={tolerancia} />
-      </Dato>
-      <Dato etiqueta="Tolerancia" destacado>
-        {tolerancia === null ? '—' : `± ${formatearNumero(tolerancia)} L`}
-      </Dato>
-    </dl>
-  );
-}
-
 function Detalle({ children }: { children: ReactNode }) {
   return <dl className="grid gap-3 border-t border-borde pt-3 sm:grid-cols-3 lg:grid-cols-5">{children}</dl>;
 }
@@ -246,24 +222,13 @@ function Detalle({ children }: { children: ReactNode }) {
  * Libro = cargas + entradas − salidas + faltante al llegar − faltante al salir (lo calcula la base).
  */
 function CombustibleCamion({ resultado: { camion: c }, cierreId }: { resultado: ResultadoCierre; cierreId: CierreViajeId }) {
-  const conTanque = useBaseTiene(VERSION_TANQUE_CIERRE);
   return (
     <Seccion titulo="Combustible del camión">
-      {conTanque && <TanqueCierre cierreId={cierreId} consumoL={c.consumoPlataformaL} diferenciaL={c.diferenciaL} toleranciaL={c.toleranciaL} />}
-      {!conTanque && (
-        <Cuatro
-          etiquetaLibro="Libro (todos los tanques)"
-          etiquetaFisico="Medido (plataforma)"
-          libro={c.libroL}
-          fisico={c.consumoPlataformaL}
-          diferencia={c.diferenciaL}
-          tolerancia={c.toleranciaL}
-        />
-      )}
+      <TanqueCierre cierreId={cierreId} consumoL={c.consumoPlataformaL} diferenciaL={c.diferenciaL} toleranciaL={c.toleranciaL} />
       <p className="text-sm text-tinta">{explicacionDiferencia(c.diferenciaL)}</p>
       <Detalle>
-        {conTanque && <Dato etiqueta="Cargado según el libro">{conUnidad(c.libroL, 'L')}</Dato>}
-        {conTanque && <Dato etiqueta="Tolerancia">{c.toleranciaL === null ? '—' : `± ${formatearNumero(c.toleranciaL)} L`}</Dato>}
+        <Dato etiqueta="Cargado según el libro">{conUnidad(c.libroL, 'L')}</Dato>
+        <Dato etiqueta="Tolerancia">{c.toleranciaL === null ? '—' : `± ${formatearNumero(c.toleranciaL)} L`}</Dato>
         <Dato etiqueta="Cargas del viaje">{conUnidad(c.cargasL, 'L')}</Dato>
         <Dato etiqueta="Entradas (bidón, otro camión)">{conUnidad(c.entradasL, 'L')}</Dato>
         <Dato etiqueta="Salidas (descargas, con motivo)">{conUnidad(c.salidasL, 'L')}</Dato>

@@ -6,12 +6,11 @@ import { Fuel, Plus } from 'lucide-react';
 import { useGensets } from '@/modules/pizarra/queries/hooks';
 import { Can } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora, hoyEnZona } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
-import { VERSION_GENSET_G1, VERSION_GENSET_G2, type CargaGenset } from '../../domain/genset.types';
+import { type CargaGenset } from '../../domain/genset.types';
 import { useCargasGenset } from '../../queries/hooks';
 import { Cargando, Chip, Encabezado, ErrorLectura, Vacio } from '../comun/ui';
 import { TableroGensets } from './tablero-gensets';
@@ -53,15 +52,13 @@ const restarDias = (dia: string, n: number) => {
  */
 export function CargasGensetLista() {
   const { zonaHoraria } = useSesion();
-  const hay = useBaseTiene(VERSION_GENSET_G1);
-  const hayG2 = useBaseTiene(VERSION_GENSET_G2);
   const [vista, setVista] = useState<'cargas' | 'tablero'>('cargas');
   const hoy = hoyEnZona(zonaHoraria);
   const [desde, setDesde] = useState<string>(restarDias(hoy, 30));
   const [hasta, setHasta] = useState<string>(hoy);
   const [gensetId, setGensetId] = useState<number | null>(null);
   const { data: gensets } = useGensets();
-  const { data, isPending, isError, error, refetch, isFetching } = useCargasGenset(desde || null, hasta || null, gensetId, hay);
+  const { data, isPending, isError, error, refetch, isFetching } = useCargasGenset(desde || null, hasta || null, gensetId, true);
   const cargas = (data ?? []).filter((c) => c.tipo === 'carga');
   const litros = cargas.reduce((s, c) => s + c.litros, 0);
 
@@ -76,32 +73,28 @@ export function CargasGensetLista() {
       </Encabezado>
       <div className="flex flex-wrap items-center gap-3">
         <DestinoListaCargas actual="genset" />
-        {hayG2 && (
-          <div role="tablist" aria-label="Vista" className="inline-flex rounded-lg border border-borde bg-panel p-1">
-            {(
-              [
-                ['cargas', 'Cargas'],
-                ['tablero', 'Tablero por genset'],
-              ] as const
-            ).map(([id, etiqueta]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={vista === id}
-                onClick={() => setVista(id)}
-                className={cn('rounded-md px-3 py-1.5 text-sm', vista === id ? 'bg-marca text-white' : 'text-tinta hover:bg-hover')}
-              >
-                {etiqueta}
-              </button>
-            ))}
-          </div>
-        )}
+        <div role="tablist" aria-label="Vista" className="inline-flex rounded-lg border border-borde bg-panel p-1">
+          {(
+            [
+              ['cargas', 'Cargas'],
+              ['tablero', 'Tablero por genset'],
+            ] as const
+          ).map(([id, etiqueta]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={vista === id}
+              onClick={() => setVista(id)}
+              className={cn('rounded-md px-3 py-1.5 text-sm', vista === id ? 'bg-marca text-white' : 'text-tinta hover:bg-hover')}
+            >
+              {etiqueta}
+            </button>
+          ))}
+        </div>
       </div>
-      {hayG2 && vista === 'tablero' ? (
+      {vista === 'tablero' ? (
         <TableroGensets />
-      ) : !hay ? (
-        <Vacio icono={<Fuel className="size-6" />} texto="Falta aplicar en la base el cambio de los gensets (G1)." />
       ) : (
         <>
           <section className={cn(TARJETA, 'flex flex-wrap items-center gap-2 p-3')} aria-label="Filtros">
@@ -151,12 +144,12 @@ export function CargasGensetLista() {
                     <th className={cn(TH, 'text-right')}>Horómetro</th>
                     <th className={cn(TH, 'text-right')}>Importe</th>
                     <th className={TH}>Vuelta</th>
-                    {hayG2 && <th className={TH}>Viaje / operación</th>}
+                    <th className={TH}>Viaje / operación</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-borde">
                   {data.map((c) => (
-                    <Fila key={c.id} c={c} zona={zonaHoraria} conImputacion={hayG2} />
+                    <Fila key={c.id} c={c} zona={zonaHoraria} />
                   ))}
                 </tbody>
               </table>
@@ -168,7 +161,7 @@ export function CargasGensetLista() {
   );
 }
 
-function Fila({ c, zona, conImputacion }: { c: CargaGenset; zona: string; conImputacion: boolean }) {
+function Fila({ c, zona }: { c: CargaGenset; zona: string }) {
   const origen =
     c.origen === 'descarga_base' ? `Descarga a ${c.tanque ?? 'la base'}` : c.origen === 'tanque_base' ? `Surtidor de la base (${c.estacion ?? ''})` : (c.estacion ?? '—');
   return (
@@ -203,21 +196,19 @@ function Fila({ c, zona, conImputacion }: { c: CargaGenset; zona: string; conImp
       <td className={cn(TD, 'text-right tabular-nums')}>{formatearNumero(c.horometroH, 1)} h</td>
       <td className={cn(TD, 'text-right tabular-nums')}>{c.importe === null ? '—' : `${c.moneda ?? ''} ${formatearNumero(c.importe, 0)}`}</td>
       <td className={TD}>{c.cierre ? <Chip tono="exito">Cerrada {c.cierre}</Chip> : <span className="text-xs text-tinta-suave">abierta</span>}</td>
-      {conImputacion && (
-        <td className={TD}>
-          {c.tipo === 'descarga' || !c.imputacion ? (
-            <span className="text-tinta-suave">—</span>
-          ) : c.imputacion.viaje ? (
-            <>
-              <span className="font-mono">{c.imputacion.viaje}</span>
-              {c.imputacion.operacion && <span className="block text-xs text-tinta-suave">Op. {c.imputacion.operacion}</span>}
-              {c.imputacion.estimado && <span className="block text-xs text-alerta">valor estimado</span>}
-            </>
-          ) : (
-            <span className="text-xs text-alerta">{c.imputacion.motivo ?? 'Sin imputar'}</span>
-          )}
-        </td>
-      )}
+      <td className={TD}>
+        {c.tipo === 'descarga' || !c.imputacion ? (
+          <span className="text-tinta-suave">—</span>
+        ) : c.imputacion.viaje ? (
+          <>
+            <span className="font-mono">{c.imputacion.viaje}</span>
+            {c.imputacion.operacion && <span className="block text-xs text-tinta-suave">Op. {c.imputacion.operacion}</span>}
+            {c.imputacion.estimado && <span className="block text-xs text-alerta">valor estimado</span>}
+          </>
+        ) : (
+          <span className="text-xs text-alerta">{c.imputacion.motivo ?? 'Sin imputar'}</span>
+        )}
+      </td>
     </tr>
   );
 }

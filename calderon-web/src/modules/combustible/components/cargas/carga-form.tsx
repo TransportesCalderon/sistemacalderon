@@ -19,8 +19,7 @@ import { formatearNumero } from '@/shared/lib/numeros';
 import { formatearFechaHora, horaLocalAIso, hoyEnZona, isoAHoraLocal } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
-import { VERSION_CONTROL_PRECIO, evaluarPrecio } from '../../domain/precio-referencia';
+import { evaluarPrecio } from '../../domain/precio-referencia';
 import { cargaFormSchema, type CargaFormEntrada } from '../../domain/carga.schemas';
 import { ETIQUETA_MEDIO_PAGO, MEDIOS_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
 import {
@@ -160,15 +159,14 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
 
   // Migración 258: la carga va en la moneda del país de la estación y el precio se compara con lo que
   // se viene pagando ahí. La base es la que bloquea; acá se avisa antes de guardar.
-  const hayControlPrecio = useBaseTiene(VERSION_CONTROL_PRECIO);
   const estacionId = Number(watch('estacionId')) || null;
-  const referencia = useReferenciaPrecio(hayControlPrecio ? estacionId : null, fechaIso).data ?? null;
+  const referencia = useReferenciaPrecio(estacionId, fechaIso).data ?? null;
   const monedaElegida = watch('moneda');
   const monedaDelPais = referencia && monedas?.some((m) => m.codigo === referencia.moneda) ? referencia.moneda : null;
   const surtidorPropio = estaciones?.find((s) => s.id === estacionId)?.esTanquePropio ?? false;
   useEffect(() => {
     // En el alta se pone sola al elegir la estación; en la edición no se pisa (se avisa abajo del campo)
-    if (carga || !hayControlPrecio) return;
+    if (carga) return;
     const moneda = monedaDelPais ?? (surtidorPropio ? (monedaBase ?? null) : null);
     if (moneda && watch('moneda') !== moneda) setValue('moneda', moneda, { shouldValidate: true, shouldDirty: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando cambia la estación o llega su moneda

@@ -3,12 +3,11 @@
 import { Fragment, useState } from 'react';
 import { ChevronDown, ChevronRight, Route } from 'lucide-react';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { TARJETA } from '@/shared/ui/clases';
-import { VERSION_CONSUMO_APRENDIDO, type LitrosRuta } from '../../domain/consumo-aprendido.types';
+import { type LitrosRuta } from '../../domain/consumo-aprendido.types';
 import { useConsumoRutas } from '../../queries/hooks';
 import { Cargando, ErrorLectura, Vacio } from '../comun/ui';
 import { Cifra } from './periodo';
@@ -22,12 +21,10 @@ const num = (v: number | null, d = 0) => (v === null ? '—' : formatearNumero(v
  * terminados, y los litros que necesita cada camión para lo que le falta (tramo en curso y planificados).
  */
 export function ConsumoRutasPantalla() {
-  const hay = useBaseTiene(VERSION_CONSUMO_APRENDIDO);
   const { zonaHoraria } = useSesion();
-  const { data, isPending, isError, error, refetch } = useConsumoRutas(hay);
+  const { data, isPending, isError, error, refetch } = useConsumoRutas(true);
   const [abierta, setAbierta] = useState<string | null>(null);
 
-  if (!hay) return <Vacio icono={<Route className="size-6" />} texto="Falta aplicar en la base el cambio del consumo por ruta." />;
   if (isPending) return <Cargando texto="Leyendo lo aprendido…" />;
   if (isError) return <ErrorLectura texto="No se pudo leer el consumo por ruta." error={error} onReintentar={() => void refetch()} />;
 

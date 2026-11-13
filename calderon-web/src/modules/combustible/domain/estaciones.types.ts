@@ -5,7 +5,6 @@ import type { FechaISO } from '@/shared/types/dominio';
  * es un ranking de anomalías para que lo interpreten Operaciones y Gerencia. Los litros son
  * ASOCIADOS (el faltante del viaje repartido por los litros que cargó cada estación), no causados.
  */
-export const VERSION_PATRONES_ESTACION = 191;
 export const PERIODOS_ESTACION = [
   { dias: 30, texto: 'Últimos 30 días' },
   { dias: 90, texto: 'Últimos 90 días' },

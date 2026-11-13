@@ -2,11 +2,9 @@
 
 import type { ReactNode } from 'react';
 import { TriangleAlert } from 'lucide-react';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearNumero } from '@/shared/lib/numeros';
 import type { CierreViajeId } from '@/shared/types/dominio';
-import { VERSION_DEBERIA_CARGAR, VERSION_TANQUE_CIERRE } from '../../domain/cierre-tanque.types';
 import { useTanqueCierre } from '../../queries/hooks';
 import { DiferenciaL } from '../comun/ui';
 
@@ -38,10 +36,8 @@ export function TanqueCierre({
   diferenciaL: number | null;
   toleranciaL: number | null;
 }) {
-  const hay = useBaseTiene(VERSION_TANQUE_CIERRE);
-  const conDeberia = useBaseTiene(VERSION_DEBERIA_CARGAR);
-  const { data: t } = useTanqueCierre(cierreId, hay);
-  if (!hay || !t || !t.disponible) return null;
+  const { data: t } = useTanqueCierre(cierreId, true);
+  if (!t || !t.disponible) return null;
   const salio = t.salioConL !== null ? litros(t.salioConL) : (t.faltanteSalidaL ?? 0) > 0 ? `Lleno − ${litros(t.faltanteSalidaL)}` : 'Lleno';
   return (
     <div className="space-y-2">
@@ -51,7 +47,7 @@ export function TanqueCierre({
         <Paso titulo="Consumió (plataforma)" fuerte>
           {litros(consumoL)}
         </Paso>
-        {conDeberia && <Paso titulo="Debería haber cargado">{litros(t.deberiaCargarL)}</Paso>}
+        <Paso titulo="Debería haber cargado">{litros(t.deberiaCargarL)}</Paso>
         <Paso titulo="Cargó al llegar">{litros(t.cargaLlegadaL)}</Paso>
         <Paso titulo="Diferencia">
           <DiferenciaL litros={diferenciaL} toleranciaL={toleranciaL} />

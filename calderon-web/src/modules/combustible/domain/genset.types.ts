@@ -184,7 +184,6 @@ export function parsearFichaGenset(d: J): FichaGenset {
 }
 
 // ---- Migración 202 · Genset G1: lista de cargas y contexto para completar la carga ----
-export const VERSION_GENSET_G1 = 202;
 
 export interface CargaGenset {
   id: number;
@@ -280,7 +279,6 @@ export function parsearContextoGenset(d: unknown): ContextoGenset {
 }
 
 // ---- Migración 203 · Genset G2: costo a la operación y tablero ----
-export const VERSION_GENSET_G2 = 203;
 
 export interface SinImputarGenset {
   id: number;
