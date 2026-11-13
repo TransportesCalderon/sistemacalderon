@@ -90,6 +90,13 @@ export const desengancharSemi = createAction({
   handler: (d, { db }) => pizarraRepository(db).desenganchar(d.semiId, d.lugarId),
   invalida: rutas,
 });
+/** Migración 261: OK para pasar a la siguiente operación (los mismos que mueven los pasos; lo controla la base). */
+export const pasarSiguiente = createAction({
+  permiso: 'operacion.servicios:editar',
+  schema: z.object({ semiId: z.number().int().positive() }),
+  handler: (d, { db }) => pizarraRepository(db).pasarSiguiente(d.semiId),
+  invalida: rutas,
+});
 export const deshacerDesenganche = createAction({
   permiso: 'flota.pizarra:editar',
   schema: z.object({ semiId: z.number().int().positive() }),

@@ -15,6 +15,7 @@ import {
   retirarGenset,
   desengancharSemi,
   deshacerDesenganche,
+  pasarSiguiente,
 } from '../actions/pizarra.actions';
 import { pizarraQueries as q } from './keys';
 import { descartarSalida, guardarSalida } from '../actions/salidas.actions';
@@ -90,6 +91,8 @@ export const useGuardarSemi = () => useEscritura(guardarSemi);
 /** Migración 184 */
 export const useDesengancharSemi = () => useEscritura(desengancharSemi);
 export const useDeshacerDesenganche = () => useEscritura(deshacerDesenganche);
+/** Migración 261 */
+export const usePasarSiguiente = () => useEscritura(pasarSiguiente);
 export const useBajaSemi = () => useEscritura(bajaSemi);
 export const useGuardarTipoAccesorio = () => useEscritura(guardarTipoAccesorio);
 export const useEliminarTipoAccesorio = () => useEscritura(eliminarTipoAccesorio);

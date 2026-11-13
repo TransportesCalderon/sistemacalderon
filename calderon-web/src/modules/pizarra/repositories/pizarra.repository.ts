@@ -151,6 +151,11 @@ export const pizarraRepository = (db: Db) => {
     const { error } = await db.schema('ops').rpc('fn_desenganchar_semi', { p_semi: semiId, p_lugar: lugarId });
     if (error) throw new RepoError(error);
   },
+  /** Migración 261: OK para que la fila pase a la siguiente operación después de entregar. */
+  async pasarSiguiente(semiId: number): Promise<void> {
+    const { error } = await db.schema('ops').rpc('fn_pizarra_pasar_siguiente', { p_semi: semiId });
+    if (error) throw new RepoError(error);
+  },
   async deshacerDesenganche(semiId: number): Promise<void> {
     const { error } = await db.schema('ops').rpc('fn_deshacer_desenganche', { p_semi: semiId });
     if (error) throw new RepoError(error);

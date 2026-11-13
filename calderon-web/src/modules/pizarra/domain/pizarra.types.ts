@@ -10,6 +10,8 @@ export const ESTADOS_UNIDAD = [
   'cargando',
   'en_viaje',
   'descargando',
+  // Migración 261: entregó y espera el OK para pasar a la siguiente operación
+  'entregado',
   'vacio',
   // Migración 176: cargado, esperando otro tractor en una base o en una aduana
   'en_base',
@@ -18,6 +20,9 @@ export const ESTADOS_UNIDAD = [
   'fuera_servicio',
 ] as const;
 export type EstadoUnidad = (typeof ESTADOS_UNIDAD)[number];
+
+/** Migración 261: la Pizarra espera el OK para pasar a la siguiente operación después de entregar. */
+export const VERSION_OK_SIGUIENTE = 261;
 
 export const esEstadoUnidad = (v: string): v is EstadoUnidad => (ESTADOS_UNIDAD as readonly string[]).includes(v);
 
@@ -28,6 +33,7 @@ export const ESTADO_INFO: Record<EstadoUnidad, { etiqueta: string; corta: string
   cargando: { etiqueta: 'Cargando', corta: 'Carg.', clase: 'bg-[#fff1d6] text-[#7a4500] border border-[#e5b04a]' },
   en_viaje: { etiqueta: 'En viaje', corta: 'Viaje', clase: 'bg-[#dbe8f7] text-[#0b4a85]' },
   descargando: { etiqueta: 'Descargando', corta: 'Desc.', clase: 'bg-[#ebe4fa] text-[#4b2c91]' },
+  entregado: { etiqueta: 'Entregado', corta: 'Entreg.', clase: 'bg-[#d1fadf] text-[#05603a] border border-[#32d583]' },
   vacio: { etiqueta: 'Vacío', corta: 'Vacío', clase: 'bg-white text-[#344054] border border-dashed border-[#667085]' },
   en_base: { etiqueta: 'Cargado en base', corta: 'Base', clase: 'bg-[#dbe8f7] text-[#0b4a85] border border-dashed border-[#2e90fa]' },
   en_aduana: { etiqueta: 'En aduana', corta: 'Aduana', clase: 'bg-[#fef7c3] text-[#713b12] border border-[#fac515]' },

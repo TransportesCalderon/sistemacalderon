@@ -1368,6 +1368,8 @@ export type Database = {
       fn_mi_ruta: { Args: Record<string, never>; Returns: Json };
       fn_desenganchar_semi: { Args: { p_semi: number; p_lugar: number; p_ts?: string | null }; Returns: number };
       fn_deshacer_desenganche: { Args: { p_semi: number }; Returns: undefined };
+      // Migración 261: OK para pasar a la siguiente operación en la Pizarra
+      fn_pizarra_pasar_siguiente: { Args: { p_semi: number }; Returns: undefined };
       fn_llegue_mi_destino: { Args: { p_lat?: number | null; p_lng?: number | null }; Returns: Json };
       fn_guardar_ruta_operacion: { Args: { p_servicio: number; p_version: number | null; p_datos: Json }; Returns: undefined };
       fn_quitar_ruta_operacion: { Args: { p_servicio: number; p_version: number }; Returns: undefined };

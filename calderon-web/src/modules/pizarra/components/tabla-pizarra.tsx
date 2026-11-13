@@ -9,8 +9,8 @@ import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
 import { Campo } from '@/shared/ui/campo';
 import { nivelFila } from '../domain/pizarra.filtros';
-import { ESTADO_INFO, type ColumnaAccesorio, type FilaPizarra, type Lugar } from '../domain/pizarra.types';
-import { useGensets, useGuardarEdicionPizarra, useInstalarGenset, useRetirarGenset } from '../queries/hooks';
+import { ESTADO_INFO, VERSION_OK_SIGUIENTE, type ColumnaAccesorio, type FilaPizarra, type Lugar } from '../domain/pizarra.types';
+import { useGensets, useGuardarEdicionPizarra, useInstalarGenset, usePasarSiguiente, useRetirarGenset } from '../queries/hooks';
 import { useAsignarEquipo, useOpcionesViaje } from '@/modules/logistica/queries/hooks';
 import { CeldaEditable, type OpcionCelda } from './celda-editable';
 import { LoQueSigue } from './lo-que-sigue';
@@ -403,6 +403,7 @@ function DetalleUnidad({
         <Dato e="Destino">{f.destino ?? '—'}</Dato>
         <Dato e="Descarga">{diaHora(f.descarga, zona)}</Dato>
         <Dato e="Tara pedida">{f.taraMaxDias ? `${f.taraMaxDias} d` : 'No pide'}</Dato>
+        {f.estado === 'entregado' && <PasarSiguiente f={f} />}
         <EnlacesLogistica f={f} />
       </Bloque>
       <Bloque titulo="Semi y equipo">
@@ -552,6 +553,36 @@ function Dato({ e, children }: { e: string; children: React.ReactNode }) {
       <span className="text-tinta-suave">{e}</span>
       <span className="font-medium text-tinta">{children}</span>
     </p>
+  );
+}
+
+/**
+ * Migración 261: entregó y ya tiene la próxima planificada. La fila sigue con la entregada hasta que
+ * alguien da el OK (los mismos que mueven los pasos de la operación).
+ */
+function PasarSiguiente({ f }: { f: FilaPizarra }) {
+  const hay = useBaseTiene(VERSION_OK_SIGUIENTE);
+  const puede = useCan('operacion.servicios:editar');
+  const pasar = usePasarSiguiente();
+  const { error, enviar } = useEnvio();
+  if (!hay) return null;
+  return (
+    <div className="mt-1 space-y-1 rounded-md bg-[#ecfdf3] p-2" onClick={(e) => e.stopPropagation()}>
+      <p className="text-xs text-[#05603a]">
+        Entregó. {f.proxima ? `Sigue con ${f.proxima.cliente ?? 'la próxima carga'}` : 'Tiene la próxima planificada'}: pasa cuando se da el OK.
+      </p>
+      {puede && (
+        <button
+          type="button"
+          className="rounded-md bg-[#039855] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#027a48] disabled:opacity-60"
+          disabled={pasar.isPending}
+          onClick={() => void enviar(pasar.mutateAsync({ semiId: f.semiId }), () => undefined)}
+        >
+          {pasar.isPending ? 'Pasando…' : 'Pasar a la siguiente'}
+        </button>
+      )}
+      {error && <p className="text-xs text-error">{error.mensaje}</p>}
+    </div>
   );
 }
 
