@@ -10,7 +10,6 @@ import { CampoGlobo, ENTRADA_GLOBO, Globo } from '@/shared/ui/globo';
 import type { FilaPizarra } from '../domain/pizarra.types';
 import { useDesengancharSemi, useDeshacerDesenganche } from '../queries/hooks';
 
-export const VERSION_DESENGANCHE = 184;
 
 const BOTON = 'inline-flex h-7 items-center gap-1 rounded-md px-2.5 text-xs font-semibold whitespace-nowrap disabled:opacity-60';
 

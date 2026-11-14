@@ -1,5 +1,4 @@
 /** Migración 181 · Viento en contra por viaje (Open-Meteo). Lo calcula la base; acá solo se convierte. */
-export const VERSION_VIENTO = 181;
 
 export interface VientoViaje {
   camionId: number;

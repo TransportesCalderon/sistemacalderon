@@ -316,6 +316,8 @@ type CargaRow = {
   mismo_ticket: boolean;
   faltante_lleno_l: number;
   faltante_observacion: string | null;
+  /** Migración 268: parte del faltante que es de la mochila (vacío = sin repartir). */
+  faltante_mochila_l: number | null;
   validada_por: number | null;
   validada_en: string | null;
   motivo_validacion: string | null;
@@ -347,6 +349,7 @@ type CargaInsert = Pick<
       | 'es_frontera'
       | 'faltante_lleno_l'
       | 'faltante_observacion'
+      | 'faltante_mochila_l'
       | 'anula_id'
     >
   >;
@@ -1073,6 +1076,7 @@ export type Database = {
       fn_siguiente_legajo: { Args: Record<string, never>; Returns: string };
       /** Migración 45: elimina un chofer (borrado si nunca se usó, ocultado si ya se usó). */
       fn_eliminar_chofer: { Args: { p_chofer: number; p_motivo: string }; Returns: string };
+      fn_chofer_pendientes: { Args: { p_chofer: number }; Returns: Json };
       /** Migración 46: chofer fijo del tractor desde una fecha (null = sin chofer). */
       fn_asignar_tractor: { Args: { p_camion: number; p_chofer: number | null; p_desde?: string | null }; Returns: undefined };
       fn_chofer_de_tractor: { Args: { p_camion: number; p_fecha?: string | null }; Returns: number | null };

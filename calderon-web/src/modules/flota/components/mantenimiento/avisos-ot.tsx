@@ -5,10 +5,8 @@ import Link from 'next/link';
 import { Check, Siren, Wrench, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import { BotonCopiar } from '@/modules/telemetria/components/boton-copiar';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
-import { VERSION_MANTENIMIENTO } from '../../domain/mantenimiento.types';
 import { useAvisosOt, useOtVista } from '../../queries/hooks';
 
 /**
@@ -18,8 +16,7 @@ import { useAvisosOt, useOtVista } from '../../queries/hooks';
  * cada vez que entra; a todo Mantenimiento).
  */
 export function AvisosOt() {
-  const hay = useBaseTiene(VERSION_MANTENIMIENTO);
-  const recibe = useCan('mantenimiento.ordenes:ver') && hay;
+  const recibe = useCan('mantenimiento.ordenes:ver');
   const { data } = useAvisosOt(recibe);
   const visto = useOtVista();
   const [cerrados, setCerrados] = useState<number[]>([]);

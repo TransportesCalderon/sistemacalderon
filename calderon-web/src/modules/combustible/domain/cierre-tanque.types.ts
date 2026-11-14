@@ -3,15 +3,14 @@
  * con cuántos litros salió, cuánto cargó en el viaje, con cuánto llegó y cuánto consumió según el libro.
  * Lo calcula la base (fue.fn_tanque_cierre); acá solo se cambian los nombres.
  */
-export const VERSION_TANQUE_CIERRE = 206;
-/** Migración 208: cuánto debería haber cargado al llegar. */
-export const VERSION_DEBERIA_CARGAR = 208;
 
 export interface TanqueCierre {
   disponible: boolean;
   motivo: string | null;
   capacidadL: number | null;
   faltanteSalidaL: number | null;
+  /** Migración 268: de lo que faltó al salir, cuánto fue en la mochila (null = sin repartir). */
+  faltanteSalidaMochilaL: number | null;
   salioConL: number | null;
   cargadoViajeL: number | null;
   entradasL: number | null;
@@ -19,6 +18,7 @@ export interface TanqueCierre {
   llegoConL: number | null;
   cargaLlegadaL: number | null;
   faltanteLlegadaL: number | null;
+  faltanteLlegadaMochilaL: number | null;
   quedoConL: number | null;
   consumoLibroL: number | null;
   /** Migración 208 */
@@ -39,6 +39,7 @@ export function parsearTanqueCierre(d: unknown): TanqueCierre {
     motivo: t(x.motivo),
     capacidadL: n(x.capacidad_l),
     faltanteSalidaL: n(x.faltante_salida_l),
+    faltanteSalidaMochilaL: n(x.faltante_salida_mochila_l),
     salioConL: n(x.salio_con_l),
     cargadoViajeL: n(x.cargado_viaje_l),
     entradasL: n(x.entradas_l),
@@ -46,6 +47,7 @@ export function parsearTanqueCierre(d: unknown): TanqueCierre {
     llegoConL: n(x.llego_con_l),
     cargaLlegadaL: n(x.carga_llegada_l),
     faltanteLlegadaL: n(x.faltante_llegada_l),
+    faltanteLlegadaMochilaL: n(x.faltante_llegada_mochila_l),
     quedoConL: n(x.quedo_con_l),
     consumoLibroL: n(x.consumo_libro_l),
     consumoPlataformaL: n(x.consumo_plataforma_l),
@@ -53,4 +55,14 @@ export function parsearTanqueCierre(d: unknown): TanqueCierre {
     deberiaCargarL: n(x.deberia_cargar_l),
     aviso: t(x.aviso),
   };
+}
+
+/** Migración 268: «120 L en la mochila · 20 L en los tanques». Vacío si no faltó nada o la carga no tiene el reparto. */
+export function repartoFaltante(faltanteL: number | null, mochilaL: number | null): string | null {
+  if (!faltanteL || faltanteL <= 0 || mochilaL === null) return null;
+  const tanques = Math.round((faltanteL - mochilaL) * 100) / 100;
+  const f = (v: number) => v.toLocaleString('es-AR', { maximumFractionDigits: 1 });
+  if (tanques <= 0) return 'todo en la mochila';
+  if (mochilaL <= 0) return 'todo en los tanques';
+  return `${f(mochilaL)} L en la mochila · ${f(tanques)} L en los tanques`;
 }

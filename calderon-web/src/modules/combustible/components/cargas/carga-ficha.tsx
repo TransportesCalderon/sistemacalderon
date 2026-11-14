@@ -12,8 +12,9 @@ import { formatearFechaHora } from '@/shared/lib/fechas';
 import { conUnidad, formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import type { CargaId } from '@/shared/types/dominio';
-import { ETIQUETA_MEDIO_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
-import { useCarga, useEliminarCarga, useResolverSolicitud, useRetirarSolicitud, useSolicitarAnulacion } from '../../queries/hooks';
+import { ETIQUETA_MEDIO_PAGO, VERSION_FALTANTE_MOCHILA, type Carga, type MedioPago } from '../../domain/carga.types';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { useCarga, useEliminarCarga, useFaltanteMochila, useResolverSolicitud, useRetirarSolicitud, useSolicitarAnulacion } from '../../queries/hooks';
 import { AccionConMotivo, Cargando, Chip, Dato, ErrorBase, ErrorLectura, Seccion } from '../comun/ui';
 import { DestinoCarga, RolViajeChips, SituacionCargaChip } from './chips-carga';
 import { TicketCarga } from './ticket-carga';
@@ -88,6 +89,7 @@ export function CargaFicha({ id }: { id: CargaId }) {
           {carga.esFrontera && (
             <Dato etiqueta="Le faltaron para quedar lleno">
               {conUnidad(carga.faltanteLlenoL, 'L')}
+              <RepartoFaltante id={carga.id} faltanteL={carga.faltanteLlenoL} />
               {carga.faltanteObservacion && <span className="block text-xs text-tinta-suave">{carga.faltanteObservacion}</span>}
             </Dato>
           )}
@@ -250,5 +252,18 @@ function Anulacion({ carga, onRecargar }: { carga: Carga; onRecargar: () => void
         onConfirmar={(motivo) => ejecutar(solicitar.mutateAsync({ cargaId: carga.id, motivo }))}
       />
     </Seccion>
+  );
+}
+
+/** Migración 268: de lo que faltó para quedar lleno, cuánto fue en la mochila y cuánto en los tanques. */
+function RepartoFaltante({ id, faltanteL }: { id: CargaId; faltanteL: number }) {
+  const hay = useBaseTiene(VERSION_FALTANTE_MOCHILA);
+  const { data, isSuccess } = useFaltanteMochila(id, hay && faltanteL > 0);
+  if (!hay || faltanteL <= 0 || !isSuccess) return null;
+  if (data === null) return <span className="block text-xs text-tinta-suave">Sin repartir entre tanques y mochila</span>;
+  return (
+    <span className="block text-xs text-tinta-suave">
+      {formatearNumero(data, 0)} L en la mochila · {formatearNumero(faltanteL - data, 0)} L en los tanques
+    </span>
   );
 }

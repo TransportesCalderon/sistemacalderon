@@ -5,7 +5,6 @@ import { z } from 'zod';
  * aplicaciones y billeteras). La base empareja cada salida con su llegada, dice cuáles son seguros,
  * crea las transferencias y calcula lo que costó cambiar. Acá solo se convierten tipos.
  */
-export const VERSION_CAMBIOS = 123;
 
 export interface ParCambio {
   salida: number;

@@ -7,8 +7,8 @@ export interface ActaExtra {
   capacidadL: number | null;
   /** Migración 57: «actual» = los tanques figuran en la ficha desde después del viaje; se usó la capacidad de hoy. */
   capacidadActual: boolean;
-  salida: { fecha: FechaISO | null; estacion: string | null; litros: number | null; faltanteL: number; faltanteObs: string | null; inicioL: number | null };
-  llegada: { fecha: FechaISO | null; estacion: string | null; litros: number | null; faltanteL: number; faltanteObs: string | null };
+  salida: { fecha: FechaISO | null; estacion: string | null; litros: number | null; faltanteL: number; faltanteMochilaL: number | null; faltanteObs: string | null; inicioL: number | null };
+  llegada: { fecha: FechaISO | null; estacion: string | null; litros: number | null; faltanteL: number; faltanteMochilaL: number | null; faltanteObs: string | null };
   cargas: { fecha: FechaISO; estacion: string | null; litros: number; corte: boolean; lleno: boolean }[];
   movimientos: { fecha: FechaISO; tipo: string; litros: number; motivo: string | null }[];
   km: number | null;
@@ -146,6 +146,7 @@ export function parsearActa(d: unknown): ActaExtra {
       estacion: t(s.estacion),
       litros: n(s.litros),
       faltanteL: n(s.faltante_lleno_l) ?? 0,
+      faltanteMochilaL: n(s.faltante_mochila_l),
       faltanteObs: t(s.faltante_observacion),
       inicioL: n(s.inicio_l),
     },
@@ -154,6 +155,7 @@ export function parsearActa(d: unknown): ActaExtra {
       estacion: t(l.estacion),
       litros: n(l.litros),
       faltanteL: n(l.faltante_lleno_l) ?? 0,
+      faltanteMochilaL: n(l.faltante_mochila_l),
       faltanteObs: t(l.faltante_observacion),
     },
     cargas: a(x.cargas).map((k) => ({

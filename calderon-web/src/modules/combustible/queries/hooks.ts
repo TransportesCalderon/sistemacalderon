@@ -65,6 +65,8 @@ export const useMonedas = () => useQuery(q.catalogos.monedas(browserDb()));
 
 export const useCargas = (p: CargaListaParams) => useQuery({ ...q.cargas.lista(browserDb(), p), placeholderData: keepPreviousData });
 export const useCarga = (id: CargaId) => useQuery(q.cargas.detalle(browserDb(), id));
+/** Migración 268: parte del faltante que es de la mochila (solo se pide si la base ya la tiene y la carga declaró faltante). */
+export const useFaltanteMochila = (id: CargaId, activo: boolean) => useQuery({ ...q.cargas.faltanteMochila(browserDb(), id), enabled: activo });
 export const useMovimientos = (p: MovimientoListaParams) => useQuery({ ...q.movimientos.lista(browserDb(), p), placeholderData: keepPreviousData });
 export const useTanquesBase = () => useQuery(q.movimientos.tanquesBase(browserDb()));
 

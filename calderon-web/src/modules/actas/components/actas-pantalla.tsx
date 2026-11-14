@@ -11,7 +11,6 @@ import { AccionConMotivo, Cargando, Chip, Dato, Encabezado, ErrorBase, ErrorLect
 import { useCamionesCombustible, useChoferesCombustible, useMonedas } from '@/modules/combustible/queries/hooks';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora, horaLocalAIso, hoyEnZona } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
@@ -25,7 +24,6 @@ import {
   esTipoActa,
   EVIDENCIA_OCULTA,
   TIPOS_ACTA,
-  VERSION_ACTAS,
   type Acta,
   type EstadoActa,
   type TipoActa,
@@ -45,7 +43,6 @@ const mesDe = (periodo: string | null) =>
  * decide la base: la pantalla muestra su mensaje tal cual.
  */
 export function ActasPantalla() {
-  const hay = useBaseTiene(VERSION_ACTAS);
   const sp = useSearchParams();
   const router = useRouter();
   const choferUrl = Number(sp.get('chofer')) || null;
@@ -58,7 +55,7 @@ export function ActasPantalla() {
   const [abierta, setAbierta] = useState<number | null>(null);
   const { data: choferes } = useChoferesCombustible();
   const filtro = { desde: desde || null, hasta: hasta || null, choferId: chofer ? Number(chofer) : null, tipo: tipo || null };
-  const { data, isPending, isError, error, isFetching, refetch } = useActas(filtro, hay);
+  const { data, isPending, isError, error, isFetching, refetch } = useActas(filtro, true);
   const puedeEditar = useCan('operacion.actas:editar');
 
   const cerrarNueva = () => {
@@ -69,7 +66,7 @@ export function ActasPantalla() {
   return (
     <div className="space-y-5">
       <Encabezado titulo="Actas de infracción" subtitulo="Alertas">
-        {hay && puedeEditar && data?.puedeCrear && !nueva && (
+        {puedeEditar && data?.puedeCrear && !nueva && (
           <button type="button" className={BOTON_PRIMARIO} onClick={() => setNueva(true)}>
             <Plus className="size-4" /> Nueva acta
           </button>
@@ -80,73 +77,69 @@ export function ActasPantalla() {
         con fotos de la rotura. Se imprimen para que el chofer las firme. Descontarle al chofer es una opción: el monto lo ponen Gerencia o el jefe de
         Operaciones.
       </p>
-      {!hay ? (
-        <Vacio icono={<FileWarning className="size-6" />} texto="La base todavía no tiene las actas de infracción. Falta aplicar la migración 122 (107_actas_infraccion.sql)." />
-      ) : (
-        <>
-          {nueva && data?.puedeCrear && (
-            <FormNueva alertaId={alertaUrl} choferInicial={choferUrl} puedeMonto={data.puedeMonto} onCerrar={cerrarNueva} onCreada={(id) => (cerrarNueva(), setAbierta(id))} />
-          )}
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="space-y-1 text-sm">
-              <span className="block text-xs text-tinta-suave">Tipo</span>
-              <select className={CONTROL_FILTRO} value={tipo} onChange={(e) => setTipo(esTipoActa(e.target.value) ? e.target.value : '')}>
-                <option value="">Todos</option>
-                {TIPOS_ACTA.map((t) => (
-                  <option key={t} value={t}>
-                    {ETIQUETA_TIPO_ACTA[t]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="block text-xs text-tinta-suave">Chofer</span>
-              <select className={CONTROL_FILTRO} value={chofer} onChange={(e) => setChofer(e.target.value)}>
-                <option value="">Todos</option>
-                {choferes?.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="block text-xs text-tinta-suave">Desde</span>
-              <input type="date" className={CONTROL_FILTRO} value={desde} onChange={(e) => setDesde(e.target.value)} />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="block text-xs text-tinta-suave">Hasta</span>
-              <input type="date" className={CONTROL_FILTRO} value={hasta} onChange={(e) => setHasta(e.target.value)} />
-            </label>
-            {isFetching && !isPending && <LoaderCircle className="mb-2 size-4 animate-spin text-tinta-suave" />}
-          </div>
-          {data?.porTipo && (
-            <p className="text-sm text-tinta-suave">
-              Este chofer tiene {TIPOS_ACTA.map((t) => `${data.porTipo?.[t] ?? 0} de ${ETIQUETA_TIPO_ACTA[t].toLowerCase()}`).join(', ')} (sin contar las anuladas).
-            </p>
-          )}
-          {isPending ? (
-            <Cargando texto="Cargando las actas…" />
-          ) : isError ? (
-            <ErrorLectura texto={error instanceof Error ? error.message : 'No se pudieron leer las actas.'} onReintentar={() => refetch()} />
-          ) : data.actas.length === 0 ? (
-            <Vacio icono={<FileWarning className="size-6" />} texto="No hay actas con esos filtros." />
-          ) : (
-            <ul className="space-y-3">
-              {data.actas.map((a) => (
-                <FilaActa
-                  key={a.id}
-                  a={a}
-                  puedeEditar={puedeEditar && data.puedeCrear}
-                  puedeMonto={puedeEditar && data.puedeMonto}
-                  abierta={abierta === a.id}
-                  onAlternar={() => setAbierta(abierta === a.id ? null : a.id)}
-                />
+      <>
+        {nueva && data?.puedeCrear && (
+          <FormNueva alertaId={alertaUrl} choferInicial={choferUrl} puedeMonto={data.puedeMonto} onCerrar={cerrarNueva} onCreada={(id) => (cerrarNueva(), setAbierta(id))} />
+        )}
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="space-y-1 text-sm">
+            <span className="block text-xs text-tinta-suave">Tipo</span>
+            <select className={CONTROL_FILTRO} value={tipo} onChange={(e) => setTipo(esTipoActa(e.target.value) ? e.target.value : '')}>
+              <option value="">Todos</option>
+              {TIPOS_ACTA.map((t) => (
+                <option key={t} value={t}>
+                  {ETIQUETA_TIPO_ACTA[t]}
+                </option>
               ))}
-            </ul>
-          )}
-        </>
-      )}
+            </select>
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="block text-xs text-tinta-suave">Chofer</span>
+            <select className={CONTROL_FILTRO} value={chofer} onChange={(e) => setChofer(e.target.value)}>
+              <option value="">Todos</option>
+              {choferes?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="block text-xs text-tinta-suave">Desde</span>
+            <input type="date" className={CONTROL_FILTRO} value={desde} onChange={(e) => setDesde(e.target.value)} />
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="block text-xs text-tinta-suave">Hasta</span>
+            <input type="date" className={CONTROL_FILTRO} value={hasta} onChange={(e) => setHasta(e.target.value)} />
+          </label>
+          {isFetching && !isPending && <LoaderCircle className="mb-2 size-4 animate-spin text-tinta-suave" />}
+        </div>
+        {data?.porTipo && (
+          <p className="text-sm text-tinta-suave">
+            Este chofer tiene {TIPOS_ACTA.map((t) => `${data.porTipo?.[t] ?? 0} de ${ETIQUETA_TIPO_ACTA[t].toLowerCase()}`).join(', ')} (sin contar las anuladas).
+          </p>
+        )}
+        {isPending ? (
+          <Cargando texto="Cargando las actas…" />
+        ) : isError ? (
+          <ErrorLectura texto={error instanceof Error ? error.message : 'No se pudieron leer las actas.'} onReintentar={() => refetch()} />
+        ) : data.actas.length === 0 ? (
+          <Vacio icono={<FileWarning className="size-6" />} texto="No hay actas con esos filtros." />
+        ) : (
+          <ul className="space-y-3">
+            {data.actas.map((a) => (
+              <FilaActa
+                key={a.id}
+                a={a}
+                puedeEditar={puedeEditar && data.puedeCrear}
+                puedeMonto={puedeEditar && data.puedeMonto}
+                abierta={abierta === a.id}
+                onAlternar={() => setAbierta(abierta === a.id ? null : a.id)}
+              />
+            ))}
+          </ul>
+        )}
+      </>
     </div>
   );
 }

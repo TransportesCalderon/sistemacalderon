@@ -2,14 +2,10 @@
 
 import { useState } from 'react';
 import { Gauge } from 'lucide-react';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
-import { VERSION_COMITE } from '../../domain/comite.types';
-import { claveViaje, resumenViento, VERSION_VIENTO, type VientoViaje } from '../../domain/viento.types';
+import { claveViaje, resumenViento, type VientoViaje } from '../../domain/viento.types';
 import { ComiteMensual } from '../comite/comite-mensual';
-import { VERSION_DECISION } from '../../domain/decision.types';
 import { DiferenciasChoferes } from './diferencias-choferes';
 import { PatronesEstaciones } from './patrones-estaciones';
-import { VERSION_PATRONES_ESTACION } from '../../domain/estaciones.types';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
@@ -30,15 +26,10 @@ const suma = (l: (number | null)[]) => l.reduce<number>((a, b) => a + (b ?? 0), 
  */
 export function ConciliacionPantalla() {
   // Migración 179: el comité mensual de consumo, en la misma pantalla
-  const conComite = useBaseTiene(VERSION_COMITE);
   // Migración 185: diferencias acumuladas por chofer
-  const conChoferes = useBaseTiene(VERSION_DECISION);
   // Migración 191: patrones por estación (ranking de anomalías, solo lectura)
-  const conEstaciones = useBaseTiene(VERSION_PATRONES_ESTACION);
   const [vista, setVista] = useState<'viajes' | 'choferes' | 'estaciones' | 'comite'>('viajes');
-  const vistas = (['viajes', 'choferes', 'estaciones', 'comite'] as const).filter((v) =>
-    v === 'comite' ? conComite : v === 'choferes' ? conChoferes : v === 'estaciones' ? conEstaciones : true,
-  );
+  const vistas = ['viajes', 'choferes', 'estaciones', 'comite'] as const;
   return (
     <div className="space-y-5">
       {vistas.length > 1 && (
@@ -57,11 +48,11 @@ export function ConciliacionPantalla() {
           ))}
         </div>
       )}
-      {vista === 'comite' && conComite ? (
+      {vista === 'comite' ? (
         <ComiteMensual />
-      ) : vista === 'choferes' && conChoferes ? (
+      ) : vista === 'choferes' ? (
         <DiferenciasChoferes />
-      ) : vista === 'estaciones' && conEstaciones ? (
+      ) : vista === 'estaciones' ? (
         <PatronesEstaciones />
       ) : (
         <ViajesConciliados />
@@ -75,8 +66,7 @@ function ViajesConciliados() {
   const [p, setP] = usePeriodo('/combustible/conciliacion');
   const { data, isPending, isError, error, isFetching, refetch } = useConciliacionViajes(p);
   // Migración 181: viento en contra de cada viaje (evidencia para revisar, no justifica solo)
-  const conViento = useBaseTiene(VERSION_VIENTO);
-  const vientos = useVientosViajes(p, conViento);
+  const vientos = useVientosViajes(p, true);
   const porViaje = new Map((vientos.data ?? []).map((w) => [claveViaje(w.camionId, w.cargaSalidaId), w]));
   const conDatos = (data ?? []).filter((v) => v.diferenciaL !== null);
   const fuera = conDatos.filter(fueraDeTolerancia);
@@ -126,7 +116,7 @@ function ViajesConciliados() {
                     <th className={cn(TH, 'text-right')}>Diferencia</th>
                     <th className={cn(TH, 'text-right')}>Km</th>
                     <th className={cn(TH, 'text-right')}>L/100 km</th>
-                    {conViento && <th className={TH} title="Viento de frente durante el viaje (Open-Meteo) y el consumo extra estimado">Viento</th>}
+                    <th className={TH} title="Viento de frente durante el viaje (Open-Meteo) y el consumo extra estimado">Viento</th>
                     <th className={TH}>Cierre</th>
                   </tr>
                 </thead>
@@ -136,7 +126,7 @@ function ViajesConciliados() {
                       key={`${v.camionId}-${v.cargaSalidaId}`}
                       v={v}
                       zonaHoraria={zonaHoraria}
-                      viento={conViento ? (porViaje.get(claveViaje(v.camionId, v.cargaSalidaId)) ?? null) : undefined}
+                      viento={porViaje.get(claveViaje(v.camionId, v.cargaSalidaId)) ?? null}
                     />
                   ))}
                 </tbody>

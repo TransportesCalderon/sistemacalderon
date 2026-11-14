@@ -4,21 +4,18 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp, Fuel, Users } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Dato, ErrorBase } from '@/modules/combustible/components/comun/ui';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
 import { cn } from '@/shared/lib/cn';
-import { EQUIPOS, VERSION_CARGA_IMPOSIBLE, VERSION_GESTION_ALERTAS, type ResponsablesAlerta } from '../domain/gestion.types';
+import { EQUIPOS, type ResponsablesAlerta } from '../domain/gestion.types';
 import { useCambiarResponsableAlerta, useResponsablesAlertas, useResumenCargaImposible } from '../queries/hooks';
 
 const CATEGORIA: Record<string, string> = { combustible: 'Combustible', telemetria: 'Manejo y ruta', operativa: 'Operativa', documental: 'Documentos' };
 
 /** Migración 189 · Quién se hace cargo de cada tipo de alerta (lo cambian TI o Gerencia, sin tocar código). */
 export function ResponsablesAlertas() {
-  const hay = useBaseTiene(VERSION_GESTION_ALERTAS);
   const [abierto, setAbierto] = useState(false);
-  const { data, isPending } = useResponsablesAlertas(hay && abierto);
-  if (!hay) return null;
+  const { data, isPending } = useResponsablesAlertas(abierto);
   return (
     <section className={cn(TARJETA, 'p-4')}>
       <button type="button" className="flex w-full items-center justify-between gap-2 text-left" onClick={() => setAbierto(!abierto)} aria-expanded={abierto}>
@@ -94,12 +91,10 @@ const haceDias = (n: number) => new Date(Date.now() - n * 86_400_000).toISOStrin
 
 /** Migración 188 · Cómo viene la regla de carga imposible: para medir falsos positivos antes de endurecerla. */
 export function ResumenCargaImposible() {
-  const hay = useBaseTiene(VERSION_CARGA_IMPOSIBLE);
   const [abierto, setAbierto] = useState(false);
   const [desde, setDesde] = useState(haceDias(30));
   const [hasta, setHasta] = useState(hoyISO());
-  const { data, isPending, error } = useResumenCargaImposible(desde, hasta, hay && abierto && !!desde && !!hasta);
-  if (!hay) return null;
+  const { data, isPending, error } = useResumenCargaImposible(desde, hasta, abierto && !!desde && !!hasta);
   return (
     <section className={cn(TARJETA, 'p-4')}>
       <button type="button" className="flex w-full items-center justify-between gap-2 text-left" onClick={() => setAbierto(!abierto)} aria-expanded={abierto}>

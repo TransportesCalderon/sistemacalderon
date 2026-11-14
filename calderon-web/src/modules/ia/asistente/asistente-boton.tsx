@@ -7,10 +7,9 @@ import { useQuery } from '@tanstack/react-query';
 import { LoaderCircle, MessageSquarePlus, Mic, Send, Square, ThumbsDown, ThumbsUp, TriangleAlert, Volume2, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCan } from '@/modules/core/permissions/can';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { browserDb } from '@/shared/supabase/browser';
-import { asistenteRepository, textoPeriodo, textoSemana, VERSION_ASISTENTE, VERSION_INFORME, type Fuente, type Turno } from './asistente';
+import { asistenteRepository, textoPeriodo, textoSemana, type Fuente, type Turno } from './asistente';
 import { generarInforme, preguntarAsistente, valorarRespuesta } from './asistente.actions';
 import { parsearMarkdown, type Bloque, type Trozo } from './markdown';
 import irisLogo from './iris-logo.png';
@@ -30,16 +29,15 @@ function IrisLogo({ className }: { className?: string }) {
  * Lo ve quien la base deja usar el asistente (Gerencia y los usuarios de prueba).
  */
 export function BotonAsistente() {
-  const hayBase = useBaseTiene(VERSION_ASISTENTE);
   const permitido = useCan('ia.asistente:editar');
   const estado = useQuery({
     queryKey: ['ia', 'asistente', 'estado'],
     queryFn: () => repo().estado(),
-    enabled: hayBase && permitido,
+    enabled: permitido,
     staleTime: 60_000,
   });
   const [abierto, setAbierto] = useState(false);
-  if (!hayBase || !permitido || !estado.data?.puede) return null;
+  if (!permitido || !estado.data?.puede) return null;
   return (
     <>
       {!abierto && (
@@ -68,7 +66,6 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vista, setVista] = useState<'preguntar' | 'informes'>('preguntar');
-  const hayInformes = useBaseTiene(VERSION_INFORME);
   const fondo = useRef<HTMLDivElement>(null);
   const avisarCambio = useRef(onCambio);
   avisarCambio.current = onCambio;
@@ -202,11 +199,9 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
             Iris
           </PestanaPanel>
           {/* IA-4: los informes de los lunes */}
-          {hayInformes && (
-            <PestanaPanel activa={vista === 'informes'} onClick={() => setVista('informes')}>
-              Informes semanales
-            </PestanaPanel>
-          )}
+          <PestanaPanel activa={vista === 'informes'} onClick={() => setVista('informes')}>
+            Informes semanales
+          </PestanaPanel>
         </div>
         {vista === 'preguntar' && turnos.length > 0 && (
           <button type="button" onClick={nueva} className="flex items-center gap-1 rounded-md px-2 py-1 text-sm text-tinta-suave hover:bg-hover">

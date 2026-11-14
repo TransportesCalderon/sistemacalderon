@@ -5,7 +5,6 @@ import { CheckCircle2, ExternalLink, Fuel, LoaderCircle } from 'lucide-react';
 import { BUCKET_OPERACION } from '@/modules/chofer/domain/chofer.types';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
@@ -22,10 +21,9 @@ const aTexto = (n: number | null, d = 0) => (n === null ? '' : formatearNumero(n
  * precio, odómetro, ticket). Solo falta decir si inicia viaje y dar el OK. Lo ven quienes registran cargas.
  */
 export function OrdenesPorRegistrar() {
-  const hay = useBaseTiene(253);
   const puede = useCan('combustible.cargas:editar');
-  const { data } = usePorRegistrar(hay && puede);
-  if (!hay || !puede || !data || data.length === 0) return null;
+  const { data } = usePorRegistrar(puede);
+  if (!puede || !data || data.length === 0) return null;
   return (
     <section className="mb-4 space-y-3 rounded-xl border-2 border-marca/40 bg-marca-suave/40 p-4">
       <p className="flex items-center gap-2 font-semibold text-tinta">

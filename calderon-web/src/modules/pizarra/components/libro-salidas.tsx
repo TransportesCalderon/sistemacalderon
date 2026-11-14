@@ -8,11 +8,10 @@ import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio } from '@/mo
 import { useCamionesCombustible, useChoferesCombustible } from '@/modules/combustible/queries/hooks';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
-import { ETIQUETA_ORIGEN, VERSION_DEVOLUCION_VACIO, VERSION_LIBRO_SALIDAS, type Salida } from '../domain/salidas.types';
+import { ETIQUETA_ORIGEN, type Salida } from '../domain/salidas.types';
 import { useDatosSalida, useDescartarSalida, useGensets, useGuardarSalida, useLibroSalidas, useSemis } from '../queries/hooks';
 
 const sumarDias = (iso: string, dias: number) => {
@@ -30,15 +29,13 @@ const horaDe = (ts: string | null, zona: string) =>
  */
 export function LibroSalidas() {
   const { zonaHoraria } = useSesion();
-  const hay = useBaseTiene(VERSION_LIBRO_SALIDAS);
   const puede = useCan('flota.pizarra:editar');
   const hoy = hoyEnZona(zonaHoraria);
   const [desde, setDesde] = useState<string>(sumarDias(hoy, -6));
   const [hasta, setHasta] = useState<string>(hoy);
   const [nueva, setNueva] = useState(false);
-  const { data, isPending, isError, error, refetch, isFetching } = useLibroSalidas(desde, hasta, hay);
+  const { data, isPending, isError, error, refetch, isFetching } = useLibroSalidas(desde, hasta, true);
 
-  if (!hay) return <Vacio icono={<LogOut className="size-6" />} texto="Falta aplicar en la base el cambio del libro de salidas." />;
   const detectadas = (data?.salidas ?? []).filter((s) => s.estado === 'detectada');
   const libro = (data?.salidas ?? []).filter((s) => s.estado !== 'detectada');
   const dias = [...new Set(libro.map((s) => s.fecha))];
@@ -162,7 +159,6 @@ function Dia({ fecha, salidas, hoy, puede }: { fecha: string; salidas: Salida[];
   const { zonaHoraria } = useSesion();
   const [editando, setEditando] = useState<number | null>(null);
   const validas = salidas.filter((s) => s.estado === 'confirmada');
-  const conDevolucion = useBaseTiene(VERSION_DEVOLUCION_VACIO);
   return (
     <section className="overflow-hidden rounded-xl border border-borde bg-panel">
       <h2 className="border-b border-borde bg-fondo px-3 py-2 text-sm font-medium text-tinta">
@@ -178,7 +174,7 @@ function Dia({ fecha, salidas, hoy, puede }: { fecha: string; salidas: Salida[];
               <th className={TH}>Semi / genset</th>
               <th className={TH}>Producto</th>
               <th className={TH}>Destino</th>
-              {conDevolucion && <th className={TH}>Devolución del vacío</th>}
+              <th className={TH}>Devolución del vacío</th>
               <th className={TH}>Origen</th>
               <th className={TH} />
             </tr>
@@ -193,7 +189,6 @@ function Dia({ fecha, salidas, hoy, puede }: { fecha: string; salidas: Salida[];
                 editando={editando === s.id}
                 onEditar={() => setEditando(editando === s.id ? null : s.id)}
                 hoy={hoy}
-                conDevolucion={conDevolucion}
               />
             ))}
           </tbody>
@@ -210,7 +205,6 @@ function FilaSalida({
   editando,
   onEditar,
   hoy,
-  conDevolucion,
 }: {
   s: Salida;
   zona: string;
@@ -218,7 +212,6 @@ function FilaSalida({
   editando: boolean;
   onEditar: () => void;
   hoy: string;
-  conDevolucion: boolean;
 }) {
   const descartada = s.estado === 'descartada';
   return (
@@ -236,7 +229,7 @@ function FilaSalida({
         </td>
         <td className={TD}>{s.producto ?? '—'}</td>
         <td className={TD}>{s.destino ?? '—'}</td>
-        {conDevolucion && <td className={TD}>{s.devolucionVacio ?? '—'}</td>}
+        <td className={TD}>{s.devolucionVacio ?? '—'}</td>
         <td className={TD}>
           <Chip tono={s.origen === 'gps' ? 'marca' : 'neutro'}>{ETIQUETA_ORIGEN[s.origen]}</Chip>
           {descartada && <span className="block text-xs no-underline">Descartada: {s.motivoDescarte}</span>}
@@ -252,7 +245,7 @@ function FilaSalida({
       </tr>
       {editando && (
         <tr>
-          <td colSpan={conDevolucion ? 9 : 8} className="bg-fondo px-3 py-3">
+          <td colSpan={9} className="bg-fondo px-3 py-3">
             <FormSalida s={s} hoy={hoy} onListo={onEditar} />
           </td>
         </tr>
@@ -280,7 +273,6 @@ function FormSalida({ s, hoy, onListo }: { s: Salida | null; hoy: string; onList
   const [destino, setDestino] = useState(s?.destino ?? '');
   const [obs, setObs] = useState(s?.observacion ?? '');
   const [devolucion, setDevolucion] = useState(s?.devolucionVacio ?? '');
-  const conDevolucion = useBaseTiene(VERSION_DEVOLUCION_VACIO);
   // Salida nueva: al elegir el tractor se completa con lo que tiene en la Pizarra
   const { data: datos } = useDatosSalida(s === null ? camion : null);
   useEffect(() => {
@@ -327,18 +319,16 @@ function FormSalida({ s, hoy, onListo }: { s: Salida | null; hoy: string; onList
           Destino
           <input className={cn(CONTROL_FILTRO, 'mt-0.5 w-full')} value={destino} onChange={(e) => setDestino(e.target.value)} placeholder="Buenos Aires, Chile…" />
         </label>
-        {conDevolucion && (
-          <label className="text-xs text-tinta-suave">
-            Devolución del vacío
-            <input
-              className={cn(CONTROL_FILTRO, 'mt-0.5 w-full')}
-              list="lugares-devolucion"
-              value={devolucion}
-              onChange={(e) => setDevolucion(e.target.value)}
-              placeholder="Dónde devuelve el contenedor"
-            />
-          </label>
-        )}
+        <label className="text-xs text-tinta-suave">
+          Devolución del vacío
+          <input
+            className={cn(CONTROL_FILTRO, 'mt-0.5 w-full')}
+            list="lugares-devolucion"
+            value={devolucion}
+            onChange={(e) => setDevolucion(e.target.value)}
+            placeholder="Dónde devuelve el contenedor"
+          />
+        </label>
       </div>
       <input className={cn(CONTROL_FILTRO, 'w-full')} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Observación (opcional)" />
       <ErrorBase error={envio.error} />

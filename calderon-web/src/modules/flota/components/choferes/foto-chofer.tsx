@@ -4,7 +4,6 @@ import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Camera, LoaderCircle, Trash2 } from 'lucide-react';
 import { BUCKET_OPERACION } from '@/modules/chofer/domain/chofer.types';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { idAleatorio } from '@/shared/lib/archivo';
 import { invalidar } from '@/shared/query/invalidar';
@@ -13,20 +12,16 @@ import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { asegurarMiniFoto, guardarFotoChofer } from '../../actions/chofer.actions';
 
 /** Migración 239 · Foto de perfil del chofer. */
-export const VERSION_FOTO_CHOFER = 239;
-/** Migración 246: copia chica de la foto para el mail, completada sola. */
-export const VERSION_FOTO_MAIL = 246;
 
 /**
  * Las fotos de varios choferes (enlaces temporales de 1 hora: el bucket es privado). La base dice qué rutas puede
  * ver cada uno (el chofer, solo la suya). Va bajo ['flota','choferes','lista'] para recargarse al guardar un chofer.
  */
 export function useFotosChofer(ids: readonly (number | null | undefined)[]): Map<number, string> {
-  const hay = useBaseTiene(VERSION_FOTO_CHOFER);
   const lista = [...new Set(ids.filter((x): x is number => typeof x === 'number' && x > 0))].sort((a, b) => a - b);
   const { data } = useQuery({
     queryKey: ['flota', 'choferes', 'lista', 'fotos', lista.join(',')] as const,
-    enabled: hay && lista.length > 0,
+    enabled: lista.length > 0,
     staleTime: 50 * 60_000,
     queryFn: async () => {
       const db = browserDb();
@@ -96,10 +91,9 @@ async function aBase64(blob: Blob): Promise<string> {
  * la arma con la foto guardada y la manda a la base. No muestra nada; si falla, el mail sale sin foto.
  */
 export function useAsegurarFotoMail(choferId: number | null) {
-  const hay = useBaseTiene(VERSION_FOTO_MAIL);
   useQuery({
     queryKey: ['flota', 'choferes', 'lista', 'foto-mail', choferId] as const,
-    enabled: hay && choferId !== null,
+    enabled: choferId !== null,
     staleTime: Infinity,
     retry: false,
     queryFn: async () => {
@@ -117,14 +111,12 @@ export function useAsegurarFotoMail(choferId: number | null) {
 
 /** Ficha del chofer: la foto grande con «Cambiar foto» y «Quitar» (solo la oficina). */
 export function FotoChoferFicha({ choferId, nombre, puedeEditar }: { choferId: number; nombre: string; puedeEditar: boolean }) {
-  const hay = useBaseTiene(VERSION_FOTO_CHOFER);
   const fotos = useFotosChofer([choferId]);
   const qc = useQueryClient();
   const entrada = useRef<HTMLInputElement>(null);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useAsegurarFotoMail(puedeEditar ? choferId : null);
-  if (!hay) return null;
   const url = fotos.get(choferId);
 
   const guardar = async (ruta: string | null, mini: string | null = null) => {

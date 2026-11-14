@@ -230,7 +230,6 @@ export type ClienteSiiEntrada = z.infer<typeof clienteSiiSchema>;
 export const glosaSiiSchema = z.object({ id, glosa: z.string().max(300).nullable() });
 
 /** Migración 154: datos del cliente para la factura electrónica (ficha del cliente). */
-export const VERSION_CLIENTE_SII = 154;
 export interface DatosSiiCliente {
   clienteId: number;
   pais: string;

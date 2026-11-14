@@ -5,9 +5,7 @@ import { LoaderCircle, Pencil, Save, X } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { ErrorBase } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
-import { VERSION_CLIENTE_SII } from '@/modules/ventas/domain/sii';
 import { useClienteSii, useGuardarClienteSii } from '@/modules/ventas/queries/hooks';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
@@ -20,9 +18,8 @@ type Datos = typeof VACIO;
  * Se guardan con la misma función de siempre (ven.fn_guardar_cliente_sii): la base valida y decide.
  */
 export function ClienteDatosSii({ clienteId, editable }: { clienteId: number; editable: boolean }) {
-  const hay = useBaseTiene(VERSION_CLIENTE_SII);
   const puede = useCan('ventas.facturacion:editar') && editable;
-  const { data, isPending } = useClienteSii(clienteId, hay);
+  const { data, isPending } = useClienteSii(clienteId, true);
   const guardar = useGuardarClienteSii();
   const envio = useEnvio();
   const [editando, setEditando] = useState(false);
@@ -32,7 +29,6 @@ export function ClienteDatosSii({ clienteId, editable }: { clienteId: number; ed
     if (data) setD({ giro: data.giro, direccion: data.direccion, comuna: data.comuna, ciudad: data.ciudad, correo: data.correo });
   }, [data]);
 
-  if (!hay) return null;
   const chileno = data?.pais === 'CL';
   const campos: { k: keyof Datos; label: string }[] = [
     { k: 'giro', label: chileno ? 'Giro' : 'Giro (opcional)' },

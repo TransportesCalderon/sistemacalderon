@@ -8,11 +8,10 @@ import { Cifra, FiltroPeriodo } from '@/modules/combustible/components/consumo/p
 import { parsearPeriodo, type PeriodoParams } from '@/modules/combustible/domain/consumo.types';
 import { formatoNumero } from '@/modules/logistica/components/viaje-chofer-comun';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { hoyEnZona } from '@/shared/lib/fechas';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
-import { AGRUPACIONES, ETIQUETA_AGRUPACION, esAgrupacion, VERSION_RENTABILIDAD, type Agrupacion, type FilaRentabilidad } from '../domain/rentabilidad';
+import { AGRUPACIONES, ETIQUETA_AGRUPACION, esAgrupacion, type Agrupacion, type FilaRentabilidad } from '../domain/rentabilidad';
 import { useRentabilidad } from '../queries/hooks';
 
 const RUTA = '/analisis/rentabilidad';
@@ -33,93 +32,88 @@ export function RentabilidadPantalla() {
   const ir = (n: PeriodoParams, a: Agrupacion) =>
     router.replace(`${RUTA}?${new URLSearchParams({ desde: n.desde, hasta: n.hasta, por: a }).toString()}`, { scroll: false });
 
-  const disponible = useBaseTiene(VERSION_RENTABILIDAD);
-  const { data, isPending, isError, error, isFetching, refetch } = useRentabilidad(p.desde, p.hasta, agrupar, disponible);
+  const { data, isPending, isError, error, isFetching, refetch } = useRentabilidad(p.desde, p.hasta, agrupar, true);
   const imp = (v: number | null) => (v === null ? '—' : `${data?.moneda ?? ''} ${formatoNumero(v)}`.trim());
 
   return (
     <div className="space-y-5">
       <Encabezado titulo="Rentabilidad" subtitulo="Finanzas" />
-      {!disponible ? (
-        <Vacio icono={<TrendingUp className="size-6" />} texto="La base todavía no tiene la rentabilidad. Falta aplicar la migración 119 (104_rentabilidad.sql)." />
-      ) : (
-        <>
-          <p className="max-w-3xl text-sm text-tinta-suave">
-            Lo facturado de cada operación menos el costo directo de sus viajes (combustible, canon, costo por km y gastos del viaje). Si una operación
-            viaja en relevo, su factura se reparte por los km de cada viaje. Los viajes incompletos no suman: abajo se ve qué les falta.
+      <>
+        <p className="max-w-3xl text-sm text-tinta-suave">
+          Lo facturado de cada operación menos el costo directo de sus viajes (combustible, canon, costo por km y gastos del viaje). Si una operación
+          viaja en relevo, su factura se reparte por los km de cada viaje. Los viajes incompletos no suman: abajo se ve qué les falta.
+        </p>
+        {data?.aviso && (
+          <p className="flex items-start gap-2 rounded-xl border border-alerta/40 bg-alerta-suave px-4 py-3 text-sm font-medium text-alerta">
+            <Info className="mt-0.5 size-4 shrink-0" /> {data.aviso}
           </p>
-          {data?.aviso && (
-            <p className="flex items-start gap-2 rounded-xl border border-alerta/40 bg-alerta-suave px-4 py-3 text-sm font-medium text-alerta">
-              <Info className="mt-0.5 size-4 shrink-0" /> {data.aviso}
-            </p>
-          )}
-          <div className="flex flex-wrap items-end gap-3">
-            <FiltroPeriodo p={p} onCambiar={(n) => ir(n, agrupar)} />
-            <div className="space-y-1 text-sm">
-              <span className="block text-xs text-tinta-suave">Ver por</span>
-              <div role="tablist" className="inline-flex overflow-hidden rounded-lg border border-borde">
-                {AGRUPACIONES.map((a) => (
-                  <button
-                    key={a}
-                    type="button"
-                    role="tab"
-                    aria-selected={agrupar === a}
-                    onClick={() => ir(p, a)}
-                    className={cn('h-9 px-3', agrupar === a ? 'bg-marca font-semibold text-white' : 'bg-panel text-tinta hover:bg-hover')}
-                  >
-                    {ETIQUETA_AGRUPACION[a]}
-                  </button>
-                ))}
-              </div>
+        )}
+        <div className="flex flex-wrap items-end gap-3">
+          <FiltroPeriodo p={p} onCambiar={(n) => ir(n, agrupar)} />
+          <div className="space-y-1 text-sm">
+            <span className="block text-xs text-tinta-suave">Ver por</span>
+            <div role="tablist" className="inline-flex overflow-hidden rounded-lg border border-borde">
+              {AGRUPACIONES.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  role="tab"
+                  aria-selected={agrupar === a}
+                  onClick={() => ir(p, a)}
+                  className={cn('h-9 px-3', agrupar === a ? 'bg-marca font-semibold text-white' : 'bg-panel text-tinta hover:bg-hover')}
+                >
+                  {ETIQUETA_AGRUPACION[a]}
+                </button>
+              ))}
             </div>
           </div>
+        </div>
 
-          {isPending ? (
-            <Cargando texto="Calculando…" />
-          ) : isError ? (
-            <ErrorLectura texto={error instanceof Error ? error.message : 'No se pudo calcular la rentabilidad.'} onReintentar={() => refetch()} />
-          ) : data.filas.length === 0 ? (
-            <Vacio icono={<TrendingUp className="size-6" />} texto="No hay viajes de chofer que hayan salido en el período." />
-          ) : (
-            <>
-              <div className="grid gap-3 sm:grid-cols-4">
-                <Cifra etiqueta="Ingreso" valor={imp(data.totales.ingreso)} detalle="De los viajes completos" />
-                <Cifra etiqueta="Costo directo" valor={imp(data.totales.costo)} detalle="De los viajes completos" />
-                <Cifra etiqueta="Margen de contribución" valor={imp(data.totales.margen)} />
-                <Cifra
-                  etiqueta="Viajes completos"
-                  valor={`${data.totales.completos} de ${data.totales.viajes}`}
-                  detalle={data.totales.incompletos > 0 ? `${data.totales.incompletos} incompletos no suman` : undefined}
-                  alerta={data.totales.incompletos > 0}
-                />
+        {isPending ? (
+          <Cargando texto="Calculando…" />
+        ) : isError ? (
+          <ErrorLectura texto={error instanceof Error ? error.message : 'No se pudo calcular la rentabilidad.'} onReintentar={() => refetch()} />
+        ) : data.filas.length === 0 ? (
+          <Vacio icono={<TrendingUp className="size-6" />} texto="No hay viajes de chofer que hayan salido en el período." />
+        ) : (
+          <>
+            <div className="grid gap-3 sm:grid-cols-4">
+              <Cifra etiqueta="Ingreso" valor={imp(data.totales.ingreso)} detalle="De los viajes completos" />
+              <Cifra etiqueta="Costo directo" valor={imp(data.totales.costo)} detalle="De los viajes completos" />
+              <Cifra etiqueta="Margen de contribución" valor={imp(data.totales.margen)} />
+              <Cifra
+                etiqueta="Viajes completos"
+                valor={`${data.totales.completos} de ${data.totales.viajes}`}
+                detalle={data.totales.incompletos > 0 ? `${data.totales.incompletos} incompletos no suman` : undefined}
+                alerta={data.totales.incompletos > 0}
+              />
+            </div>
+            <section className="overflow-hidden rounded-xl border border-borde bg-panel">
+              <div className="overflow-x-auto">
+                <table className={cn('w-full min-w-[900px] text-sm', isFetching && 'opacity-70')}>
+                  <thead className="border-b border-borde bg-fondo">
+                    <tr>
+                      <th className={TH}>{ETIQUETA_AGRUPACION[data.agrupar]}</th>
+                      <th className={cn(TH, 'text-right')}>Viajes</th>
+                      <th className={cn(TH, 'text-right')}>Ingreso</th>
+                      <th className={cn(TH, 'text-right')}>Costo</th>
+                      <th className={cn(TH, 'text-right')}>Margen</th>
+                      <th className={cn(TH, 'text-right')}>%</th>
+                      <th className={cn(TH, 'text-right')}>Km</th>
+                      <th className={cn(TH, 'text-right')}>Margen por km</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-borde">
+                    {data.filas.map((f) => (
+                      <Fila key={`${f.id ?? 'sin'}-${f.nombre}`} f={f} agrupar={data.agrupar} imp={imp} />
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <section className="overflow-hidden rounded-xl border border-borde bg-panel">
-                <div className="overflow-x-auto">
-                  <table className={cn('w-full min-w-[900px] text-sm', isFetching && 'opacity-70')}>
-                    <thead className="border-b border-borde bg-fondo">
-                      <tr>
-                        <th className={TH}>{ETIQUETA_AGRUPACION[data.agrupar]}</th>
-                        <th className={cn(TH, 'text-right')}>Viajes</th>
-                        <th className={cn(TH, 'text-right')}>Ingreso</th>
-                        <th className={cn(TH, 'text-right')}>Costo</th>
-                        <th className={cn(TH, 'text-right')}>Margen</th>
-                        <th className={cn(TH, 'text-right')}>%</th>
-                        <th className={cn(TH, 'text-right')}>Km</th>
-                        <th className={cn(TH, 'text-right')}>Margen por km</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-borde">
-                      {data.filas.map((f) => (
-                        <Fila key={`${f.id ?? 'sin'}-${f.nombre}`} f={f} agrupar={data.agrupar} imp={imp} />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </>
-          )}
-        </>
-      )}
+            </section>
+          </>
+        )}
+      </>
     </div>
   );
 }

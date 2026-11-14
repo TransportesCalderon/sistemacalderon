@@ -13,8 +13,6 @@ import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import type { CamionId, FechaISO } from '@/shared/types/dominio';
 import { ETIQUETA_PROPIETARIO } from '../../domain/camion.types';
 import { useCamion, useCatalogosFlota, useKmCamion, useTanques } from '../../queries/hooks';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
-import { VERSION_MANT_GENSET } from '../../domain/mantenimiento.types';
 import { EstadoCamionChip } from './estado-camion';
 import { TanquesCamion } from './tanques-camion';
 import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
@@ -237,9 +235,7 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode })
 /** Migración 215: km del tractor (último odómetro de la telemetría o de la última carga). */
 function KmCamionDato({ id }: { id: CamionId }) {
   const { zonaHoraria } = useSesion();
-  const hay = useBaseTiene(VERSION_MANT_GENSET);
-  const { data } = useKmCamion(id, hay);
-  if (!hay) return null;
+  const { data } = useKmCamion(id, true);
   return (
     <Dato etiqueta="Km de la unidad">
       {data?.km == null ? null : (

@@ -19,10 +19,10 @@ import { formatearNumero } from '@/shared/lib/numeros';
 import { formatearFechaHora, horaLocalAIso, hoyEnZona, isoAHoraLocal } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
-import { VERSION_CONTROL_PRECIO, evaluarPrecio } from '../../domain/precio-referencia';
+import { evaluarPrecio } from '../../domain/precio-referencia';
 import { cargaFormSchema, type CargaFormEntrada } from '../../domain/carga.schemas';
-import { ETIQUETA_MEDIO_PAGO, MEDIOS_PAGO, type Carga, type MedioPago } from '../../domain/carga.types';
+import { ETIQUETA_MEDIO_PAGO, MEDIOS_PAGO, VERSION_FALTANTE_MOCHILA, type Carga, type MedioPago } from '../../domain/carga.types';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import {
   useAdjuntarDocumento,
   useCamionesCombustible,
@@ -32,6 +32,7 @@ import {
   useEditarCarga,
   useEmisorTicket,
   useEstaciones,
+  useFaltanteMochila,
   useMonedas,
   useOdometroTelemetria,
   useReferenciaPrecio,
@@ -89,6 +90,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
           esFrontera: carga.esFrontera,
           faltanteLlenoL: carga.faltanteLlenoL ? txt(carga.faltanteLlenoL) : '',
           faltanteObservacion: carga.faltanteObservacion ?? '',
+          faltanteMochilaL: '',
         }
       : {
           camionId: camionInicial ? String(camionInicial) : '',
@@ -104,11 +106,19 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
           esFrontera: false,
           faltanteLlenoL: '',
           faltanteObservacion: '',
+          faltanteMochilaL: '',
         },
     mode: 'onTouched',
   });
   const { register, handleSubmit, watch, setValue, formState } = form;
   const e = formState.errors;
+  // Migración 268: la parte del faltante que es de la mochila (al editar se trae la guardada)
+  const hayMochila = useBaseTiene(VERSION_FALTANTE_MOCHILA);
+  const mochilaGuardada = useFaltanteMochila((carga?.id ?? 0) as Carga['id'], hayMochila && !!carga && carga.faltanteLlenoL > 0);
+  useEffect(() => {
+    if (mochilaGuardada.data != null && !formState.dirtyFields.faltanteMochilaL) setValue('faltanteMochilaL', String(mochilaGuardada.data).replace('.', ','));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mochilaGuardada.data]);
   const camionId = Number(watch('camionId')) || null;
   const tanqueLleno = watch('tanqueLleno');
   const esCorte = watch('esFrontera');
@@ -160,15 +170,14 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
 
   // Migración 258: la carga va en la moneda del país de la estación y el precio se compara con lo que
   // se viene pagando ahí. La base es la que bloquea; acá se avisa antes de guardar.
-  const hayControlPrecio = useBaseTiene(VERSION_CONTROL_PRECIO);
   const estacionId = Number(watch('estacionId')) || null;
-  const referencia = useReferenciaPrecio(hayControlPrecio ? estacionId : null, fechaIso).data ?? null;
+  const referencia = useReferenciaPrecio(estacionId, fechaIso).data ?? null;
   const monedaElegida = watch('moneda');
   const monedaDelPais = referencia && monedas?.some((m) => m.codigo === referencia.moneda) ? referencia.moneda : null;
   const surtidorPropio = estaciones?.find((s) => s.id === estacionId)?.esTanquePropio ?? false;
   useEffect(() => {
     // En el alta se pone sola al elegir la estación; en la edición no se pisa (se avisa abajo del campo)
-    if (carga || !hayControlPrecio) return;
+    if (carga) return;
     const moneda = monedaDelPais ?? (surtidorPropio ? (monedaBase ?? null) : null);
     if (moneda && watch('moneda') !== moneda) setValue('moneda', moneda, { shouldValidate: true, shouldDirty: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando cambia la estación o llega su moneda
@@ -286,6 +295,8 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
         esFrontera: d.esFrontera,
         faltanteLlenoL: d.esFrontera ? d.faltanteLlenoL : 0,
         faltanteObservacion: d.esFrontera ? d.faltanteObservacion : null,
+        // Solo se manda si la tocaron: si no, la base deja la que estaba (o la propone si cambió el faltante)
+        ...(hayMochila && formState.dirtyFields.faltanteMochilaL ? { faltanteMochilaL: d.esFrontera ? d.faltanteMochilaL : null } : {}),
         motivo: null,
       });
       if (!r.ok) {
@@ -314,6 +325,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
       esFrontera: d.esFrontera,
       faltanteLlenoL: d.esFrontera ? d.faltanteLlenoL : 0,
       faltanteObservacion: d.esFrontera ? d.faltanteObservacion : null,
+      ...(hayMochila && d.esFrontera && d.faltanteMochilaL !== null ? { faltanteMochilaL: d.faltanteMochilaL } : {}),
       anulaId: reemplazaId,
     });
     if (!r.ok) {
@@ -556,6 +568,15 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
             >
               <input inputMode="decimal" placeholder="0" {...register('faltanteLlenoL')} />
             </Campo>
+            {hayMochila && (
+              <Campo
+                label="De esos, en la mochila (L)"
+                error={e.faltanteMochilaL?.message}
+                ayuda="Vacío: todo en la mochila, hasta su capacidad. Poné 0 si faltó en los tanques."
+              >
+                <input inputMode="decimal" placeholder="Lo propone el sistema" {...register('faltanteMochilaL')} />
+              </Campo>
+            )}
             <label className="block space-y-1.5">
               <span className="block text-sm font-medium text-tinta">Observación (si le faltaron litros)</span>
               <textarea rows={2} className={CLASE_TEXTAREA} placeholder="Qué tanque quedó sin llenar y por qué" {...register('faltanteObservacion')} />

@@ -14,7 +14,7 @@ import { useGensets, useGuardarEdicionPizarra, useInstalarGenset, usePasarSiguie
 import { useAsignarEquipo, useOpcionesViaje } from '@/modules/logistica/queries/hooks';
 import { CeldaEditable, type OpcionCelda } from './celda-editable';
 import { LoQueSigue } from './lo-que-sigue';
-import { Desenganche, VERSION_DESENGANCHE } from './desenganche';
+import { Desenganche } from './desenganche';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import type { SigueFila } from '../domain/pizarra.sigue';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
@@ -212,7 +212,6 @@ const Fila = memo(function Fila({
   sigue: SigueFila | undefined;
 }) {
   const nivel = nivelFila(f);
-  const conDesenganche = useBaseTiene(VERSION_DESENGANCHE);
   const info = ESTADO_INFO[f.estado];
   const aTara = alertaDe(f.alertas, 'tara_no_valida', 'tara_por_vencer', 'tara_proxima', 'sin_tara');
   const aTractor = alertaDe(f.alertas, 'tractor_no_activo', 'tractor_duplicado');
@@ -299,7 +298,7 @@ const Fila = memo(function Fila({
         <td className="px-2 py-1 whitespace-nowrap">
           <span className="flex flex-wrap items-center gap-1.5">
             {/* Migración 184: sin viaje, el semi sigue enganchado hasta que se registra el desenganche */}
-            {conDesenganche && edicion.genset && (f.enganchado || f.ubicacionFuente === 'desenganche') && <Desenganche f={f} />}
+            {edicion.genset && (f.enganchado || f.ubicacionFuente === 'desenganche') && <Desenganche f={f} />}
             {!(f.enganchado && !sigue) && <LoQueSigue f={f} s={sigue} permisos={{ pasos: edicion.equipo, viajes: edicion.viajes }} />}
           </span>
         </td>

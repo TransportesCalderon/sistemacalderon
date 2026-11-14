@@ -308,8 +308,6 @@ export function linkCompleto(puntos: PuntoRuta[]): string | null {
   return `https://www.google.com/maps/dir/${ok.slice(0, MAX_PARADAS_LINK + 2).map(coord).join('/')}`;
 }
 
-/** Migración 156: pantalla «Rutas para choferes» (operaciones abiertas, con ruta o sin ruta). */
-export const VERSION_RUTAS_PANTALLA = 156;
 export interface OperacionRuta {
   servicioId: number;
   numero: number;
@@ -417,8 +415,6 @@ export const parsearAvisosDesvio = (v: unknown): AvisoDesvio[] =>
     };
   });
 
-/** Migración 161: «Rutas para choferes» por chofer (tabla de choferes activos). */
-export const VERSION_RUTAS_CHOFER = 161;
 export interface OperacionChofer {
   servicioId: number;
   numero: number;

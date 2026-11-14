@@ -6,7 +6,6 @@ import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
@@ -16,7 +15,6 @@ import {
   ETIQUETA_CATEGORIA,
   ETIQUETA_MOVIMIENTO,
   UNIDADES,
-  VERSION_STOCK,
   cant,
   decimalLocal,
   pesos,
@@ -52,16 +50,14 @@ type Pestana = 'stock' | 'facturas' | 'cuadre';
  * Todo lo valida y calcula la base.
  */
 export function StockPantalla() {
-  const hay = useBaseTiene(VERSION_STOCK);
   const { rolesApp } = useSesion();
   const edita = useCan('mantenimiento.stock:editar');
   const gestiona = edita && (rolesApp.includes('mantenimiento_jefe') || rolesApp.includes('ti'));
   const detallaCompras = edita && (gestiona || rolesApp.includes('finanzas'));
   const [pestana, setPestana] = useState<Pestana>('stock');
-  const { data, isPending, isError, error, refetch, isFetching } = useStockInsumos(hay);
-  const facturas = useFacturasInsumos(hay, true).data ?? [];
+  const { data, isPending, isError, error, refetch, isFetching } = useStockInsumos(true);
+  const facturas = useFacturasInsumos(true, true).data ?? [];
 
-  if (!hay) return <Vacio icono={<Package className="size-6" />} texto="Falta aplicar en la base el cambio de Stock de insumos." />;
   if (isPending) return <Cargando texto="Leyendo el stock…" />;
   if (isError) return <ErrorLectura texto="No se pudo leer el stock de insumos." error={error} onReintentar={() => void refetch()} />;
 

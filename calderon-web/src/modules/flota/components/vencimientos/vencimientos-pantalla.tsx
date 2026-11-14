@@ -1,21 +1,17 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { Ban, CalendarClock, Check, Pencil, ChevronDown, ChevronRight, FileText, History, LoaderCircle, MapPin, Paperclip, Plus } from 'lucide-react';
+import { Ban, Check, Pencil, ChevronDown, ChevronRight, FileText, History, LoaderCircle, MapPin, Paperclip, Plus } from 'lucide-react';
 import { abrirArchivo, borrarArchivo, subirArchivo } from '@/modules/chofer/components/archivos';
 import { useEnvio } from '@/modules/catalogos/components/comun';
-import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
+import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
 import {
   ETIQUETA_ESTADO_VENC,
-  VERSION_ADJUNTO_VENCIMIENTO,
-  VERSION_CORREGIR_VENCIMIENTO,
-  VERSION_VENCIMIENTOS,
   carpetaVencimiento,
   fechaDia,
   textoDias,
@@ -57,16 +53,14 @@ type FiltroEstado = 'todos' | 'atencion' | EstadoVencimiento;
  * El estado, la zona (Región Metropolitana) y los avisos los decide la base; acá se muestran y se cargan.
  */
 export function VencimientosPantalla() {
-  const hay = useBaseTiene(VERSION_VENCIMIENTOS);
   const carga = useCan('mantenimiento.vencimientos:editar');
   const anula = useCan('mantenimiento.vencimientos:transicionar');
-  const { data, isPending, isError, error, refetch, isFetching } = useVencimientos(hay);
+  const { data, isPending, isError, error, refetch, isFetching } = useVencimientos(true);
   const [abierto, setAbierto] = useState<string | null>(null);
   const [buscar, setBuscar] = useState('');
   const [fEquipo, setFEquipo] = useState<FiltroEquipo>('todos');
   const [fEstado, setFEstado] = useState<FiltroEstado>('todos');
 
-  if (!hay) return <Vacio icono={<CalendarClock className="size-6" />} texto="Falta aplicar en la base el cambio de Mantenimiento (vencimientos)." />;
   if (isPending) return <Cargando texto="Leyendo los vencimientos…" />;
   if (isError) return <ErrorLectura texto="No se pudieron leer los vencimientos." error={error} onReintentar={() => void refetch()} />;
 
@@ -262,8 +256,6 @@ function DetalleEquipo({ e, tipos, carga, anula }: { e: EquipoVencimientos; tipo
 function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento; zona: string; carga: boolean; anula: boolean; onRenovar: () => void }) {
   const anular = useAnularVencimiento();
   const adj = useAdjuntarVencimiento();
-  const conAdjunto = useBaseTiene(VERSION_ADJUNTO_VENCIMIENTO);
-  const conCorregir = useBaseTiene(VERSION_CORREGIR_VENCIMIENTO);
   const envio = useEnvio();
   const [motivo, setMotivo] = useState<string | null>(null);
   const [corrigiendo, setCorrigiendo] = useState(false);
@@ -285,12 +277,12 @@ function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento;
           )}
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs">
-          {conAdjunto && i.archivoRuta && (
+          {i.archivoRuta && (
             <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => void abrirArchivo(i.archivoRuta!).then(setAviso)}>
               <FileText className="size-3.5" /> Ver certificado
             </button>
           )}
-          {conAdjunto && carga && i.id !== null && (
+          {carga && i.id !== null && (
             <label className="inline-flex cursor-pointer items-center gap-1 text-marca hover:underline">
               {subiendo ? <LoaderCircle className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5" />}
               {i.archivoRuta ? 'Cambiar certificado' : 'Adjuntar certificado (PDF)'}
@@ -315,7 +307,7 @@ function ItemDetalle({ i, zona, carga, anula, onRenovar }: { i: ItemVencimiento;
               {i.estado === 'sin_dato' ? 'Cargar' : 'Cargar la nueva'}
             </button>
           )}
-          {conCorregir && carga && i.id !== null && (
+          {carga && i.id !== null && (
             <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setCorrigiendo(!corrigiendo)}>
               <Pencil className="size-3.5" /> Corregir fechas
             </button>
@@ -414,7 +406,6 @@ function FormCorregir({ i, onListo }: { i: ItemVencimiento; onListo: () => void 
 function FormVencimiento({ e, tipos, inicial, onCerrar }: { e: EquipoVencimientos; tipos: TipoVencimiento[]; inicial: { tipo: string; detalle: string }; onCerrar: () => void }) {
   const registrar = useRegistrarVencimiento();
   const adj = useAdjuntarVencimiento();
-  const conAdjunto = useBaseTiene(VERSION_ADJUNTO_VENCIMIENTO);
   const envio = useEnvio();
   const [archivo, setArchivo] = useState<File | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -456,17 +447,15 @@ function FormVencimiento({ e, tipos, inicial, onCerrar }: { e: EquipoVencimiento
           <span className="block text-xs text-tinta-suave">Vence el</span>
           <input type="date" className={cn(CONTROL_FILTRO, 'h-10 w-full')} value={vence} onChange={(x) => setVence(x.target.value)} />
         </label>
-        {conAdjunto && (
-          <label className="space-y-1 text-sm sm:col-span-2">
-            <span className="block text-xs text-tinta-suave">Certificado (PDF o foto, opcional)</span>
-            <input
-              type="file"
-              accept="application/pdf,image/*"
-              className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-borde file:bg-panel file:px-3 file:py-1.5"
-              onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
-            />
-          </label>
-        )}
+        <label className="space-y-1 text-sm sm:col-span-2">
+          <span className="block text-xs text-tinta-suave">Certificado (PDF o foto, opcional)</span>
+          <input
+            type="file"
+            accept="application/pdf,image/*"
+            className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-borde file:bg-panel file:px-3 file:py-1.5"
+            onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+          />
+        </label>
         <label className="space-y-1 text-sm sm:col-span-2">
           <span className="block text-xs text-tinta-suave">Observación (opcional)</span>
           <input className={cn(CONTROL_FILTRO, 'h-10 w-full')} placeholder="Ej.: planta, número de certificado" value={obs} onChange={(x) => setObs(x.target.value)} />

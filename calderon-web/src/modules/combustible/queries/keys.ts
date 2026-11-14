@@ -66,6 +66,13 @@ export const combustibleQueries = {
         queryFn: () => cargaRepository(db).obtener(id),
         staleTime: FRESCURA.transaccional,
       }),
+    /** Migración 268: parte del faltante que es de la mochila. */
+    faltanteMochila: (db: Db, id: CargaId) =>
+      queryOptions({
+        queryKey: ['combustible', 'cargas', 'faltante-mochila', id] as const,
+        queryFn: () => cargaRepository(db).faltanteMochila(id),
+        staleTime: FRESCURA.transaccional,
+      }),
   },
 
   /** Ticket de la carga, validación y bandejas (migración 34). */

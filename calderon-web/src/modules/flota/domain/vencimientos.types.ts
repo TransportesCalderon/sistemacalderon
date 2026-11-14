@@ -5,11 +5,6 @@ import type { FechaISO } from '@/shared/types/dominio';
  * La base calcula el estado, si el equipo está en la Región Metropolitana y a quién avisar.
  * Acá solo se convierten tipos.
  */
-export const VERSION_VENCIMIENTOS = 198;
-/** Migración 201: Telemetría carga y se adjunta el certificado (PDF o foto). */
-export const VERSION_ADJUNTO_VENCIMIENTO = 201;
-/** Migración 204: corregir las fechas de un vencimiento cargado mal. */
-export const VERSION_CORREGIR_VENCIMIENTO = 204;
 
 export interface CorreccionVencimiento {
   realizadoAntes: string | null;

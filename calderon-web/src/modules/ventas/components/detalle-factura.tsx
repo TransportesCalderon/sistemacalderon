@@ -2,9 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, ListChecks } from 'lucide-react';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
-import { VERSION_DETALLE } from '../domain/detalle';
 import { useDetalleCliente, useVistaDetalle } from '../queries/hooks';
 
 /**
@@ -28,8 +26,7 @@ export function ElegirDetalle({
   /** Texto debajo de la lista (por defecto, que queda guardado para el cliente). */
   nota?: ReactNode;
 }) {
-  const hay = useBaseTiene(VERSION_DETALLE);
-  const { data } = useDetalleCliente(clienteId, null, hay);
+  const { data } = useDetalleCliente(clienteId, null, true);
   const [campos, setCampos] = useState<string[] | null>(null);
   const avisar = useRef(onCambiar);
   avisar.current = onCambiar;
@@ -41,9 +38,9 @@ export function ElegirDetalle({
       avisar.current?.(data.elegidos);
     }
   }, [data, campos]);
-  const { data: ejemplo } = useVistaDetalle(servicioId, campos ?? [], hay);
+  const { data: ejemplo } = useVistaDetalle(servicioId, campos ?? [], true);
 
-  if (!hay || !data || campos === null) return null;
+  if (!data || campos === null) return null;
   const etiqueta = (c: string) => data.campos.find((x) => x.codigo === c)?.etiqueta ?? c;
   const alternar = (c: string) => {
     // Se guardan en el orden de la lista (el de la factura)

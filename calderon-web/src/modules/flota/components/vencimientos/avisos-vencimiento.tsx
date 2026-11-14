@@ -4,10 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { CalendarClock, Check, ExternalLink, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
-import { VERSION_VENCIMIENTOS, fechaDia, textoDias } from '../../domain/vencimientos.types';
+import { fechaDia, textoDias } from '../../domain/vencimientos.types';
 import { useAvisosVencimiento, useVencimientoVisto } from '../../queries/hooks';
 
 /**
@@ -16,8 +15,7 @@ import { useAvisosVencimiento, useVencimientoVisto } from '../../queries/hooks';
  * Metropolitana). «Entendido» la saca hasta el día siguiente.
  */
 export function AvisosVencimiento() {
-  const hay = useBaseTiene(VERSION_VENCIMIENTOS);
-  const recibe = useCan('mantenimiento.vencimientos:ver') && hay;
+  const recibe = useCan('mantenimiento.vencimientos:ver');
   const { data } = useAvisosVencimiento(recibe);
   const visto = useVencimientoVisto();
   const [cerrados, setCerrados] = useState<number[]>([]);

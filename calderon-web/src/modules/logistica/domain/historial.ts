@@ -4,8 +4,6 @@
  */
 import type { FechaISO } from '@/shared/types/dominio';
 
-/** Base de la versión con estos datos. */
-export const VERSION_HISTORIAL = 153;
 
 type Obj = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === 'string' && v !== '' ? v : null);

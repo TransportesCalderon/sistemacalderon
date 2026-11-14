@@ -71,6 +71,11 @@ export const choferesQueries = {
       queryFn: () => choferRepository(db).obtener(id),
       staleTime: FRESCURA.maestro,
     }),
+  pendientes: (db: Db, id: ChoferId) =>
+    queryOptions({
+      queryKey: [...choferesQueries.todas(), 'pendientes', id] as const,
+      queryFn: () => choferRepository(db).pendientes(id),
+    }),
 };
 
 /** Bases operativas (mae.ubicacion tipo 'base'): cambian poco, se tratan como catálogo. */

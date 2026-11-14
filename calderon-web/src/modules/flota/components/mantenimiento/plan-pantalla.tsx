@@ -5,7 +5,6 @@ import { Check, ChevronDown, ChevronRight, LoaderCircle, Pencil, Plus, Wrench } 
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
@@ -13,8 +12,6 @@ import {
   ETIQUETA_ESTADO_PLAN,
   ETIQUETA_PRIORIDAD,
   SUGERENCIAS_TAREA,
-  VERSION_MANTENIMIENTO,
-  VERSION_NO_APLICA,
   textoFrecuencia,
   type EquipoPlan,
   type EstadoPlan,
@@ -41,14 +38,12 @@ const entero = (s: string) => {
  * cada equipo. La base calcula cuándo toca y genera la orden de trabajo sola.
  */
 export function PlanPantalla() {
-  const hay = useBaseTiene(VERSION_MANTENIMIENTO);
   const edita = useCan('mantenimiento.plan:editar');
-  const { data, isPending, isError, error, refetch } = usePlanMantenimiento(hay);
-  const zonas = useZonasEquipo(hay).data ?? [];
+  const { data, isPending, isError, error, refetch } = usePlanMantenimiento(true);
+  const zonas = useZonasEquipo(true).data ?? [];
   const [form, setForm] = useState<TareaPlan | 'nueva' | null>(null);
   const [abierta, setAbierta] = useState<number | null>(null);
 
-  if (!hay) return <Vacio icono={<Wrench className="size-6" />} texto="Falta aplicar en la base el cambio de Mantenimiento (plan y órdenes)." />;
   if (isPending) return <Cargando texto="Leyendo el plan de mantenimiento…" />;
   if (isError) return <ErrorLectura texto="No se pudo leer el plan." error={error} onReintentar={() => void refetch()} />;
 
@@ -116,7 +111,6 @@ export function PlanPantalla() {
 function EquiposTarea({ t, edita }: { t: TareaPlan; edita: boolean }) {
   const [base, setBase] = useState<EquipoPlan | null>(null);
   const [noAplica, setNoAplica] = useState<EquipoPlan | null>(null);
-  const hayNoAplica = useBaseTiene(VERSION_NO_APLICA);
   const desmarcar = useTareaNoAplica();
   const envio = useEnvio();
   return (
@@ -160,15 +154,13 @@ function EquiposTarea({ t, edita }: { t: TareaPlan; edita: boolean }) {
                   <button type="button" className="text-xs text-marca hover:underline" onClick={() => setBase(base === e ? null : e)}>
                     Última vez…
                   </button>
-                  {hayNoAplica && (
-                    <button
-                      type="button"
-                      className="ml-3 text-xs text-tinta-suave hover:underline"
-                      onClick={() => setNoAplica(noAplica === e ? null : e)}
-                    >
-                      No aplica…
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="ml-3 text-xs text-tinta-suave hover:underline"
+                    onClick={() => setNoAplica(noAplica === e ? null : e)}
+                  >
+                    No aplica…
+                  </button>
                 </td>
               )}
             </tr>

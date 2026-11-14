@@ -116,7 +116,7 @@ export function TarjetaCarga({ c, conRuta = true }: { c: CargaAsignada; conRuta?
       )}
 
       {/* Migración 135: la ruta para Google Maps, desde donde esté */}
-      {conRuta && c.ruta && <RutaDelChofer ruta={c.ruta} servicioId={c.servicioId} />}
+      {conRuta && c.ruta && <RutaDelChofer ruta={c.ruta} />}
 
       <ul className="divide-y divide-borde">
         {lugares.map((g) => (

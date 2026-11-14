@@ -6,9 +6,6 @@ import type { FechaISO } from '@/shared/types/dominio';
  * los compara con el objetivo del viaje, decide el resultado (bien / a mejorar / mal) y escribe
  * el mensaje para el chofer. Acá solo se convierten tipos.
  */
-export const VERSION_SEGUIMIENTO = 194;
-/** Migración 197: litros con lecturas mezcladas, motivo cuando faltan y medir «desde» un momento elegido. */
-export const VERSION_SEGUIMIENTO_DESDE = 197;
 
 export type Resultado = 'bien' | 'a_mejorar' | 'mal' | 'sin_datos';
 export type Estado = 'verde' | 'naranja' | 'rojo' | null;
@@ -52,7 +49,6 @@ export interface LecturaFoto {
   programadorPct: number | null;
   avisos: string[];
 }
-export const VERSION_SEGUIMIENTO_FOTO = 240;
 export const parsearLecturaFoto = (d: unknown): LecturaFoto => {
   const o = (d && typeof d === 'object' ? d : {}) as Record<string, unknown>;
   return {
@@ -74,6 +70,8 @@ export interface ViajeEnCurso {
   chofer: string | null;
   /** Migración 214: el chofer del viaje, si no es el que maneja ahora (a él se le hace el cierre). */
   choferViaje: string | null;
+  /** Migración 265: el chofer que marca la tarjeta de la telemetría, si no es el que figura manejando. Es solo un aviso. */
+  choferTarjeta: string | null;
   salidaTs: FechaISO;
   linea: string | null;
   km: number | null;
@@ -122,6 +120,7 @@ export const parsearViajesEnCurso = (d: unknown): ViajeEnCurso[] =>
       choferId: n(v.chofer_id),
       chofer: txt(v.chofer),
       choferViaje: txt(v.chofer_viaje),
+      choferTarjeta: txt(v.chofer_tarjeta),
       salidaTs: (txt(v.salida_ts) ?? '') as FechaISO,
       linea: txt(v.linea),
       km: n(v.km),
@@ -194,7 +193,6 @@ export function parsearTramo(d: unknown): TramoSeguimiento {
 }
 
 // ---- Migración 195: pedido de carga de combustible (mensaje para Gerencia) ----
-export const VERSION_PEDIDO_CARGA = 195;
 
 export interface DatosPedidoCarga {
   inicialL: number | null;
@@ -243,6 +241,11 @@ export interface PedidoCarga {
   motivoRechazo?: string | null;
   resueltoEn?: FechaISO | null;
   resueltoPor?: string | null;
+  /** Migración 263: lo que recomendó el sistema al pedir y lo que decidió la orden al aprobar. */
+  recomendadoL?: number | null;
+  ordenACargar?: string | null;
+  ordenLitros?: number | null;
+  ordenConCambios?: boolean | null;
 }
 
 // ---- Migración 259: solicitud de carga por sistema ----
@@ -298,4 +301,8 @@ export const parsearPedidos = (d: unknown): PedidoCarga[] =>
     motivoRechazo: txt(p.motivo_rechazo),
     resueltoEn: txt(p.resuelto_en) as FechaISO | null,
     resueltoPor: txt(p.resuelto_por),
+    recomendadoL: n(p.recomendado_l),
+    ordenACargar: txt(p.orden_a_cargar),
+    ordenLitros: n(p.orden_litros),
+    ordenConCambios: typeof p.orden_con_cambios === 'boolean' ? p.orden_con_cambios : null,
   }));

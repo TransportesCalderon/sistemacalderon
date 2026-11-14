@@ -4,8 +4,6 @@ import type { FechaISO } from '@/shared/types/dominio';
  * Migraciones 188 y 189 · Fase 2: carga imposible y gestión de alertas (responsable, fecha límite,
  * avances, prórroga y escalamiento). Las reglas las controla la base; acá solo se convierten tipos.
  */
-export const VERSION_GESTION_ALERTAS = 189;
-export const VERSION_CARGA_IMPOSIBLE = 188;
 
 export const EQUIPOS = [
   { rol: 'adm_combustible', nombre: 'Administración de combustible' },

@@ -1,5 +1,4 @@
 /** Migración 185 · Qué se hizo con la diferencia de un cierre y el pedido de quitar el descuento. Lo decide la base. */
-export const VERSION_DECISION = 185;
 
 export type Decision = 'descontar' | 'justificar';
 

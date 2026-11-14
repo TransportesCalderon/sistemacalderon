@@ -4,7 +4,6 @@ import type { FechaISO } from '@/shared/types/dominio';
  * Migración 200 · Cierre de viaje: si se descuenta al chofer menos que la diferencia, hace falta una segunda
  * aprobación de un gerente habilitado. La base decide todo; acá solo se convierten tipos.
  */
-export const VERSION_SEGUNDO_NIVEL = 200;
 
 export interface SegundoNivelCierre {
   diferenciaL: number;

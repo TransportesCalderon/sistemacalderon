@@ -118,3 +118,6 @@ export interface CargaListaParams {
 }
 
 export const TAMANO_PAGINA_CARGAS = 50;
+
+/** Migración 268: desde esta versión la carga guarda cuánto del faltante para lleno fue en la mochila. */
+export const VERSION_FALTANTE_MOCHILA = 268;

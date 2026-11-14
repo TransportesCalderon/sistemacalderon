@@ -7,7 +7,6 @@ import { AccionConMotivo, Chip } from '@/modules/combustible/components/comun/ui
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, formatearFechaHora } from '@/shared/lib/fechas';
 import { invalidar } from '@/shared/query/invalidar';
@@ -40,10 +39,8 @@ interface Intento {
  * otro). La base no los dejó cargar; acá Administración los ve con las dos fotos y los marca revisados.
  */
 export function IntentosRepetidos() {
-  const hay = useBaseTiene(257);
   const { data } = useQuery({
     queryKey: ['chofer', 'intentos-repetidos'] as const,
-    enabled: hay,
     refetchInterval: 120_000,
     queryFn: async () => {
       const { data: d, error } = await browserDb().schema('fin').rpc('fn_intentos_gasto_repetido', { p_dias: 60 });
@@ -51,7 +48,7 @@ export function IntentosRepetidos() {
       return (Array.isArray(d) ? d : []) as unknown as Intento[];
     },
   });
-  if (!hay || !data || data.length === 0) return null;
+  if (!data || data.length === 0) return null;
   const pendientes = data.filter((i) => !i.revisado).length;
   return (
     <section className={cn(TARJETA, 'space-y-3 p-4', pendientes > 0 && 'border-2 border-error/40')}>

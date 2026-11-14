@@ -1,5 +1,4 @@
 /** Migración 182 · Clima en el mapa de la flota (Open-Meteo, a través de la base). */
-export const VERSION_CLIMA_MAPA = 182;
 
 export type CapaClima = '' | 'viento' | 'lluvia' | 'temperatura';
 export const CAPAS_CLIMA: { valor: CapaClima; texto: string }[] = [

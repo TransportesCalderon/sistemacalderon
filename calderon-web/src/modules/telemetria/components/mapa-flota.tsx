@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { Map as MapaLeaflet, LayerGroup } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { CloudSun, Group, Maximize2, Minimize2, Ungroup } from 'lucide-react';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { NIVEL_HEX } from '@/shared/ui/niveles';
@@ -19,7 +18,6 @@ import {
   grillaViento,
   redondearZona,
   textoClima,
-  VERSION_CLIMA_MAPA,
   type CapaClima,
   type ClimaMapa,
   type ZonaMapa,
@@ -133,7 +131,6 @@ export function MapaFlota({
   const [agrupar, setAgrupar] = useState(true);
   const [rankingAbierto, setRankingAbierto] = useState(false);
   // Migración 182: capas de clima (Open-Meteo) y la hora que se mira (0 = ahora, hasta +24 h)
-  const conClima = useBaseTiene(VERSION_CLIMA_MAPA);
   const [capaClima, setCapaClima] = useState<CapaClima>('');
   const [horaClima, setHoraClima] = useState(0);
   const [fondoViento, setFondoViento] = useState(false);
@@ -649,23 +646,21 @@ export function MapaFlota({
           {agrupar ? <Ungroup className="size-4" /> : <Group className="size-4" />}
           {agrupar ? 'Desagrupar' : 'Agrupar'}
         </button>
-        {conClima && (
-          <label className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
-            <CloudSun className="size-4" />
-            <select
-              aria-label="Capa de clima"
-              className="bg-transparent text-xs font-medium outline-none"
-              value={capaClima}
-              onChange={(e) => setCapaClima(e.target.value as CapaClima)}
-            >
-              {CAPAS_CLIMA.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.texto}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <label className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
+          <CloudSun className="size-4" />
+          <select
+            aria-label="Capa de clima"
+            className="bg-transparent text-xs font-medium outline-none"
+            value={capaClima}
+            onChange={(e) => setCapaClima(e.target.value as CapaClima)}
+          >
+            {CAPAS_CLIMA.map((o) => (
+              <option key={o.valor} value={o.valor}>
+                {o.texto}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
           Estela
           <select
@@ -691,7 +686,7 @@ export function MapaFlota({
           {completa ? 'Salir' : 'Pantalla completa'}
         </button>
       </div>
-      {conClima && capaClima && (
+      {capaClima && (
         <BarraClima
           capa={capaClima}
           horas={clima.data?.horas ?? []}

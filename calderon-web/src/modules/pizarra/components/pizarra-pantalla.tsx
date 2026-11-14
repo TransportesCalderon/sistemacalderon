@@ -6,7 +6,6 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Maximize2, Minimize2, Search, Truck, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { Cargando, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
 import { cn } from '@/shared/lib/cn';
@@ -22,7 +21,6 @@ import {
   type FiltrosPizarra,
 } from '../domain/pizarra.filtros';
 import { ESTADO_INFO, ESTADOS_UNIDAD, type EstadoUnidad, type FilaPizarra } from '../domain/pizarra.types';
-import { VERSION_SIGUE } from '../domain/pizarra.sigue';
 import { useColumnasAccesorio, useLugares, usePizarra, usePizarraEnVivo, usePizarraSigue } from '../queries/hooks';
 import { TablaPizarra } from './tabla-pizarra';
 
@@ -52,8 +50,7 @@ export function PizarraPantalla({ vista: pedida = 'tabla' }: { vista?: 'tabla' |
   const { data: columnas } = useColumnasAccesorio();
   const { data: lugares } = useLugares();
   // Sprint 6: «lo que sigue» de cada fila (migración 118)
-  const conSigue = useBaseTiene(VERSION_SIGUE);
-  const { data: sigue } = usePizarraSigue(conSigue);
+  const { data: sigue } = usePizarraSigue(true);
   // Mapa de flota: /pizarra/mapa, con la misma importancia que la tabla (pedido de Gerencia, 29/10/2026)
   const verMapa = useCan('telemetria.mapa:ver');
   const router = useRouter();
@@ -319,7 +316,7 @@ export function PizarraPantalla({ vista: pedida = 'tabla' }: { vista?: 'tabla' |
               abierto={abierto}
               recientes={recientes}
               lugares={lugares ?? []}
-              sigue={conSigue ? (sigue ?? new Map()) : null}
+              sigue={sigue ?? new Map()}
               onAbrir={setAbierto}
             />
           )}

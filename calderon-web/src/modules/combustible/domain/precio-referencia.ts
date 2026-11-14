@@ -3,7 +3,6 @@
  * que no es la del país de la estación y el precio imposible; lo dudoso queda como alerta);
  * acá solo se adelanta el aviso en el formulario, con los mismos umbrales de la regla.
  */
-export const VERSION_CONTROL_PRECIO = 258;
 
 export interface ReferenciaPrecio {
   /** Moneda del país de la estación: la que corresponde a la carga. */

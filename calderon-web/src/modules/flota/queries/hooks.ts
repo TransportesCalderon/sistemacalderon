@@ -143,6 +143,11 @@ export function useChofer(id: ChoferId, opciones: { enabled?: boolean } = {}) {
   return useQuery({ ...choferesQueries.detalle(browserDb(), id), enabled: opciones.enabled ?? true });
 }
 
+/** Migración 265: lo que el chofer tiene abierto. */
+export function useChoferPendientes(id: ChoferId, activo: boolean) {
+  return useQuery({ ...choferesQueries.pendientes(browserDb(), id), enabled: activo });
+}
+
 export function useBases() {
   return useQuery(basesQueries.obtener(browserDb()));
 }

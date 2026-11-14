@@ -140,3 +140,17 @@ export function esTipoDocumento(v: unknown): v is TipoDocumento {
 export function nombreCompleto(c: Pick<Chofer, 'nombre' | 'apellido'>): string {
   return `${c.apellido}, ${c.nombre}`;
 }
+
+/** Migración 265: desde esta versión la base dice qué tiene abierto un chofer (frena la baja; en la licencia avisa). */
+export const VERSION_CHOFER_PENDIENTES = 265;
+
+/** Lo que el chofer tiene abierto (mae.fn_chofer_pendientes): tractores asignados, relevos y viajes. El texto lo arma la base. */
+export interface PendientesChofer {
+  hay: boolean;
+  texto: string | null;
+}
+
+export function parsearPendientesChofer(d: unknown): PendientesChofer {
+  const o = (d && typeof d === 'object' ? d : {}) as Record<string, unknown>;
+  return { hay: o.hay === true, texto: typeof o.texto === 'string' && o.texto !== '' ? o.texto : null };
+}

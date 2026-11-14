@@ -5,7 +5,6 @@ import { Check, ChevronDown, ChevronRight, Fuel, History, LoaderCircle, Radar } 
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora, horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
@@ -15,10 +14,6 @@ const TH = 'px-3 py-2.5 whitespace-nowrap';
 const TD = 'px-3 py-2.5 whitespace-nowrap';
 import {
   ETIQUETA_RESULTADO,
-  VERSION_PEDIDO_CARGA,
-  VERSION_SEGUIMIENTO,
-  VERSION_SEGUIMIENTO_DESDE,
-  VERSION_SEGUIMIENTO_FOTO,
   type Estado,
   type Evaluacion,
   type Resultado,
@@ -45,9 +40,8 @@ const decimal = (s: string) => {
  */
 export function SeguimientoViajes() {
   const { rolesApp, zonaHoraria } = useSesion();
-  const hay = useBaseTiene(VERSION_SEGUIMIENTO);
   const registra = rolesApp.includes('analista_control') || rolesApp.includes('ti');
-  const { data, isPending, isError, error, refetch, isFetching } = useViajesEnCurso(hay);
+  const { data, isPending, isError, error, refetch, isFetching } = useViajesEnCurso(true);
   // Lista de los tractores en viaje (A → Z); al tocar uno se despliega su seguimiento debajo, como en la Pizarra
   const [abierto, setAbierto] = useState<number | null>(null);
   const [filtro, setFiltro] = useState('');
@@ -56,7 +50,6 @@ export function SeguimientoViajes() {
     .sort((a, b) => a.patente.localeCompare(b.patente, 'es', { numeric: true }))
     .filter((v) => !f || [v.patente, v.chofer, v.marca, v.linea].some((x) => x?.toLowerCase().includes(f)));
 
-  if (!hay) return <Vacio icono={<Radar className="size-6" />} texto="Falta aplicar en la base el cambio del seguimiento de viajes." />;
   return (
     <div className="space-y-5">
       <Encabezado titulo="Seguimiento de viajes" subtitulo="Telemetría" />
@@ -118,6 +111,7 @@ export function SeguimientoViajes() {
                         <td className={TD}>
                           {v.chofer ?? 'Sin chofer'}
                           {v.choferViaje && <span className="block text-xs text-alerta">Viaje de {v.choferViaje}</span>}
+                          {v.choferTarjeta && <span className="block text-xs text-alerta">Tarjeta: {v.choferTarjeta}</span>}
                         </td>
                         <td className={cn(TD, 'text-tinta-suave')}>{v.marca ?? '—'}</td>
                         <td className={cn(TD, 'tabular-nums')}>{formatearFechaHora(v.salidaTs, zonaHoraria)}</td>
@@ -185,7 +179,6 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
   const registrarFoto = useRegistrarSeguimientoFoto();
   const envio = useEnvio();
   // Migración 240: foto de la computadora de a bordo (la IA la lee; la base calcula los litros)
-  const conFoto = useBaseTiene(VERSION_SEGUIMIENTO_FOTO);
   const [foto, setFoto] = useState<FotoLeida | null>(null);
   const aTexto = (x: number | null) => (x === null ? '' : String(x));
   const [manual, setManual] = useState(!v.conTelemetria);
@@ -195,14 +188,12 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
   const [hecho, setHecho] = useState<Evaluacion | null>(null);
   const [historial, setHistorial] = useState(false);
   // Migración 195: pedido de carga de combustible para Gerencia (259: solicitud con el formulario de la orden)
-  const conPedido = useBaseTiene(VERSION_PEDIDO_CARGA);
   const [pedido, setPedido] = useState(false);
   // Migración 197: desde qué momento se mide (salida, último control u otro momento)
-  const conDesde = useBaseTiene(VERSION_SEGUIMIENTO_DESDE);
   const [modo, setModo] = useState<Desde>('salida');
   const [otro, setOtro] = useState(() => isoAHoraLocal(v.salidaTs, zonaHoraria));
   const desde = modo === 'salida' ? null : modo === 'control' ? (v.ultimoControl?.en ?? null) : horaLocalAIso(otro, zonaHoraria);
-  const tramo = useSeguimientoDesde(v.viajeId, conDesde ? desde : null);
+  const tramo = useSeguimientoDesde(v.viajeId, desde);
   const n = tramo.data ?? v;
   const e = hecho ?? (desde && !tramo.data ? null : n.evaluacion);
   const elegir = (m: Desde) => {
@@ -224,46 +215,49 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
           {v.choferViaje && (
             <p className="text-xs text-alerta">El viaje lo empezó {v.choferViaje}: si cambió el chofer, cambialo también en el viaje (para el cierre).</p>
           )}
+          {v.choferTarjeta && (
+            <p className="text-xs text-alerta">
+              La tarjeta del camión marca a {v.choferTarjeta}. Si cambió el chofer, cargá el relevo en la operación o cambialo en el viaje.
+            </p>
+          )}
         </div>
         {e && <Chip tono={TONO_RESULTADO[e.resultado]}>{ETIQUETA_RESULTADO[e.resultado]}</Chip>}
       </div>
 
-      {conDesde && (
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-tinta-suave">Medir desde</span>
-          {(
-            [
-              ['salida', 'La salida'],
-              ['control', 'El último control'],
-              ['otro', 'Otro momento'],
-            ] as const
-          ).map(([m, t]) =>
-            m === 'control' && !v.ultimoControl ? null : (
-              <button
-                key={m}
-                type="button"
-                className={cn('rounded-full border px-3 py-1', modo === m ? 'border-marca bg-marca/10 text-marca' : 'border-borde text-tinta-suave hover:bg-hover')}
-                onClick={() => elegir(m)}
-              >
-                {t}
-              </button>
-            ),
-          )}
-          {modo === 'otro' && (
-            <input
-              type="datetime-local"
-              aria-label="Desde"
-              className={cn(CONTROL_FILTRO, 'h-8')}
-              value={otro}
-              onChange={(x) => {
-                setOtro(x.target.value);
-                setHecho(null);
-              }}
-            />
-          )}
-          {desde && tramo.data && <span className="text-tinta-suave">desde {formatearFechaHora(tramo.data.desde, zonaHoraria)}</span>}
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="text-tinta-suave">Medir desde</span>
+        {(
+          [
+            ['salida', 'La salida'],
+            ['control', 'El último control'],
+            ['otro', 'Otro momento'],
+          ] as const
+        ).map(([m, t]) =>
+          m === 'control' && !v.ultimoControl ? null : (
+            <button
+              key={m}
+              type="button"
+              className={cn('rounded-full border px-3 py-1', modo === m ? 'border-marca bg-marca/10 text-marca' : 'border-borde text-tinta-suave hover:bg-hover')}
+              onClick={() => elegir(m)}
+            >
+              {t}
+            </button>
+          ),
+        )}
+        {modo === 'otro' && (
+          <input
+            type="datetime-local"
+            aria-label="Desde"
+            className={cn(CONTROL_FILTRO, 'h-8')}
+            value={otro}
+            onChange={(x) => {
+              setOtro(x.target.value);
+              setHecho(null);
+            }}
+          />
+        )}
+        {desde && tramo.data && <span className="text-tinta-suave">desde {formatearFechaHora(tramo.data.desde, zonaHoraria)}</span>}
+      </div>
 
       {tramo.isError ? (
         <ErrorLectura texto="No se pudo medir desde ese momento." error={tramo.error} onReintentar={() => void tramo.refetch()} />
@@ -303,56 +297,54 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
 
       {registra && (
         <div className="space-y-2">
-          {conFoto && (
-            <div className="space-y-2 rounded-md border border-borde p-3">
-              {foto ? (
-                <div className="flex flex-wrap items-start gap-3">
-                  {foto.url && (
-                    <a href={foto.url} target="_blank" rel="noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- enlace temporal de Storage */}
-                      <img src={foto.url} alt="Computadora de a bordo" className="h-24 rounded object-cover" />
-                    </a>
-                  )}
-                  <div className="space-y-1 text-sm">
-                    <p className="text-tinta">
-                      La IA leyó: <b>{num(foto.datos.km)} km</b>
-                      {foto.datos.l100km !== null && (
-                        <>
-                          {' '}
-                          · <b>{num(foto.datos.l100km)} L/100 km</b>
-                        </>
-                      )}
-                      {foto.datos.litros !== null && <> → {num(foto.datos.litros, 0)} L</>}
+          <div className="space-y-2 rounded-md border border-borde p-3">
+            {foto ? (
+              <div className="flex flex-wrap items-start gap-3">
+                {foto.url && (
+                  <a href={foto.url} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- enlace temporal de Storage */}
+                    <img src={foto.url} alt="Computadora de a bordo" className="h-24 rounded object-cover" />
+                  </a>
+                )}
+                <div className="space-y-1 text-sm">
+                  <p className="text-tinta">
+                    La IA leyó: <b>{num(foto.datos.km)} km</b>
+                    {foto.datos.l100km !== null && (
+                      <>
+                        {' '}
+                        · <b>{num(foto.datos.l100km)} L/100 km</b>
+                      </>
+                    )}
+                    {foto.datos.litros !== null && <> → {num(foto.datos.litros, 0)} L</>}
+                  </p>
+                  {foto.datos.avisos.map((a) => (
+                    <p key={a} className="text-xs text-alerta">
+                      {a}
                     </p>
-                    {foto.datos.avisos.map((a) => (
-                      <p key={a} className="text-xs text-alerta">
-                        {a}
-                      </p>
-                    ))}
-                    <p className="text-xs text-tinta-suave">Revisá los números de abajo antes de registrar.</p>
-                    <button type="button" className="text-xs text-marca hover:underline" onClick={() => setFoto(null)}>
-                      Quitar la foto
-                    </button>
-                  </div>
+                  ))}
+                  <p className="text-xs text-tinta-suave">Revisá los números de abajo antes de registrar.</p>
+                  <button type="button" className="text-xs text-marca hover:underline" onClick={() => setFoto(null)}>
+                    Quitar la foto
+                  </button>
                 </div>
-              ) : (
-                <SubirFotoComputadora
-                  viajeId={v.viajeId}
-                  onLeida={(f) => {
-                    setFoto(f);
-                    setManual(true);
-                    setKm(aTexto(f.datos.km));
-                    setLitros(aTexto(f.datos.litros));
-                    setProg(aTexto(f.datos.programadorPct));
-                    setHecho(null);
-                  }}
-                />
-              )}
-              <p className="text-xs text-tinta-suave">
-                Para que los números sean del viaje, el chofer tiene que poner en cero «Desde reset» al salir (o medí «desde» el momento del reset).
-              </p>
-            </div>
-          )}
+              </div>
+            ) : (
+              <SubirFotoComputadora
+                viajeId={v.viajeId}
+                onLeida={(f) => {
+                  setFoto(f);
+                  setManual(true);
+                  setKm(aTexto(f.datos.km));
+                  setLitros(aTexto(f.datos.litros));
+                  setProg(aTexto(f.datos.programadorPct));
+                  setHecho(null);
+                }}
+              />
+            )}
+            <p className="text-xs text-tinta-suave">
+              Para que los números sean del viaje, el chofer tiene que poner en cero «Desde reset» al salir (o medí «desde» el momento del reset).
+            </p>
+          </div>
           <label className="inline-flex items-center gap-2 text-xs text-tinta-suave">
             <input type="checkbox" className="accent-marca" checked={manual} onChange={(x) => setManual(x.target.checked)} /> Cargar los números a mano (de la
             plataforma de la marca)
@@ -376,7 +368,7 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
                       viajeId: v.viajeId,
                       lecturaId: foto.lecturaId,
                       foto: foto.ruta,
-                      desde: conDesde && desde ? desde : null,
+                      desde: desde ? desde : null,
                       km: decimal(km),
                       litros: decimal(litros),
                       programador: decimal(prog),
@@ -386,7 +378,7 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
                     km: manual ? decimal(km) : null,
                     litros: manual ? decimal(litros) : null,
                     programador: manual ? decimal(prog) : null,
-                      ...(conDesde && desde ? { desde } : {}),
+                      ...(desde ? { desde } : {}),
                     })
                 ).then((r) => {
                   if (r.ok) {
@@ -412,11 +404,9 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
           {v.controlesHoy > 0 && ` · ${v.controlesHoy} hoy`}
         </span>
         <span className="flex items-center gap-3">
-          {conPedido && (
-            <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setPedido(!pedido)}>
-              <Fuel className="size-3.5" /> {pedido ? 'Cerrar la solicitud de carga' : 'Solicitar carga'}
-            </button>
-          )}
+          <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setPedido(!pedido)}>
+            <Fuel className="size-3.5" /> {pedido ? 'Cerrar la solicitud de carga' : 'Solicitar carga'}
+          </button>
           <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setHistorial(!historial)}>
             <History className="size-3.5" /> {historial ? 'Ocultar historial' : 'Historial'}
           </button>

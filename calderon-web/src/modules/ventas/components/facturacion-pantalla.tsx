@@ -30,8 +30,7 @@ import {
 import { ChipFactura } from './comun';
 import { FacturaSii } from './factura-sii';
 import { ElegirDetalle } from './detalle-factura';
-import { FacturaLibre, VERSION_FACTURA_LIBRE } from './factura-libre';
-import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { FacturaLibre } from './factura-libre';
 import { CampoComprobante, ComprobanteCobro, useAdjuntarComprobante } from './comprobante-cobro';
 import { ConformeDescarga } from '@/modules/logistica/components/conforme-descarga';
 import type { FechaISO } from '@/shared/types/dominio';
@@ -58,8 +57,7 @@ export function FacturacionPantalla() {
   };
   // Migración 144: factura sin operación (gastos extra)
   const puedeEditarFac = useCan('ventas.facturacion:editar');
-  const hayLibre = useBaseTiene(VERSION_FACTURA_LIBRE);
-  const puedeLibre = puedeEditarFac && hayLibre;
+  const puedeLibre = puedeEditarFac;
   const [libre, setLibre] = useState(false);
   return (
     <div className="space-y-4">
