@@ -15,7 +15,10 @@ import { crearViajePasado } from '../actions/por-cerrar.actions';
  * (canon y km del chofer). Si no lo tiene, la base lo crea (viajes de antes de los automáticos).
  */
 export function CargarEnViajeChofer({ cargaSalidaId, texto = 'Cargar operaciones y línea' }: { cargaSalidaId: number; texto?: string }) {
-  const puede = useCan('operacion.tramos:editar');
+  // 14/11/2026: también quien hace el cierre (como las demás acciones del viaje del chofer, 05/11/2026)
+  const puedeOperacion = useCan('operacion.tramos:editar');
+  const puedeCierre = useCan('combustible.cierre_viaje:editar');
+  const puede = puedeOperacion || puedeCierre;
   const abrirFicha = useAbrirFicha();
   const qc = useQueryClient();
   const crear = useMutation({ mutationFn: crearViajePasado, onSuccess: () => invalidar(qc, 'cierre') });

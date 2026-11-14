@@ -16,14 +16,14 @@ export const aprobarVariosCierres = createAction({
 });
 
 export const completarOperacionesViaje = createAction({
-  permiso: 'operacion.tramos:editar',
+  permiso: ['operacion.tramos:editar', 'combustible.cierre_viaje:editar'],
   schema: z.object({ viajeId: z.number().int().positive() }),
   handler: (d, { db }) => porCerrarRepository(db).completarOperaciones(d.viajeId),
   invalida: rutas,
 });
 
 export const crearViajePasado = createAction({
-  permiso: 'operacion.tramos:editar',
+  permiso: ['operacion.tramos:editar', 'combustible.cierre_viaje:editar'],
   schema: z.object({ cargaSalidaId: z.number().int().positive() }),
   handler: (d, { db }) => porCerrarRepository(db).crearViajePasado(d.cargaSalidaId),
   invalida: rutas,

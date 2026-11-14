@@ -49,7 +49,9 @@ const litros = (v: number | null) => (v === null ? '—' : `${v.toLocaleString('
 export function PorCerrarPantalla() {
   const { zonaHoraria } = useSesion();
   const puedeAprobar = usePuedeAprobarCierres();
-  const puedeEditar = useCan('operacion.tramos:editar');
+  const puedeOperacion = useCan('operacion.tramos:editar');
+  const puedeCierre = useCan('combustible.cierre_viaje:editar');
+  const puedeEditar = puedeOperacion || puedeCierre;
   const qc = useQueryClient();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['logistica', 'por-cerrar'],
