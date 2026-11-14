@@ -146,6 +146,10 @@ export const MENSAJES_RESTRICCION: Record<string, string> = {
   ck_cv_no_imp_mochila: 'Explicá por qué no se imputa al conductor (mochila).',
   ck_cv_ajuste: 'Indicá el motivo del ajuste manual de km o consumo.',
   ck_cv_ajuste_pos: 'Los km y el consumo manual no pueden ser negativos.',
+  // 14/11/2026: antes salía el mensaje genérico (CV-000032, consumo tomado del tablero)
+  ck_cv_fuente_cons: 'El cierre no acepta el origen del consumo que se calculó: avisá a TI.',
+  ck_cv_fuente_km: 'El cierre no acepta el origen de los km que se calculó: avisá a TI.',
+  ck_cv_aprobado: 'Al cierre le falta un dato calculado para poder aprobarse: avisá a TI.',
   ck_cv_anulado: 'Escribí el motivo de la anulación.',
   ex_carga_duplicada: 'Ya hay una carga del mismo camión, con la misma hora y los mismos litros.',
   ex_carga_llenado_instante: 'Ya hay otro llenado del tractor de ese camión en el mismo instante: indicá la hora real.',
