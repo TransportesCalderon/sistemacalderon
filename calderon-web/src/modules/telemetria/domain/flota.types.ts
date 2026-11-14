@@ -173,7 +173,10 @@ function parsearCombustible(v: unknown): CombustibleActual | null {
     litros: numONull(c.litros),
     pct: numONull(c.pct),
     capacidadL: numONull(c.capacidad_l),
-    mochilaL: numONull(c.mochila_l),
+    // 14/11/2026: el combustible del camión se muestra como un conjunto. El reparto entre tanques y mochila
+    // que estima la base (migración 267: «tanques llenos primero») no coincide con el uso real y queda solo
+    // para el pedido de carga.
+    mochilaL: c.reparto === 'estimado' ? null : numONull(c.mochila_l),
     metodo: typeof c.metodo === 'string' ? c.metodo : null,
     aviso: typeof c.aviso === 'string' ? c.aviso : null,
     desde: typeof c.desde === 'string' ? c.desde : null,
