@@ -58,11 +58,6 @@ export const anularTableroChofer = createAction({
   schema: anular,
   handler: (d, { db }) => tableroRepository(db).anular(d.id),
 });
-export const anularTableroOficina = createAction({
-  permiso: 'combustible.cierre_viaje:editar',
-  schema: anular,
-  handler: (d, { db }) => tableroRepository(db).anular(d.id),
-});
 
 export const avisoCargaVisto = createAction({
   permiso: 'chofer.mi_carga:editar',

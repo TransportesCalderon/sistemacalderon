@@ -82,7 +82,6 @@ export const useVerificacionBase = (aprobacionId: number, enabled: boolean) =>
   useQuery({ ...q.base.verificacion(browserDb(), aprobacionId), enabled, retry: false });
 
 export const useDocumentosCarga = (cargaId: number) => useQuery(q.documentos.deCarga(browserDb(), cargaId));
-export const useValidacionCarga = (cargaId: number) => useQuery(q.documentos.validacion(browserDb(), cargaId));
 export const useEmisorTicket = (estacionId: number | null) => useQuery(q.documentos.emisor(browserDb(), estacionId));
 export const useBandeja = (tipo: Bandeja, pagina: number) =>
   useQuery({ ...q.documentos.bandeja(browserDb(), tipo, pagina), placeholderData: keepPreviousData });

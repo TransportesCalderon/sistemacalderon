@@ -31,4 +31,3 @@ export function rutaArchivo(cargaId: number, extension: string, aleatorio: strin
 /** Cargas de una bandeja (Combustible > Cargas por validar / Sin documento). */
 export const BANDEJAS = ['por_validar', 'observadas', 'sin_documento'] as const;
 export type Bandeja = (typeof BANDEJAS)[number];
-export const esBandeja = esDe(BANDEJAS);

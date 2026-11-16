@@ -131,8 +131,6 @@ export function parsearSiiFactura(raw: unknown): SiiFactura {
   };
 }
 
-/** Migración 138: vista previa de la factura electrónica (lo mismo que se envía). */
-export const VERSION_VISTA_PREVIA = 138;
 export interface RenglonVistaPrevia {
   n: number;
   nombre: string;

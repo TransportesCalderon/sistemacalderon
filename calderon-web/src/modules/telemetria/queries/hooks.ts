@@ -30,13 +30,6 @@ export function useImportarAhora() {
   });
 }
 
-// Migración 49: conducción por chofer y calidad de los datos
-export const usePuntajesChoferes = (desde: string, hasta: string) =>
-  useQuery({
-    queryKey: ['telemetria', 'puntajes', desde, hasta] as const,
-    queryFn: () => conduccionRepository(browserDb()).puntajes(desde, hasta),
-    staleTime: 60_000,
-  });
 export const useDiasChofer = (choferId: number | null, desde: string, hasta: string) =>
   useQuery({
     queryKey: ['telemetria', 'dias-chofer', choferId, desde, hasta] as const,
@@ -48,13 +41,6 @@ export const useInventarioTelemetria = (dias: number) =>
   useQuery({ queryKey: ['telemetria', 'inventario', dias] as const, queryFn: () => conduccionRepository(browserDb()).inventario(dias), staleTime: 300_000 });
 export const useTarjetasSinEnlace = (dias: number) =>
   useQuery({ queryKey: ['telemetria', 'sin-enlace', dias] as const, queryFn: () => conduccionRepository(browserDb()).sinEnlace(dias), staleTime: 300_000 });
-export const useProgramadorTelemetria = (camionId: number, desde: string, hasta: string, enabled: boolean) =>
-  useQuery({
-    queryKey: ['telemetria', 'programador', camionId, desde, hasta] as const,
-    queryFn: () => conduccionRepository(browserDb()).programadorPct(camionId, desde, hasta),
-    enabled,
-    staleTime: 300_000,
-  });
 
 // Migración 72: equipos GPS de Trackerway
 export const usePanelTrackerway = () =>

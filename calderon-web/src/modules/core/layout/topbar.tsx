@@ -94,9 +94,6 @@ function BotonHoy({ actual }: { actual: boolean }) {
   );
 }
 
-/** Nombre anterior (se mantiene para no romper importaciones). */
-export const Topbar = BarraSuperior;
-
 function SelectorZona() {
   const { zonaHoraria } = useSesion();
   const router = useRouter();
