@@ -177,3 +177,77 @@ export function useEscuchar(alTerminar: (texto: string) => void) {
 
   return { disponible, escuchando, parcial, error, empezar, parar, cancelar };
 }
+
+/**
+ * Modo reunión: mientras `activo`, escucha sin parar y avisa cada frase terminada. El navegador corta
+ * solo cada tanto: se vuelve a prender. Se apaga mientras Iris habla o busca (para no oírse a sí misma).
+ */
+export function useEscucharSiempre(activo: boolean, alOir: (frase: string) => void) {
+  const [disponible, setDisponible] = useState(false);
+  const [parcial, setParcial] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const oir = useRef(alOir);
+  oir.current = alOir;
+
+  useEffect(() => setDisponible(!!constructorReconocedor()), []);
+
+  useEffect(() => {
+    const C = constructorReconocedor();
+    if (!activo || !C) return;
+    let cortado = false;
+    let r: Reconocedor | null = null;
+    let reintento: ReturnType<typeof setTimeout> | null = null;
+    const arrancar = () => {
+      if (cortado) return;
+      const nuevo = new C();
+      r = nuevo;
+      nuevo.lang = 'es-AR';
+      nuevo.interimResults = true;
+      nuevo.continuous = true;
+      nuevo.maxAlternatives = 1;
+      nuevo.onresult = (e) => {
+        let medio = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const x = e.results[i];
+          if (!x) continue;
+          if (x.isFinal) {
+            const t = x[0].transcript.trim();
+            if (t) oir.current(t);
+          } else medio += x[0].transcript;
+        }
+        setParcial(medio.trim());
+      };
+      nuevo.onerror = (e) => {
+        const m = ERRORES[e.error];
+        if (!m) return;
+        setError(m);
+        if (e.error !== 'network') cortado = true; // sin permiso o sin micrófono: no insistir
+      };
+      nuevo.onend = () => {
+        r = null;
+        setParcial('');
+        if (!cortado) reintento = setTimeout(arrancar, 400);
+      };
+      try {
+        nuevo.start();
+      } catch {
+        r = null;
+        reintento = setTimeout(arrancar, 1000);
+      }
+    };
+    setError(null);
+    arrancar();
+    return () => {
+      cortado = true;
+      if (reintento) clearTimeout(reintento);
+      const viejo = r as Reconocedor | null;
+      if (viejo) {
+        viejo.onend = null;
+        viejo.abort();
+      }
+      setParcial('');
+    };
+  }, [activo]);
+
+  return { disponible, parcial, error };
+}

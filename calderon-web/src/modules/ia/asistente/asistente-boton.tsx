@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LoaderCircle, MessageSquarePlus, Mic, Printer, Send, Square, ThumbsDown, ThumbsUp, TriangleAlert, Volume2, X } from 'lucide-react';
+import { LoaderCircle, MessageSquarePlus, Mic, Printer, Send, Square, ThumbsDown, ThumbsUp, TriangleAlert, Users, Volume2, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCan } from '@/modules/core/permissions/can';
 import { cn } from '@/shared/lib/cn';
@@ -14,7 +14,8 @@ import { generarInforme, preguntarAsistente, valorarRespuesta } from './asistent
 import { parsearMarkdown, type Bloque, type Trozo } from './markdown';
 import { imprimirRespuesta } from './imprimir';
 import irisLogo from './iris-logo.png';
-import { useEscuchar, useHablar } from './voz-hooks';
+import { esOrdenDeCallar, pedidoParaIris } from './voz';
+import { useEscuchar, useEscucharSiempre, useHablar } from './voz-hooks';
 
 const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 const repo = () => asistenteRepository(browserDb());
@@ -67,6 +68,8 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vista, setVista] = useState<'preguntar' | 'informes'>('preguntar');
+  const [reunion, setReunion] = useState(false);
+  const nombrada = useRef(0);
   const fondo = useRef<HTMLDivElement>(null);
   const avisarCambio = useRef(onCambio);
   avisarCambio.current = onCambio;
@@ -173,6 +176,55 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
     oido.empezar();
   };
 
+  // Modo reunión: escucha siempre y responde solo cuando la nombran («Iris, …»). Mientras busca o habla, no escucha.
+  const salaOye = reunion && vista === 'preguntar' && !enviando && !pensando && voz.hablando === null && !oido.escuchando;
+  const sala = useEscucharSiempre(salaOye, (frase) => {
+    let pedido = pedidoParaIris(frase);
+    if (pedido === null && Date.now() < nombrada.current) pedido = frase; // la nombraron recién: esta es la pregunta
+    if (pedido === null) return;
+    if (pedido === '') {
+      nombrada.current = Date.now() + 10_000;
+      return;
+    }
+    nombrada.current = 0;
+    if (esOrdenDeCallar(pedido)) return callar();
+    void preguntar(`[Reunión] ${pedido}`, null, pedido, true);
+  });
+  // Que la pantalla no se apague durante la reunión (si el navegador lo permite)
+  useEffect(() => {
+    if (!reunion) return;
+    type Traba = { release: () => Promise<void> };
+    const nav = navigator as Navigator & { wakeLock?: { request: (tipo: 'screen') => Promise<Traba> } };
+    let traba: Traba | null = null;
+    let cortado = false;
+    nav.wakeLock
+      ?.request('screen')
+      .then((t) => {
+        if (cortado) void t.release();
+        else traba = t;
+      })
+      .catch(() => undefined);
+    return () => {
+      cortado = true;
+      void traba?.release();
+    };
+  }, [reunion]);
+  const cambiarReunion = () => {
+    voz.desbloquear();
+    callar();
+    nombrada.current = 0;
+    setReunion((r) => !r);
+  };
+  const minuta = () => {
+    const listos = turnos.filter((t) => t.estado === 'lista' && t.respuesta);
+    const hoy = new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+    imprimirRespuesta(
+      `## Reunión con Iris · ${hoy}\n\nSe hicieron ${listos.length} preguntas. En las hojas que siguen, cada pregunta con su respuesta.\n\n` +
+        listos.map((t) => `## ${t.pregunta.replace(/^\[Reunión\]\s*/, '').replace(/\s+/g, ' ')}\n\n${t.respuesta ?? ''}`).join('\n\n'),
+      'Iris · IronTrack · uso interno de Gerencia',
+    );
+  };
+
   const enviarTexto = () => {
     const p = texto.trim();
     if (p && !enviando && !pensando) void preguntar(p, null, p);
@@ -191,7 +243,10 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
     <aside
       role="dialog"
       aria-label="Iris, el asistente inteligente de IronTrack"
-      className="fixed bottom-0 right-0 top-14 z-[1050] flex w-full max-w-[540px] flex-col border-l border-borde bg-panel shadow-2xl"
+      className={cn(
+        'fixed bottom-0 right-0 z-[1050] flex w-full flex-col border-l border-borde bg-panel shadow-2xl',
+        reunion ? 'top-0 max-w-none text-lg' : 'top-14 max-w-[540px]',
+      )}
     >
       <div className="flex items-center gap-2 border-b border-borde px-4 py-2">
         <IrisLogo className="size-6" />
@@ -204,6 +259,17 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
             Informes semanales
           </PestanaPanel>
         </div>
+        {vista === 'preguntar' && sala.disponible && (
+          <button
+            type="button"
+            onClick={cambiarReunion}
+            aria-pressed={reunion}
+            title="Iris escucha a la sala y responde en voz alta cuando la nombran"
+            className={cn('flex items-center gap-1 rounded-md px-2 py-1 text-sm hover:bg-hover', reunion ? 'bg-marca-suave font-medium text-tinta' : 'text-tinta-suave')}
+          >
+            <Users className="size-4" /> {reunion ? 'Salir de reunión' : 'Modo reunión'}
+          </button>
+        )}
         {vista === 'preguntar' && turnos.length > 0 && (
           <button type="button" onClick={nueva} className="flex items-center gap-1 rounded-md px-2 py-1 text-sm text-tinta-suave hover:bg-hover">
             <MessageSquarePlus className="size-4" /> Nueva
@@ -214,6 +280,31 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
         </button>
       </div>
 
+      {reunion && vista === 'preguntar' && (
+        <div className="flex items-center gap-3 border-b border-borde bg-marca-suave px-4 py-2 text-sm" aria-live="polite">
+          <Mic className={cn('size-4 shrink-0', salaOye && 'animate-pulse')} />
+          <span className="flex-1">
+            {sala.error ??
+              (voz.hablando !== null
+                ? 'Iris está hablando…'
+                : pensando || enviando
+                  ? 'Iris está buscando…'
+                  : sala.parcial
+                    ? `«${sala.parcial}»`
+                    : 'Escuchando a la sala. Digan «Iris» y la pregunta.')}
+          </span>
+          {voz.hablando !== null && (
+            <button type="button" onClick={callar} className="flex items-center gap-1 rounded-md border border-borde bg-panel px-2 py-1 hover:bg-hover">
+              <Square className="size-3.5 fill-current" /> Callar
+            </button>
+          )}
+          {turnos.some((t) => t.estado === 'lista') && (
+            <button type="button" onClick={minuta} className="flex items-center gap-1 rounded-md border border-borde bg-panel px-2 py-1 hover:bg-hover">
+              <Printer className="size-3.5" /> Minuta
+            </button>
+          )}
+        </div>
+      )}
       {vista === 'informes' ? (
         <InformesVista />
       ) : (

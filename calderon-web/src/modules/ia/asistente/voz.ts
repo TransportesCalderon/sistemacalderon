@@ -86,3 +86,30 @@ export function trozosParaLeer(texto: string, max = 220): string[] {
   if (actual) out.push(actual);
   return out;
 }
+
+/**
+ * Modo reunión: Iris escucha siempre pero responde solo si la nombran. Devuelve lo que le piden,
+ * '' si solo la nombraron (la pregunta viene en la frase siguiente) o null si no era para ella.
+ * El dictado a veces escribe «Siri» o «Airis»: también valen.
+ */
+export function pedidoParaIris(frase: string): string | null {
+  const m = /(?:^|[\s,.;:¡¿!?])(?:iris|íris|airis|siri)(?=$|[\s,.;:!?])/i.exec(frase);
+  if (!m) return null;
+  const despues = frase
+    .slice(m.index + m[0].length)
+    .replace(/^[\s,.;:!?]+/, '')
+    .trim();
+  if (despues.length >= 3) return despues;
+  // «¿Cuánto facturamos este mes, Iris?»: la pregunta vino antes del nombre
+  const antes = frase
+    .slice(0, m.index)
+    .replace(/(^|\s)(oye|che|hola|a ver|escucha|escuchá|ok|okey|bueno)(?=\s|,|$)/gi, ' ')
+    .replace(/[\s,.;:¡!]+/g, ' ')
+    .trim();
+  return antes.length >= 12 ? antes : '';
+}
+
+/** «Iris, silencio», «Iris, gracias»: no es una pregunta, es que se calle. */
+export function esOrdenDeCallar(pedido: string): boolean {
+  return /^(silencio|par[aá]|parate|callate|cállate|basta|suficiente|gracias|listo)(?=$|[\s,.;:!?])/i.test(pedido.trim());
+}
