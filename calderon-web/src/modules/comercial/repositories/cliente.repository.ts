@@ -125,6 +125,9 @@ export interface ClienteRepository {
   segmentos(): Promise<string[]>;
 }
 
+/** Códigos con los que PostgREST o Postgres dicen que la función todavía no existe (base anterior a la 271). */
+const FUNCION_INEXISTENTE = new Set(['PGRST202', '42883']);
+
 export const clienteRepository = (db: Db): ClienteRepository => ({
   async listar(p) {
     const [desde, hasta] = rangoPagina(p.pagina, TAMANO_PAGINA_CLIENTES);
@@ -155,6 +158,18 @@ export const clienteRepository = (db: Db): ClienteRepository => ({
   },
 
   async crear(datos) {
+    // Migración 271: el alta pasa por la puerta única de la base (controla el identificador fiscal y el nombre).
+    const alta = await db
+      .schema('mae')
+      .rpc('fn_crear_cliente', { p_datos: { ...aFilaCliente(datos), aceptar_parecidos: datos.aceptarParecidos === true }, p_origen: 'web' });
+    if (alta.error && !FUNCION_INEXISTENTE.has(alta.error.code)) throw new RepoError(alta.error);
+    if (!alta.error) {
+      const id = (alta.data as { id?: number } | null)?.id;
+      const creado = id ? await this.obtener(id as ClienteId) : null;
+      if (!creado) throw new Error('La base dio de alta el cliente pero no se pudo leer');
+      return creado;
+    }
+    // Base anterior a la 271 (todavía sin la función): alta directa, como antes.
     const { data, error } = await db.schema('mae').from('cliente').insert(aFilaCliente(datos)).select(COLS_CLIENTE).single();
     if (error) throw new RepoError(error);
     return aCliente(data as FilaSeleccion);

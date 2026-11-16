@@ -49,6 +49,8 @@ const camposCliente = z.object({
    * vuelve a comprobar contra la base, así que no sirve para saltear la validación.
    */
   identificadorGuardado: z.string().optional(),
+  /** Migración 271: solo en el alta. «Es otro cliente»: ya vio que hay uno con el mismo nombre y quiere crearlo igual. */
+  aceptarParecidos: z.boolean().optional(),
 });
 
 type Campos = z.output<typeof camposCliente>;

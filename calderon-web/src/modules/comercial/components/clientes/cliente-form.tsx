@@ -121,6 +121,7 @@ export function ClienteForm(props: Props) {
   const estado = watch('estado');
   const listaParecidos = parecidos.data ?? [];
   // Solo se avisa cuando la razón social cambió respecto de la guardada.
+  const pideConfirmar = error?.mensaje.includes('«Es otro cliente»') ?? false;
   const mostrarParecidos = listaParecidos.length > 0 && normalizarRazonSocial(razonSocial) !== (original?.razonSocial ?? '');
 
   return (
@@ -183,6 +184,16 @@ export function ClienteForm(props: Props) {
                 ))}
               </ul>
             </div>
+          )}
+          {/* Migración 271: la base no deja repetir el nombre de un cliente salvo que se confirme que es otro */}
+          {!original && (mostrarParecidos || pideConfirmar) && (
+            <label className="mt-3 flex items-start gap-2 text-sm text-tinta">
+              <input type="checkbox" className="mt-0.5 size-4 accent-marca" {...register('aceptarParecidos')} />
+              <span>
+                Es otro cliente
+                <span className="block text-xs text-tinta-suave">Marcalo si ya revisaste y no es un duplicado: sin esto, la base no deja repetir el nombre de un cliente.</span>
+              </span>
+            </label>
           )}
         </div>
         <div className="sm:col-span-2">
