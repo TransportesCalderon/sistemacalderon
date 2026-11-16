@@ -4,6 +4,7 @@ import { requirePermiso } from '@/modules/core/auth/guards';
 import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_CARGAS } from '@/shared/ui/pestanas-secciones';
 import { CargasLista } from '@/modules/combustible/components/cargas/cargas-lista';
+import { CargasShell } from '@/modules/combustible/components/cargas/cargas-shell';
 import { CargasGensetLista } from '@/modules/combustible/components/genset/cargas-genset-lista';
 import { OrdenesCarga } from '@/modules/combustible/components/ordenes/ordenes-carga';
 import { OrdenesPorRegistrar } from '@/modules/combustible/components/ordenes/ordenes-por-registrar';
@@ -45,6 +46,8 @@ export default async function CargasPage({ searchParams }: Props) {
       <Pestanas items={PESTANAS_CARGAS} />
       {/* Migración 253: cargas de órdenes terminadas, para dar el OK */}
       <OrdenesPorRegistrar />
+      {/* Shell 02: cargas de Shell Card (Enex) sin registrar o con números distintos */}
+      <CargasShell />
       <HydrationBoundary state={dehydrate(qc)}>
         <CargasLista />
       </HydrationBoundary>
