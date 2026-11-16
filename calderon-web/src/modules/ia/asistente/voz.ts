@@ -111,5 +111,28 @@ export function pedidoParaIris(frase: string): string | null {
 
 /** «Iris, silencio», «Iris, gracias»: no es una pregunta, es que se calle. */
 export function esOrdenDeCallar(pedido: string): boolean {
-  return /^(silencio|par[aá]|parate|callate|cállate|basta|suficiente|gracias|listo)(?=$|[\s,.;:!?])/i.test(pedido.trim());
+  return /^(silencio|par[aá]|parate|callate|cállate|basta|suficiente|gracias|listo|esper[aá]|un momento|un segundo|perd[oó]n)(?=$|[\s,.;:!?])/i.test(pedido.trim());
+}
+
+/** Cuánto silencio se espera antes de dar por terminada la pregunta (modo reunión). */
+export const PAUSA_REUNION_MS = { terminada: 3500, pensando: 8000 } as const;
+
+/**
+ * ¿La frase quedó por la mitad? Si termina en una palabra que pide seguir («de», «que», «para», «y», «o sea», «eh»…),
+ * en coma, o es muy corta, quien habla todavía está armando la pregunta: se espera más silencio antes de responder.
+ */
+export function pareceIncompleta(texto: string): boolean {
+  const t = texto.trim().toLowerCase();
+  if (!t) return true;
+  if (/[,;:…]$/.test(t) || /\.\.\.$/.test(t)) return true;
+  const limpio = t.replace(/[¿?¡!.]+$/g, '').trim();
+  if (limpio.split(/\s+/).length < 3) return true;
+  return /(^|\s)(y|e|o|u|ni|pero|que|de|del|a|al|en|con|sin|por|para|como|cuando|donde|si|porque|entre|desde|hasta|sobre|según|el|la|los|las|un|una|unos|unas|lo|su|sus|mi|mis|este|esta|ese|esa|o sea|es decir|eh|em|este|bueno|digamos|más|menos|cuánto|cuántos|cuántas|cuál|qué|tipo)$/.test(limpio);
+}
+
+/** «…y eso es todo», «…listo»: quien habla avisa que terminó; se responde sin esperar el silencio. */
+export function quitarCierre(texto: string): { texto: string; cerro: boolean } {
+  const m = /[\s,.;]*(?:y\s+)?(?:eso es todo|eso ser[ií]a todo|nada m[aá]s|listo|respond[eé](?:me)?|adelante)[\s.!]*$/i.exec(texto);
+  if (!m || m.index === 0) return { texto: texto.trim(), cerro: false };
+  return { texto: texto.slice(0, m.index).trim(), cerro: true };
 }

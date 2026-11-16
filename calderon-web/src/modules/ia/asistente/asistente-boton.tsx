@@ -14,7 +14,7 @@ import { generarInforme, preguntarAsistente, valorarRespuesta } from './asistent
 import { parsearMarkdown, type Bloque, type Trozo } from './markdown';
 import { imprimirRespuesta } from './imprimir';
 import irisLogo from './iris-logo.png';
-import { esOrdenDeCallar, pedidoParaIris } from './voz';
+import { esOrdenDeCallar, PAUSA_REUNION_MS, pareceIncompleta, pedidoParaIris, quitarCierre } from './voz';
 import { useEscuchar, useEscucharSiempre, useHablar } from './voz-hooks';
 
 const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
@@ -177,19 +177,80 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
   };
 
   // Modo reunión: escucha siempre y responde solo cuando la nombran («Iris, …»). Mientras busca o habla, no escucha.
-  const salaOye = reunion && vista === 'preguntar' && !enviando && !pensando && voz.hablando === null && !oido.escuchando;
-  const sala = useEscucharSiempre(salaOye, (frase) => {
-    let pedido = pedidoParaIris(frase);
-    if (pedido === null && Date.now() < nombrada.current) pedido = frase; // la nombraron recién: esta es la pregunta
-    if (pedido === null) return;
-    if (pedido === '') {
-      nombrada.current = Date.now() + 10_000;
-      return;
-    }
+  // Sigue escuchando mientras Iris habla (para poder interrumpirla); no mientras busca.
+  const salaOye = reunion && vista === 'preguntar' && !enviando && !pensando && !oido.escuchando;
+  // La pregunta se va juntando frase por frase: recién se manda cuando hay un silencio largo
+  // (más largo si la frase quedó por la mitad) o cuando dicen «listo» / «eso es todo».
+  const [borrador, setBorrador] = useState('');
+  const borradorRef = useRef('');
+  const reloj = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const frenarReloj = () => {
+    if (reloj.current) clearTimeout(reloj.current);
+    reloj.current = null;
+  };
+  const ponerBorrador = (t: string) => {
+    borradorRef.current = t;
+    setBorrador(t);
+  };
+  const mandarBorrador = () => {
+    frenarReloj();
+    const p = borradorRef.current.trim();
+    ponerBorrador('');
     nombrada.current = 0;
-    if (esOrdenDeCallar(pedido)) return callar();
-    void preguntar(`[Reunión] ${pedido}`, null, pedido, true);
+    if (p) void preguntar(`[Reunión] ${p}`, null, p, true);
+  };
+  const mandarRef = useRef(mandarBorrador);
+  mandarRef.current = mandarBorrador;
+  const armarReloj = () => {
+    frenarReloj();
+    if (!borradorRef.current) return;
+    reloj.current = setTimeout(() => mandarRef.current(), pareceIncompleta(borradorRef.current) ? PAUSA_REUNION_MS.pensando : PAUSA_REUNION_MS.terminada);
+  };
+  const descartarBorrador = () => {
+    frenarReloj();
+    ponerBorrador('');
+    nombrada.current = 0;
+  };
+  const sala = useEscucharSiempre(salaOye, (frase) => {
+    const nombrado = pedidoParaIris(frase);
+    const juntando = borradorRef.current !== '';
+    if (voz.hablando !== null) {
+      // Iris está hablando: solo importa si la nombran (lo demás puede ser su propia voz)
+      if (nombrado === null) return;
+      callar();
+    } else if (nombrado === null && !juntando && Date.now() >= nombrada.current) return; // no era para ella
+    let pedido = nombrado ?? frase;
+    if (!juntando) {
+      if (pedido === '' || esOrdenDeCallar(pedido)) {
+        // Solo la nombraron, o le pidieron que pare: se calla y espera la pregunta sin que la nombren de nuevo
+        callar();
+        nombrada.current = Date.now() + 12_000;
+        return;
+      }
+    } else if (nombrado === '') pedido = '';
+    const c = quitarCierre(`${borradorRef.current} ${pedido}`.trim());
+    ponerBorrador(c.texto);
+    if (c.cerro) mandarBorrador();
+    else armarReloj();
   });
+  // Mientras alguien sigue hablando no corre el silencio; si la nombran mientras habla, se calla enseguida
+  const { parcial: salaParcial } = sala;
+  const hablandoAhora = voz.hablando !== null;
+  useEffect(() => {
+    if (salaParcial) {
+      if (reloj.current) clearTimeout(reloj.current);
+      reloj.current = null;
+      if (hablandoAhora && pedidoParaIris(salaParcial) !== null) callar();
+    } else if (borradorRef.current && !reloj.current) {
+      reloj.current = setTimeout(() => mandarRef.current(), pareceIncompleta(borradorRef.current) ? PAUSA_REUNION_MS.pensando : PAUSA_REUNION_MS.terminada);
+    }
+  }, [salaParcial, hablandoAhora, callar]);
+  useEffect(
+    () => () => {
+      if (reloj.current) clearTimeout(reloj.current);
+    },
+    [],
+  );
   // Que la pantalla no se apague durante la reunión (si el navegador lo permite)
   useEffect(() => {
     if (!reunion) return;
@@ -212,7 +273,7 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
   const cambiarReunion = () => {
     voz.desbloquear();
     callar();
-    nombrada.current = 0;
+    descartarBorrador();
     setReunion((r) => !r);
   };
   const minuta = () => {
@@ -289,10 +350,20 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
                 ? 'Iris está hablando…'
                 : pensando || enviando
                   ? 'Iris está buscando…'
-                  : sala.parcial
-                    ? `«${sala.parcial}»`
-                    : 'Escuchando a la sala. Digan «Iris» y la pregunta.')}
+                  : borrador || sala.parcial
+                    ? `«${`${borrador} ${sala.parcial}`.trim()}» ${borrador ? '· sigo escuchando; digan «listo» o esperen' : ''}`
+                    : 'Escuchando a la sala. Digan «Iris» y la pregunta, sin apuro.')}
           </span>
+          {borrador && !pensando && !enviando && (
+            <>
+              <button type="button" onClick={mandarBorrador} className="flex items-center gap-1 rounded-md border border-borde bg-panel px-2 py-1 hover:bg-hover">
+                <Send className="size-3.5" /> Responder ya
+              </button>
+              <button type="button" onClick={descartarBorrador} className="rounded-md border border-borde bg-panel px-2 py-1 hover:bg-hover">
+                Borrar
+              </button>
+            </>
+          )}
           {voz.hablando !== null && (
             <button type="button" onClick={callar} className="flex items-center gap-1 rounded-md border border-borde bg-panel px-2 py-1 hover:bg-hover">
               <Square className="size-3.5 fill-current" /> Callar

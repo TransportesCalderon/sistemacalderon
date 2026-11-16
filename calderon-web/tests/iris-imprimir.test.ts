@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { laminas } from '@/modules/ia/asistente/imprimir';
-import { esOrdenDeCallar, pedidoParaIris } from '@/modules/ia/asistente/voz';
+import { esOrdenDeCallar, pareceIncompleta, pedidoParaIris, quitarCierre } from '@/modules/ia/asistente/voz';
 
 describe('Iris · imprimir una respuesta como presentación', () => {
   it('cada título abre una lámina y lo anterior al primer título va en la primera', () => {
@@ -36,5 +36,27 @@ describe('Iris · modo reunión: responde solo si la nombran', () => {
     expect(esOrdenDeCallar('silencio')).toBe(true);
     expect(esOrdenDeCallar('Gracias, ya está')).toBe(true);
     expect(esOrdenDeCallar('paradas de los camiones de hoy')).toBe(false);
+  });
+});
+
+describe('Iris · modo reunión: respeta los silencios de quien está pensando', () => {
+  it('distingue una frase por la mitad de una pregunta terminada', () => {
+    expect(pareceIncompleta('cuántos viajes necesitamos a Mar del Plata para')).toBe(true);
+    expect(pareceIncompleta('cuánto deja el viaje de Terramar y')).toBe(true);
+    expect(pareceIncompleta('quiero saber, o sea')).toBe(true);
+    expect(pareceIncompleta('cuánto')).toBe(true);
+    expect(pareceIncompleta('cuántos viajes de tres mil necesitamos a Mar del Plata')).toBe(false);
+    expect(pareceIncompleta('¿cuánto facturamos este mes?')).toBe(false);
+  });
+
+  it('«listo» o «eso es todo» al final cierran la pregunta', () => {
+    expect(quitarCierre('cuánto facturamos este mes, eso es todo')).toEqual({ texto: 'cuánto facturamos este mes', cerro: true });
+    expect(quitarCierre('cuánto deja Coronel a 4900 listo')).toEqual({ texto: 'cuánto deja Coronel a 4900', cerro: true });
+    expect(quitarCierre('qué camión está listo para salir mañana')).toEqual({ texto: 'qué camión está listo para salir mañana', cerro: false });
+  });
+
+  it('«Iris, esperá» es para que se calle', () => {
+    expect(esOrdenDeCallar('esperá')).toBe(true);
+    expect(esOrdenDeCallar('espera un momento')).toBe(true);
   });
 });
