@@ -486,7 +486,7 @@ function TurnoVista({
 }) {
   return (
     <div className="space-y-2">
-      <p className="ml-auto w-fit max-w-[85%] rounded-lg bg-marca-suave px-3 py-2 text-sm text-tinta">{t.pregunta}</p>
+      <p className="ml-auto w-fit max-w-[85%] rounded-lg bg-marca-suave px-3 py-2 text-sm text-tinta">{t.pregunta.replace(/^\[Reunión\]\s*/, '')}</p>
       {t.estado === 'pensando' && (
         <p className="flex items-center gap-2 text-sm text-tinta-suave">
           <LoaderCircle className="size-4 animate-spin" /> {t.leyendo ?? 'Pensando…'}
