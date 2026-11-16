@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LoaderCircle, MessageSquarePlus, Mic, Send, Square, ThumbsDown, ThumbsUp, TriangleAlert, Volume2, X } from 'lucide-react';
+import { LoaderCircle, MessageSquarePlus, Mic, Printer, Send, Square, ThumbsDown, ThumbsUp, TriangleAlert, Volume2, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCan } from '@/modules/core/permissions/can';
 import { cn } from '@/shared/lib/cn';
@@ -12,6 +12,7 @@ import { browserDb } from '@/shared/supabase/browser';
 import { asistenteRepository, textoPeriodo, textoSemana, type Fuente, type Turno } from './asistente';
 import { generarInforme, preguntarAsistente, valorarRespuesta } from './asistente.actions';
 import { parsearMarkdown, type Bloque, type Trozo } from './markdown';
+import { imprimirRespuesta } from './imprimir';
 import irisLogo from './iris-logo.png';
 import { useEscuchar, useHablar } from './voz-hooks';
 
@@ -345,6 +346,13 @@ function TurnoVista({
           )}
           <Avisos avisos={t.avisos} />
           <Fuentes fuentes={t.fuentes} />
+          <button
+            type="button"
+            onClick={() => imprimirRespuesta(t.respuesta ?? '', 'Iris · IronTrack · uso interno de Gerencia')}
+            className="flex items-center gap-1 rounded-md border border-borde px-2 py-1 text-xs hover:bg-hover"
+          >
+            <Printer className="size-3.5" /> Imprimir o guardar en PDF
+          </button>
           <Valorar t={t} onValorado={onValorado} />
         </div>
       )}
