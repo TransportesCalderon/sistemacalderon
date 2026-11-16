@@ -13,7 +13,7 @@ import { cn } from '@/shared/lib/cn';
 import { hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { cuentasParaGasto, dinero, TIPOS_DOCUMENTO, type Asiento, type Gasto, type TipoDocumento } from '../domain/finanzas.types';
+import { cuentasParaGasto, dinero, TIPOS_DOCUMENTO, type Gasto, type TipoDocumento } from '../domain/finanzas.types';
 import {
   useAnularGasto,
   useCamionesFinanzas,
@@ -462,39 +462,6 @@ export function PagarGasto({ gastoId, moneda, saldo, onListo }: { gastoId: numbe
         {pagar.isPending && <LoaderCircle className="size-4 animate-spin" />} Registrar el pago
       </button>
     </div>
-  );
-}
-
-/** El asiento que armó el sistema (para el contador). */
-export function VerAsiento({ asiento }: { asiento: Asiento | null }) {
-  if (!asiento) return null;
-  return (
-    <details className="rounded-lg border border-borde bg-panel p-3 text-sm">
-      <summary className="cursor-pointer font-medium text-tinta">Ver el asiento contable</summary>
-      <p className="mt-2 text-xs text-tinta-suave">
-        {fecha(asiento.fecha)} · {asiento.glosa}
-      </p>
-      <table className="mt-2 w-full text-sm tabular-nums">
-        <thead className="text-xs text-tinta-suave">
-          <tr>
-            <th className="py-1 text-left font-medium">Cuenta</th>
-            <th className="py-1 text-right font-medium">Debe</th>
-            <th className="py-1 text-right font-medium">Haber</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-borde">
-          {asiento.lineas.map((l, i) => (
-            <tr key={i}>
-              <td className="py-1">
-                {l.codigo} · {l.cuenta}
-              </td>
-              <td className="py-1 text-right">{l.debe ? dinero(l.debe) : ''}</td>
-              <td className="py-1 text-right">{l.haber ? dinero(l.haber) : ''}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </details>
   );
 }
 

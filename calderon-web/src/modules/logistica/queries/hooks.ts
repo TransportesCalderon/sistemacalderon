@@ -23,7 +23,6 @@ import {
   asignarGenset,
   asignarTercero,
   cancelarOperacion,
-  confirmarOperacion,
   dejarEnBase,
   eliminarLinea,
   eliminarTransportista,
@@ -32,12 +31,10 @@ import {
   guardarOperacion,
   guardarTransportista,
   quitarEquipo,
-  registrarHito,
   seguirConOtroTractor,
   cambiarTractorEnRuta,
   pasarAFletero,
   marcarConforme,
-  terminarDemora,
   volverPaso,
 } from '../actions/operaciones.actions';
 import { operacionesRepository } from '../repositories/operaciones.repository';
@@ -68,15 +65,12 @@ export const useSugerenciaCliente = (cliente: number | null) =>
   useQuery({ ...q.sugerencia(browserDb(), cliente ?? 0), enabled: !!cliente });
 export const useLineas = () => useQuery(q.lineas(browserDb()));
 export const useAgentesTransporte = (todos = false) => useQuery(q.agentes(browserDb(), todos));
-export const useRutaOperacion = (servicio: number) => useQuery(q.rutaOperacion(browserDb(), servicio));
 /** Migración 161: tabla de choferes (cada minuto) y la fila de rutas de un chofer. */
 export const useRutasChoferes = (activo = true) => useQuery({ ...q.rutasChoferes(browserDb()), enabled: activo, refetchInterval: 60_000 });
 export const useRutasDeChofer = (chofer: number) => useQuery({ ...q.rutasDeChofer(browserDb(), chofer), refetchInterval: 60_000 });
 /** Migración 158: todas las rutas de la operación (cada minuto: el GPS puede pasar a la siguiente). */
 export const useRutasTramo = (servicio: number, activo = true) =>
   useQuery({ ...q.rutasTramo(browserDb(), servicio), enabled: activo, refetchInterval: 60_000 });
-/** Migración 156: pantalla «Rutas para choferes» (cada minuto, para ver los desvíos). */
-export const useRutasOperaciones = () => useQuery({ ...q.rutasOperaciones(browserDb()), refetchInterval: 60_000 });
 /** Migración 156: ventana emergente de desvíos (cada minuto). */
 export const useAvisosDesvio = (activo: boolean) =>
   useQuery({ ...q.avisosDesvio(browserDb()), enabled: activo, refetchInterval: activo ? 60_000 : false });
@@ -127,12 +121,9 @@ export const useCancelarViaje = () => useEscritura(cancelarViaje);
 export const usePasoViaje = () => useEscritura(pasoViaje);
 
 export const useGuardarOperacion = () => useEscritura(guardarOperacion);
-export const useConfirmarOperacion = () => useEscritura(confirmarOperacion);
 export const useAsignarEquipo = () => useEscritura(asignarEquipo);
 export const useQuitarEquipo = () => useEscritura(quitarEquipo);
 export const useAsignarTercero = () => useEscritura(asignarTercero);
-export const useRegistrarHito = () => useEscritura(registrarHito);
-export const useTerminarDemora = () => useEscritura(terminarDemora);
 export const useAnularHito = () => useEscritura(anularHito);
 export const useCancelarOperacion = () => useEscritura(cancelarOperacion);
 // Migración 101

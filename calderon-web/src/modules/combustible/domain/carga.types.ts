@@ -9,12 +9,6 @@ import { esDe } from './comun';
 export const ESTADOS_VALIDACION = ['pendiente', 'validada', 'observada', 'anulada'] as const;
 export type EstadoValidacion = (typeof ESTADOS_VALIDACION)[number];
 export const esEstadoValidacion = esDe(ESTADOS_VALIDACION);
-export const ETIQUETA_ESTADO_VALIDACION: Record<EstadoValidacion, string> = {
-  pendiente: 'Pendiente',
-  validada: 'Validada',
-  observada: 'Observada',
-  anulada: 'Anulada',
-};
 
 export const MEDIOS_PAGO = ['tarjeta', 'cuenta_corriente', 'efectivo', 'surtidor_propio', 'fondo_chofer'] as const;
 export type MedioPago = (typeof MEDIOS_PAGO)[number];

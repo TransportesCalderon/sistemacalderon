@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { BadgeCheck, ExternalLink, FileUp, LoaderCircle, Trash2 } from 'lucide-react';
+import { ExternalLink, FileUp, LoaderCircle, Trash2 } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
 import { idAleatorio, prepararArchivo, sha256Hex, TAMANO_MAXIMO_BYTES } from '@/shared/lib/archivo';
-import { formatearFechaDia, formatearFechaHora, isoAHoraLocal } from '@/shared/lib/fechas';
+import { formatearFechaDia, isoAHoraLocal } from '@/shared/lib/fechas';
 import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_PRIMARIO } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
@@ -17,10 +17,8 @@ import {
   useDocumentosCarga,
   useEmisorTicket,
   useQuitarDocumento,
-  useValidacionCarga,
-  useValidarCarga,
 } from '../../queries/hooks';
-import { AccionConMotivo, Chip, ErrorBase, Seccion } from '../comun/ui';
+import { ErrorBase, Seccion } from '../comun/ui';
 
 export interface CargaParaTicket {
   id: number;
@@ -199,60 +197,5 @@ export function AdjuntarTicket({ carga, onListo }: { carga: CargaParaTicket; onL
         {ocupado ? <LoaderCircle className="size-4 animate-spin" /> : <FileUp className="size-4" />} Adjuntar
       </button>
     </form>
-  );
-}
-
-/** Ficha de carga: validación contra el ticket (la hace otro usuario con rol aprobador). */
-export function ValidacionCarga({ carga }: { carga: CargaParaTicket }) {
-  const { zonaHoraria } = useSesion();
-  const puede = useCan('combustible.cargas:transicionar');
-  const { data: hecha } = useValidacionCarga(carga.id);
-  const validar = useValidarCarga();
-  const [error, setError] = useState<ErrorAccion | null>(null);
-
-  if (carga.estadoValidacion === 'anulada') return null;
-  if (carga.estadoValidacion === 'validada') {
-    return (
-      <Seccion titulo="Validación">
-        <p className="flex flex-wrap items-center gap-2 text-sm">
-          <Chip tono="exito">
-            <BadgeCheck className="size-3.5" /> Validada
-          </Chip>
-          {hecha?.por && (
-            <span className="text-tinta-suave">
-              por {hecha.por}
-              {hecha.en ? ` el ${formatearFechaHora(hecha.en, zonaHoraria)}` : ''}
-            </span>
-          )}
-        </p>
-        {hecha?.motivo && <p className="text-sm text-tinta-suave">Motivo: {hecha.motivo}</p>}
-      </Seccion>
-    );
-  }
-  if (!puede) return null;
-  const observada = carga.estadoValidacion === 'observada';
-  return (
-    <Seccion titulo="Validación">
-      <p className="text-sm text-tinta-suave">
-        Comparar la carga con el ticket. La valida otro usuario con rol aprobador (no quien la registró).
-        {observada && ' Está observada: hace falta escribir por qué se valida igual.'}
-      </p>
-      <AccionConMotivo
-        etiqueta="Validar la carga"
-        icono={<BadgeCheck className="size-4" />}
-        primario
-        titulo="Validar la carga"
-        {...(carga.motivoObservacion ? { explicacion: `Observación: ${carga.motivoObservacion}` } : {})}
-        motivoOpcional={!observada}
-        ocupado={validar.isPending}
-        error={error}
-        onConfirmar={async (motivo) => {
-          setError(null);
-          const r = await validar.mutateAsync({ cargaId: carga.id, motivo });
-          if (!r.ok) setError(r.error);
-          return r.ok;
-        }}
-      />
-    </Seccion>
   );
 }

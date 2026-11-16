@@ -55,13 +55,6 @@ export const avanzarOperacion = createAction({
   invalida: rutas,
 });
 
-export const confirmarOperacion = createAction({
-  permiso: PERMISO,
-  schema: servicioSchema,
-  handler: (d, { db }) => operacionesRepository(db).confirmar(d.servicioId),
-  invalida: rutas,
-});
-
 export const asignarEquipo = createAction({
   permiso: PERMISO,
   schema: equipoSchema,

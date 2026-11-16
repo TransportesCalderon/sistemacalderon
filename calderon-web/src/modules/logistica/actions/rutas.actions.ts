@@ -97,13 +97,6 @@ export const llegadaRuta = createAction({
   handler: (d, { db }) => rutasRepository(db).llegada(d.servicioId, d.llego),
   invalida: rutas,
 });
-/** El chofer: «Llegué al destino» (la base controla que la operación sea suya). */
-export const llegueDestino = createAction({
-  permiso: 'chofer.mi_carga:editar',
-  schema: z.object({ servicioId: z.number().int().positive() }),
-  handler: (d, { db }) => rutasRepository(db).llegueDestino(d.servicioId),
-  invalida: rutas,
-});
 
 // Migración 161: rutas por chofer (con operación o movimiento)
 const chofer = z.number().int().positive();

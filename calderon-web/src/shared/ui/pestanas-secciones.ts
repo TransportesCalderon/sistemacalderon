@@ -57,8 +57,6 @@ export const PESTANAS_EQUIPOS = [
   { href: '/ajustes/flota/choferes', etiqueta: 'Choferes' },
 ] as const;
 
-export const PESTANAS_CHOFERES = PESTANAS_EQUIPOS;
-
 export const PESTANAS_PROVEEDORES = [
   { href: '/ajustes/proveedores', etiqueta: 'Proveedores' },
   { href: '/ajustes/proveedores/estaciones', etiqueta: 'Estaciones de servicio' },

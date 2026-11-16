@@ -5,7 +5,6 @@ import type { FechaISO } from '@/shared/types/dominio';
 export type ModoOrden = 'litros' | 'importe' | 'llenar';
 export type EstadoOrden = 'emitida' | 'autorizada' | 'cargada' | 'anulada' | 'bloqueada' | 'vencida';
 
-export const ETIQUETA_MODO: Record<ModoOrden, string> = { litros: 'Por litros', importe: 'Por importe', llenar: 'Llenar tanques y mochila' };
 export const ETIQUETA_ESTADO_ORDEN: Record<EstadoOrden, string> = {
   emitida: 'Esperando la estación',
   autorizada: 'Cargando',

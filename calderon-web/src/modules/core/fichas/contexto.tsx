@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { conFicha, leerFicha, leerRastro, mismaFicha, type RefFicha, type TipoFicha } from './ficha-url';
+import { conFicha, leerFicha, leerRastro, type RefFicha, type TipoFicha } from './ficha-url';
 
 /**
  * Sprint 1 · S1-04 y S1-07: lo que una ficha necesita saber cuando está dentro del panel.
@@ -59,11 +59,6 @@ export function useAbrirFicha() {
     },
     [ctx, router, pathname, params],
   );
-}
-
-/** true si la ficha de este registro está abierta (para resaltar su fila en la lista). */
-export function useFichaAbierta(tipo: TipoFicha, id: number): boolean {
-  return mismaFicha(leerFicha(useSearchParams().get('ficha')), { tipo, id });
 }
 
 /** Ficha y rastro de la dirección actual. */
