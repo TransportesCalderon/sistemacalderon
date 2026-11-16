@@ -12,7 +12,7 @@ import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { ETIQUETA_ESTADO_DTE, NOMBRE_DTE, type DocumentoSii, type VistaPreviaSii, type EstadoDte, type ResultadoSii, type SiiFactura } from '../domain/sii';
-import { useEmitirSii, useGuardarClienteSii, useGuardarGlosaSii, useSiiVistaPrevia, useNotaCreditoSii, useProbarSii, useResolverDte, useSiiEstado, useSiiFactura } from '../queries/hooks';
+import { useEmitirSii, useGuardarClienteSii, useGuardarGlosaSii, useGuardarOcSii, useSiiVistaPrevia, useNotaCreditoSii, useProbarSii, useResolverDte, useSiiEstado, useSiiFactura } from '../queries/hooks';
 
 import logoAurea from './aurea-logo.png';
 
@@ -336,6 +336,15 @@ function HojaFactura({
   const [glosa, setGlosa] = useState(v.glosa ?? '');
   useEffect(() => setGlosa(v.glosa ?? ''), [v.glosa]);
   const cambiada = glosa.trim() !== (v.glosa ?? '').trim();
+  const guardarOc = useGuardarOcSii();
+  const envioOc = useEnvio();
+  const [oc, setOc] = useState(v.ordenCompra ?? '');
+  const [ocFecha, setOcFecha] = useState(v.ordenCompraFecha ?? '');
+  useEffect(() => {
+    setOc(v.ordenCompra ?? '');
+    setOcFecha(v.ordenCompraFecha ?? '');
+  }, [v.ordenCompra, v.ordenCompraFecha]);
+  const ocCambiada = oc.trim() !== (v.ordenCompra ?? '') || (oc.trim() !== '' && ocFecha !== (v.ordenCompraFecha ?? ''));
   const e = v.emisor;
   const r = v.receptor;
   const lugar = (o: Record<string, string>) => [o.direccion, o.comuna, o.ciudad].filter(Boolean).join(', ');
@@ -416,6 +425,43 @@ function HojaFactura({
           </div>
         </div>
       </div>
+
+      {/* Orden de compra del cliente: se imprime en «Referencia» (solo factura exenta) */}
+      {v.ordenCompraAdmite && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-tinta" htmlFor={`oc-${facturaId}`}>
+            Orden de compra del cliente <span className="font-normal text-tinta-suave">(sale en «Referencia» de la factura; opcional)</span>
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id={`oc-${facturaId}`}
+              value={oc}
+              maxLength={18}
+              onChange={(ev) => setOc(ev.target.value)}
+              placeholder="Número, por ejemplo 189"
+              className="h-9 w-48 rounded-md border border-borde bg-white px-2 text-sm"
+            />
+            <input
+              type="date"
+              aria-label="Fecha de la orden de compra"
+              title="Fecha de la orden de compra (si no la ponés, va la fecha de la factura)"
+              value={ocFecha}
+              disabled={!oc.trim()}
+              onChange={(ev) => setOcFecha(ev.target.value)}
+              className="h-9 rounded-md border border-borde bg-white px-2 text-sm disabled:opacity-50"
+            />
+            <button
+              type="button"
+              className={BOTON_SECUNDARIO}
+              disabled={!ocCambiada || guardarOc.isPending}
+              onClick={() => void envioOc.enviar(guardarOc.mutateAsync({ id: facturaId, numero: oc.trim(), fecha: oc.trim() && ocFecha ? ocFecha : null }), () => undefined)}
+            >
+              <Save className="size-4" /> Guardar orden de compra
+            </button>
+          </div>
+          <ErrorBase error={envioOc.error} />
+        </div>
+      )}
 
       {/* La leyenda: automática, pero se puede cambiar */}
       <div className="space-y-1">

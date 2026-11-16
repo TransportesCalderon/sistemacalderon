@@ -329,6 +329,10 @@ export const ventasRepository = (db: Db) => {
     async guardarGlosaSii(id: number, glosa: string | null) {
       return leer(ven().rpc('fn_ven_guardar_glosa_sii', { p_id: id, p_glosa: glosa })) as Promise<string | null>;
     },
+    /** Orden de compra del cliente: se imprime en «Referencia» de la factura exenta. */
+    async guardarOcSii(id: number, numero: string, fecha: string | null) {
+      await leer(ven().rpc('fn_ven_guardar_oc_sii', { p_id: id, p_numero: numero, p_fecha: fecha }));
+    },
     async emitirSii(id: number, version: number, fecha: string) {
       return parsearResultadoSii(await leer(ven().rpc('fn_ven_emitir_sii', { p_id: id, p_version: version, p_fecha: fecha })));
     },

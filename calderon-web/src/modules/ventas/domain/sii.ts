@@ -157,6 +157,10 @@ export interface VistaPreviaSii {
   glosaAutomatica: boolean;
   /** Migración 140: dónde va la leyenda: al final del último renglón o en «Observaciones». */
   glosaEnRenglon: boolean;
+  /** Orden de compra del cliente: va en «Referencia» de la factura exenta (solo si la base ya lo admite). */
+  ordenCompraAdmite: boolean;
+  ordenCompra: string | null;
+  ordenCompraFecha: string | null;
   faltantes: string[];
 }
 const textos = (v: unknown): Record<string, string> =>
@@ -187,6 +191,9 @@ export function parsearVistaPrevia(raw: unknown): VistaPreviaSii {
     glosa: strN(j.glosa),
     glosaAutomatica: j.glosa_automatica === true,
     glosaEnRenglon: j.glosa_lugar === 'renglon',
+    ordenCompraAdmite: j.orden_compra_admite === true,
+    ordenCompra: strN(j.orden_compra),
+    ordenCompraFecha: strN(j.orden_compra_fecha),
     faltantes: Array.isArray(j.faltantes) ? j.faltantes.map(String) : [],
   };
 }
@@ -226,6 +233,15 @@ export const clienteSiiSchema = z.object({
 export type ClienteSiiEntrada = z.infer<typeof clienteSiiSchema>;
 /** Migración 138: la leyenda (null = la automática; vacía = sin leyenda). */
 export const glosaSiiSchema = z.object({ id, glosa: z.string().max(300).nullable() });
+/** Orden de compra del cliente para «Referencia» (factura exenta). Número vacío = sin referencia. */
+export const ocSiiSchema = z.object({
+  id,
+  numero: z.string().max(18),
+  fecha: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable(),
+});
 
 /** Migración 154: datos del cliente para la factura electrónica (ficha del cliente). */
 export interface DatosSiiCliente {

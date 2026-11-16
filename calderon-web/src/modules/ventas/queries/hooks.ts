@@ -32,6 +32,7 @@ import {
   responderCotizacion,
   emitirSii,
   guardarGlosaSii,
+  guardarOcSii,
   guardarClienteSii,
   guardarComprobanteCobro,
   rearmarDetalle,
@@ -109,6 +110,7 @@ export const useSiiEstado = (activo = true) => useQuery({ queryKey: [...CLAVE, '
 export const useGuardarClienteSii = () => useEscritura(guardarClienteSii);
 export const useEmitirSii = () => useEscritura(emitirSii);
 export const useGuardarGlosaSii = () => useEscritura(guardarGlosaSii);
+export const useGuardarOcSii = () => useEscritura(guardarOcSii);
 /** Migración 154: datos del cliente para la factura (ficha del cliente). */
 export const useClienteSii = (clienteId: number, activo = true) =>
   useQuery({ queryKey: [...CLAVE, 'cliente-sii', clienteId], queryFn: () => repo().clienteSii(clienteId), enabled: activo });

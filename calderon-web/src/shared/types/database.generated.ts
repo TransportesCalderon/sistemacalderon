@@ -1456,6 +1456,7 @@ export type Database = {
       fn_ven_sii_factura: { Args: { p_id: number }; Returns: Json };
       fn_ven_sii_vista_previa: { Args: { p_id: number; p_fecha: string }; Returns: Json };
       fn_ven_guardar_glosa_sii: { Args: { p_id: number; p_glosa: string | null }; Returns: string | null };
+      fn_ven_guardar_oc_sii: { Args: { p_id: number; p_numero: string; p_fecha: string | null }; Returns: Json };
       fn_ven_guardar_cliente_sii: { Args: { p_cliente: number; p_datos: Json }; Returns: undefined };
       fn_ven_emitir_sii: { Args: { p_id: number; p_version: number; p_fecha: string }; Returns: Json };
       fn_ven_nota_credito_sii: { Args: { p_dte: number; p_motivo: string }; Returns: Json };

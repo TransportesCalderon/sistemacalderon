@@ -26,7 +26,7 @@ import {
   versionSchema,
 } from '../domain/ventas.schemas';
 import { comprobanteCobroSchema, rearmarDetalleSchema } from '../domain/detalle';
-import { clienteSiiSchema, emitirSiiSchema, glosaSiiSchema, notaCreditoSiiSchema, resolverDteSchema } from '../domain/sii';
+import { clienteSiiSchema, emitirSiiSchema, glosaSiiSchema, notaCreditoSiiSchema, ocSiiSchema, resolverDteSchema } from '../domain/sii';
 import { ventasRepository } from '../repositories/ventas.repository';
 
 /**
@@ -144,6 +144,13 @@ export const guardarGlosaSii = createAction({
   permiso: 'ventas.facturacion:transicionar',
   schema: glosaSiiSchema,
   handler: (d, { db }) => repo(db).guardarGlosaSii(d.id, d.glosa),
+  invalida: rutas,
+});
+/** Orden de compra del cliente en «Referencia» de la factura exenta (antes de emitir). */
+export const guardarOcSii = createAction({
+  permiso: 'ventas.facturacion:transicionar',
+  schema: ocSiiSchema,
+  handler: (d, { db }) => repo(db).guardarOcSii(d.id, d.numero.trim(), d.numero.trim() ? d.fecha : null),
   invalida: rutas,
 });
 export const notaCreditoSii = createAction({
