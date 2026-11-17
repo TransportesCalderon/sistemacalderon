@@ -314,6 +314,10 @@ export interface GastoFijo {
   camion: string | null;
   desde: string;
   hasta: string | null;
+  /** Cuotas totales (leasing o crédito), por cuál va este mes y si ya terminó. */
+  cuotas: number | null;
+  cuotaActual: number | null;
+  terminado: boolean;
   activo: boolean;
   observacion: string | null;
   generadoMes: boolean;
@@ -344,6 +348,9 @@ export function parsearGastosFijos(raw: unknown): GastosFijos {
       camion: txt(f.camion),
       desde: String(f.desde),
       hasta: txt(f.hasta),
+      cuotas: numN(f.cuotas),
+      cuotaActual: numN(f.cuota_actual),
+      terminado: f.terminado === true,
       activo: f.activo !== false,
       observacion: txt(f.observacion),
       generadoMes: f.generado_mes === true,
