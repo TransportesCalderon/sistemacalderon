@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { Pencil, Plus, Repeat, Wand2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pencil, Plus, Repeat, Wand2 } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { useProveedores } from '@/modules/catalogos/queries/hooks';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Seccion, Vacio } from '@/modules/combustible/components/comun/ui';
@@ -70,6 +70,8 @@ export function GastosFijosPantalla() {
   const [generados, setGenerados] = useState<number | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [pagando, setPagando] = useState<number | null>(null);
+  // Las cuotas sin pagar van plegadas: se despliegan al tocar el renglón del gasto fijo
+  const [desplegado, setDesplegado] = useState<number | null>(null);
   const puedePagar = useCan('finanzas.cobros_pagos:editar');
 
   const nuevo = (): Form => ({
@@ -339,9 +341,15 @@ export function GastosFijosPantalla() {
               <tbody className="divide-y divide-borde">
                 {data.fijos.map((f) => (
                   <Fragment key={f.id}>
-                  <tr className={cn(!f.activo && 'text-tinta-suave')}>
+                  <tr
+                    className={cn(!f.activo && 'text-tinta-suave', f.cuotasSinPagar.length > 0 && 'cursor-pointer hover:bg-hover')}
+                    onClick={f.cuotasSinPagar.length > 0 ? () => setDesplegado(desplegado === f.id ? null : f.id) : undefined}
+                  >
                     <td className={TD}>
-                      <span className="font-medium">{f.nombre}</span>
+                      <span className="inline-flex items-center gap-1 font-medium">
+                        {f.cuotasSinPagar.length > 0 && (desplegado === f.id ? <ChevronDown className="size-4 text-marca" /> : <ChevronRight className="size-4 text-marca" />)}
+                        {f.nombre}
+                      </span>
                       <span className="block text-xs text-tinta-suave">
                         {[
                           f.proveedor,
@@ -359,18 +367,26 @@ export function GastosFijosPantalla() {
                     <td className={cn(TD, 'text-right tabular-nums')}>{dinero(f.monto, f.moneda)}</td>
                     <td className={cn(TD, 'tabular-nums')}>día {f.diaVence}</td>
                     <td className={TD}>
-                      {!f.activo ? <Chip tono="neutro">Inactivo</Chip> : f.terminado ? <Chip tono="neutro">Terminado</Chip> : f.generadoMes ? <Chip tono="exito">Generado</Chip> : <Chip tono="alerta">Falta</Chip>}
+                      {!f.activo ? <Chip tono="neutro">Inactivo</Chip> : f.terminado ? <Chip tono="neutro">Terminado</Chip> : f.cuotasSinPagar.length > 0 ? <Chip tono="alerta">{f.cuotasSinPagar.length === 1 ? '1 cuota sin pagar' : `${f.cuotasSinPagar.length} cuotas sin pagar`}</Chip> : f.generadoMes ? <Chip tono="exito">Generado</Chip> : <Chip tono="alerta">Falta</Chip>}
                     </td>
                     <td className={cn(TD, 'text-right')}>
                       {puede && (
-                        <button type="button" className={BOTON_ICONO} aria-label={`Cambiar ${f.nombre}`} onClick={() => setForm(editar(f))}>
+                        <button
+                          type="button"
+                          className={BOTON_ICONO}
+                          aria-label={`Cambiar ${f.nombre}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setForm(editar(f));
+                          }}
+                        >
                           <Pencil className="size-4" />
                         </button>
                       )}
                     </td>
                   </tr>
                   {/* Las cuotas que falta pagar, con su vencimiento original: se pagan de a una o todas juntas */}
-                  {f.cuotasSinPagar.map((c) => (
+                  {desplegado === f.id && f.cuotasSinPagar.map((c) => (
                     <tr key={c.gastoId} className="bg-fondo/40">
                       <td className={cn(TD, 'pl-8')} colSpan={3}>
                         <span className="font-medium">Cuota {c.cuota}</span>
