@@ -6,7 +6,7 @@ import { BUCKET_OPERACION } from '@/modules/chofer/domain/chofer.types';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
-import { formatearFechaHora } from '@/shared/lib/fechas';
+import { formatearFechaHora, horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
@@ -40,6 +40,8 @@ export function OrdenesPorRegistrar() {
 function Fila({ p }: { p: PorRegistrar }) {
   const { zonaHoraria } = useSesion();
   const registrar = useRegistrarCargaOrden();
+  // 17/11/2026: la carga queda con la hora del ticket; se puede corregir mirando el ticket
+  const [fecha, setFecha] = useState(p.fechaHora ? isoAHoraLocal(p.fechaHora, zonaHoraria) : '');
   const [litros, setLitros] = useState(aTexto(p.litros, 2));
   const [precio, setPrecio] = useState(aTexto(p.precioUnitario, 4));
   const [odometro, setOdometro] = useState(aTexto(p.odometroKm, 1));
@@ -75,9 +77,18 @@ function Fila({ p }: { p: PorRegistrar }) {
       <p className="text-xs text-tinta-suave">Autorizado: {p.autorizado}</p>
       {p.alerta && <p className="rounded-md bg-alerta-suave p-2 text-xs text-alerta">{p.alerta}</p>}
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {!p.horaDelTicket && (
+        <p className="rounded-md bg-alerta-suave p-2 text-xs text-alerta">
+          Iris no leyó la hora en el ticket: se propone la hora en que la estación autorizó la orden. Abrí el ticket y poné la hora que figura ahí.
+        </p>
+      )}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <label className="col-span-2 space-y-1 text-xs text-tinta-suave sm:col-span-1">
+          Fecha y hora {p.horaDelTicket ? '(la del ticket)' : '(poné la del ticket)'}
+          <input className={campo} type="datetime-local" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </label>
         <label className="space-y-1 text-xs text-tinta-suave">
-          Litros
+          Litros (con decimales)
           <input className={campo} inputMode="decimal" value={litros} onChange={(e) => setLitros(e.target.value)} />
         </label>
         <label className="space-y-1 text-xs text-tinta-suave">
@@ -168,6 +179,7 @@ function Fila({ p }: { p: PorRegistrar }) {
             ordenId: p.ordenId,
             iniciaViaje: inicia === true,
             ajustes: {
+              fecha_hora: horaLocalAIso(fecha, zonaHoraria),
               litros: l,
               precio_unitario: pr,
               odometro_km: aNumero(odometro),

@@ -9,7 +9,7 @@ const lectura = (tipo: 'ticket_combustible' | 'comprobante_gasto' | 'tablero_cam
   z.object({
     tipo: z.literal(tipo),
     base64: z.string().min(16).max(6_000_000).regex(/^[A-Za-z0-9+/=]+$/, 'No llegó la foto.'),
-    mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'], 'La IA lee fotos JPG, PNG o WEBP, o un PDF.'),
+    mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'], 'Iris lee fotos JPG, PNG o WEBP, o un PDF.'),
   });
 
 export const leerTicketCombustible = createAction({

@@ -174,6 +174,8 @@ export interface PorRegistrar {
   chofer: string | null;
   estacion: string;
   fechaHora: string | null;
+  /** 17/11/2026: la fecha y hora salen del ticket que leyó Iris (si no, de la autorización de la estación). */
+  horaDelTicket: boolean;
   litros: number | null;
   precioUnitario: number | null;
   moneda: string | null;
@@ -193,6 +195,7 @@ export const parsearPorRegistrar = (d: unknown): PorRegistrar[] =>
     chofer: t(x.chofer),
     estacion: t(x.estacion) ?? '',
     fechaHora: t(x.fecha_hora),
+    horaDelTicket: x.hora_del_ticket === true,
     litros: n(x.litros),
     precioUnitario: n(x.precio_unitario),
     moneda: t(x.moneda),

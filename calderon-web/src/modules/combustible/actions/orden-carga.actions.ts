@@ -69,6 +69,8 @@ export const registrarCargaOrden = createAction({
     ordenId: id,
     iniciaViaje: z.boolean(),
     ajustes: z.object({
+      /** La fecha y hora del ticket, si la persona la corrigió. */
+      fecha_hora: z.string().max(40).nullable().optional(),
       litros: z.number().finite().positive().nullable().optional(),
       precio_unitario: z.number().finite().min(0).nullable().optional(),
       odometro_km: z.number().finite().min(0).nullable().optional(),
@@ -131,7 +133,7 @@ export const leerTicketChofer = createAction({
   permiso: 'chofer.mi_carga:editar',
   schema: z.object({
     base64: z.string().min(16).max(6_000_000).regex(/^[A-Za-z0-9+/=]+$/, 'No llegó la foto.'),
-    mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp'], 'La IA lee fotos JPG, PNG o WEBP.'),
+    mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp'], 'Iris lee fotos JPG, PNG o WEBP.'),
   }),
   handler: (d, { db }) => iaRepository(db).leer('ticket_combustible', d.base64, d.mediaType),
 });

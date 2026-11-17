@@ -85,10 +85,10 @@ export function SubirTablero({
           cambiar(clave, { estado: 'lista', lectura: r.data });
           return { clave, nombre: archivo.name, vista: '', ruta, hash, estado: 'lista', lectura: r.data };
         }
-        if (res.estado === 'error') throw new Error(res.error ?? 'La IA no pudo leer la foto.');
+        if (res.estado === 'error') throw new Error(res.error ?? 'Iris no pudo leer la foto.');
         await espera(1500);
       }
-      throw new Error('La IA no respondió a tiempo.');
+      throw new Error('Iris no respondió a tiempo.');
     } catch (e) {
       const mensaje = e instanceof Error ? e.message : 'No se pudo procesar la foto.';
       cambiar(clave, { estado: 'error', error: mensaje });
@@ -202,7 +202,7 @@ export function SubirTablero({
       {fotos.length === 0 && (
         <p className="text-sm text-tinta-suave">
           Sacá una foto de cada pantalla con los datos del viaje: combustible, horas, km y puntuación de conducción.
-          {ia.data ? ' La IA las lee y vos revisás.' : ' Después completás los números.'}
+          {ia.data ? ' Iris las lee y vos revisás.' : ' Después completás los números.'}
         </p>
       )}
 
@@ -239,7 +239,7 @@ export function SubirTablero({
         </ul>
       )}
       {fotos.some((f) => f.estado === 'sin_leer') && (
-        <p className="text-sm text-alerta">La lectura automática con IA no está activa: las fotos quedan guardadas, pero los números hay que cargarlos a mano.</p>
+        <p className="text-sm text-alerta">La lectura automática de Iris no está activa: las fotos quedan guardadas, pero los números hay que cargarlos a mano.</p>
       )}
       {fotos.some((f) => f.estado === 'error') && (
         <p className="text-sm text-error">{fotos.find((f) => f.estado === 'error')?.error} Podés completar los números a mano.</p>
@@ -249,7 +249,7 @@ export function SubirTablero({
         <div className={cn(TARJETA, 'space-y-3 p-4')}>
           <p className="flex items-center gap-2 text-sm font-semibold text-tinta">
             {fotos.some((f) => f.lectura) && <Sparkles className="size-4 text-marca" />}
-            {fotos.some((f) => f.lectura) ? 'Esto leyó la IA: revisalo y corregí si algo está mal' : 'Completá los números del tablero'}
+            {fotos.some((f) => f.lectura) ? 'Esto leyó Iris: revisalo y corregí si algo está mal' : 'Completá los números del tablero'}
           </p>
           {avisos.length > 0 && (
             <ul className="space-y-1 rounded-md bg-alerta-suave px-3 py-2 text-sm text-alerta">

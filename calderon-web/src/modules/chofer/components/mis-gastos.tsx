@@ -202,7 +202,7 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
     setError(null);
     // Migración 257: con la IA activada, el comprobante se carga después de que la IA lo leyó (la base compara los números)
     if (lector.disponible && lector.estado.fase === 'leyendo') {
-      setError({ codigo: 'validacion', mensaje: 'Esperá a que la IA termine de leer el comprobante.' });
+      setError({ codigo: 'validacion', mensaje: 'Esperá a que Iris termine de leer el comprobante.' });
       return;
     }
     setSubiendo(true);
@@ -252,7 +252,7 @@ function NuevoGasto({ fondo, onListo, onCancelar }: { fondo: MiFondo; onListo: (
       <h2 className="font-semibold text-tinta">Nuevo gasto</h2>
       <label className={`${BOTON_SECUNDARIO} w-full cursor-pointer`}>
         <Camera className="size-5" />
-        {archivo ? archivo.name : lector.disponible ? 'Foto del comprobante * (la IA completa los datos)' : 'Foto del comprobante *'}
+        {archivo ? archivo.name : lector.disponible ? 'Foto del comprobante * (Iris completa los datos)' : 'Foto del comprobante *'}
         <input
           type="file"
           accept="image/*,application/pdf"

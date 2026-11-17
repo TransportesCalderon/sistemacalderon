@@ -112,7 +112,7 @@ function Terminar({ o }: { o: MiOrden }) {
           return;
         }
         if (res.estado === 'error') {
-          cambiar(clave, { estado: 'listo', litros: null, error: res.error ?? 'La IA no pudo leer el ticket' });
+          cambiar(clave, { estado: 'listo', litros: null, error: res.error ?? 'Iris no pudo leer el ticket' });
           return;
         }
         await espera(1500);
@@ -142,7 +142,7 @@ function Terminar({ o }: { o: MiOrden }) {
       <div className="flex items-center gap-3 rounded-xl border-2 border-exito bg-exito/10 p-4 text-tinta">
         <CheckCircle2 className="size-6 text-exito" />
         <p className="text-sm">
-          Carga terminada{hecho.litros !== null ? `: ${formatearNumero(hecho.litros, 0)} L` : ''}. ¡Gracias!
+          Carga terminada{hecho.litros !== null ? `: ${formatearNumero(hecho.litros, 2)} L` : ''}. ¡Gracias!
         </p>
       </div>
     );
@@ -170,7 +170,7 @@ function Terminar({ o }: { o: MiOrden }) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={t.vista} alt="Ticket" className="aspect-[3/4] w-full object-cover" />
                   <span className="absolute inset-x-0 bottom-0 bg-black/60 px-1 py-0.5 text-center text-[11px] text-white" title={t.error}>
-                    {t.estado === 'subiendo' ? 'Subiendo…' : t.estado === 'leyendo' ? 'Leyendo…' : t.estado === 'error' ? 'Error' : t.litros != null ? `${formatearNumero(t.litros, 0)} L` : 'Subido'}
+                    {t.estado === 'subiendo' ? 'Subiendo…' : t.estado === 'leyendo' ? 'Iris está leyendo…' : t.estado === 'error' ? 'Error' : t.litros != null ? `${formatearNumero(t.litros, 2)} L` : 'Subido'}
                   </span>
                   {!ocupado && (
                     <button
@@ -188,14 +188,14 @@ function Terminar({ o }: { o: MiOrden }) {
           )}
           {tickets.length > 0 && !ocupado && (
             <p className="text-sm text-tinta">
-              {leidos > 0 ? `La IA leyó ${formatearNumero(leidos, 0)} L en total.` : 'La IA no leyó los litros.'} {faltaLeer && 'Si falta algún ticket, escribí el total:'}
+              {leidos > 0 ? `Iris leyó ${formatearNumero(leidos, 2)} L en total.` : 'Iris no leyó los litros.'} {faltaLeer && 'Si falta algún ticket, escribí el total:'}
             </p>
           )}
           {tickets.length > 0 && !ocupado && (faltaLeer || leidos === 0) && (
             <input
               inputMode="decimal"
               className="h-10 w-full rounded-md border border-borde bg-panel px-3 text-sm"
-              placeholder="Total de litros cargados"
+              placeholder="Total de litros, con los decimales del ticket"
               value={litros}
               onChange={(e) => setLitros(e.target.value)}
             />

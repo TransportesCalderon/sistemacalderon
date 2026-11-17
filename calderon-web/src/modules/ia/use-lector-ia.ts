@@ -42,7 +42,7 @@ export function useLectorIA(tipo: TipoLectura) {
       setPreparado(prep);
       const { blob, tipo: media } = prep;
       if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(media)) {
-        setEstado({ fase: 'error', mensaje: 'La IA no puede leer este formato de foto: completá a mano.' });
+        setEstado({ fase: 'error', mensaje: 'Iris no puede leer este formato de foto: completá a mano.' });
         return null;
       }
       const base64 = await aBase64(blob);
@@ -62,12 +62,12 @@ export function useLectorIA(tipo: TipoLectura) {
           return listo;
         }
         if (res.estado === 'error') {
-          setEstado({ fase: 'error', mensaje: res.error ?? 'La IA no pudo leer la foto.' });
+          setEstado({ fase: 'error', mensaje: res.error ?? 'Iris no pudo leer la foto.' });
           return null;
         }
         await espera(1500);
       }
-      setEstado({ fase: 'error', mensaje: 'La IA no respondió a tiempo: completá a mano.' });
+      setEstado({ fase: 'error', mensaje: 'Iris no respondió a tiempo: completá a mano.' });
     } catch (e) {
       setEstado({ fase: 'error', mensaje: e instanceof Error ? e.message : 'No se pudo leer la foto.' });
     }

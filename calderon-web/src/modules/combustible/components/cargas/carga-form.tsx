@@ -220,6 +220,8 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
   const adjuntar = useAdjuntarDocumento();
   // 04/11/2026: una carga puede tener varios tickets (cuando la bomba llega al límite y se hacen dos)
   const [tickets, setTickets] = useState<TicketLeido[]>([]);
+  // 17/11/2026: la carga queda con la hora del ticket; si Iris no la encuentra, no se inventa: la escribe la persona
+  const [sinHora, setSinHora] = useState(false);
   const emisor = useEmisorTicket(Number(watch('estacionId')) || null);
   const conIA = !carga && lector.disponible;
   const leerTicket = async (archivo: File, sumar = false) => {
@@ -240,7 +242,8 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
     }
     if (p.camion_id && !watch('camionId')) setValue('camionId', String(p.camion_id), op);
     if (p.estacion_id) setValue('estacionId', String(p.estacion_id), op);
-    if (p.fecha) setValue('fechaHoraLocal', `${p.fecha}T${p.hora ?? '12:00'}`, op);
+    if (p.fecha && p.hora) setValue('fechaHoraLocal', `${p.fecha}T${p.hora}`, op);
+    setSinHora(!(p.fecha && p.hora));
     if (p.litros) setValue('litros', txt(p.litros), op);
     if (p.precio_unitario) setValue('precioUnitario', txt(p.precio_unitario), op);
     if (p.moneda && monedas?.some((m) => m.codigo === p.moneda)) setValue('moneda', p.moneda, op);
@@ -362,7 +365,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
         <section className={cn(TARJETA, 'space-y-3 p-5')} aria-label="Foto del ticket">
           <div className="flex flex-wrap items-center gap-3">
             <label className={cn(BOTON_SECUNDARIO, 'cursor-pointer')}>
-              <Camera className="size-4" /> {tickets.length > 0 ? 'Cambiar la foto del ticket' : 'Foto del ticket: completar con IA'}
+              <Camera className="size-4" /> {tickets.length > 0 ? 'Cambiar la foto del ticket' : 'Foto del ticket: que la complete Iris'}
               <input
                 type="file"
                 accept="image/*,application/pdf"
@@ -405,8 +408,9 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
             </ul>
           )}
           <AvisoIA estado={lector.estado} />
+          {sinHora && lector.estado.fase === 'listo' && <p className="text-sm text-alerta">Iris no encontró la fecha o la hora en el ticket: escribila tal como figura en el ticket.</p>}
           <p className="text-xs text-tinta-suave">
-            Opcional. La IA lee el ticket y completa lo que puede; revisá todo antes de guardar. Si lee el número, la foto queda adjunta como ticket.
+            Opcional. Iris lee el ticket y completa lo que puede; revisá todo antes de guardar. Si lee el número, la foto queda adjunta como ticket.
             Si la carga se hizo en dos tickets (la bomba llegó al límite), sumá el otro: los litros se suman.
           </p>
         </section>
@@ -453,7 +457,7 @@ export function CargaForm({ camionInicial, reemplazaId, carga }: { camionInicial
           </select>
         </Campo>
         <div className="space-y-1">
-          <Campo label="Fecha y hora *" error={e.fechaHoraLocal?.message} ayuda={`La del ticket (hora de ${zonaHoraria}).`}>
+          <Campo label="Fecha y hora *" error={e.fechaHoraLocal?.message} ayuda={`La que figura en el ticket, tal cual (hora de ${zonaHoraria}).`}>
             <input type="datetime-local" {...register('fechaHoraLocal')} />
           </Campo>
           {!carga && (

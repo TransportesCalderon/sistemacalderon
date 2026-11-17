@@ -9,7 +9,7 @@ export function AvisoIA({ estado }: { estado: EstadoLector }) {
   if (estado.fase === 'leyendo')
     return (
       <p className="flex items-center gap-2 rounded-md bg-marca-suave px-3 py-2 text-sm text-marca">
-        <LoaderCircle className="size-4 animate-spin" /> La IA está leyendo la foto…
+        <LoaderCircle className="size-4 animate-spin" /> Iris está leyendo el documento…
       </p>
     );
   if (estado.fase === 'error') return <p className="rounded-md bg-alerta-suave px-3 py-2 text-sm text-alerta">{estado.mensaje}</p>;
@@ -17,7 +17,7 @@ export function AvisoIA({ estado }: { estado: EstadoLector }) {
   return (
     <div className="space-y-1 rounded-md bg-marca-suave px-3 py-2 text-sm text-marca">
       <p className="flex items-center gap-2 font-medium">
-        <Sparkles className="size-4" /> La IA completó los datos que pudo leer{p.confianza ? ` (seguridad ${p.confianza})` : ''}. Revisalos antes de guardar.
+        <Sparkles className="size-4" /> Iris completó los datos que pudo leer{p.confianza ? ` (seguridad ${p.confianza})` : ''}. Revisalos antes de guardar.
       </p>
       {p.observacion && <p className="text-tinta">{p.observacion}</p>}
       {avisos.map((a) => (

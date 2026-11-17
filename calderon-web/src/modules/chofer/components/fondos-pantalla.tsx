@@ -164,8 +164,8 @@ function FilaRevisar({ g }: { g: GastoPorRevisar }) {
               .join(' · ')}
           </p>
         )}
-        {g.verificacion === 'sin_ia' && <p className="mt-1 text-xs text-alerta">La IA no pudo leer el comprobante: revisalo con cuidado.</p>}
-        {g.verificacion === 'ia_sin_numero' && <p className="mt-1 text-xs text-alerta">La IA no encontró el número del comprobante: revisalo con cuidado.</p>}
+        {g.verificacion === 'sin_ia' && <p className="mt-1 text-xs text-alerta">Iris no pudo leer el comprobante: revisalo con cuidado.</p>}
+        {g.verificacion === 'ia_sin_numero' && <p className="mt-1 text-xs text-alerta">Iris no encontró el número del comprobante: revisalo con cuidado.</p>}
         {g.coincideCon && (
           <p className="mt-1 flex items-start gap-1 rounded-md bg-error-suave px-2 py-1 text-xs text-error">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> Tiene {g.coincideCon.regla} que el gasto {g.coincideCon.numero} de {g.coincideCon.chofer} (

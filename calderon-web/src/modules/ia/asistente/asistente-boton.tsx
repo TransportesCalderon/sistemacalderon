@@ -119,7 +119,7 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
           return;
         }
       }
-      if (!cortar) setTurnos((ts) => ts.map((x) => (x.id === pendiente ? { ...x, estado: 'error', error: 'La IA no respondió a tiempo: probá de nuevo' } : x)));
+      if (!cortar) setTurnos((ts) => ts.map((x) => (x.id === pendiente ? { ...x, estado: 'error', error: 'Iris no respondió a tiempo: probá de nuevo' } : x)));
     })();
     return () => {
       cortar = true;
@@ -387,7 +387,7 @@ function PanelAsistente({ onCerrar, onCambio }: { onCerrar: () => void; onCambio
               ? 'Iris está apagado. TI lo prende con el parámetro ia.asistente_activo.'
               : !est.conClave
                 ? 'Falta la clave anthropic_api_key en Vault: pedísela a TI.'
-                : 'La base no tiene pg_net: la IA no puede llamar a la API.'}
+                : 'La base no tiene pg_net: Iris no puede llamar a la API.'}
           </p>
         )}
         {turnos.length === 0 && !apagado && (

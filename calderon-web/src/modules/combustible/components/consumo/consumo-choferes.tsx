@@ -190,7 +190,7 @@ function DetalleChofer({ c, mes, iaDisponible }: { c: ConsumoChofer; mes: string
       <div className="space-y-2 rounded-md border border-borde bg-panel p-3">
         <div className="flex flex-wrap items-center gap-2">
           <Sparkles className="size-4 text-marca" />
-          <span className="text-sm font-semibold text-tinta">Análisis de la IA</span>
+          <span className="text-sm font-semibold text-tinta">Análisis de Iris</span>
           {iaDisponible && (
             <button
               type="button"
@@ -203,8 +203,8 @@ function DetalleChofer({ c, mes, iaDisponible }: { c: ConsumoChofer; mes: string
             </button>
           )}
         </div>
-        {!iaDisponible && <p className="text-xs text-tinta-suave">La IA no está disponible (falta la clave en Vault o pg_net): pedíselo a TI.</p>}
-        {c.iaEstado === 'esperando' && <p className="text-sm text-tinta-suave">La IA está analizando los tramos…</p>}
+        {!iaDisponible && <p className="text-xs text-tinta-suave">Iris no está disponible (falta la clave en Vault o pg_net): pedíselo a TI.</p>}
+        {c.iaEstado === 'esperando' && <p className="text-sm text-tinta-suave">Iris está analizando los tramos…</p>}
         {c.iaEstado === 'error' && <p className="text-sm text-error">{c.iaError}</p>}
         {c.iaTexto && c.iaEstado !== 'esperando' && <p className="whitespace-pre-line text-sm text-tinta">{c.iaTexto}</p>}
       </div>

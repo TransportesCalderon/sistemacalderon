@@ -53,11 +53,11 @@ export function SubirFotoComputadora({ viajeId, onLeida }: { viajeId: number; on
       let lista = false;
       for (let i = 0; i < 50 && !lista; i++) {
         const res = await ia.resultado(r.data);
-        if (res.estado === 'error') throw new Error(res.error ?? 'La IA no pudo leer la foto: cargá los números a mano.');
+        if (res.estado === 'error') throw new Error(res.error ?? 'Iris no pudo leer la foto: cargá los números a mano.');
         lista = res.estado === 'lista';
         if (!lista) await espera(1500);
       }
-      if (!lista) throw new Error('La IA no respondió a tiempo: cargá los números a mano.');
+      if (!lista) throw new Error('Iris no respondió a tiempo: cargá los números a mano.');
       const datos = await seguimientoRepository(db).lecturaFoto(r.data);
       const firmada = await db.storage.from(BUCKET_OPERACION).createSignedUrl(ruta, 3600);
       onLeida({ lecturaId: r.data, ruta, url: firmada.data?.signedUrl ?? '', datos });
@@ -72,7 +72,7 @@ export function SubirFotoComputadora({ viajeId, onLeida }: { viajeId: number; on
     <div className="space-y-1">
       <button type="button" className={BOTON_SECUNDARIO} disabled={fase === 'leyendo'} onClick={() => entrada.current?.click()}>
         {fase === 'leyendo' ? <LoaderCircle className="size-4 animate-spin" /> : <Camera className="size-4" />}
-        {fase === 'leyendo' ? 'Leyendo la foto…' : 'Subir foto de la computadora de a bordo'}
+        {fase === 'leyendo' ? 'Iris está leyendo la foto…' : 'Subir foto de la computadora de a bordo'}
       </button>
       {error && <p className="text-sm text-error">{error}</p>}
       <input

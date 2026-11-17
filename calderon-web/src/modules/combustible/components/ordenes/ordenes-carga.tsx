@@ -170,7 +170,7 @@ function FilaOrden({ o, zona, puede }: { o: OrdenCarga; zona: string; puede: boo
           {o.motivoAnulacion && <span className="block text-xs text-tinta-suave">{o.motivoAnulacion}</span>}
         </td>
         <td className={cn(TD, 'tabular-nums')}>
-          {o.litrosCargados !== null ? `${formatearNumero(o.litrosCargados, 0)} L` : o.cargadaEn ? 'Sin litros en el ticket' : '—'}
+          {o.litrosCargados !== null ? `${formatearNumero(o.litrosCargados, 2)} L` : o.cargadaEn ? 'Sin litros en el ticket' : '—'}
           {o.tickets.length > 0 && <span className="block text-xs text-tinta-suave">{o.tickets.length} ticket(s)</span>}
         </td>
         <td className={cn(TD, 'text-right')}>
