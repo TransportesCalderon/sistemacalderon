@@ -28,6 +28,7 @@ import {
   useResumenFacturacion,
 } from '../queries/hooks';
 import { ChipFactura } from './comun';
+import { CuentaCorrienteVista } from './cuenta-corriente';
 import { FacturaSii } from './factura-sii';
 import { ElegirDetalle } from './detalle-factura';
 import { FacturaLibre } from './factura-libre';
@@ -48,7 +49,7 @@ const ETIQUETA_FILTRO = (f: FiltroFactura) =>
 export function FacturacionPantalla() {
   const params = useSearchParams();
   const inicial = Number(params.get('factura')) || null;
-  const [vista, setVista] = useState<'por_facturar' | 'facturas'>(inicial ? 'facturas' : 'por_facturar');
+  const [vista, setVista] = useState<'por_facturar' | 'facturas' | 'cuenta'>(inicial ? 'facturas' : 'por_facturar');
   const [abierta, setAbierta] = useState<number | null>(inicial);
   const [estado, setEstado] = useState<FiltroFactura>(inicial ? null : 'borrador');
   const verFacturas = (f: FiltroFactura) => {
@@ -89,6 +90,7 @@ export function FacturacionPantalla() {
           [
             ['por_facturar', 'Por facturar'],
             ['facturas', 'Prefacturas y facturas'],
+            ['cuenta', 'Cuenta corriente'],
           ] as const
         ).map(([id, t]) => (
           <button
@@ -105,6 +107,14 @@ export function FacturacionPantalla() {
         <PorFacturarVista
           onCreada={(id) => {
             setAbierta(id);
+            setVista('facturas');
+          }}
+        />
+      ) : vista === 'cuenta' ? (
+        <CuentaCorrienteVista
+          onAbrirFactura={(id) => {
+            setAbierta(id);
+            setEstado(null);
             setVista('facturas');
           }}
         />

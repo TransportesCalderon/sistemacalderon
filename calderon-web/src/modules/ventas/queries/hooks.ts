@@ -64,6 +64,15 @@ export const useCotizacion = (id: number | null) => useQuery({ queryKey: [...CLA
 export const usePorFacturar = () => useQuery({ queryKey: [...CLAVE, 'por-facturar'], queryFn: () => repo().porFacturar() });
 export const useFacturas = (estado: string | null) =>
   useQuery({ queryKey: [...CLAVE, 'facturas', estado], queryFn: () => repo().facturas(estado), placeholderData: keepPreviousData });
+// Cuenta corriente de clientes (17/11/2026)
+export const useSaldosClientes = () => useQuery({ queryKey: [...CLAVE, 'cuenta-corriente', 'saldos'], queryFn: () => repo().saldosClientes() });
+export const useCuentaCorriente = (clienteId: number | null, desde: string | null, hasta: string | null) =>
+  useQuery({
+    queryKey: [...CLAVE, 'cuenta-corriente', clienteId, desde, hasta],
+    queryFn: () => repo().cuentaCorriente(clienteId!, desde, hasta),
+    enabled: !!clienteId,
+    placeholderData: keepPreviousData,
+  });
 // Migración 101
 export const useResumenFacturacion = () => useQuery({ queryKey: [...CLAVE, 'resumen-facturacion'], queryFn: () => repo().resumenFacturacion(), refetchInterval: 120_000 });
 export const useNumeroFactura = () => useEscritura(numeroFactura);
