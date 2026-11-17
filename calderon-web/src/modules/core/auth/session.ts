@@ -29,6 +29,8 @@ export interface SesionCliente {
   email: string;
   usuarioId: number;
   rolesApp: IdentidadNegocio['rolesApp'];
+  /** S4 (16/11/2026): rol con el que entra a la base; lo usa usePuedeEnBase para ocultar lo que la base rechaza. */
+  rolBd: IdentidadNegocio['rolBd'];
   choferId: number | null;
   permisos: MapaPermisos;
   zonaHoraria: ZonaHoraria;
@@ -113,6 +115,7 @@ export function aSesionCliente(ctx: ContextoSesion & { identidad: IdentidadNegoc
     email: ctx.email,
     usuarioId: ctx.identidad.usuarioId,
     rolesApp: ctx.identidad.rolesApp,
+    rolBd: ctx.identidad.rolBd,
     choferId: ctx.identidad.choferId,
     permisos: ctx.permisos,
     zonaHoraria: ctx.zonaHoraria,

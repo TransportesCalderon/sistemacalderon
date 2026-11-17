@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { BadgeCheck, Check, Fuel, KeyRound, Link2, Mail, Pencil, QrCode, Send, TriangleAlert, X } from 'lucide-react';
 import { Cargando, Chip, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
-import { useCan } from '@/modules/core/permissions/can';
+import { useCan, usePuedeEnBase } from '@/modules/core/permissions/can';
 import { useAsegurarFotoMail } from '@/modules/flota/components/choferes/foto-chofer';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { BotonCopiar } from '@/modules/telemetria/components/boton-copiar';
@@ -70,8 +70,11 @@ export function OrdenesCarga() {
   });
   const puede = marca.data === true;
   const { zonaHoraria } = useSesion();
-  const { data, isPending, isError, error, refetch } = useOrdenesCarga(true);
+  // S4: el Auditor tiene la pantalla, pero la base no le deja leer las órdenes (terminaba en error)
+  const puedeVer = usePuedeEnBase('ordenesCarga');
+  const { data, isPending, isError, error, refetch } = useOrdenesCarga(puedeVer);
   const [nueva, setNueva] = useState(false);
+  if (!puedeVer) return <Vacio icono={<QrCode className="size-6" />} texto="Las órdenes de carga no se pueden ver con tu rol." />;
 
   return (
     <div className="space-y-4">
@@ -129,6 +132,8 @@ function FilaOrden({ o, zona, puede }: { o: OrdenCarga; zona: string; puede: boo
   const [error, setError] = useState<string | null>(null);
   const anular = useAnularOrdenCarga();
   const revisar = useRevisarOrdenCarga();
+  // S4: la diferencia la marcan revisada Gerencia, Telemetría o TI (lo exige la base)
+  const puedeRevisar = usePuedeEnBase('revisarOrdenCarga');
   const abierta = o.estado === 'emitida' || o.estado === 'autorizada' || o.estado === 'bloqueada';
   return (
     <>
@@ -184,11 +189,11 @@ function FilaOrden({ o, zona, puede }: { o: OrdenCarga; zona: string; puede: boo
               <span className="flex-1">{o.alerta}</span>
               {o.revisadaEn ? (
                 <span className="text-xs">Revisada {formatearFechaHora(o.revisadaEn, zona)}</span>
-              ) : (
+              ) : puedeRevisar ? (
                 <button type="button" className={BOTON_SECUNDARIO} disabled={revisar.isPending} onClick={() => void revisar.mutateAsync({ id: o.id })}>
                   <BadgeCheck className="size-4" /> Revisada
                 </button>
-              )}
+              ) : null}
             </div>
           </td>
         </tr>

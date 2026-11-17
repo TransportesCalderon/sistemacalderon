@@ -57,9 +57,11 @@ describe('Migración 122 · actas de infracción', () => {
     expect(r.actas[0]?.seNegoFirmar).toBe(true);
     expect(r.actas[0]?.fotos[0]?.ruta).toBe('actas/1/a.jpg');
   });
-  it('las ven Gerencia, Operaciones, Control, RRHH y Finanzas; no Comercial ni el chofer', () => {
+  it('las ven Operaciones, Control, RRHH y Finanzas; no Gerencia, Comercial ni el chofer', () => {
     const ve = (rol: Parameters<typeof permisosDe>[0][number]) => can(permisosDe([rol], opciones), 'operacion.actas:ver');
-    for (const rol of ['gerencia', 'operaciones', 'analista_control', 'rrhh', 'finanzas', 'ti', 'auditor'] as const) expect(ve(rol), rol).toBe(true);
+    for (const rol of ['operaciones', 'analista_control', 'rrhh', 'finanzas', 'ti', 'auditor'] as const) expect(ve(rol), rol).toBe(true);
+    // S4: Gerencia entra a la base como solo lectura y la base no le deja leer las actas
+    expect(ve('gerencia')).toBe(false);
     expect(ve('comercial')).toBe(false);
     expect(ve('chofer')).toBe(false);
     expect(can(permisosDe(['operaciones'], opciones), 'operacion.actas:transicionar')).toBe(true);

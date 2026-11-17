@@ -3,11 +3,21 @@
 import type { ReactNode } from 'react';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { alcanceDe, can } from './resolver';
+import { BASE_DEJA, baseDeja, type AccionBase } from './base-deja';
 import type { Alcance, Permiso } from './types';
 
 /** ¿El usuario de la sesión tiene el permiso? (capa 4: interfaz). */
 export function useCan(permiso: Permiso): boolean {
   return can(useSesion().permisos, permiso);
+}
+
+/**
+ * S4 (16/11/2026): ¿la base deja hacer esto al usuario? Se combina con useCan para no mostrar
+ * botones que siempre terminan en error (ver base-deja.ts). La base sigue decidiendo.
+ */
+export function usePuedeEnBase(accion: AccionBase): boolean {
+  const { rolBd, rolesApp } = useSesion();
+  return baseDeja(BASE_DEJA[accion], rolBd, rolesApp);
 }
 
 /** Alcance del permiso: 'todo', 'propio' (chofer) o null. */

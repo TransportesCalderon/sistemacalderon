@@ -6,6 +6,7 @@ import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
+import { usePuedeEnBase } from '@/modules/core/permissions/can';
 import type { FechaISO } from '@/shared/types/dominio';
 import type { HistorialConforme } from '../domain/operacion.types';
 import { useMarcarConforme } from '../queries/hooks';
@@ -32,6 +33,8 @@ export function ConformeDescarga({
   compacto?: boolean;
 }) {
   const marcar = useMarcarConforme();
+  // S4: la tilde se ve para todos, pero solo la cambian Operaciones, Finanzas o TI (lo exige la base)
+  const puede = usePuedeEnBase('marcarConforme');
   const [error, setError] = useState<ErrorAccion | null>(null);
   const [quitando, setQuitando] = useState(false);
   const [motivo, setMotivo] = useState('');
@@ -56,12 +59,15 @@ export function ConformeDescarga({
 
   return (
     <span className={cn('relative inline-flex flex-col', compacto ? 'items-center' : '')}>
-      <label className={cn('inline-flex items-center gap-2', compacto ? 'text-xs' : 'text-sm')} title={llego ? 'Llegó el conforme de descarga' : 'Falta el conforme de descarga'}>
+      <label
+        className={cn('inline-flex items-center gap-2', compacto ? 'text-xs' : 'text-sm')}
+        title={(llego ? 'Llegó el conforme de descarga' : 'Falta el conforme de descarga') + (puede ? '' : ' (lo marcan Operaciones, Finanzas o TI)')}
+      >
         <input
           type="checkbox"
           className="size-4 accent-marca"
           checked={llego && !quitando}
-          disabled={marcar.isPending || quitando}
+          disabled={!puede || marcar.isPending || quitando}
           onChange={(e) => cambiar(e.target.checked)}
           aria-label="Llegó el conforme de descarga"
         />

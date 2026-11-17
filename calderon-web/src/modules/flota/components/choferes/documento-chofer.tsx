@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Eye, EyeOff, LoaderCircle, Lock } from 'lucide-react';
-import { useCan } from '@/modules/core/permissions/can';
+import { useCan, usePuedeEnBase } from '@/modules/core/permissions/can';
 import type { ChoferId } from '@/shared/types/dominio';
 import { formatearFechaDia } from '@/shared/lib/fechas';
 import { ETIQUETA_TIPO_DOCUMENTO, type DatosReservadosChofer as Documento } from '../../domain/chofer.types';
@@ -17,7 +17,9 @@ const SEGUNDOS_VISIBLE = 60;
  * vive solo en el estado de este componente: no entra en la caché ni en la URL.
  */
 export function DocumentoChofer({ choferId }: { choferId: ChoferId }) {
-  const puedeVer = useCan('flota.documento_chofer:ver');
+  // S4: el Auditor tiene la pantalla, pero la base no le deja registrar el acceso (y sin eso no se revela)
+  const baseDeja = usePuedeEnBase('revelarDocumentoChofer');
+  const puedeVer = useCan('flota.documento_chofer:ver') && baseDeja;
   const revelar = useRevelarDocumento();
   const [documento, setDocumento] = useState<Documento | null>(null);
   const [error, setError] = useState<string | null>(null);

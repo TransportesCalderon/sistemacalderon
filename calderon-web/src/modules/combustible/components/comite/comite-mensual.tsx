@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { CalendarCheck, Printer } from 'lucide-react';
 import { TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { useSesion } from '@/modules/core/session/session-provider';
+import { usePuedeEnBase } from '@/modules/core/permissions/can';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora, hoyEnZona } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
@@ -29,6 +30,8 @@ export function ComiteMensual() {
   const { zonaHoraria } = useSesion();
   const [mes, setMes] = useState(() => mesAnterior(hoyEnZona(zonaHoraria)));
   const { data, isPending, isError, error, refetch, isFetching } = useComite(primerDia(mes), true);
+  // S4: cerrar el mes lo deja la base solo a Gerencia o TI
+  const puedeCerrar = usePuedeEnBase('cerrarComite');
 
   return (
     <div className="space-y-5">
@@ -72,7 +75,7 @@ export function ComiteMensual() {
 
           <Tractores c={data} mes={primerDia(mes)} />
           <Gensets c={data} mes={primerDia(mes)} />
-          {data.estado === 'abierto' && <Cierre c={data} mes={primerDia(mes)} />}
+          {data.estado === 'abierto' && puedeCerrar && <Cierre c={data} mes={primerDia(mes)} />}
         </div>
       )}
     </div>
@@ -188,6 +191,8 @@ function Gensets({ c, mes }: { c: ComiteMes; mes: string }) {
 function Revision({ mes, tipo, equipoId, r, cerrado }: { mes: string; tipo: 'tractor' | 'genset'; equipoId: number; r: RevisionEquipo | null; cerrado: boolean }) {
   const { zonaHoraria } = useSesion();
   const revisar = useRevisarEquipoMes();
+  // S4: Finanzas y Auditor ven el comité, pero la base no les deja revisar
+  const puede = usePuedeEnBase('revisarEquipoMes');
   const envio = useEnvio();
   const [abierto, setAbierto] = useState(false);
   const [comentario, setComentario] = useState(r?.comentario ?? '');
@@ -217,7 +222,7 @@ function Revision({ mes, tipo, equipoId, r, cerrado }: { mes: string; tipo: 'tra
         ) : (
           <Chip tono="neutro">Sin revisar</Chip>
         )}
-        {!cerrado && (
+        {!cerrado && puede && (
           <button type="button" className="block text-marca hover:underline print:hidden" onClick={() => setAbierto(true)}>
             {r ? 'Cambiar' : 'Revisar'}
           </button>

@@ -4,6 +4,7 @@ import { Fragment, useState } from 'react';
 import { Check, ChevronDown, ChevronRight, LoaderCircle, RefreshCw, Sparkles, Users } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { useSesion } from '@/modules/core/session/session-provider';
+import { usePuedeEnBase } from '@/modules/core/permissions/can';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora, hoyEnZona } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
@@ -32,9 +33,12 @@ export function ConsumoChoferesPantalla() {
   });
   const [soloMarcados, setSoloMarcados] = useState(true);
   const [abierto, setAbierto] = useState<number | null>(null);
-  const { data, isPending, isError, error, refetch, isFetching } = useConsumoChoferes(primerDia(mes), true);
+  // S4: la base deja ver y revisar el consumo de los choferes solo a Telemetría, Adm. de combustible y TI
+  const puede = usePuedeEnBase('consumoChoferes');
+  const { data, isPending, isError, error, refetch, isFetching } = useConsumoChoferes(primerDia(mes), puede);
   const recalcular = useRecalcularConsumoChoferes();
   const envio = useEnvio();
+  if (!puede) return <Vacio icono={<Users className="size-6" />} texto="El consumo de los choferes lo ven Telemetría, Adm. de combustible y TI." />;
 
 
   const lista = (data?.choferes ?? []).filter((c) => !soloMarcados || c.marcado);

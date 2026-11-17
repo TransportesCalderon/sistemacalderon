@@ -9,7 +9,7 @@ import { TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { AccionConMotivo, Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { nombrePeriodo } from '@/modules/chofer/domain/chofer.types';
 import { usePeriodoDe } from '@/modules/chofer/queries/hooks';
-import { useCan } from '@/modules/core/permissions/can';
+import { useCan, usePuedeEnBase } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
@@ -146,6 +146,9 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
   const { zonaHoraria } = useSesion();
   const puedeEditar = useCan('liquidacion.liquidaciones:editar');
   const puedeEstado = useCan('liquidacion.liquidaciones:transicionar');
+  // S4: Finanzas registra el pago; aprobar, reabrir y anular lo deja la base solo a RR. HH. o TI
+  const baseResuelve = usePuedeEnBase('resolverLiquidacion');
+  const resuelve = puedeEstado && baseResuelve;
   const { data: l, isLoading } = useLiquidacion(id);
   const preparar = usePrepararLiquidacion();
   const aprobar = useAprobarLiquidacion();
@@ -239,7 +242,7 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
             </button>
           </>
         )}
-        {borrador && puedeEstado && (
+        {borrador && resuelve && (
           <button
             type="button"
             className={BOTON_PRIMARIO}
@@ -274,7 +277,7 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
             </button>
           </div>
         )}
-        {l.estado === 'aprobada' && puedeEstado && (
+        {l.estado === 'aprobada' && resuelve && (
           <AccionConMotivo
             etiqueta="Reabrir"
             icono={<Undo2 className="size-4" />}
@@ -289,7 +292,7 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
             }}
           />
         )}
-        {borrador && puedeEstado && (
+        {borrador && resuelve && (
           <AccionConMotivo
             etiqueta="Anular"
             icono={<X className="size-4" />}

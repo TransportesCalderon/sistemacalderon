@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCheck, FilePlus2, Fuel, LoaderCircle, Search } from 'lucide-react';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
-import { useCan } from '@/modules/core/permissions/can';
+import { useCan, usePuedeEnBase } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
@@ -48,7 +48,10 @@ const litros = (v: number | null) => (v === null ? '—' : `${v.toLocaleString('
 /** Viajes › Cierres por hacer: todos los viajes sin el combustible aprobado, qué les falta y aprobar varios de una vez. */
 export function PorCerrarPantalla() {
   const { zonaHoraria } = useSesion();
-  const puedeAprobar = usePuedeAprobarCierres();
+  // S4: «cerrar y aprobar» no lo deja la base a Gerencia ni al Auditor, aunque tengan la marca de aprobar cierres
+  const marcaAprobar = usePuedeAprobarCierres();
+  const baseCierraYAprueba = usePuedeEnBase('cerrarYAprobar');
+  const puedeAprobar = marcaAprobar && baseCierraYAprueba;
   const puedeOperacion = useCan('operacion.tramos:editar');
   const puedeCierre = useCan('combustible.cierre_viaje:editar');
   const puedeEditar = puedeOperacion || puedeCierre;

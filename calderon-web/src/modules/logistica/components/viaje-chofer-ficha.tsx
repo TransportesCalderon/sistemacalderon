@@ -9,7 +9,7 @@ import { ArrowLeft, Ban, Calculator, ChevronDown, CircleAlert, Flag, Fuel, Loade
 import { BorradorForm } from '@/modules/combustible/components/cierres/borrador-form';
 import { AccionConMotivo, Cargando, Chip, ErrorBase, ErrorLectura, Seccion } from '@/modules/combustible/components/comun/ui';
 import { useCierre, useMonedas, useResultadoCierre } from '@/modules/combustible/queries/hooks';
-import { useCan } from '@/modules/core/permissions/can';
+import { useCan, usePuedeEnBase } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import type { ErrorAccion } from '@/server/actions/result';
 import { cn } from '@/shared/lib/cn';
@@ -593,7 +593,10 @@ function Agregar({ v, onCerrar }: { v: ViajeChofer; onCerrar: () => void }) {
 // ------------------------------------------------------------------- acciones
 function Acciones({ v }: { v: ViajeChofer }) {
   const puede = useCan('operacion.tramos:transicionar');
-  const puedeAprobar = usePuedeAprobarCierres();
+  // S4: «cerrar y aprobar» no lo deja la base a Gerencia ni al Auditor, aunque tengan la marca de aprobar cierres
+  const marcaAprobar = usePuedeAprobarCierres();
+  const baseCierraYAprueba = usePuedeEnBase('cerrarYAprobar');
+  const puedeAprobar = marcaAprobar && baseCierraYAprueba;
   const cerrarYAprobar = useCerrarYAprobarViaje();
   const combustiblePorAprobar = v.cierre !== null && v.cierre.estado === 'borrador';
   // Migración 82: si al viaje del chofer le faltan operaciones, canon o km, el combustible se aprueba igual y el viaje queda abierto

@@ -86,7 +86,8 @@ export const PANTALLAS = {
   // Migración 49: Administración de combustible también revisa alertas (la base lo permite).
   'anomalias.alertas':       { etiqueta: 'Bandeja y ficha de alertas', fila: ['L*', '—', '—', '—', 'A', 'A', '—', '—', 'E A', 'L', '—', '—', '—'] },
   // Migración 122: actas de infracción (consumo, daños, velocidad). La base decide además quién pone montos y anula.
-  'operacion.actas':         { etiqueta: 'Actas de infracción', fila: ['E A', 'E A', '—', '—', 'L', 'E', 'L', 'L', 'E A', 'L', '—', '—', '—'] },
+  // S4 (16/11/2026): Gerencia entra a la base como solo lectura y no puede leer ni hacer actas: se le quita la pantalla
+  'operacion.actas':         { etiqueta: 'Actas de infracción', fila: ['—', 'E A', '—', '—', 'L', 'E', 'L', 'L', 'E A', 'L', '—', '—', '—'] },
   'anomalias.casos':         { etiqueta: 'Casos de revisión', fila: ['L', '—', '—', '—', '—', 'E A', '—', '—', 'E A', 'L', '—', '—', '—'] },
   // Migración 49: Control cambia los umbrales (la base lo permite a Control y TI).
   'anomalias.reglas':        { etiqueta: 'Reglas y umbrales de anomalía', fila: ['—', '—', '—', '—', '—', 'E', '—', '—', 'E A', 'L', '—', '—', '—'] },

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Gauge } from 'lucide-react';
 import { useSesion } from '@/modules/core/session/session-provider';
+import { usePuedeEnBase } from '@/modules/core/permissions/can';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { browserDb } from '@/shared/supabase/browser';
@@ -12,9 +13,12 @@ import { tableroRepository } from '../repositories/tablero.repository';
 /** Migración 224 · Al chofer: su camión llenó de corte (inicio de viaje) y todavía no mandó las fotos del tablero. */
 export function AvisoTableroInicio() {
   const { zonaHoraria } = useSesion();
+  const puede = usePuedeEnBase('tableroPendienteChofer');
   const { data } = useQuery({
     queryKey: ['tablero', 'pendientes-chofer'],
     queryFn: () => tableroRepository(browserDb()).pendientesChofer(),
+    // S4: la base no deja leerlo con el rol del chofer (siempre terminaba en error): no se pide
+    enabled: puede,
     refetchInterval: 5 * 60_000,
   });
   const p = data?.[0];

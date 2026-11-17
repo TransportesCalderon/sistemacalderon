@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Check, Scale, X } from 'lucide-react';
 import { useSesion } from '@/modules/core/session/session-provider';
+import { usePuedeEnBase } from '@/modules/core/permissions/can';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
@@ -28,6 +29,9 @@ const AREA = 'w-full rounded-md border border-borde bg-panel px-3 py-2 text-sm o
 export function DecisionDiferencia({ cierreId, estado, aDescontarL }: { cierreId: number; estado: string; aDescontarL: number | null }) {
   const { zonaHoraria } = useSesion();
   const { data } = useDecisionCierre(cierreId, estado !== 'anulado');
+  // S4: el formulario se muestra solo a quien la base deja decidir o pedir (antes terminaba en error)
+  const puedeDecidir = usePuedeEnBase('decidirDiferencia');
+  const puedePedir = usePuedeEnBase('pedirQuitarDescuento');
   if (estado === 'anulado' || !data) return null;
   const litros = estado === 'borrador' ? (aDescontarL ?? 0) : (data.aDescontarL ?? 0);
   const hayAlgo = litros > 0 || data.decision !== null || data.pedido !== null || (data.descuentoQuitadoL ?? 0) > 0;
@@ -54,8 +58,13 @@ export function DecisionDiferencia({ cierreId, estado, aDescontarL }: { cierreId
       {estado === 'aprobado' && (data.descuentoQuitadoL ?? 0) > 0 && (
         <p className="text-sm text-tinta-suave">Se quitó el descuento de {formatearNumero(data.descuentoQuitadoL ?? 0, 1)} L después de aprobar.</p>
       )}
-      {estado === 'borrador' && litros > 0 && <Decidir cierreId={cierreId} litros={litros} actual={data} />}
-      {estado === 'aprobado' && <QuitarDescuento cierreId={cierreId} data={data} zonaHoraria={zonaHoraria} />}
+      {estado === 'borrador' && litros > 0 && puedeDecidir && <Decidir cierreId={cierreId} litros={litros} actual={data} />}
+      {estado === 'borrador' && litros > 0 && !puedeDecidir && !data.decision && (
+        <p className="text-sm text-tinta-suave">
+          Faltan <strong>{formatearNumero(litros, 1)} L</strong>. Lo deciden Telemetría, Adm. de combustible, Operaciones o TI.
+        </p>
+      )}
+      {estado === 'aprobado' && <QuitarDescuento cierreId={cierreId} data={data} zonaHoraria={zonaHoraria} puedePedir={puedePedir} />}
     </Seccion>
   );
 }
@@ -117,7 +126,7 @@ function Decidir({ cierreId, litros, actual }: { cierreId: number; litros: numbe
   );
 }
 
-function QuitarDescuento({ cierreId, data, zonaHoraria }: { cierreId: number; data: DecisionCierre; zonaHoraria: string }) {
+function QuitarDescuento({ cierreId, data, zonaHoraria, puedePedir }: { cierreId: number; data: DecisionCierre; zonaHoraria: string; puedePedir: boolean }) {
   const pedir = usePedirQuitarDescuento();
   const resolver = useResolverQuitarDescuento();
   const retirar = useRetirarQuitarDescuento();
@@ -181,7 +190,7 @@ function QuitarDescuento({ cierreId, data, zonaHoraria }: { cierreId: number; da
           )}
         </div>
       )}
-      {(data.aDescontarL ?? 0) > 0 && !pendiente && (
+      {(data.aDescontarL ?? 0) > 0 && !pendiente && puedePedir && (
         abierto ? (
           <div className="space-y-2">
             <p>
