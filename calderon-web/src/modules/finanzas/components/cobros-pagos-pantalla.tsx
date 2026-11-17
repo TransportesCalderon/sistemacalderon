@@ -50,8 +50,10 @@ import { PagarGasto } from "./gasto-ficha";
 import { CuentaEstaciones } from "./cuenta-estaciones";
 import { SaldosLinea, SaldosResumen } from "./saldos";
 import { agruparSaldos } from "../domain/saldos-por-tercero";
+import { useBaseTiene } from "@/shared/hooks/use-version-base";
+import { ReciboForm, Recibos } from "./recibos";
 
-type Vista = "cobrar" | "pagar" | "movimientos";
+type Vista = "cobrar" | "pagar" | "movimientos" | "recibos";
 
 /** Finanzas › Cobros y pagos: lo que nos deben, lo que debemos y todo lo que entró y salió. */
 export function CobrosPagosPantalla() {
@@ -59,6 +61,8 @@ export function CobrosPagosPantalla() {
   const [vista, setVista] = useState<Vista>(
     (params.get("ver") as Vista) || "cobrar",
   );
+  // Migración 275: recibos de cobranza
+  const hayRecibos = useBaseTiene(275);
   return (
     <div className="space-y-5">
       <Encabezado titulo="Cobros y pagos" subtitulo="Finanzas" />
@@ -71,8 +75,11 @@ export function CobrosPagosPantalla() {
             ["cobrar", "Nos deben"],
             ["pagar", "Debemos"],
             ["movimientos", "Entradas y salidas"],
+            ["recibos", "Recibos"],
           ] as const
-        ).map(([v, t]) => (
+        )
+          .filter(([v]) => v !== "recibos" || hayRecibos)
+          .map(([v, t]) => (
           <button
             key={v}
             type="button"
@@ -93,6 +100,8 @@ export function CobrosPagosPantalla() {
         <NosDeben />
       ) : vista === "pagar" ? (
         <Debemos />
+      ) : vista === "recibos" && hayRecibos ? (
+        <Recibos />
       ) : (
         <Movimientos />
       )}
@@ -103,6 +112,21 @@ export function CobrosPagosPantalla() {
 function NosDeben() {
   const { data, isLoading, isError, error, refetch } = usePorCobrar();
   const [abierta, setAbierta] = useState<number | null>(null);
+  // Migración 275: recibo con varias facturas del mismo cliente
+  const puedeCobrar = useCan("finanzas.cobros_pagos:editar");
+  const hayRecibos = useBaseTiene(275);
+  const puedeRecibo = puedeCobrar && hayRecibos;
+  const [elegidas, setElegidas] = useState<{ cliente: string; ids: number[] }>({ cliente: "", ids: [] });
+  const [reciboDe, setReciboDe] = useState<string | null>(null);
+  const [hecho, setHecho] = useState<string | null>(null);
+  const marcar = (cliente: string, id: number) => {
+    setHecho(null);
+    setElegidas((e) => {
+      const ids = e.cliente === cliente ? e.ids : [];
+      return { cliente, ids: ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id] };
+    });
+    if (reciboDe !== cliente) setReciboDe(null);
+  };
   if (isLoading) return <Cargando texto="Buscando facturas por cobrar…" />;
   if (isError || !data)
     return (
@@ -173,6 +197,11 @@ function NosDeben() {
           titulo={`${pendientes.length} facturas de ${grupos.length} ${grupos.length === 1 ? "cliente" : "clientes"} · ≈ ${dinero(total)}`}
         >
           <SaldosResumen totales={totales} />
+          {hecho && (
+            <p className="text-sm font-medium text-exito">
+              Recibo {hecho} registrado. Está en la pestaña «Recibos».
+            </p>
+          )}
           <p className="text-sm text-tinta-suave">
             Son las facturas emitidas en{" "}
             <Link
@@ -188,6 +217,9 @@ function NosDeben() {
             <table className="w-full min-w-[760px] text-sm">
               <thead className="border-y border-borde bg-fondo">
                 <tr>
+                  <th className={cn(TH, "w-8")}>
+                    {puedeRecibo && <span className="sr-only">Elegir para el recibo</span>}
+                  </th>
                   <th className={TH}>Factura</th>
                   <th className={TH}>Vence</th>
                   <th className={cn(TH, "text-right")}>Total</th>
@@ -196,29 +228,62 @@ function NosDeben() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-borde">
-                {grupos.map((g) => (
-                  <Fragment key={g.nombre}>
-                    <tr className="bg-fondo">
-                      <td colSpan={2} className={cn(TD, "font-semibold text-tinta")}>
-                        {g.nombre}
-                        <span className="block text-xs font-normal text-tinta-suave">
-                          {g.items.length} {g.items.length === 1 ? "factura" : "facturas"}
-                        </span>
-                      </td>
-                      <td colSpan={3} className={cn(TD, "text-right text-xs")}>
-                        <SaldosLinea saldos={g.saldos} />
-                      </td>
-                    </tr>
-                    {g.items.map((f) => (
-                      <FilaCobrar
-                        key={f.id}
-                        f={f}
-                        abierta={abierta === f.id}
-                        onAbrir={() => setAbierta(abierta === f.id ? null : f.id)}
-                      />
-                    ))}
-                  </Fragment>
-                ))}
+                {grupos.map((g) => {
+                  const ids = elegidas.cliente === g.nombre ? elegidas.ids : [];
+                  return (
+                    <Fragment key={g.nombre}>
+                      <tr className="bg-fondo">
+                        <td colSpan={3} className={cn(TD, "font-semibold text-tinta")}>
+                          {g.nombre}
+                          <span className="block text-xs font-normal text-tinta-suave">
+                            {g.items.length} {g.items.length === 1 ? "factura" : "facturas"}
+                          </span>
+                        </td>
+                        <td colSpan={3} className={cn(TD, "text-right text-xs")}>
+                          <SaldosLinea saldos={g.saldos} />
+                          {puedeRecibo && ids.length > 0 && reciboDe !== g.nombre && (
+                            <button
+                              type="button"
+                              className={cn(BOTON_PRIMARIO, "mt-2")}
+                              onClick={() => setReciboDe(g.nombre)}
+                            >
+                              Hacer un recibo ({ids.length})
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                      {puedeRecibo && reciboDe === g.nombre && ids.length > 0 && (
+                        <tr>
+                          <td colSpan={6} className="bg-fondo/40 px-3 py-3">
+                            <ReciboForm
+                              cliente={g.nombre}
+                              facturas={g.items.filter((f) => ids.includes(f.id))}
+                              onCerrar={() => setReciboDe(null)}
+                              onListo={(numero) => {
+                                setReciboDe(null);
+                                setElegidas({ cliente: "", ids: [] });
+                                setHecho(numero);
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                      {g.items.map((f) => (
+                        <FilaCobrar
+                          key={f.id}
+                          f={f}
+                          abierta={abierta === f.id}
+                          onAbrir={() => setAbierta(abierta === f.id ? null : f.id)}
+                          elegir={
+                            puedeRecibo
+                              ? { marcada: ids.includes(f.id), onMarcar: () => marcar(g.nombre, f.id) }
+                              : null
+                          }
+                        />
+                      ))}
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -232,15 +297,28 @@ function FilaCobrar({
   f,
   abierta,
   onAbrir,
+  elegir,
 }: {
   f: PorCobrar;
   abierta: boolean;
   onAbrir: () => void;
+  /** Migración 275: casilla para sumar la factura a un recibo. */
+  elegir: { marcada: boolean; onMarcar: () => void } | null;
 }) {
   const puede = useCan("finanzas.cobros_pagos:editar");
   return (
     <>
       <tr>
+        <td className={cn(TD, "w-8")}>
+          {elegir && (
+            <input
+              type="checkbox"
+              aria-label={`Sumar ${f.numeroFiscal ?? f.numero} al recibo`}
+              checked={elegir.marcada}
+              onChange={elegir.onMarcar}
+            />
+          )}
+        </td>
         <td className={cn(TD, "tabular-nums")}>
           <span className="font-medium">{f.numeroFiscal ?? f.numero}</span>
           <span className="block text-xs text-tinta-suave">
@@ -280,7 +358,7 @@ function FilaCobrar({
       </tr>
       {abierta && (
         <tr>
-          <td colSpan={5} className="bg-fondo/40 px-3 pb-3">
+          <td colSpan={6} className="bg-fondo/40 px-3 pb-3">
             <Cobrar facturaId={f.id} moneda={f.moneda} saldo={f.saldo} />
           </td>
         </tr>

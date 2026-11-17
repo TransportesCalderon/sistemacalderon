@@ -791,6 +791,96 @@ export function parsearCuentaEstaciones(raw: unknown): CuentaEstacion[] {
   }));
 }
 
+/** Migración 275 · Recibo de cobranza: una o varias facturas del mismo cliente cobradas juntas. */
+export interface ReciboFactura {
+  facturaId: number;
+  numero: string;
+  fecha: string | null;
+  monto: number;
+  anulado: boolean;
+}
+export interface Recibo {
+  id: number;
+  numero: string;
+  fecha: string;
+  clienteId: number;
+  cliente: string;
+  cuenta: string;
+  moneda: string;
+  observacion: string | null;
+  estado: 'vigente' | 'anulado';
+  motivoAnulacion: string | null;
+  creadoPor: string | null;
+  total: number;
+  facturas: ReciboFactura[];
+}
+export function parsearRecibos(raw: unknown): Recibo[] {
+  return arr(raw).map((r) => ({
+    id: num(r.id),
+    numero: String(r.numero ?? ''),
+    fecha: String(r.fecha ?? ''),
+    clienteId: num(r.cliente_id),
+    cliente: String(r.cliente ?? ''),
+    cuenta: String(r.cuenta ?? ''),
+    moneda: String(r.moneda ?? 'CLP'),
+    observacion: txt(r.observacion),
+    estado: r.estado === 'anulado' ? 'anulado' : 'vigente',
+    motivoAnulacion: txt(r.motivo_anulacion),
+    creadoPor: txt(r.creado_por),
+    total: num(r.total),
+    facturas: arr(r.facturas).map((f) => ({
+      facturaId: num(f.factura_id),
+      numero: String(f.numero ?? ''),
+      fecha: txt(f.fecha),
+      monto: num(f.monto),
+      anulado: f.anulado === true,
+    })),
+  }));
+}
+export interface ReciboCreado {
+  id: number;
+  numero: string;
+  facturas: number;
+  total: number;
+  moneda: string;
+}
+export function parsearReciboCreado(raw: unknown): ReciboCreado {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Obj;
+  return { id: num(r.id), numero: String(r.numero ?? ''), facturas: num(r.facturas), total: num(r.total), moneda: String(r.moneda ?? 'CLP') };
+}
+
+/**
+ * Lo que se propone cobrar de cada factura elegida: el saldo, salvo que se haya escrito otro monto.
+ * Devuelve el total y las facturas de otra moneda (el recibo va en una sola moneda).
+ */
+export function armarRecibo(
+  elegidas: { id: number; moneda: string; saldo: number }[],
+  montos: Record<number, string>,
+  moneda: string,
+): { total: number; otraMoneda: number[]; vacias: number[] } {
+  let total = 0;
+  const otraMoneda: number[] = [];
+  const vacias: number[] = [];
+  for (const f of elegidas) {
+    if (f.moneda !== moneda) otraMoneda.push(f.id);
+    const escrito = montos[f.id];
+    const m = escrito === undefined ? f.saldo : leerMonto(escrito);
+    if (m === null || m <= 0) vacias.push(f.id);
+    else total += m;
+  }
+  return { total: Math.round(total * 100) / 100, otraMoneda, vacias };
+}
+/** «1.234,56», «1234.56» o «1.234» → número; vacío o inválido → null. */
+export function leerMonto(t: string): number | null {
+  const s = t.trim().replace(/\s/g, '');
+  if (s === '') return null;
+  let v: number;
+  if (s.includes(',')) v = Number(s.replace(/\./g, '').replace(',', '.'));
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) v = Number(s.replace(/\./g, ''));
+  else v = Number(s);
+  return Number.isFinite(v) ? v : null;
+}
+
 export type TipoMedioPago = 'factura_posterior' | 'prepago' | 'caja' | 'tanque_propio';
 export const ETIQUETA_TIPO_MEDIO: Record<TipoMedioPago, string> = {
   factura_posterior: 'Factura después (cuenta corriente o tarjeta con factura)',

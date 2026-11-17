@@ -147,6 +147,18 @@ export const anularSchema = z.object({ id, motivo });
 // Migración 273: cambiar la fecha de un cobro
 export const cambiarFechaCobroSchema = z.object({ id, fecha, motivo });
 export const periodoSchema = z.object({ periodo: fecha });
+// Migración 275: recibo de cobranza con una o varias facturas del mismo cliente
+export const reciboSchema = z.object({
+  fecha,
+  cuentaDineroId: z.number({ error: 'Elegí el banco o la caja.' }).int().positive('Elegí el banco o la caja.'),
+  observacion: texto(500),
+  facturas: z
+    .array(z.object({ facturaId: id, monto: numeroOpc }))
+    .min(1, 'Elegí al menos una factura.')
+    .max(100, 'Un recibo lleva hasta 100 facturas.'),
+});
+export type ReciboEntrada = z.infer<typeof reciboSchema>;
+export const anularReciboSchema = z.object({ id, motivo });
 
 // Migración 74
 export const medioPagoSchema = z.object({

@@ -22,6 +22,8 @@ import {
   parsearPorCobrar,
   parsearPorPagar,
   parsearCuentaEstaciones,
+  parsearReciboCreado,
+  parsearRecibos,
   parsearTablero,
 } from '../domain/finanzas.types';
 import type {
@@ -34,6 +36,7 @@ import type {
   MedioPagoEntrada,
   MovimientoEntrada,
   PagoRecargosEntrada,
+  ReciboEntrada,
   ProveedorEntrada,
 } from '../domain/finanzas.schemas';
 
@@ -229,6 +232,27 @@ export const finanzasRepository = (db: Db) => {
     /** Migración 273: cambia la fecha de un cobro de factura. */
     async cambiarFechaCobro(id: number, fecha: string, motivo: string) {
       await leer(fin().rpc('fn_cambiar_fecha_cobro', { p_movimiento: id, p_fecha: fecha, p_motivo: motivo }));
+    },
+    /** Migración 275: recibo de cobranza con varias facturas del mismo cliente. */
+    async registrarRecibo(d: ReciboEntrada) {
+      return parsearReciboCreado(
+        await leer(
+          fin().rpc('fn_registrar_recibo', {
+            p_datos: {
+              fecha: d.fecha,
+              cuenta_dinero_id: d.cuentaDineroId,
+              observacion: d.observacion,
+              facturas: d.facturas.map((f) => ({ factura_id: f.facturaId, monto: f.monto })),
+            } as Json,
+          }),
+        ),
+      );
+    },
+    async anularRecibo(id: number, motivo: string) {
+      await leer(fin().rpc('fn_anular_recibo', { p_recibo: id, p_motivo: motivo }));
+    },
+    async recibos(desde: string | null, hasta: string | null) {
+      return parsearRecibos(await leer(fin().rpc('fn_recibos', { p_desde: desde, p_hasta: hasta })));
     },
     async importarCartola(c: ImportarCartolaEntrada) {
       return parsearImportacion(await leer(fin().rpc('fn_importar_cartola', { p_cuenta: c.cuentaId, p_filas: c.filas as Json })));

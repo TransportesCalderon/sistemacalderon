@@ -3,6 +3,8 @@
 import { createAction } from '@/server/actions/create-action';
 import {
   anularSchema,
+  anularReciboSchema,
+  reciboSchema,
   cambiarFechaCobroSchema,
   conciliarSchema,
   crearDesdeLineaSchema,
@@ -97,6 +99,19 @@ export const cambiarFechaCobro = createAction({
   permiso: 'finanzas.cobros_pagos:transicionar',
   schema: cambiarFechaCobroSchema,
   handler: (d, { db }) => repo(db).cambiarFechaCobro(d.id, d.fecha, d.motivo),
+  invalida: () => RUTAS,
+});
+// Migración 275: recibo de cobranza (varias facturas del mismo cliente) y su anulación
+export const registrarRecibo = createAction({
+  permiso: 'finanzas.cobros_pagos:editar',
+  schema: reciboSchema,
+  handler: (d, { db }) => repo(db).registrarRecibo(d),
+  invalida: () => RUTAS,
+});
+export const anularRecibo = createAction({
+  permiso: 'finanzas.cobros_pagos:transicionar',
+  schema: anularReciboSchema,
+  handler: (d, { db }) => repo(db).anularRecibo(d.id, d.motivo),
   invalida: () => RUTAS,
 });
 export const importarCartola = createAction({

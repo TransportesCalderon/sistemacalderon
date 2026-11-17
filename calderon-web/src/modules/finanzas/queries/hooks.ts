@@ -6,6 +6,8 @@ import { browserDb } from '@/shared/supabase/browser';
 import {
   anularGasto,
   anularMovimiento,
+  anularRecibo,
+  registrarRecibo,
   cambiarFechaCobro,
   conciliar,
   crearDesdeLinea,
@@ -49,6 +51,9 @@ export const usePorCobrar = () => useQuery({ queryKey: [...CLAVE, 'por-cobrar'],
 export const usePorPagar = () => useQuery({ queryKey: [...CLAVE, 'por-pagar'], queryFn: () => repo().porPagar() });
 // Migración 274: cuenta corriente con estaciones
 export const useCuentaEstaciones = () => useQuery({ queryKey: [...CLAVE, 'cuenta-estaciones'], queryFn: () => repo().cuentaEstaciones() });
+// Migración 275: recibos de cobranza
+export const useRecibos = (desde: string | null, hasta: string | null, enabled = true) =>
+  useQuery({ queryKey: [...CLAVE, 'recibos', desde, hasta], queryFn: () => repo().recibos(desde, hasta), enabled, placeholderData: keepPreviousData });
 export const useCartola = (cuenta: number, soloPendientes: boolean) =>
   useQuery({ queryKey: [...CLAVE, 'cartola', cuenta, soloPendientes], queryFn: () => repo().cartola(cuenta, soloPendientes), placeholderData: keepPreviousData });
 export const useEstadoResultados = (desde: string, hasta: string) =>
@@ -95,6 +100,8 @@ export const useRegistrarMovimiento = () => useEscritura(registrarMovimiento);
 export const usePagarConRecargos = () => useEscritura(pagarConRecargos);
 export const useAnularMovimiento = () => useEscritura(anularMovimiento);
 export const useCambiarFechaCobro = () => useEscritura(cambiarFechaCobro);
+export const useRegistrarRecibo = () => useEscritura(registrarRecibo);
+export const useAnularRecibo = () => useEscritura(anularRecibo);
 export const useImportarCartola = () => useEscritura(importarCartola);
 export const useConfirmarCambios = () => useEscritura(confirmarCambios);
 export const useConciliar = () => useEscritura(conciliar);
