@@ -416,6 +416,9 @@ export function PagarGasto({ gastoId, moneda, saldo, onListo }: { gastoId: numbe
     );
   const cd = activas.find((c) => c.id === cuenta);
   const otraMoneda = cd && cd.moneda !== moneda;
+  // «1.234.567», «1234567» o «1234567,5» → número; lo que quedaría pendiente si se paga menos que el saldo
+  const pagado = monto.trim() === '' ? null : Number(monto.trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'));
+  const resto = pagado !== null && Number.isFinite(pagado) && pagado > 0 ? Math.round((saldo - pagado) * 100) / 100 : null;
   return (
     <div className={cn(TARJETA, 'mt-3 space-y-3 bg-fondo/40 p-3')}>
       <p className="text-sm font-medium text-tinta">Registrar un pago</p>
@@ -432,7 +435,7 @@ export function PagarGasto({ gastoId, moneda, saldo, onListo }: { gastoId: numbe
         <Campo label="Fecha">
           <input type="date" value={f} onChange={(e) => setF(e.target.value)} />
         </Campo>
-        <Campo label={`Monto pagado${cd ? ` (${cd.moneda})` : ''}`}>
+        <Campo label={`Monto pagado${cd ? ` (${cd.moneda})` : ''}`} ayuda={`Falta pagar ${dinero(saldo, moneda)}. Si se paga una parte, escribí solo esa parte.`}>
           <input inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} />
         </Campo>
         {otraMoneda && (
@@ -441,6 +444,12 @@ export function PagarGasto({ gastoId, moneda, saldo, onListo }: { gastoId: numbe
           </Campo>
         )}
       </div>
+      {/* Pago parcial: la base lo acepta; acá se avisa cuánto queda pendiente */}
+      {!otraMoneda && resto !== null && resto > 0 && (
+        <p className="rounded-md bg-alerta-suave px-3 py-2 text-sm text-alerta">
+          Pago parcial: después de este pago quedan <strong>{dinero(resto, moneda)}</strong> por pagar. El gasto sigue en «por pagar» hasta completarlo.
+        </p>
+      )}
       {/* Recargos por atraso: cada uno queda como un gasto aparte, unido a este y pagado el mismo día */}
       <label className="flex items-center gap-2 text-sm text-tinta">
         <input type="checkbox" className="size-4 accent-marca" checked={conRecargos} onChange={(e) => setConRecargos(e.target.checked)} />

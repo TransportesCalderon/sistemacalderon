@@ -14,11 +14,13 @@ import { Campo } from '@/shared/ui/campo';
 import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_GASTOS } from '@/shared/ui/pestanas-secciones';
 import { cuentasParaGasto, dinero, etiquetaDocumento, mesCorto, TIPOS_DOCUMENTO, type GastoFijo, type TipoDocumento } from '../domain/finanzas.types';
+import { esSueldo } from '../domain/sueldos-estructura';
 import { useComprasRodados } from '../queries/compra-rodado.hooks';
 import { useCamionesFinanzas, useGastosFijos, useGenerarGastosFijos, useGuardarGastoFijo, usePlanCuentas } from '../queries/hooks';
 import { MONEDAS, OpcionesCuentas } from './comun';
 import { ComprasRodados } from './compras-rodados';
 import { PagarGasto } from './gasto-ficha';
+import { SueldosEstructura } from './sueldos-estructura';
 
 interface Form {
   id: number | null;
@@ -122,7 +124,9 @@ export function GastosFijosPantalla() {
 
   if (isLoading) return <Cargando texto="Cargando los gastos fijos…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudieron leer los gastos fijos." onReintentar={() => void refetch()} error={error} />;
-  const totalMes = data.fijos.filter((f) => f.activo && !f.terminado).reduce((s, f) => s + (f.montoClp ?? 0), 0);
+  // Los sueldos de la estructura tienen su propio bloque (abajo): acá van los demás gastos fijos
+  const comunes = data.fijos.filter((f) => !esSueldo(f.nombre));
+  const totalMes = comunes.filter((f) => f.activo && !f.terminado).reduce((s, f) => s + (f.montoClp ?? 0), 0);
 
   return (
     <div className="space-y-5">
@@ -326,10 +330,10 @@ export function GastosFijosPantalla() {
         </Panel>
       )}
 
-      {data.fijos.length === 0 ? (
+      {comunes.length === 0 ? (
         <Vacio icono={<Repeat className="size-6" />} texto="Todavía no hay gastos fijos." />
       ) : (
-        <Seccion titulo={`${data.fijos.filter((f) => f.activo && !f.terminado).length} activos · ${dinero(totalMes)} por mes`}>
+        <Seccion titulo={`${comunes.filter((f) => f.activo && !f.terminado).length} activos · ${dinero(totalMes)} por mes`}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-sm">
               <thead className="border-y border-borde bg-fondo">
@@ -344,7 +348,7 @@ export function GastosFijosPantalla() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-borde">
-                {data.fijos.map((f) => (
+                {comunes.map((f) => (
                   <Fragment key={f.id}>
                   <tr
                     className={cn(!f.activo && 'text-tinta-suave', f.cuotasSinPagar.length > 0 && 'cursor-pointer hover:bg-hover')}
@@ -428,6 +432,8 @@ export function GastosFijosPantalla() {
           </div>
         </Seccion>
       )}
+
+      <SueldosEstructura fijos={data.fijos} plan={plan ?? []} puede={puede} mesActual={mesActual} />
 
       <ComprasRodados puede={puede} />
 
