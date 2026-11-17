@@ -377,7 +377,7 @@ function HojaFactura({
 
         <div className="grid gap-x-6 gap-y-1 rounded border border-neutral-300 p-2 text-xs sm:grid-cols-2">
           <p><b>Señor(es):</b> {r.razon_social}</p>
-          <p><b>{r.pais === 'CL' || !r.pais ? 'R.U.T.' : 'Identificación'}:</b> {r.identificador_fiscal}</p>
+          <p><b>{r.pais === 'CL' || !r.pais ? 'R.U.T.' : r.pais === 'UY' ? 'RUT (Uruguay)' : 'Identificación'}:</b> {r.identificador_fiscal}</p>
           {r.giro && <p><b>Giro:</b> {r.giro}</p>}
           {lugar(r) && <p><b>Dirección:</b> {lugar(r)}</p>}
           <p><b>Fecha de emisión:</b> {formatearFechaDia(v.fecha)}</p>

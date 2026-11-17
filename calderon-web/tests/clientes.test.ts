@@ -30,6 +30,12 @@ describe('identificador fiscal', () => {
     expect(errorIdentificadorFiscal('CL', '12345678-5')).toBeNull();
     expect(errorIdentificadorFiscal('CL', '12345678-4')).toMatch(/verificador/);
     expect(formatearIdentificadorFiscal('AR', cuitValido)).toBe(`30-71234567-${cuitValido[10]}`);
+    // Migración 272: RUT de Uruguay, 12 dígitos con verificador módulo 11
+    expect(normalizarIdentificadorFiscal('UY', '21 552175-0017')).toBe('215521750017');
+    expect(errorIdentificadorFiscal('UY', '215521750017')).toBeNull();
+    expect(errorIdentificadorFiscal('UY', '215521750018')).toMatch(/verificador/);
+    expect(errorIdentificadorFiscal('UY', '21552175001')).toMatch(/12 dígitos/);
+    expect(errorIdentificadorFiscal('UY', '995521750017')).toMatch(/01 a 21/);
   });
 });
 

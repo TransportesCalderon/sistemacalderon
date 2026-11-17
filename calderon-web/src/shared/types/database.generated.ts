@@ -1297,6 +1297,8 @@ export type Database = {
       fn_ven_guardar_factura: { Args: { p_id: number; p_version: number; p_renglones: Json; p_observacion?: string | null }; Returns: undefined };
       fn_ven_emitir_factura: { Args: { p_id: number; p_version: number; p_numero_fiscal: string; p_fecha: string }; Returns: undefined };
       fn_ven_cobrar_factura: { Args: { p_id: number; p_fecha: string; p_cuenta?: number | null }; Returns: undefined };
+      // Migración 273: cambiar la fecha del cobro
+      fn_ven_cambiar_fecha_cobro: { Args: { p_id: number; p_fecha: string; p_motivo: string }; Returns: undefined };
       fn_ven_anular_factura: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_pizarra: { Args: Record<string, never>; Returns: PizarraRow[] };
       // Migración 118: «lo que sigue» de cada fila de la Pizarra
@@ -1457,9 +1459,7 @@ export type Database = {
       fn_ven_sii_vista_previa: { Args: { p_id: number; p_fecha: string }; Returns: Json };
       fn_ven_guardar_glosa_sii: { Args: { p_id: number; p_glosa: string | null }; Returns: string | null };
       fn_ven_guardar_oc_sii: { Args: { p_id: number; p_numero: string; p_fecha: string | null }; Returns: Json };
-      fn_ven_cuenta_corriente: { Args: { p_cliente: number | null; p_desde: string | null; p_hasta: string | null }; Returns: Json };
       fn_enex_pendientes: { Args: Record<string, never>; Returns: Json };
-      fn_operaciones_incompletas: { Args: Record<string, never>; Returns: Json };
       fn_enex_registrar: { Args: { p_id: number; p_estacion: number | null }; Returns: Json };
       fn_enex_corregir: { Args: { p_id: number }; Returns: Json };
       fn_enex_descartar: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
@@ -1774,6 +1774,8 @@ export type Database = {
       fn_generar_gastos_fijos: { Args: { p_periodo: string }; Returns: number };
       fn_registrar_movimiento: { Args: { p_datos: Json }; Returns: number };
       fn_anular_movimiento: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      // Migración 273: cambiar la fecha de un cobro
+      fn_cambiar_fecha_cobro: { Args: { p_movimiento: number; p_fecha: string; p_motivo: string }; Returns: undefined };
       fn_importar_cartola: { Args: { p_cuenta: number; p_filas: Json }; Returns: Json };
       fn_conciliar: { Args: { p_linea: number; p_movimiento: number }; Returns: undefined };
       fn_desconciliar: { Args: { p_linea: number }; Returns: undefined };

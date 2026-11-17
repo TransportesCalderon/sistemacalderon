@@ -3,6 +3,7 @@
 import { createAction } from '@/server/actions/create-action';
 import {
   anularSchema,
+  cambiarFechaCobroSchema,
   conciliarSchema,
   crearDesdeLineaSchema,
   cuentaContableSchema,
@@ -81,6 +82,13 @@ export const anularMovimiento = createAction({
   permiso: 'finanzas.cobros_pagos:transicionar',
   schema: anularSchema,
   handler: (d, { db }) => repo(db).anularMovimiento(d.id, d.motivo),
+  invalida: () => RUTAS,
+});
+// Migración 273: cambiar la fecha de un cobro (la base decide quién y hasta dónde)
+export const cambiarFechaCobro = createAction({
+  permiso: 'finanzas.cobros_pagos:transicionar',
+  schema: cambiarFechaCobroSchema,
+  handler: (d, { db }) => repo(db).cambiarFechaCobro(d.id, d.fecha, d.motivo),
   invalida: () => RUTAS,
 });
 export const importarCartola = createAction({

@@ -7,6 +7,7 @@ export const PAISES = [
   { codigo: 'CL', nombre: 'Chile' },
   { codigo: 'BR', nombre: 'Brasil' },
   { codigo: 'PY', nombre: 'Paraguay' },
+  { codigo: 'UY', nombre: 'Uruguay' },
 ] as const;
 
 const TONO_ETAPA: Record<Etapa, Tono> = { nuevo: 'neutro', contactado: 'neutro', cotizado: 'marca', negociacion: 'alerta', ganado: 'exito', perdido: 'error' };

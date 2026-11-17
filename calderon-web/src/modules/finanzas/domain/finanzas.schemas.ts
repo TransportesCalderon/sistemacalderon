@@ -123,6 +123,8 @@ export type CrearDesdeLineaEntrada = z.infer<typeof crearDesdeLineaSchema>;
 
 export const idSchema = z.object({ id });
 export const anularSchema = z.object({ id, motivo });
+// Migración 273: cambiar la fecha de un cobro
+export const cambiarFechaCobroSchema = z.object({ id, fecha, motivo });
 export const periodoSchema = z.object({ periodo: fecha });
 
 // Migración 74

@@ -16,6 +16,7 @@ import { ESTADO_OPERACION_FAC, ETIQUETA_ESTADO_FAC, ETIQUETA_UNIDAD, usd, type E
 import { useCuentasParaElegir } from '@/modules/finanzas/queries/hooks';
 import {
   useAnularFactura,
+  useCambiarFechaCobro,
   useCobrarFactura,
   useCrearFactura,
   useEmitirFactura,
@@ -28,11 +29,11 @@ import {
   useResumenFacturacion,
 } from '../queries/hooks';
 import { ChipFactura } from './comun';
-import { CuentaCorrienteVista } from './cuenta-corriente';
 import { FacturaSii } from './factura-sii';
 import { ElegirDetalle } from './detalle-factura';
 import { FacturaLibre } from './factura-libre';
 import { CampoComprobante, ComprobanteCobro, useAdjuntarComprobante } from './comprobante-cobro';
+import { CambiarFechaCobro } from './cambiar-fecha-cobro';
 import { ConformeDescarga } from '@/modules/logistica/components/conforme-descarga';
 import type { FechaISO } from '@/shared/types/dominio';
 
@@ -49,7 +50,7 @@ const ETIQUETA_FILTRO = (f: FiltroFactura) =>
 export function FacturacionPantalla() {
   const params = useSearchParams();
   const inicial = Number(params.get('factura')) || null;
-  const [vista, setVista] = useState<'por_facturar' | 'facturas' | 'cuenta'>(inicial ? 'facturas' : 'por_facturar');
+  const [vista, setVista] = useState<'por_facturar' | 'facturas'>(inicial ? 'facturas' : 'por_facturar');
   const [abierta, setAbierta] = useState<number | null>(inicial);
   const [estado, setEstado] = useState<FiltroFactura>(inicial ? null : 'borrador');
   const verFacturas = (f: FiltroFactura) => {
@@ -90,7 +91,6 @@ export function FacturacionPantalla() {
           [
             ['por_facturar', 'Por facturar'],
             ['facturas', 'Prefacturas y facturas'],
-            ['cuenta', 'Cuenta corriente'],
           ] as const
         ).map(([id, t]) => (
           <button
@@ -107,14 +107,6 @@ export function FacturacionPantalla() {
         <PorFacturarVista
           onCreada={(id) => {
             setAbierta(id);
-            setVista('facturas');
-          }}
-        />
-      ) : vista === 'cuenta' ? (
-        <CuentaCorrienteVista
-          onAbrirFactura={(id) => {
-            setAbierta(id);
-            setEstado(null);
             setVista('facturas');
           }}
         />
@@ -448,6 +440,8 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
   const guardar = useGuardarFactura();
   const emitir = useEmitirFactura();
   const cobrar = useCobrarFactura();
+  // Migración 273: corregir la fecha de un cobro ya registrado
+  const cambiarFecha = useCambiarFechaCobro();
   const anular = useAnularFactura();
   const numero = useNumeroFactura();
   const rearmar = useRearmarDetalle();
@@ -682,6 +676,16 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
               {(cobrar.isPending || comprobante.ocupado) && <LoaderCircle className="size-4 animate-spin" />} Registrar el cobro
             </button>
           </>
+        )}
+        {f.estado === 'cobrada' && f.cobradaEn && puedeEstado && (
+          <CambiarFechaCobro
+            fechaActual={f.cobradaEn.slice(0, 10)}
+            ocupado={cambiarFecha.isPending}
+            onGuardar={async (fecha, motivo) => {
+              const r = await cambiarFecha.mutateAsync({ id: f.id, fecha, motivo });
+              return r.ok ? null : r.error;
+            }}
+          />
         )}
         {(f.estado === 'borrador' || f.estado === 'emitida' || f.estado === 'vencida') && puedeEstado && (
           <AccionConMotivo

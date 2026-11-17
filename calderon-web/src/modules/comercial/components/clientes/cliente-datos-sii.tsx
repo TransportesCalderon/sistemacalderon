@@ -30,10 +30,12 @@ export function ClienteDatosSii({ clienteId, editable }: { clienteId: number; ed
   }, [data]);
 
   const chileno = data?.pais === 'CL';
+  // Migración 272: el cliente uruguayo necesita en la factura su RUT, razón social y domicilio fiscal (dirección, departamento y ciudad)
+  const uruguayo = data?.pais === 'UY';
   const campos: { k: keyof Datos; label: string }[] = [
     { k: 'giro', label: chileno ? 'Giro' : 'Giro (opcional)' },
     { k: 'direccion', label: 'Dirección' },
-    { k: 'comuna', label: chileno ? 'Comuna' : 'Comuna / provincia (opcional)' },
+    { k: 'comuna', label: chileno ? 'Comuna' : uruguayo ? 'Departamento' : 'Comuna / provincia (opcional)' },
     { k: 'ciudad', label: 'Ciudad' },
     { k: 'correo', label: 'Correo para enviarle la factura (varios con ;)' },
   ];

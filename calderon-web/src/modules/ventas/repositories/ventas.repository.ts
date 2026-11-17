@@ -1,4 +1,3 @@
-import { parsearCuentaCorriente, parsearSaldosClientes } from '../domain/cuenta-corriente';
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/database.generated';
 import {
@@ -71,13 +70,6 @@ export const ventasRepository = (db: Db) => {
     },
     async facturas(estado: string | null) {
       return parsearFacturas(await leer(ven().rpc('fn_ven_facturas', { p_estado: estado })));
-    },
-    /** Cuenta corriente: saldos de todos los clientes, o los movimientos de uno. */
-    async saldosClientes() {
-      return parsearSaldosClientes(await leer(ven().rpc('fn_ven_cuenta_corriente', { p_cliente: null, p_desde: null, p_hasta: null })));
-    },
-    async cuentaCorriente(clienteId: number, desde: string | null, hasta: string | null) {
-      return parsearCuentaCorriente(await leer(ven().rpc('fn_ven_cuenta_corriente', { p_cliente: clienteId, p_desde: desde, p_hasta: hasta })));
     },
     async factura(id: number) {
       return parsearFactura(await leer(ven().rpc('fn_ven_factura', { p_id: id })));
@@ -289,6 +281,10 @@ export const ventasRepository = (db: Db) => {
     async cobrarFactura(id: number, fecha: string, cuentaId: number | null = null) {
       // Migración 73: el cobro entra a un banco o caja de Finanzas (y se contabiliza)
       await leer(ven().rpc('fn_ven_cobrar_factura', { p_id: id, p_fecha: fecha, p_cuenta: cuentaId }));
+    },
+    /** Migración 273: cambia la fecha del cobro (un solo cobro o cobrada sin banco). */
+    async cambiarFechaCobro(id: number, fecha: string, motivo: string) {
+      await leer(ven().rpc('fn_ven_cambiar_fecha_cobro', { p_id: id, p_fecha: fecha, p_motivo: motivo }));
     },
     async anularFactura(id: number, motivo: string) {
       await leer(ven().rpc('fn_ven_anular_factura', { p_id: id, p_motivo: motivo }));

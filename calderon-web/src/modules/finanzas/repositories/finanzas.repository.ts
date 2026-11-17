@@ -197,6 +197,10 @@ export const finanzasRepository = (db: Db) => {
     async anularMovimiento(id: number, motivo: string) {
       await leer(fin().rpc('fn_anular_movimiento', { p_id: id, p_motivo: motivo }));
     },
+    /** Migración 273: cambia la fecha de un cobro de factura. */
+    async cambiarFechaCobro(id: number, fecha: string, motivo: string) {
+      await leer(fin().rpc('fn_cambiar_fecha_cobro', { p_movimiento: id, p_fecha: fecha, p_motivo: motivo }));
+    },
     async importarCartola(c: ImportarCartolaEntrada) {
       return parsearImportacion(await leer(fin().rpc('fn_importar_cartola', { p_cuenta: c.cuentaId, p_filas: c.filas as Json })));
     },

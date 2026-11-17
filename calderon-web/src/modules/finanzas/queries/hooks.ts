@@ -6,6 +6,7 @@ import { browserDb } from '@/shared/supabase/browser';
 import {
   anularGasto,
   anularMovimiento,
+  cambiarFechaCobro,
   conciliar,
   crearDesdeLinea,
   desconciliar,
@@ -89,6 +90,7 @@ export const useGuardarGastoFijo = () => useEscritura(guardarGastoFijo);
 export const useGenerarGastosFijos = () => useEscritura(generarGastosFijos);
 export const useRegistrarMovimiento = () => useEscritura(registrarMovimiento);
 export const useAnularMovimiento = () => useEscritura(anularMovimiento);
+export const useCambiarFechaCobro = () => useEscritura(cambiarFechaCobro);
 export const useImportarCartola = () => useEscritura(importarCartola);
 export const useConfirmarCambios = () => useEscritura(confirmarCambios);
 export const useConciliar = () => useEscritura(conciliar);

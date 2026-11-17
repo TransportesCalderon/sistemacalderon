@@ -6,6 +6,7 @@ import {
   actividadSchema,
   adicionalSchema,
   cobrarSchema,
+  cambiarFechaCobroSchema,
   completarSchema,
   contactoSchema,
   cotizacionSchema,
@@ -111,6 +112,13 @@ export const cobrarFactura = createAction({
   permiso: 'ventas.facturacion:transicionar',
   schema: cobrarSchema,
   handler: (d, { db }) => repo(db).cobrarFactura(d.id, d.fecha, d.cuentaId ?? null),
+  invalida: rutas,
+});
+// Migración 273: cambiar la fecha del cobro de una factura (la base decide quién y hasta dónde)
+export const cambiarFechaCobro = createAction({
+  permiso: 'ventas.facturacion:transicionar',
+  schema: cambiarFechaCobroSchema,
+  handler: (d, { db }) => repo(db).cambiarFechaCobro(d.id, d.fecha, d.motivo),
   invalida: rutas,
 });
 export const numeroFactura = createAction({

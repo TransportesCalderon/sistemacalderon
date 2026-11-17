@@ -36,6 +36,7 @@ import {
 } from "../domain/finanzas.types";
 import {
   useAnularMovimiento,
+  useCambiarFechaCobro,
   useCuentasDinero,
   useMovimientos,
   usePlanCuentas,
@@ -44,6 +45,7 @@ import {
   useRegistrarMovimiento,
 } from "../queries/hooks";
 import { fecha, OpcionesCuentas } from "./comun";
+import { CambiarFechaCobro } from "@/modules/ventas/components/cambiar-fecha-cobro";
 import { PagarGasto } from "./gasto-ficha";
 
 type Vista = "cobrar" | "pagar" | "movimientos";
@@ -505,6 +507,8 @@ function Movimientos() {
     hasta || null,
   );
   const anular = useAnularMovimiento();
+  // Migración 273: un cobro cargado con la fecha equivocada se corrige sin anularlo
+  const cambiarFecha = useCambiarFechaCobro();
   const envio = useEnvio();
   return (
     <div className="space-y-4">
@@ -630,7 +634,17 @@ function Movimientos() {
                       <Chip tono="neutro">Sin conciliar</Chip>
                     ) : null}
                   </td>
-                  <td className={cn(TD, "text-right")}>
+                  <td className={cn(TD, "space-y-2 text-right")}>
+                    {puedeAnular && m.estado === "vigente" && m.tipo === "cobro" && !m.conciliado && (
+                      <CambiarFechaCobro
+                        fechaActual={m.fecha.slice(0, 10)}
+                        ocupado={cambiarFecha.isPending}
+                        onGuardar={async (f, motivo) => {
+                          const r = await cambiarFecha.mutateAsync({ id: m.id, fecha: f, motivo });
+                          return r.ok ? null : r.error;
+                        }}
+                      />
+                    )}
                     {puedeAnular && m.estado === "vigente" && (
                       <AccionConMotivo
                         etiqueta="Anular"
