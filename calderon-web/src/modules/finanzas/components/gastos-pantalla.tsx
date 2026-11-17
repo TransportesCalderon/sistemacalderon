@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Receipt, Repeat } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Receipt, Repeat } from 'lucide-react';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { Cargando, Encabezado, ErrorLectura, Seccion, Vacio } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
@@ -11,6 +11,7 @@ import { BOTON_PRIMARIO, CONTROL_FILTRO } from '@/shared/ui/clases';
 import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_GASTOS } from '@/shared/ui/pestanas-secciones';
 import { dinero, etiquetaDocumento } from '../domain/finanzas.types';
+import { agrupar } from '../domain/gastos-agrupar';
 import { useGastos, usePlanCuentas } from '../queries/hooks';
 import { ChipSituacion, fecha } from './comun';
 
@@ -22,6 +23,7 @@ export function GastosPantalla() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
   const [cuentaId, setCuentaId] = useState<number | null>(null);
+  const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
   const { data: plan } = usePlanCuentas();
   const { data, isLoading, isError, error, refetch, isFetching } = useGastos({
     estado: estado || null,
@@ -104,43 +106,79 @@ export function GastosPantalla() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-borde">
-                {data.map((g) => (
-                  <tr key={g.id} className="hover:bg-hover">
-                    <td className={cn(TD, 'tabular-nums')}>
-                      <Link href={`/finanzas/gastos/${g.id}`} className="font-medium text-marca hover:underline">
-                        {fecha(g.fecha)}
-                      </Link>
-                      <span className="block text-xs text-tinta-suave">{g.numero}</span>
-                    </td>
-                    <td className={TD}>
-                      <span className="text-tinta">{g.proveedor ?? '—'}</span>
-                      <span className="block text-xs text-tinta-suave">
-                        {g.descripcion}
-                        {g.camion && ` · ${g.camion}`}
-                        {g.fijo && ' · fijo'}
-                      </span>
-                    </td>
-                    <td className={cn(TD, 'text-xs')}>
-                      {etiquetaDocumento(g.tipoDocumento)}
-                      {g.numeroDocumento && <span className="block text-tinta-suave">N° {g.numeroDocumento}</span>}
-                    </td>
-                    <td className={cn(TD, 'text-xs text-tinta-suave')}>{g.cuenta}</td>
-                    <td className={cn(TD, 'text-right tabular-nums')}>
-                      {dinero(g.total, g.moneda)}
-                      {g.moneda !== 'CLP' && <span className="block text-xs text-tinta-suave">{dinero(g.totalClp)}</span>}
-                    </td>
-                    <td className={cn(TD, 'text-right font-medium tabular-nums')}>{g.saldo > 0 ? dinero(g.saldo, g.moneda) : '—'}</td>
-                    <td className={cn(TD, 'tabular-nums', g.situacion === 'vencido' && 'text-error')}>{fecha(g.vence)}</td>
-                    <td className={TD}>
-                      <ChipSituacion s={g.situacion} />
-                    </td>
-                  </tr>
-                ))}
+                {agrupar(data).map((x) =>
+                  'gastos' in x ? (
+                    <Fragment key={`grupo-${x.clave}`}>
+                      <tr className="cursor-pointer hover:bg-hover" onClick={() => setAbiertos((a) => ({ ...a, [x.clave]: !a[x.clave] }))}>
+                        <td className={cn(TD, 'tabular-nums')}>
+                          <span className="inline-flex items-center gap-1 font-medium text-marca">
+                            {abiertos[x.clave] ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                            {x.gastos.length} cuotas
+                          </span>
+                        </td>
+                        <td className={TD}>
+                          <span className="text-tinta">{x.gastos[0]?.proveedor ?? '—'}</span>
+                          <span className="block text-xs text-tinta-suave">{x.nombre} · fijo · tocá para ver las cuotas</span>
+                        </td>
+                        <td className={cn(TD, 'text-xs')}>{etiquetaDocumento(x.gastos[0]!.tipoDocumento)}</td>
+                        <td className={cn(TD, 'text-xs text-tinta-suave')}>{x.gastos[0]?.cuenta}</td>
+                        <td className={cn(TD, 'text-right tabular-nums')}>{dinero(x.gastos.reduce((t, g) => t + g.totalClp, 0))}</td>
+                        <td className={cn(TD, 'text-right font-medium tabular-nums')}>{dinero(x.gastos.reduce((t, g) => t + g.saldo * (g.total ? g.totalClp / g.total : 1), 0))}</td>
+                        <td className={cn(TD, 'tabular-nums', x.gastos.some((g) => g.situacion === 'vencido') && 'text-error')}>
+                          {fecha(x.gastos.reduce((m, g) => (g.vence < m ? g.vence : m), x.gastos[0]!.vence))}
+                        </td>
+                        <td className={TD}>
+                          <ChipSituacion s={(x.gastos.find((g) => g.situacion === 'vencido') ?? x.gastos[0]!).situacion} />
+                        </td>
+                      </tr>
+                      {abiertos[x.clave] && x.gastos.map((g) => <FilaGasto key={g.id} g={g} hijo />)}
+                    </Fragment>
+                  ) : (
+                    <FilaGasto key={x.id} g={x} />
+                  ),
+                )}
               </tbody>
             </table>
           </div>
         </Seccion>
       )}
     </div>
+  );
+}
+
+type GastoLista = NonNullable<ReturnType<typeof useGastos>['data']>[number];
+
+function FilaGasto({ g, hijo = false }: { g: GastoLista; hijo?: boolean }) {
+  return (
+    <tr className={cn('hover:bg-hover', hijo && 'bg-fondo/40')}>
+      <td className={cn(TD, 'tabular-nums', hijo && 'pl-8')}>
+        <Link href={`/finanzas/gastos/${g.id}`} className="font-medium text-marca hover:underline">
+          {fecha(g.fecha)}
+        </Link>
+        <span className="block text-xs text-tinta-suave">{g.numero}</span>
+      </td>
+      <td className={TD}>
+        <span className="text-tinta">{g.proveedor ?? '—'}</span>
+        <span className="block text-xs text-tinta-suave">
+          {g.descripcion}
+          {g.camion && ` · ${g.camion}`}
+          {g.fijo && ' · fijo'}
+        </span>
+      </td>
+      <td className={cn(TD, 'text-xs')}>
+        {etiquetaDocumento(g.tipoDocumento)}
+        {g.numeroDocumento && <span className="block text-tinta-suave">N° {g.numeroDocumento}</span>}
+      </td>
+      <td className={cn(TD, 'text-xs text-tinta-suave')}>{g.cuenta}</td>
+      <td className={cn(TD, 'text-right tabular-nums')}>
+        {dinero(g.total, g.moneda)}
+        {g.moneda !== 'CLP' && <span className="block text-xs text-tinta-suave">{dinero(g.totalClp)}</span>}
+      </td>
+      <td className={cn(TD, 'text-right font-medium tabular-nums')}>{g.saldo > 0 ? dinero(g.saldo, g.moneda) : '—'}</td>
+      <td className={cn(TD, 'tabular-nums', g.situacion === 'vencido' && 'text-error')}>{fecha(g.vence)}</td>
+      <td className={TD}>
+        <ChipSituacion s={g.situacion} />
+      </td>
+    </tr>
   );
 }
