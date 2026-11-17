@@ -98,6 +98,20 @@ export const movimientoSchema = z.object({
 });
 export type MovimientoEntrada = z.infer<typeof movimientoSchema>;
 
+/** Pago de un gasto atrasado con sus recargos (interés por mora, gastos de cobranza y otros). */
+export const pagoRecargosSchema = z.object({
+  gastoId: id,
+  fecha,
+  cuentaDineroId: z.number({ error: 'Elegí el banco o la caja.' }).int().positive('Elegí el banco o la caja.'),
+  monto: numeroOpc,
+  montoDocumento: numeroOpc,
+  mora: numeroOpc,
+  cobranza: numeroOpc,
+  otros: numeroOpc,
+  otrosDetalle: texto(120),
+});
+export type PagoRecargosEntrada = z.infer<typeof pagoRecargosSchema>;
+
 export const filaCartolaSchema = z.object({
   fecha: z.string().max(40),
   descripcion: z.string().max(400),

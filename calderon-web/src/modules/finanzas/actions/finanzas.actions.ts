@@ -16,6 +16,7 @@ import {
   importarCartolaSchema,
   lineaSchema,
   movimientoSchema,
+  pagoRecargosSchema,
   periodoSchema,
   proveedorSchema,
 } from '../domain/finanzas.schemas';
@@ -76,6 +77,13 @@ export const registrarMovimiento = createAction({
   permiso: 'finanzas.cobros_pagos:editar',
   schema: movimientoSchema,
   handler: (d, { db }) => repo(db).registrarMovimiento(d),
+  invalida: () => RUTAS,
+});
+/** Pago de un gasto con recargos por atraso (17/11/2026). */
+export const pagarConRecargos = createAction({
+  permiso: 'finanzas.cobros_pagos:editar',
+  schema: pagoRecargosSchema,
+  handler: (d, { db }) => repo(db).pagarConRecargos(d),
   invalida: () => RUTAS,
 });
 export const anularMovimiento = createAction({
