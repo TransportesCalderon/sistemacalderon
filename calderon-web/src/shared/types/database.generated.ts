@@ -1775,6 +1775,10 @@ export type Database = {
       fn_anular_gasto: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_guardar_gasto_fijo: { Args: { p_id: number | null; p_datos: Json }; Returns: number };
       fn_guardar_gasto_fijo_equipos: { Args: { p_id: number | null; p_datos: Json; p_camiones?: number[]; p_semis?: number[] }; Returns: number };
+      // Compra de vehículos con documentos (17/11/2026)
+      fn_compras_rodados: { Args: Record<string, never>; Returns: Json };
+      fn_registrar_compra_rodado: { Args: { p_datos: Json }; Returns: number };
+      fn_anular_compra_rodado: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_generar_gastos_fijos: { Args: { p_periodo: string }; Returns: number };
       fn_pagar_gasto_con_recargos: { Args: { p_datos: Json }; Returns: Json };
       fn_registrar_movimiento: { Args: { p_datos: Json }; Returns: number };

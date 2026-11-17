@@ -14,8 +14,10 @@ import { Campo } from '@/shared/ui/campo';
 import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_GASTOS } from '@/shared/ui/pestanas-secciones';
 import { cuentasParaGasto, dinero, etiquetaDocumento, mesCorto, TIPOS_DOCUMENTO, type GastoFijo, type TipoDocumento } from '../domain/finanzas.types';
+import { useComprasRodados } from '../queries/compra-rodado.hooks';
 import { useCamionesFinanzas, useGastosFijos, useGenerarGastosFijos, useGuardarGastoFijo, usePlanCuentas } from '../queries/hooks';
 import { MONEDAS, OpcionesCuentas } from './comun';
+import { ComprasRodados } from './compras-rodados';
 import { PagarGasto } from './gasto-ficha';
 
 interface Form {
@@ -53,6 +55,9 @@ function ultimaCuota(desde: string, cuotas: string): string | null {
 export function GastosFijosPantalla() {
   const { zonaHoraria } = useSesion();
   const puede = useCan('finanzas.gastos:editar');
+  // Los documentos de una compra de vehículo no se editan acá: se anula la compra y se carga de nuevo
+  const { data: compras } = useComprasRodados();
+  const deCompra = new Set((compras?.compras ?? []).map((c) => c.gastoFijoId));
   const { data, isLoading, isError, error, refetch } = useGastosFijos();
   const { data: plan } = usePlanCuentas();
   const { data: proveedores } = useProveedores();
@@ -370,7 +375,7 @@ export function GastosFijosPantalla() {
                       {!f.activo ? <Chip tono="neutro">Inactivo</Chip> : f.terminado ? <Chip tono="neutro">Terminado</Chip> : f.cuotasSinPagar.length > 0 ? <Chip tono="alerta">{f.cuotasSinPagar.length === 1 ? '1 cuota sin pagar' : `${f.cuotasSinPagar.length} cuotas sin pagar`}</Chip> : f.generadoMes ? <Chip tono="exito">Generado</Chip> : <Chip tono="alerta">Falta</Chip>}
                     </td>
                     <td className={cn(TD, 'text-right')}>
-                      {puede && (
+                      {puede && !deCompra.has(f.id) && (
                         <button
                           type="button"
                           className={BOTON_ICONO}
@@ -423,6 +428,8 @@ export function GastosFijosPantalla() {
           </div>
         </Seccion>
       )}
+
+      <ComprasRodados puede={puede} />
 
       {data.porUnidad.length > 0 && (
         <Seccion titulo="Costo fijo por unidad este mes">
