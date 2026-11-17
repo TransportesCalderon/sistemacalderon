@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, Fuel } from 'lucide-react';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { Cargando, ErrorLectura, Seccion } from '@/modules/combustible/components/comun/ui';
 import { cn } from '@/shared/lib/cn';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { dinero, type CuentaEstacion } from '../domain/finanzas.types';
 import { useCargasPorFacturar, useCuentaEstaciones } from '../queries/hooks';
@@ -15,6 +16,13 @@ import { fecha } from './comun';
  * cuenta corriente o con tarjeta que todavía no tienen factura y las facturas que todavía no se pagaron.
  */
 export function CuentaEstaciones() {
+  // Llega con la migración 274: antes de aplicarla en la base, no se muestra (en vez de un error)
+  const hay = useBaseTiene(274);
+  if (!hay) return null;
+  return <CuentaEstacionesLista />;
+}
+
+function CuentaEstacionesLista() {
   const { data, isLoading, isError, error, refetch } = useCuentaEstaciones();
   const [abierto, setAbierto] = useState<string | null>(null);
   if (isLoading) return <Cargando texto="Buscando lo que se debe a las estaciones…" />;

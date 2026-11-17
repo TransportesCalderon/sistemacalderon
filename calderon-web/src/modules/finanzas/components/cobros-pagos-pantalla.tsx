@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeftRight, LoaderCircle, Plus, X } from "lucide-react";
@@ -48,6 +48,8 @@ import { fecha, OpcionesCuentas } from "./comun";
 import { CambiarFechaCobro } from "@/modules/ventas/components/cambiar-fecha-cobro";
 import { PagarGasto } from "./gasto-ficha";
 import { CuentaEstaciones } from "./cuenta-estaciones";
+import { SaldosLinea, SaldosResumen } from "./saldos";
+import { agruparSaldos } from "../domain/saldos-por-tercero";
 
 type Vista = "cobrar" | "pagar" | "movimientos";
 
@@ -111,8 +113,18 @@ function NosDeben() {
       />
     );
   const pendientes = data.filter((f) => !f.sinCuenta);
-  const sinCuenta = data.filter((f) => f.sinCuenta);
+  const sinCuenta = data
+    .filter((f) => f.sinCuenta)
+    .sort((a, b) => a.cliente.localeCompare(b.cliente, "es", { sensitivity: "base" }));
   const total = pendientes.reduce((s, f) => s + (f.saldoClp ?? 0), 0);
+  // 17/11/2026: por cliente, con lo vencido y lo que todavía no venció (por cliente y en total)
+  const { grupos, totales } = agruparSaldos(pendientes, {
+    nombre: (f) => f.cliente,
+    moneda: (f) => f.moneda,
+    saldo: (f) => f.saldo,
+    vencido: (f) => f.diasVencida > 0,
+    orden: (a, b) => a.vence.localeCompare(b.vence),
+  });
   return (
     <div className="space-y-5">
       {sinCuenta.length > 0 && (
@@ -157,7 +169,10 @@ function NosDeben() {
           texto="No hay facturas por cobrar."
         />
       ) : (
-        <Seccion titulo={`${pendientes.length} facturas · ${dinero(total)}`}>
+        <Seccion
+          titulo={`${pendientes.length} facturas de ${grupos.length} ${grupos.length === 1 ? "cliente" : "clientes"} · ≈ ${dinero(total)}`}
+        >
+          <SaldosResumen totales={totales} />
           <p className="text-sm text-tinta-suave">
             Son las facturas emitidas en{" "}
             <Link
@@ -174,7 +189,6 @@ function NosDeben() {
               <thead className="border-y border-borde bg-fondo">
                 <tr>
                   <th className={TH}>Factura</th>
-                  <th className={TH}>Cliente</th>
                   <th className={TH}>Vence</th>
                   <th className={cn(TH, "text-right")}>Total</th>
                   <th className={cn(TH, "text-right")}>Falta cobrar</th>
@@ -182,13 +196,28 @@ function NosDeben() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-borde">
-                {pendientes.map((f) => (
-                  <FilaCobrar
-                    key={f.id}
-                    f={f}
-                    abierta={abierta === f.id}
-                    onAbrir={() => setAbierta(abierta === f.id ? null : f.id)}
-                  />
+                {grupos.map((g) => (
+                  <Fragment key={g.nombre}>
+                    <tr className="bg-fondo">
+                      <td colSpan={2} className={cn(TD, "font-semibold text-tinta")}>
+                        {g.nombre}
+                        <span className="block text-xs font-normal text-tinta-suave">
+                          {g.items.length} {g.items.length === 1 ? "factura" : "facturas"}
+                        </span>
+                      </td>
+                      <td colSpan={3} className={cn(TD, "text-right text-xs")}>
+                        <SaldosLinea saldos={g.saldos} />
+                      </td>
+                    </tr>
+                    {g.items.map((f) => (
+                      <FilaCobrar
+                        key={f.id}
+                        f={f}
+                        abierta={abierta === f.id}
+                        onAbrir={() => setAbierta(abierta === f.id ? null : f.id)}
+                      />
+                    ))}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -218,7 +247,6 @@ function FilaCobrar({
             {fecha(f.fecha)}
           </span>
         </td>
-        <td className={TD}>{f.cliente}</td>
         <td
           className={cn(TD, "tabular-nums", f.diasVencida > 0 && "text-error")}
         >
@@ -252,7 +280,7 @@ function FilaCobrar({
       </tr>
       {abierta && (
         <tr>
-          <td colSpan={6} className="bg-fondo/40 px-3 pb-3">
+          <td colSpan={5} className="bg-fondo/40 px-3 pb-3">
             <Cobrar facturaId={f.id} moneda={f.moneda} saldo={f.saldo} />
           </td>
         </tr>
@@ -401,8 +429,19 @@ function GastosPorPagar() {
       />
     );
   const total = data.reduce((s, g) => s + g.saldoClp, 0);
+  // 17/11/2026: por proveedor, con lo vencido y lo que todavía no venció (por proveedor y en total)
+  const { grupos, totales } = agruparSaldos(data, {
+    nombre: (g) => g.proveedor ?? "Sin proveedor",
+    moneda: (g) => g.moneda,
+    saldo: (g) => g.saldo,
+    vencido: (g) => g.diasVencido > 0,
+    orden: (a, b) => a.vence.localeCompare(b.vence),
+  });
   return (
-    <Seccion titulo={`${data.length} gastos · ${dinero(total)}`}>
+    <Seccion
+      titulo={`Gastos por pagar · ${data.length} de ${grupos.length} ${grupos.length === 1 ? "proveedor" : "proveedores"} · ≈ ${dinero(total)}`}
+    >
+      <SaldosResumen totales={totales} />
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="border-y border-borde bg-fondo">
@@ -415,15 +454,30 @@ function GastosPorPagar() {
             </tr>
           </thead>
           <tbody className="divide-y divide-borde">
-            {data.map((g) => (
-              <FilaPagar
-                key={g.id}
-                g={g}
-                puede={puede}
-                abierta={abierta === g.id}
-                onAbrir={() => setAbierta(abierta === g.id ? null : g.id)}
-                onListo={() => setAbierta(null)}
-              />
+            {grupos.map((p) => (
+              <Fragment key={p.nombre}>
+                <tr className="bg-fondo">
+                  <td colSpan={2} className={cn(TD, "font-semibold text-tinta")}>
+                    {p.nombre}
+                    <span className="block text-xs font-normal text-tinta-suave">
+                      {p.items.length} {p.items.length === 1 ? "gasto" : "gastos"}
+                    </span>
+                  </td>
+                  <td colSpan={3} className={cn(TD, "text-right text-xs")}>
+                    <SaldosLinea saldos={p.saldos} />
+                  </td>
+                </tr>
+                {p.items.map((g) => (
+                  <FilaPagar
+                    key={g.id}
+                    g={g}
+                    puede={puede}
+                    abierta={abierta === g.id}
+                    onAbrir={() => setAbierta(abierta === g.id ? null : g.id)}
+                    onListo={() => setAbierta(null)}
+                  />
+                ))}
+              </Fragment>
             ))}
           </tbody>
         </table>
