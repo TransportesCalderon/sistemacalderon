@@ -318,6 +318,9 @@ export interface GastoFijo {
   cuotas: number | null;
   cuotaActual: number | null;
   terminado: boolean;
+  /** Cuotas pagadas antes del sistema, y si pasó la fecha original de fin y todavía faltan cuotas. */
+  cuotasPrevias: number | null;
+  atrasado: boolean;
   activo: boolean;
   observacion: string | null;
   generadoMes: boolean;
@@ -351,6 +354,8 @@ export function parsearGastosFijos(raw: unknown): GastosFijos {
       cuotas: numN(f.cuotas),
       cuotaActual: numN(f.cuota_actual),
       terminado: f.terminado === true,
+      cuotasPrevias: numN(f.cuotas_previas),
+      atrasado: f.atrasado === true,
       activo: f.activo !== false,
       observacion: txt(f.observacion),
       generadoMes: f.generado_mes === true,

@@ -76,6 +76,8 @@ export const gastoFijoSchema = z.object({
   hasta: fechaOpc,
   /** Cantidad de cuotas (leasing o crédito): con esto la base calcula «hasta». */
   cuotas: z.number().int().min(1, 'Las cuotas van de 1 a 600.').max(600, 'Las cuotas van de 1 a 600.').nullable().optional(),
+  /** Cuotas ya pagadas antes de cargar el gasto en el sistema (leasing o crédito viejo). */
+  cuotasPrevias: z.number().int().min(0).max(600).nullable().optional(),
   activo: z.boolean(),
   observacion: texto(500),
 });
@@ -95,6 +97,20 @@ export const movimientoSchema = z.object({
   descripcion: texto(200),
 });
 export type MovimientoEntrada = z.infer<typeof movimientoSchema>;
+
+/** Pago de un gasto atrasado con sus recargos (interés por mora, gastos de cobranza y otros). */
+export const pagoRecargosSchema = z.object({
+  gastoId: id,
+  fecha,
+  cuentaDineroId: z.number({ error: 'Elegí el banco o la caja.' }).int().positive('Elegí el banco o la caja.'),
+  monto: numeroOpc,
+  montoDocumento: numeroOpc,
+  mora: numeroOpc,
+  cobranza: numeroOpc,
+  otros: numeroOpc,
+  otrosDetalle: texto(120),
+});
+export type PagoRecargosEntrada = z.infer<typeof pagoRecargosSchema>;
 
 export const filaCartolaSchema = z.object({
   fecha: z.string().max(40),

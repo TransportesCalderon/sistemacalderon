@@ -33,6 +33,7 @@ import type {
   ImportarCartolaEntrada,
   MedioPagoEntrada,
   MovimientoEntrada,
+  PagoRecargosEntrada,
   ProveedorEntrada,
 } from '../domain/finanzas.schemas';
 
@@ -172,6 +173,7 @@ export const finanzasRepository = (db: Db) => {
             desde: f.desde,
             hasta: f.hasta,
             cuotas: f.cuotas ?? null,
+            cuotas_previas: f.cuotas ? (f.cuotasPrevias ?? 0) : null,
             activo: f.activo,
             observacion: f.observacion,
           } as Json,
@@ -196,6 +198,24 @@ export const finanzasRepository = (db: Db) => {
             monto_destino: m.montoDestino,
             monto_documento: m.montoDocumento,
             descripcion: m.descripcion,
+          } as Json,
+        }),
+      );
+    },
+    /** Paga un gasto y carga los recargos por atraso como gastos aparte, unidos al original. */
+    async pagarConRecargos(p: PagoRecargosEntrada): Promise<void> {
+      await leer(
+        fin().rpc('fn_pagar_gasto_con_recargos', {
+          p_datos: {
+            gasto_id: p.gastoId,
+            fecha: p.fecha,
+            cuenta_dinero_id: p.cuentaDineroId,
+            monto: p.monto,
+            monto_documento: p.montoDocumento,
+            mora: p.mora,
+            cobranza: p.cobranza,
+            otros: p.otros,
+            otros_detalle: p.otrosDetalle,
           } as Json,
         }),
       );

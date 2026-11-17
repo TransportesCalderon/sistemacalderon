@@ -30,6 +30,7 @@ interface Form {
   desde: string;
   hasta: string;
   cuotas: string;
+  cuotasPrevias: string;
   activo: boolean;
   observacion: string;
 }
@@ -77,6 +78,7 @@ export function GastosFijosPantalla() {
     desde: mesActual,
     hasta: '',
     cuotas: '',
+    cuotasPrevias: '',
     activo: true,
     observacion: '',
   });
@@ -93,6 +95,7 @@ export function GastosFijosPantalla() {
     desde: f.desde,
     hasta: f.hasta ?? '',
     cuotas: f.cuotas !== null ? String(f.cuotas) : '',
+    cuotasPrevias: f.cuotasPrevias !== null ? String(f.cuotasPrevias) : '',
     activo: f.activo,
     observacion: f.observacion ?? '',
   });
@@ -162,6 +165,7 @@ export function GastosFijosPantalla() {
                 cuentaId: form.cuentaId ?? 0,
                 diaVence: Number(form.diaVence) || 0,
                 cuotas: form.cuotas.trim() ? Number(form.cuotas) : null,
+                cuotasPrevias: form.cuotas.trim() ? Number(form.cuotasPrevias) || 0 : null,
                 hasta: form.cuotas.trim() ? null : form.hasta || null,
               }),
               () => setForm(null),
@@ -234,7 +238,18 @@ export function GastosFijosPantalla() {
               onChange={(e) => setForm({ ...form, cuotas: e.target.value.replace(/\D/g, '') })}
             />
           </Campo>
-          <Campo label={form.cuotas.trim() ? 'Hasta (lo calcula el sistema con las cuotas)' : 'Hasta (si termina)'}>
+          {form.cuotas.trim() !== '' && (
+            <Campo label="Cuotas ya pagadas antes de cargarlo acá" ayuda="El sistema sigue generando una cuota por mes hasta completar el total, aunque se pase de la fecha original.">
+              <input
+                inputMode="numeric"
+                value={form.cuotasPrevias}
+                maxLength={3}
+                placeholder="0 si empieza ahora"
+                onChange={(e) => setForm({ ...form, cuotasPrevias: e.target.value.replace(/\D/g, '') })}
+              />
+            </Campo>
+          )}
+          <Campo label={form.cuotas.trim() ? 'Fin original del contrato (lo calcula el sistema)' : 'Hasta (si termina)'}>
             <input
               type="date"
               disabled={!!form.cuotas.trim()}
@@ -277,8 +292,8 @@ export function GastosFijosPantalla() {
                         {[
                           f.proveedor,
                           f.camion,
-                          f.cuotas !== null && f.cuotaActual !== null ? `cuota ${f.cuotaActual} de ${f.cuotas}${f.terminado ? '' : ` · faltan ${f.cuotas - f.cuotaActual}`}` : null,
-                          f.hasta ? `${f.terminado ? 'terminó' : 'hasta'} ${mesCorto(f.hasta)}` : null,
+                          f.cuotas !== null && f.cuotaActual !== null ? `${f.cuotaActual} de ${f.cuotas} cuotas${f.cuotas - f.cuotaActual > 0 ? ` · faltan ${f.cuotas - f.cuotaActual}` : ''}` : null,
+                          f.atrasado && f.hasta ? `atrasado: el contrato terminaba ${mesCorto(f.hasta)}` : f.hasta ? `${f.terminado ? 'terminó' : 'hasta'} ${mesCorto(f.hasta)}` : null,
                         ]
                           .filter(Boolean)
                           .join(' · ') || ' '}

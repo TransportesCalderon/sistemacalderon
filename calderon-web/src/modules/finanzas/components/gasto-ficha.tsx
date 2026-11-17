@@ -24,7 +24,7 @@ import {
   useGuardarGasto,
   useGuardarProveedorRapido,
   usePlanCuentas,
-  useRegistrarMovimiento,
+  usePagarConRecargos, useRegistrarMovimiento,
 } from '../queries/hooks';
 import { fecha, MONEDAS, OpcionesCuentas } from './comun';
 import { TrazaContable } from './traza';
@@ -388,7 +388,13 @@ export function PagarGasto({ gastoId, moneda, saldo, onListo }: { gastoId: numbe
   const puede = useCan('finanzas.cobros_pagos:editar');
   const { data: cuentas } = useCuentasDinero(puede);
   const pagar = useRegistrarMovimiento();
+  const pagarRecargos = usePagarConRecargos();
   const envio = useEnvio();
+  const [conRecargos, setConRecargos] = useState(false);
+  const [mora, setMora] = useState('');
+  const [cobranza, setCobranza] = useState('');
+  const [otros, setOtros] = useState('');
+  const [otrosDetalle, setOtrosDetalle] = useState('');
   const activas = (cuentas ?? []).filter((c) => c.activa);
   const [cuenta, setCuenta] = useState<number | null>(null);
   const [f, setF] = useState(hoyEnZona(zonaHoraria) as string);
@@ -435,14 +441,48 @@ export function PagarGasto({ gastoId, moneda, saldo, onListo }: { gastoId: numbe
           </Campo>
         )}
       </div>
+      {/* Recargos por atraso: cada uno queda como un gasto aparte, unido a este y pagado el mismo día */}
+      <label className="flex items-center gap-2 text-sm text-tinta">
+        <input type="checkbox" className="size-4 accent-marca" checked={conRecargos} onChange={(e) => setConRecargos(e.target.checked)} />
+        Se pagó con atraso: cargar interés por mora, gastos de cobranza u otros recargos
+      </label>
+      {conRecargos && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Campo label={`Interés por mora (${moneda})`}>
+            <input inputMode="decimal" value={mora} onChange={(e) => setMora(e.target.value)} />
+          </Campo>
+          <Campo label={`Gastos de cobranza (${moneda})`}>
+            <input inputMode="decimal" value={cobranza} onChange={(e) => setCobranza(e.target.value)} />
+          </Campo>
+          <Campo label={`Otros recargos (${moneda})`}>
+            <input inputMode="decimal" value={otros} onChange={(e) => setOtros(e.target.value)} />
+          </Campo>
+          <Campo label="De qué son los otros">
+            <input value={otrosDetalle} maxLength={120} onChange={(e) => setOtrosDetalle(e.target.value)} />
+          </Campo>
+        </div>
+      )}
+      {conRecargos && <p className="text-xs text-tinta-suave">En «Monto pagado» va solo la cuota. Los recargos se suman aparte y salen de la misma cuenta, el mismo día.</p>}
       <ErrorBase error={envio.error} />
       <button
         type="button"
         className={BOTON_PRIMARIO}
-        disabled={pagar.isPending}
+        disabled={pagar.isPending || pagarRecargos.isPending}
         onClick={() =>
           void envio.enviar(
-            pagar.mutateAsync({
+            conRecargos
+              ? pagarRecargos.mutateAsync({
+                  gastoId,
+                  fecha: f,
+                  cuentaDineroId: cuenta ?? 0,
+                  monto,
+                  montoDocumento: otraMoneda ? montoDoc : null,
+                  mora: mora || null,
+                  cobranza: cobranza || null,
+                  otros: otros || null,
+                  otrosDetalle: otrosDetalle.trim() || null,
+                })
+              : pagar.mutateAsync({
               tipo: 'pago',
               fecha: f,
               cuentaDineroId: cuenta ?? 0,

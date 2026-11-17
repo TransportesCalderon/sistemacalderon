@@ -23,6 +23,7 @@ import {
   confirmarCambios,
   recontabilizar,
   registrarMovimiento,
+  pagarConRecargos,
 } from '../actions/finanzas.actions';
 import { finanzasRepository, type FiltroGastos } from '../repositories/finanzas.repository';
 import { rentabilidadRepository } from '../repositories/rentabilidad.repository';
@@ -91,6 +92,7 @@ export const useAnularGasto = () => useEscritura(anularGasto);
 export const useGuardarGastoFijo = () => useEscritura(guardarGastoFijo);
 export const useGenerarGastosFijos = () => useEscritura(generarGastosFijos);
 export const useRegistrarMovimiento = () => useEscritura(registrarMovimiento);
+export const usePagarConRecargos = () => useEscritura(pagarConRecargos);
 export const useAnularMovimiento = () => useEscritura(anularMovimiento);
 export const useCambiarFechaCobro = () => useEscritura(cambiarFechaCobro);
 export const useImportarCartola = () => useEscritura(importarCartola);
