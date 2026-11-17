@@ -323,6 +323,8 @@ export interface GastoFijo {
   atrasado: boolean;
   /** Las cuotas emitidas que falta pagar, con su vencimiento original y la fecha prevista de pago. */
   cuotasSinPagar: CuotaSinPagar[];
+  /** Unidades que cubre (si son varias: leasing de varios tractores y semis). */
+  equipos: UnidadGastoFijo[];
   activo: boolean;
   observacion: string | null;
   generadoMes: boolean;
@@ -336,16 +338,40 @@ export interface CuotaSinPagar {
   moneda: string;
   diasVencido: number;
 }
+/** Una unidad (tractor o semirremolque) que cubre un gasto fijo. */
+export interface UnidadGastoFijo {
+  tipo: 'tractor' | 'semi';
+  id: number;
+  patente: string;
+}
+/** Lo que le toca a cada unidad en el mes, sumando todos sus gastos fijos (en partes iguales). */
+export interface CostoFijoUnidad extends UnidadGastoFijo {
+  clpMes: number;
+  usdMes: number | null;
+  usdDia: number | null;
+  de: string;
+}
 export interface GastosFijos {
   mes: string;
   faltanMes: number;
   fijos: GastoFijo[];
+  porUnidad: CostoFijoUnidad[];
+  semis: { id: number; patente: string }[];
 }
+const unidad = (e: Record<string, unknown>): UnidadGastoFijo => ({ tipo: e.tipo === 'semi' ? 'semi' : 'tractor', id: num(e.id), patente: String(e.patente ?? '') });
 export function parsearGastosFijos(raw: unknown): GastosFijos {
   const j = (raw ?? {}) as Obj;
   return {
     mes: String(j.mes ?? ''),
     faltanMes: num(j.faltan_mes),
+    porUnidad: (Array.isArray(j.por_unidad) ? (j.por_unidad as Record<string, unknown>[]) : []).map((e) => ({
+      ...unidad(e),
+      clpMes: num(e.clp_mes),
+      usdMes: numN(e.usd_mes),
+      usdDia: numN(e.usd_dia),
+      de: String(e.de ?? ''),
+    })),
+    semis: (Array.isArray(j.semis) ? (j.semis as Record<string, unknown>[]) : []).map((s) => ({ id: num(s.id), patente: String(s.patente ?? '') })),
     fijos: arr(j.fijos).map((f) => ({
       id: num(f.id),
       nombre: String(f.nombre),
@@ -367,6 +393,7 @@ export function parsearGastosFijos(raw: unknown): GastosFijos {
       terminado: f.terminado === true,
       cuotasPrevias: numN(f.cuotas_previas),
       atrasado: f.atrasado === true,
+      equipos: (Array.isArray(f.equipos) ? (f.equipos as Record<string, unknown>[]) : []).map(unidad),
       cuotasSinPagar: (Array.isArray(f.cuotas_sin_pagar) ? (f.cuotas_sin_pagar as Record<string, unknown>[]) : []).map((c) => ({
         gastoId: num(c.gasto_id),
         cuota: num(c.cuota),

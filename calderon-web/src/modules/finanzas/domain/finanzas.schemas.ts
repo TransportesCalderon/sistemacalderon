@@ -78,6 +78,9 @@ export const gastoFijoSchema = z.object({
   cuotas: z.number().int().min(1, 'Las cuotas van de 1 a 600.').max(600, 'Las cuotas van de 1 a 600.').nullable().optional(),
   /** Cuotas ya pagadas antes de cargar el gasto en el sistema (leasing o crédito viejo). */
   cuotasPrevias: z.number().int().min(0).max(600).nullable().optional(),
+  /** Varias unidades (leasing de varios tractores y semis). Si se manda, reemplaza la lista guardada. */
+  camiones: z.array(id).max(60).optional(),
+  semis: z.array(id).max(60).optional(),
   activo: z.boolean(),
   observacion: texto(500),
 });

@@ -1774,6 +1774,7 @@ export type Database = {
       fn_guardar_gasto: { Args: { p_id: number | null; p_version: number | null; p_datos: Json }; Returns: number };
       fn_anular_gasto: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_guardar_gasto_fijo: { Args: { p_id: number | null; p_datos: Json }; Returns: number };
+      fn_guardar_gasto_fijo_equipos: { Args: { p_id: number | null; p_datos: Json; p_camiones?: number[]; p_semis?: number[] }; Returns: number };
       fn_generar_gastos_fijos: { Args: { p_periodo: string }; Returns: number };
       fn_pagar_gasto_con_recargos: { Args: { p_datos: Json }; Returns: Json };
       fn_registrar_movimiento: { Args: { p_datos: Json }; Returns: number };

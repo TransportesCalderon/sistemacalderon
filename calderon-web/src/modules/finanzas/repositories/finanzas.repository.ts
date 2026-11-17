@@ -158,9 +158,12 @@ export const finanzasRepository = (db: Db) => {
       await leer(fin().rpc('fn_anular_gasto', { p_id: id, p_motivo: motivo }));
     },
     async guardarGastoFijo(f: GastoFijoEntrada): Promise<number> {
+      // Con lista de unidades (leasing de varios equipos) se guarda todo junto con la función que también guarda la lista
+      const conUnidades = f.camiones !== undefined || f.semis !== undefined;
       return leer(
-        fin().rpc('fn_guardar_gasto_fijo', {
+        fin().rpc(conUnidades ? 'fn_guardar_gasto_fijo_equipos' : 'fn_guardar_gasto_fijo', {
           p_id: f.id,
+          ...(conUnidades ? { p_camiones: f.camiones ?? [], p_semis: f.semis ?? [] } : {}),
           p_datos: {
             nombre: f.nombre,
             proveedor_id: f.proveedorId,

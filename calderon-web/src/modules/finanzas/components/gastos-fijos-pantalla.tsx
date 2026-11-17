@@ -32,6 +32,10 @@ interface Form {
   hasta: string;
   cuotas: string;
   cuotasPrevias: string;
+  camiones: number[];
+  semis: number[];
+  /** Ya tenía lista de unidades: hay que mandarla aunque quede vacía (para borrarla). */
+  teniaUnidades: boolean;
   activo: boolean;
   observacion: string;
 }
@@ -82,6 +86,9 @@ export function GastosFijosPantalla() {
     hasta: '',
     cuotas: '',
     cuotasPrevias: '',
+    camiones: [],
+    semis: [],
+    teniaUnidades: false,
     activo: true,
     observacion: '',
   });
@@ -99,6 +106,9 @@ export function GastosFijosPantalla() {
     hasta: f.hasta ?? '',
     cuotas: f.cuotas !== null ? String(f.cuotas) : '',
     cuotasPrevias: f.cuotasPrevias !== null ? String(f.cuotasPrevias) : '',
+    camiones: f.equipos.filter((e) => e.tipo === 'tractor').map((e) => e.id),
+    semis: f.equipos.filter((e) => e.tipo === 'semi').map((e) => e.id),
+    teniaUnidades: f.equipos.length > 0,
     activo: f.activo,
     observacion: f.observacion ?? '',
   });
@@ -169,6 +179,7 @@ export function GastosFijosPantalla() {
                 diaVence: Number(form.diaVence) || 0,
                 cuotas: form.cuotas.trim() ? Number(form.cuotas) : null,
                 cuotasPrevias: form.cuotas.trim() ? Number(form.cuotasPrevias) || 0 : null,
+                ...(form.camiones.length + form.semis.length > 0 || form.teniaUnidades ? { camiones: form.camiones, semis: form.semis } : {}),
                 hasta: form.cuotas.trim() ? null : form.hasta || null,
               }),
               () => setForm(null),
@@ -216,8 +227,8 @@ export function GastosFijosPantalla() {
           <Campo label="Día de vencimiento" ayuda="De 1 a 28.">
             <input inputMode="numeric" value={form.diaVence} onChange={(e) => setForm({ ...form, diaVence: e.target.value })} />
           </Campo>
-          <Campo label="Camión (si es de un camión)">
-            <select value={form.camionId ?? ''} onChange={(e) => setForm({ ...form, camionId: e.target.value ? Number(e.target.value) : null })}>
+          <Campo label="Camión (si es de un solo camión)">
+            <select disabled={form.camiones.length + form.semis.length > 0} value={form.camionId ?? ''} onChange={(e) => setForm({ ...form, camionId: e.target.value ? Number(e.target.value) : null })}>
               <option value="">— Ninguno —</option>
               {(camiones ?? []).map((c) => (
                 <option key={c.id} value={c.id}>
@@ -263,6 +274,45 @@ export function GastosFijosPantalla() {
           <Campo label="Nota">
             <input value={form.observacion} maxLength={500} onChange={(e) => setForm({ ...form, observacion: e.target.value })} />
           </Campo>
+          <fieldset className="space-y-2 rounded-md border border-borde p-3 sm:col-span-2 lg:col-span-3">
+            <legend className="px-1 text-sm font-medium text-tinta">
+              Si cubre varias unidades (por ejemplo, un leasing de 3 tractores y 3 semirremolques){' '}
+              {form.camiones.length + form.semis.length > 0 && (
+                <span className="font-normal text-tinta-suave">
+                  · {form.camiones.length + form.semis.length} elegidas: el monto se reparte en partes iguales
+                </span>
+              )}
+            </legend>
+            <p className="text-xs font-medium text-tinta-suave">Tractores</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {(camiones ?? []).map((c) => (
+                <label key={c.id} className="flex items-center gap-1.5 text-sm">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-marca"
+                    checked={form.camiones.includes(c.id)}
+                    onChange={(e) => setForm({ ...form, camiones: e.target.checked ? [...form.camiones, c.id] : form.camiones.filter((x) => x !== c.id) })}
+                  />
+                  <span className="font-mono">{c.patente}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs font-medium text-tinta-suave">Semirremolques</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {data.semis.map((s) => (
+                <label key={s.id} className="flex items-center gap-1.5 text-sm">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-marca"
+                    checked={form.semis.includes(s.id)}
+                    onChange={(e) => setForm({ ...form, semis: e.target.checked ? [...form.semis, s.id] : form.semis.filter((x) => x !== s.id) })}
+                  />
+                  <span className="font-mono">{s.patente}</span>
+                </label>
+              ))}
+              {data.semis.length === 0 && <span className="text-xs text-tinta-suave">No hay semirremolques para elegir.</span>}
+            </div>
+          </fieldset>
           <label className="flex items-center gap-2 self-end pb-2 text-sm">
             <input type="checkbox" className="size-4 accent-marca" checked={form.activo} onChange={(e) => setForm({ ...form, activo: e.target.checked })} /> Activo
           </label>
@@ -296,6 +346,7 @@ export function GastosFijosPantalla() {
                         {[
                           f.proveedor,
                           f.camion,
+                          f.equipos.length > 0 ? `${f.equipos.length} unidades: ${f.equipos.map((e) => e.patente).join(', ')}` : null,
                           f.cuotas !== null && f.cuotaActual !== null ? `${f.cuotaActual} de ${f.cuotas} cuotas pagadas${f.cuotas - f.cuotaActual > 0 ? ` · faltan ${f.cuotas - f.cuotaActual}` : ''}` : null,
                           f.atrasado ? 'con cuotas vencidas' : f.hasta ? `${f.terminado ? 'terminó' : 'hasta'} ${mesCorto(f.hasta)}` : null,
                         ]
@@ -350,6 +401,41 @@ export function GastosFijosPantalla() {
                     </tr>
                   ))}
                   </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Seccion>
+      )}
+
+      {data.porUnidad.length > 0 && (
+        <Seccion titulo="Costo fijo por unidad este mes">
+          <p className="-mt-2 text-xs text-tinta-suave">
+            Lo que le toca a cada tractor y a cada semirremolque de los gastos fijos de este mes. Si un gasto cubre varias unidades, se reparte en partes iguales.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="border-y border-borde bg-fondo">
+                <tr>
+                  <th className={TH}>Unidad</th>
+                  <th className={TH}>De qué</th>
+                  <th className={cn(TH, 'text-right')}>Por mes</th>
+                  <th className={cn(TH, 'text-right')}>USD por mes</th>
+                  <th className={cn(TH, 'text-right')}>USD por día</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-borde">
+                {data.porUnidad.map((u) => (
+                  <tr key={`${u.tipo}-${u.id}`}>
+                    <td className={TD}>
+                      <span className="font-mono font-medium">{u.patente}</span>
+                      <span className="ml-2 text-xs text-tinta-suave">{u.tipo === 'semi' ? 'semirremolque' : 'tractor'}</span>
+                    </td>
+                    <td className={cn(TD, 'text-xs text-tinta-suave')}>{u.de}</td>
+                    <td className={cn(TD, 'text-right tabular-nums')}>{dinero(u.clpMes)}</td>
+                    <td className={cn(TD, 'text-right tabular-nums')}>{u.usdMes ?? '—'}</td>
+                    <td className={cn(TD, 'text-right tabular-nums')}>{u.usdDia ?? '—'}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
