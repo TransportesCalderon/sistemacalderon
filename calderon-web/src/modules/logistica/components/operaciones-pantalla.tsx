@@ -117,7 +117,7 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
         o.activa === (vista === 'activas') &&
         (!incompletas || o.faltan.length > 0) &&
         (!t ||
-        [String(o.numero), o.redline ? String(o.redline.numero) : null, o.cliente, o.linea, o.contenedor, o.chofer, o.tractor, o.semi, o.booking, o.crt, o.mic, o.guia, o.transportista].some(
+        [String(o.numero), o.redline ? String(o.redline.numero) : null, o.cliente, o.linea, o.contenedor, o.chofer, o.tractor, o.semi, o.booking, o.crt, o.mic, o.guia, o.transportista, o.facturacion?.conNumero ? o.facturacion.numero : null].some(
           (c) => normalizar(c).includes(t),
         )),
     );
@@ -185,7 +185,7 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
             type="search"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
-            placeholder="Nro., cliente, contenedor, chofer…"
+            placeholder="Nro., cliente, contenedor, chofer, factura…"
             className={cn(CONTROL_FILTRO, 'w-full pl-8')}
           />
         </label>
@@ -275,7 +275,14 @@ export function OperacionesPantalla({ opInicial, nueva = false }: { opInicial?: 
 function FacturacionMarca({ o }: { o: Operacion }) {
   if (o.facturacion) {
     const f = FACTURACION_OP_INFO[o.facturacion.estado];
-    return <span className={cn('mt-0.5 block text-[11px] font-medium whitespace-nowrap', f.clase)}>{f.etiqueta}</span>;
+    // Pedido de Gerencia (17/11/2026): al lado del estado, el número de la factura
+    const nro = o.facturacion.conNumero ? ` · N° ${o.facturacion.numero}` : o.facturacion.estado !== 'prefactura' ? ' · sin número' : '';
+    return (
+      <span className={cn('mt-0.5 block text-[11px] font-medium whitespace-nowrap', f.clase)}>
+        {f.etiqueta}
+        {nro}
+      </span>
+    );
   }
   if (o.estado === 'entregado') return <span className="mt-0.5 block text-[11px] font-medium whitespace-nowrap text-[#b54708]">Sin facturar</span>;
   return null;
