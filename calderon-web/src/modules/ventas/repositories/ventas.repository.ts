@@ -1,3 +1,4 @@
+import { parsearCuentaCorriente, parsearSaldosClientes } from '../domain/cuenta-corriente';
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/database.generated';
 import {
@@ -70,6 +71,13 @@ export const ventasRepository = (db: Db) => {
     },
     async facturas(estado: string | null) {
       return parsearFacturas(await leer(ven().rpc('fn_ven_facturas', { p_estado: estado })));
+    },
+    /** Cuenta corriente: saldos de todos los clientes, o los movimientos de uno. */
+    async saldosClientes() {
+      return parsearSaldosClientes(await leer(ven().rpc('fn_ven_cuenta_corriente', { p_cliente: null, p_desde: null, p_hasta: null })));
+    },
+    async cuentaCorriente(clienteId: number, desde: string | null, hasta: string | null) {
+      return parsearCuentaCorriente(await leer(ven().rpc('fn_ven_cuenta_corriente', { p_cliente: clienteId, p_desde: desde, p_hasta: hasta })));
     },
     async factura(id: number) {
       return parsearFactura(await leer(ven().rpc('fn_ven_factura', { p_id: id })));
