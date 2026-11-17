@@ -181,8 +181,12 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
     }
     return [...m.entries()];
   }, [data]);
-  // Vienen marcadas las entregadas; las que todavía no se entregaron se marcan a mano (se facturan antes solo algunas)
-  useEffect(() => setMarcadas(new Set((data ?? []).filter((o) => o.entregada).map((o) => o.servicioId))), [data]);
+  // Pedido de Facturación (16/11/2026): no viene ninguna marcada; se marca lo que va en la prefactura (hay clientes con una
+  // factura por operación). Al refrescar la lista se conserva lo marcado que siga pendiente.
+  useEffect(() => {
+    const vigentes = new Set((data ?? []).map((o) => o.servicioId));
+    setMarcadas((m) => new Set([...m].filter((id) => vigentes.has(id))));
+  }, [data]);
 
   if (isLoading) return <Cargando texto="Buscando lo que falta facturar…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudo leer lo pendiente de facturar." onReintentar={() => void refetch()} error={error} />;
@@ -223,6 +227,26 @@ function PorFacturarVista({ onCreada }: { onCreada: (id: number) => void }) {
               <h2 className="font-semibold text-tinta">
                 {g.cliente} <span className="text-sm font-normal text-tinta-suave">({g.ops.length})</span>
               </h2>
+              {puede && g.ops.some((o) => o.entregada) && (
+                <button
+                  type="button"
+                  className="ml-auto text-sm text-marca underline-offset-2 hover:underline"
+                  onClick={() =>
+                    setMarcadas((m) => {
+                      const n = new Set(m);
+                      const entregadas = g.ops.filter((o) => o.entregada);
+                      const todas = entregadas.every((o) => n.has(o.servicioId));
+                      for (const o of todas ? g.ops : entregadas) {
+                        if (todas) n.delete(o.servicioId);
+                        else n.add(o.servicioId);
+                      }
+                      return n;
+                    })
+                  }
+                >
+                  {g.ops.filter((o) => o.entregada).every((o) => marcadas.has(o.servicioId)) ? 'Desmarcar todas' : 'Marcar las entregadas'}
+                </button>
+              )}
               {puede && (
                 <button
                   type="button"

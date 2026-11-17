@@ -88,6 +88,9 @@ const ACCION: Record<string, string> = {
   op_sin_confirmar: 'Confirmar',
   op_sin_equipo: 'Asignar equipo',
   op_frio_sin_genset: 'Asignar genset',
+  // Operaciones con datos que faltan (16/11/2026)
+  op_sin_cliente: 'Poner el cliente',
+  op_sin_precio: 'Poner el precio',
   gastos_por_revisar: 'Revisar',
   fondo_bajo: 'Ver fondo',
   por_facturar: 'Facturar',
