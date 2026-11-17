@@ -15,6 +15,7 @@ export const registrarCompraRodado = createAction({
   schema: z.object({
     camionId: id.nullable(),
     semiId: id.nullable(),
+    descripcion: z.string().trim().max(80).nullable(),
     fecha,
     proveedorId: id.nullable(),
     valorNeto: monto,

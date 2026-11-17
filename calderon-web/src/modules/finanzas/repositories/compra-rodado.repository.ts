@@ -9,6 +9,8 @@ const ok = <T>(r: { data: T; error: unknown }): T => {
 export interface CompraRodadoEntrada {
   camionId: number | null;
   semiId: number | null;
+  /** Camioneta, auto u otro vehículo que no es de la flota: qué vehículo es. */
+  descripcion: string | null;
   fecha: string;
   proveedorId: number | null;
   valorNeto: number;
@@ -35,6 +37,7 @@ export function compraRodadoRepository(db: Db) {
           p_datos: {
             camion_id: c.camionId,
             semi_id: c.semiId,
+            descripcion: c.descripcion,
             fecha: c.fecha,
             proveedor_id: c.proveedorId,
             valor_neto: c.valorNeto,

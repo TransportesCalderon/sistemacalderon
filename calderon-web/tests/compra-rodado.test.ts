@@ -36,6 +36,7 @@ describe('Finanzas › Compra de vehículos: la cuenta antes de guardar', () => 
     });
     expect(r.tractores).toHaveLength(1);
     expect(r.compras[0]).toMatchObject({ tipo: 'semi', patente: 'ZZS001', documentosPagados: 28, faltaPagar: 6_400_000, valorLibro: 22_000_000, gastoFijoId: 9 });
+    expect(parsearComprasRodados({ compras: [{ id: 5, tipo: 'otro', patente: 'Camioneta ZZ Hilux' }] }).compras[0]).toMatchObject({ tipo: 'otro', patente: 'Camioneta ZZ Hilux' });
     expect(parsearComprasRodados(null).compras).toEqual([]);
   });
 });

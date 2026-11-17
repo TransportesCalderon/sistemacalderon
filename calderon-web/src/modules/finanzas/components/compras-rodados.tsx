@@ -16,6 +16,7 @@ import { useAnularCompraRodado, useComprasRodados, useRegistrarCompraRodado } fr
 
 interface Form {
   unidad: string;
+  descripcion: string;
   fecha: string;
   proveedorId: number | null;
   valorNeto: string;
@@ -52,7 +53,8 @@ export function ComprasRodados({ puede }: { puede: boolean }) {
   if (isError || !data) return null;
 
   const nuevo = (): Form => ({
-    unidad: '',
+    unidad: 'otro',
+    descripcion: '',
     fecha: hoyEnZona(zonaHoraria) as string,
     proveedorId: null,
     valorNeto: '',
@@ -78,13 +80,12 @@ export function ComprasRodados({ puede }: { puede: boolean }) {
     valorResidual: aNumero(f.valorResidual),
   });
   const cuenta = form ? cuentaCompra(numeros(form)) : null;
-  const hayUnidades = data.tractores.length + data.semis.length > 0;
 
   return (
     <Seccion
-      titulo="Compra de vehículos con documentos"
+      titulo="Compra de vehículos con pagarés o documentos"
       acciones={
-        puede && !form && hayUnidades ? (
+        puede && !form ? (
           <button type="button" className={BOTON_SECUNDARIO} onClick={() => setForm(nuevo())}>
             <Plus className="size-4" /> Registrar compra
           </button>
@@ -92,8 +93,9 @@ export function ComprasRodados({ puede }: { puede: boolean }) {
       }
     >
       <p className="text-sm text-tinta-suave">
-        Cargá la compra una sola vez. El sistema da de alta el vehículo en el activo, deja la deuda de los documentos en el pasivo, separa los intereses y
-        registra la depreciación de cada mes. Los documentos aparecen arriba, mes a mes, para pagarlos como una cuota.
+        Para camionetas, autos, tractores o semirremolques comprados con pagarés. Cargá la compra una sola vez: el sistema da de alta el vehículo en el
+        activo, deja como deuda las cuotas que faltan pagar, separa los intereses y registra la depreciación de cada mes. Las cuotas aparecen arriba, mes a
+        mes, para pagarlas.
       </p>
 
       {form && cuenta && (
@@ -115,6 +117,7 @@ export function ComprasRodados({ puede }: { puede: boolean }) {
               registrar.mutateAsync({
                 camionId: tipo === 't' ? idUnidad : null,
                 semiId: tipo === 's' ? idUnidad : null,
+                descripcion: form.unidad === 'otro' ? form.descripcion.trim() || null : null,
                 fecha: form.fecha,
                 proveedorId: form.proveedorId,
                 valorNeto: n.valorNeto,
@@ -133,9 +136,9 @@ export function ComprasRodados({ puede }: { puede: boolean }) {
             );
           }}
         >
-          <Campo label="Unidad comprada">
+          <Campo label="Qué se compró">
             <select value={form.unidad} onChange={(e) => setForm({ ...form, unidad: e.target.value })}>
-              <option value="">Elegí…</option>
+              <option value="otro">Camioneta, auto u otro vehículo</option>
               <optgroup label="Tractores">
                 {data.tractores.map((t) => (
                   <option key={t.id} value={`t-${t.id}`}>
@@ -152,6 +155,11 @@ export function ComprasRodados({ puede }: { puede: boolean }) {
               </optgroup>
             </select>
           </Campo>
+          {form.unidad === 'otro' && (
+            <Campo label="Qué vehículo es" ayuda="Marca, modelo y patente. Así va a figurar en el activo.">
+              <input value={form.descripcion} maxLength={80} placeholder="Ej.: Camioneta Hilux ABCD12" onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
+            </Campo>
+          )}
           <Campo label="Fecha de la compra">
             <input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} />
           </Campo>
@@ -196,16 +204,16 @@ export function ComprasRodados({ puede }: { puede: boolean }) {
             El pie ya se pagó antes de cargarla acá
           </label>
           <span className="hidden lg:block" />
-          <Campo label="Cantidad de documentos" ayuda="Uno por mes. Vacío si se pagó todo al contado.">
+          <Campo label="Cantidad de cuotas o pagarés (total)" ayuda="Uno por mes. Vacío si se pagó todo al contado.">
             <input inputMode="numeric" value={form.documentos} onChange={(e) => setForm({ ...form, documentos: e.target.value })} />
           </Campo>
-          <Campo label="Monto de cada documento">
+          <Campo label="Monto de cada cuota">
             <input inputMode="decimal" value={form.montoDocumento} onChange={(e) => setForm({ ...form, montoDocumento: e.target.value })} />
           </Campo>
-          <Campo label="Vencimiento del primer documento">
+          <Campo label="Vencimiento de la primera cuota" ayuda="La cuota 1, aunque ya esté pagada.">
             <input type="date" value={form.primerVencimiento} onChange={(e) => setForm({ ...form, primerVencimiento: e.target.value })} />
           </Campo>
-          <Campo label="Documentos ya pagados antes de cargarla acá" ayuda="Los que falten y ya vencieron aparecen como atrasados.">
+          <Campo label="Cuotas ya pagadas" ayuda="Las que faltan quedan como deuda; las ya vencidas aparecen como atrasadas.">
             <input inputMode="numeric" value={form.documentosPrevios} onChange={(e) => setForm({ ...form, documentosPrevios: e.target.value })} />
           </Campo>
           <Campo label="Vida útil (años)" ayuda="En cuántos años se deprecia.">
@@ -259,8 +267,8 @@ export function ComprasRodados({ puede }: { puede: boolean }) {
               {data.compras.map((c) => (
                 <tr key={c.id}>
                   <td className={TD}>
-                    <span className="font-mono font-medium">{c.patente}</span>
-                    <span className="ml-2 text-xs text-tinta-suave">{c.tipo === 'semi' ? 'semirremolque' : 'tractor'}</span>
+                    <span className={cn('font-medium', c.tipo !== 'otro' && 'font-mono')}>{c.patente}</span>
+                    {c.tipo !== 'otro' && <span className="ml-2 text-xs text-tinta-suave">{c.tipo === 'semi' ? 'semirremolque' : 'tractor'}</span>}
                   </td>
                   <td className={TD}>
                     {formatearFechaDia(c.fecha)}

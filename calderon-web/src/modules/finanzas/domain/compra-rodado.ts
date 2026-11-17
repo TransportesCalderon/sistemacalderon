@@ -13,7 +13,8 @@ export interface UnidadCompra {
 }
 export interface CompraRodado {
   id: number;
-  tipo: 'tractor' | 'semi';
+  /** «otro» = camioneta, auto u otro vehículo que no es de la flota: «patente» trae su descripción. */
+  tipo: 'tractor' | 'semi' | 'otro';
   patente: string;
   fecha: string;
   proveedor: string | null;
@@ -46,7 +47,7 @@ export function parsearComprasRodados(raw: unknown): ComprasRodados {
     semis: arr(j.semis).map(unidad),
     compras: arr(j.compras).map((c) => ({
       id: num(c.id),
-      tipo: c.tipo === 'semi' ? 'semi' : 'tractor',
+      tipo: c.tipo === 'semi' ? 'semi' : c.tipo === 'otro' ? 'otro' : 'tractor',
       patente: String(c.patente ?? ''),
       fecha: String(c.fecha ?? ''),
       proveedor: txt(c.proveedor),
