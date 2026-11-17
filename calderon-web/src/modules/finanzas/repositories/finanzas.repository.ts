@@ -171,6 +171,7 @@ export const finanzasRepository = (db: Db) => {
             camion_id: f.camionId,
             desde: f.desde,
             hasta: f.hasta,
+            cuotas: f.cuotas ?? null,
             activo: f.activo,
             observacion: f.observacion,
           } as Json,

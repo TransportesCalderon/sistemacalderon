@@ -29,8 +29,18 @@ interface Form {
   camionId: number | null;
   desde: string;
   hasta: string;
+  cuotas: string;
   activo: boolean;
   observacion: string;
+}
+
+/** Último día del mes de la última cuota (desde + cuotas), igual que lo calcula la base. Null si faltan datos. */
+function ultimaCuota(desde: string, cuotas: string): string | null {
+  const n = Number(cuotas);
+  const m = /^(\d{4})-(\d{2})/.exec(desde);
+  if (!m || !Number.isInteger(n) || n < 1 || n > 600) return null;
+  const fin = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1 + n, 0));
+  return fin.toISOString().slice(0, 10);
 }
 
 /** Finanzas › Gastos fijos: lo que se paga todos los meses. El sistema genera cada mes el gasto con este monto. */
@@ -66,6 +76,7 @@ export function GastosFijosPantalla() {
     camionId: null,
     desde: mesActual,
     hasta: '',
+    cuotas: '',
     activo: true,
     observacion: '',
   });
@@ -81,13 +92,14 @@ export function GastosFijosPantalla() {
     camionId: f.camionId,
     desde: f.desde,
     hasta: f.hasta ?? '',
+    cuotas: f.cuotas !== null ? String(f.cuotas) : '',
     activo: f.activo,
     observacion: f.observacion ?? '',
   });
 
   if (isLoading) return <Cargando texto="Cargando los gastos fijos…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudieron leer los gastos fijos." onReintentar={() => void refetch()} error={error} />;
-  const totalMes = data.fijos.filter((f) => f.activo).reduce((s, f) => s + (f.montoClp ?? 0), 0);
+  const totalMes = data.fijos.filter((f) => f.activo && !f.terminado).reduce((s, f) => s + (f.montoClp ?? 0), 0);
 
   return (
     <div className="space-y-5">
@@ -145,7 +157,13 @@ export function GastosFijosPantalla() {
           onCerrar={() => setForm(null)}
           onConfirmar={() =>
             void envio.enviar(
-              guardar.mutateAsync({ ...form, cuentaId: form.cuentaId ?? 0, diaVence: Number(form.diaVence) || 0, hasta: form.hasta || null }),
+              guardar.mutateAsync({
+                ...form,
+                cuentaId: form.cuentaId ?? 0,
+                diaVence: Number(form.diaVence) || 0,
+                cuotas: form.cuotas.trim() ? Number(form.cuotas) : null,
+                hasta: form.cuotas.trim() ? null : form.hasta || null,
+              }),
               () => setForm(null),
             )
           }
@@ -204,8 +222,25 @@ export function GastosFijosPantalla() {
           <Campo label="Desde (mes)">
             <input type="date" value={form.desde} onChange={(e) => setForm({ ...form, desde: e.target.value })} />
           </Campo>
-          <Campo label="Hasta (si termina)">
-            <input type="date" value={form.hasta} onChange={(e) => setForm({ ...form, hasta: e.target.value })} />
+          <Campo
+            label="Cantidad de cuotas (leasing o crédito)"
+            {...(ultimaCuota(form.desde, form.cuotas) ? { ayuda: `La última cuota es la de ${mesCorto(ultimaCuota(form.desde, form.cuotas)!)}.` } : {})}
+          >
+            <input
+              inputMode="numeric"
+              value={form.cuotas}
+              maxLength={3}
+              placeholder="Vacío si no tiene cuotas"
+              onChange={(e) => setForm({ ...form, cuotas: e.target.value.replace(/\D/g, '') })}
+            />
+          </Campo>
+          <Campo label={form.cuotas.trim() ? 'Hasta (lo calcula el sistema con las cuotas)' : 'Hasta (si termina)'}>
+            <input
+              type="date"
+              disabled={!!form.cuotas.trim()}
+              value={form.cuotas.trim() ? (ultimaCuota(form.desde, form.cuotas) ?? '') : form.hasta}
+              onChange={(e) => setForm({ ...form, hasta: e.target.value })}
+            />
           </Campo>
           <Campo label="Nota">
             <input value={form.observacion} maxLength={500} onChange={(e) => setForm({ ...form, observacion: e.target.value })} />
@@ -219,7 +254,7 @@ export function GastosFijosPantalla() {
       {data.fijos.length === 0 ? (
         <Vacio icono={<Repeat className="size-6" />} texto="Todavía no hay gastos fijos." />
       ) : (
-        <Seccion titulo={`${data.fijos.filter((f) => f.activo).length} activos · ${dinero(totalMes)} por mes`}>
+        <Seccion titulo={`${data.fijos.filter((f) => f.activo && !f.terminado).length} activos · ${dinero(totalMes)} por mes`}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-sm">
               <thead className="border-y border-borde bg-fondo">
@@ -239,7 +274,14 @@ export function GastosFijosPantalla() {
                     <td className={TD}>
                       <span className="font-medium">{f.nombre}</span>
                       <span className="block text-xs text-tinta-suave">
-                        {[f.proveedor, f.camion, f.hasta ? `hasta ${mesCorto(f.hasta)}` : null].filter(Boolean).join(' · ') || ' '}
+                        {[
+                          f.proveedor,
+                          f.camion,
+                          f.cuotas !== null && f.cuotaActual !== null ? `cuota ${f.cuotaActual} de ${f.cuotas}${f.terminado ? '' : ` · faltan ${f.cuotas - f.cuotaActual}`}` : null,
+                          f.hasta ? `${f.terminado ? 'terminó' : 'hasta'} ${mesCorto(f.hasta)}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') || ' '}
                       </span>
                     </td>
                     <td className={cn(TD, 'text-xs text-tinta-suave')}>{f.cuenta}</td>
@@ -247,7 +289,7 @@ export function GastosFijosPantalla() {
                     <td className={cn(TD, 'text-right tabular-nums')}>{dinero(f.monto, f.moneda)}</td>
                     <td className={cn(TD, 'tabular-nums')}>día {f.diaVence}</td>
                     <td className={TD}>
-                      {!f.activo ? <Chip tono="neutro">Inactivo</Chip> : f.generadoMes ? <Chip tono="exito">Generado</Chip> : <Chip tono="alerta">Falta</Chip>}
+                      {!f.activo ? <Chip tono="neutro">Inactivo</Chip> : f.terminado ? <Chip tono="neutro">Terminado</Chip> : f.generadoMes ? <Chip tono="exito">Generado</Chip> : <Chip tono="alerta">Falta</Chip>}
                     </td>
                     <td className={cn(TD, 'text-right')}>
                       {puede && (

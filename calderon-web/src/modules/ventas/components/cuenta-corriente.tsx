@@ -102,7 +102,12 @@ function bajar(c: CuentaCorriente) {
   URL.revokeObjectURL(url);
 }
 
-function Cuenta({ clienteId, onVolver, onAbrirFactura }: { clienteId: number; onVolver: () => void; onAbrirFactura: (id: number) => void }) {
+/** La cuenta de un cliente para usar fuera de Facturación (ficha del cliente): cada documento abre la factura en Facturación. */
+export function CuentaDeCliente({ clienteId }: { clienteId: number }) {
+  return <Cuenta clienteId={clienteId} onAbrirFactura={(id) => window.location.assign(`/ventas/facturacion?factura=${id}`)} />;
+}
+
+function Cuenta({ clienteId, onVolver, onAbrirFactura }: { clienteId: number; onVolver?: () => void; onAbrirFactura: (id: number) => void }) {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
   const { data, isLoading, isError, error, refetch } = useCuentaCorriente(clienteId, desde || null, hasta || null);
@@ -112,9 +117,11 @@ function Cuenta({ clienteId, onVolver, onAbrirFactura }: { clienteId: number; on
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-end gap-3">
-        <button type="button" className={BOTON_SECUNDARIO} onClick={onVolver}>
-          <ArrowLeft className="size-4" /> Todos los clientes
-        </button>
+        {onVolver && (
+          <button type="button" className={BOTON_SECUNDARIO} onClick={onVolver}>
+            <ArrowLeft className="size-4" /> Todos los clientes
+          </button>
+        )}
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold text-tinta">{data.cliente.razonSocial}</h2>
           <p className="text-xs text-tinta-suave">

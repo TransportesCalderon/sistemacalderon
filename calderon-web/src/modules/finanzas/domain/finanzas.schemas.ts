@@ -74,6 +74,8 @@ export const gastoFijoSchema = z.object({
   camionId: id.nullable(),
   desde: fecha,
   hasta: fechaOpc,
+  /** Cantidad de cuotas (leasing o crédito): con esto la base calcula «hasta». */
+  cuotas: z.number().int().min(1, 'Las cuotas van de 1 a 600.').max(600, 'Las cuotas van de 1 a 600.').nullable().optional(),
   activo: z.boolean(),
   observacion: texto(500),
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CircleAlert, LoaderCircle, Pencil } from 'lucide-react';
 import { Can } from '@/modules/core/permissions/can';
@@ -15,8 +15,9 @@ import { useCatalogosComercial, useCliente } from '../../queries/hooks';
 import { EstadoClienteChip } from './estado-cliente';
 import { ClienteDatosSii } from './cliente-datos-sii';
 import { SoloEnPagina, useNombreFicha } from '@/modules/core/fichas/contexto';
+import { ClienteSeccion } from './cliente-secciones';
 
-/** Pestañas de la ficha según la especificación (P-CLI-01). Solo Datos está disponible en esta etapa. */
+/** Pestañas de la ficha según la especificación (P-CLI-01). Todas disponibles desde el 17/11/2026. */
 const PESTANAS = ['Datos', 'Servicios', 'Ingresos', 'Rentabilidad mensual', 'Auditoría'] as const;
 
 /** P-CLI-01 · Ficha del cliente. */
@@ -25,6 +26,7 @@ export function ClienteFicha({ id }: { id: ClienteId }) {
   const { data: cliente, isPending, isError, refetch } = useCliente(id);
   const { data: catalogos } = useCatalogosComercial();
   useNombreFicha(cliente?.razonSocial);
+  const [pestana, setPestana] = useState<(typeof PESTANAS)[number]>('Datos');
 
   if (isPending) {
     return (
@@ -104,25 +106,26 @@ export function ClienteFicha({ id }: { id: ClienteId }) {
 
       <nav className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0" aria-label="Secciones de la ficha">
         <ul className="flex min-w-max gap-1 border-b border-borde">
-          {PESTANAS.map((p, i) => (
+          {PESTANAS.map((p) => (
             <li key={p}>
-              <span
-                aria-current={i === 0 ? 'page' : undefined}
-                aria-disabled={i === 0 ? undefined : true}
-                title={i === 0 ? undefined : 'Disponible cuando se incorpore el módulo correspondiente'}
+              <button
+                type="button"
+                onClick={() => setPestana(p)}
+                aria-current={p === pestana ? 'page' : undefined}
                 className={cn(
-                  'block border-b-2 px-3 py-2 text-sm whitespace-nowrap',
-                  i === 0 ? 'border-marca font-medium text-marca' : 'cursor-not-allowed border-transparent text-tinta-suave/60',
+                  '-mb-px block border-b-2 px-3 py-2 text-sm whitespace-nowrap',
+                  p === pestana ? 'border-marca font-medium text-marca' : 'border-transparent text-tinta-suave hover:text-tinta',
                 )}
               >
                 {p}
-              </span>
+              </button>
             </li>
           ))}
         </ul>
       </nav>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      {pestana !== 'Datos' && <ClienteSeccion clienteId={cliente.id} pestana={pestana} />}
+      <div className={cn('grid gap-5 lg:grid-cols-2', pestana !== 'Datos' && 'hidden')}>
         <Seccion titulo="Identificación">
           <Dato etiqueta="Código">{cliente.codigo}</Dato>
           <Dato etiqueta="Razón social">{cliente.razonSocial}</Dato>
