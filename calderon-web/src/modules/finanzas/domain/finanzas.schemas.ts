@@ -76,6 +76,8 @@ export const gastoFijoSchema = z.object({
   hasta: fechaOpc,
   /** Cantidad de cuotas (leasing o crédito): con esto la base calcula «hasta». */
   cuotas: z.number().int().min(1, 'Las cuotas van de 1 a 600.').max(600, 'Las cuotas van de 1 a 600.').nullable().optional(),
+  /** Cuotas ya pagadas antes de cargar el gasto en el sistema (leasing o crédito viejo). */
+  cuotasPrevias: z.number().int().min(0).max(600).nullable().optional(),
   activo: z.boolean(),
   observacion: texto(500),
 });

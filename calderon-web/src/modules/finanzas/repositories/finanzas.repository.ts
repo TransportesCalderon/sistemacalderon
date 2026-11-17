@@ -172,6 +172,7 @@ export const finanzasRepository = (db: Db) => {
             desde: f.desde,
             hasta: f.hasta,
             cuotas: f.cuotas ?? null,
+            cuotas_previas: f.cuotas ? (f.cuotasPrevias ?? 0) : null,
             activo: f.activo,
             observacion: f.observacion,
           } as Json,
