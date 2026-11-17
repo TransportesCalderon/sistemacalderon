@@ -696,6 +696,42 @@ export function parsearCargas(raw: unknown): CargaCombustible[] {
   }));
 }
 
+/** Migración 274 · Lo que se le debe a cada proveedor de combustible (cuenta corriente con estaciones), por moneda. */
+export interface CuentaEstacion {
+  proveedorId: number;
+  proveedor: string;
+  estaciones: string | null;
+  moneda: string;
+  cargas: number;
+  cargasImporte: number;
+  cargasSinImporte: number;
+  litros: number;
+  desde: string | null;
+  hasta: string | null;
+  facturas: number;
+  facturasSaldo: number;
+  vencido: number;
+  total: number;
+}
+export function parsearCuentaEstaciones(raw: unknown): CuentaEstacion[] {
+  return arr(raw).map((x) => ({
+    proveedorId: num(x.proveedor_id),
+    proveedor: String(x.proveedor ?? ''),
+    estaciones: txt(x.estaciones),
+    moneda: String(x.moneda ?? 'CLP'),
+    cargas: num(x.cargas),
+    cargasImporte: num(x.cargas_importe),
+    cargasSinImporte: num(x.cargas_sin_importe),
+    litros: num(x.litros),
+    desde: txt(x.desde),
+    hasta: txt(x.hasta),
+    facturas: num(x.facturas),
+    facturasSaldo: num(x.facturas_saldo),
+    vencido: num(x.vencido),
+    total: num(x.total),
+  }));
+}
+
 export type TipoMedioPago = 'factura_posterior' | 'prepago' | 'caja' | 'tanque_propio';
 export const ETIQUETA_TIPO_MEDIO: Record<TipoMedioPago, string> = {
   factura_posterior: 'Factura después (cuenta corriente o tarjeta con factura)',

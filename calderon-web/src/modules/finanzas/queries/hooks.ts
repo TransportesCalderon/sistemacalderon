@@ -46,6 +46,8 @@ export const useMovimientos = (cuenta: number | null, desde: string | null, hast
 export const useCamionesFinanzas = () => useQuery({ queryKey: [...CLAVE, 'camiones'], queryFn: () => repo().camiones(), staleTime: 600_000 });
 export const usePorCobrar = () => useQuery({ queryKey: [...CLAVE, 'por-cobrar'], queryFn: () => repo().porCobrar() });
 export const usePorPagar = () => useQuery({ queryKey: [...CLAVE, 'por-pagar'], queryFn: () => repo().porPagar() });
+// Migración 274: cuenta corriente con estaciones
+export const useCuentaEstaciones = () => useQuery({ queryKey: [...CLAVE, 'cuenta-estaciones'], queryFn: () => repo().cuentaEstaciones() });
 export const useCartola = (cuenta: number, soloPendientes: boolean) =>
   useQuery({ queryKey: [...CLAVE, 'cartola', cuenta, soloPendientes], queryFn: () => repo().cartola(cuenta, soloPendientes), placeholderData: keepPreviousData });
 export const useEstadoResultados = (desde: string, hasta: string) =>

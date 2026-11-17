@@ -47,6 +47,7 @@ import {
 import { fecha, OpcionesCuentas } from "./comun";
 import { CambiarFechaCobro } from "@/modules/ventas/components/cambiar-fecha-cobro";
 import { PagarGasto } from "./gasto-ficha";
+import { CuentaEstaciones } from "./cuenta-estaciones";
 
 type Vista = "cobrar" | "pagar" | "movimientos";
 
@@ -369,7 +370,17 @@ function SinCuentas() {
   );
 }
 
+// Migración 274: arriba, la cuenta corriente con las estaciones (cargas sin factura y facturas sin pagar)
 function Debemos() {
+  return (
+    <div className="space-y-5">
+      <CuentaEstaciones />
+      <GastosPorPagar />
+    </div>
+  );
+}
+
+function GastosPorPagar() {
   const { data, isLoading, isError, error, refetch } = usePorPagar();
   const puede = useCan("finanzas.cobros_pagos:editar");
   const [abierta, setAbierta] = useState<number | null>(null);

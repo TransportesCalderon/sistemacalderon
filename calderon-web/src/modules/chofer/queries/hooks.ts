@@ -39,8 +39,9 @@ export const useSeguimiento = (servicioId: number, activo = true) =>
     enabled: activo,
     refetchInterval: 60_000,
   });
-export const useCelularesEnVivo = () =>
-  useQuery({ queryKey: [...CLAVE, 'celulares'], queryFn: () => repo().celularesEnVivo(), refetchInterval: 60_000 });
+/** 17/11/2026: el mapa de flota los pide solo si se eligió verlos (de entrada no se muestran). */
+export const useCelularesEnVivo = (activo = true) =>
+  useQuery({ queryKey: [...CLAVE, 'celulares'], queryFn: () => repo().celularesEnVivo(), refetchInterval: activo ? 60_000 : false, enabled: activo });
 export const useMiFondo = () => useQuery({ queryKey: [...CLAVE, 'mi-fondo'], queryFn: () => repo().miFondo() });
 export const useFondos = () => useQuery({ queryKey: [...CLAVE, 'fondos'], queryFn: () => repo().fondos() });
 export const useCuentaChofer = (choferId: number | null) =>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Map as MapaLeaflet, LayerGroup } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { CloudSun, Group, Maximize2, Minimize2, Ungroup } from 'lucide-react';
+import { CloudSun, Group, Maximize2, Minimize2, Smartphone, Ungroup } from 'lucide-react';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { NIVEL_HEX } from '@/shared/ui/niveles';
@@ -101,6 +101,8 @@ export function MapaFlota({
   minutosEstela,
   onMinutosEstela,
   zonaHoraria,
+  verCelulares,
+  onVerCelulares,
 }: {
   camiones: CamionEnVivo[];
   /** Migración 84: estela, chofer, viaje y operación de cada camión. */
@@ -112,6 +114,9 @@ export function MapaFlota({
   minutosEstela: number;
   onMinutosEstela: (m: number) => void;
   zonaHoraria: string;
+  /** 17/11/2026: botón para mostrar u ocultar los celulares de los choferes (de entrada, ocultos). */
+  verCelulares?: boolean;
+  onVerCelulares?: (ver: boolean) => void;
 }) {
   const marco = useRef<HTMLDivElement>(null);
   const div = useRef<HTMLDivElement>(null);
@@ -646,6 +651,18 @@ export function MapaFlota({
           {agrupar ? <Ungroup className="size-4" /> : <Group className="size-4" />}
           {agrupar ? 'Desagrupar' : 'Agrupar'}
         </button>
+        {onVerCelulares && (
+          <button
+            type="button"
+            onClick={() => onVerCelulares(!verCelulares)}
+            aria-pressed={verCelulares === true}
+            className="inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs font-medium text-tinta shadow hover:bg-white"
+            title={verCelulares ? 'Dejar de ver los celulares de los choferes' : 'Ver dónde están los celulares de los choferes'}
+          >
+            <Smartphone className="size-4" />
+            {verCelulares ? 'Ocultar celulares' : 'Ver celulares'}
+          </button>
+        )}
         <label className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
           <CloudSun className="size-4" />
           <select

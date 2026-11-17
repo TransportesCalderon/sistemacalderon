@@ -29,7 +29,9 @@ export function FlotaPantalla({ enPizarra = false, pantallaCompleta = false }: {
   const esTi = useCan('configuracion.catalogos:editar');
   const puedeAltaCamion = useCan('flota.camiones:editar');
   const { data, isPending, isError, refetch } = useFlotaEnVivo();
-  const celulares = useCelularesEnVivo();
+  // 17/11/2026: los celulares de los choferes no se muestran de entrada; se prenden con «Ver celulares» en el mapa
+  const [verCelulares, setVerCelulares] = useState(false);
+  const celulares = useCelularesEnVivo(verCelulares);
   const { data: vehiculos } = useVehiculosApi();
   const [elegido, setElegido] = useState<number | null>(null);
   const [minutos, setMinutos] = useState(120);
@@ -90,7 +92,7 @@ export function FlotaPantalla({ enPizarra = false, pantallaCompleta = false }: {
         <Cargando texto="Cargando la flota…" />
       ) : isError ? (
         <ErrorLectura texto="No se pudo cargar la telemetría." onReintentar={() => refetch()} />
-      ) : data.length === 0 && (celulares.data?.length ?? 0) === 0 ? (
+      ) : data.length === 0 && (!verCelulares || (celulares.data?.length ?? 0) === 0) ? (
         <Vacio
           icono={<RadioTower className="size-6" />}
           texto="Todavía no llegaron datos de los camiones. La tarea programada los trae cada 1 o 2 minutos."
@@ -102,7 +104,9 @@ export function FlotaPantalla({ enPizarra = false, pantallaCompleta = false }: {
           <div className={cn('sticky z-10 -mx-1 bg-fondo px-1 pb-2', pantallaCompleta ? 'top-0 pt-2' : 'top-14 pt-2')}>
           <MapaFlota
             camiones={data}
-            celulares={celulares.data ?? []}
+            celulares={verCelulares ? (celulares.data ?? []) : []}
+            verCelulares={verCelulares}
+            onVerCelulares={setVerCelulares}
             detalles={detalles}
             minutosEstela={minutos}
             onMinutosEstela={setMinutos}

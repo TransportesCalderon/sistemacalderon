@@ -21,6 +21,7 @@ import {
   parsearPlan,
   parsearPorCobrar,
   parsearPorPagar,
+  parsearCuentaEstaciones,
   parsearTablero,
 } from '../domain/finanzas.types';
 import type {
@@ -81,6 +82,10 @@ export const finanzasRepository = (db: Db) => {
     },
     async porPagar() {
       return parsearPorPagar(await leer(fin().rpc('fn_por_pagar')));
+    },
+    /** Migración 274: cuenta corriente con estaciones (cargas sin factura + facturas sin pagar). */
+    async cuentaEstaciones() {
+      return parsearCuentaEstaciones(await leer(fin().rpc('fn_cuenta_estaciones')));
     },
     async cartola(cuenta: number, soloPendientes: boolean) {
       return parsearCartola(await leer(fin().rpc('fn_cartola', { p_cuenta: cuenta, p_solo_pendientes: soloPendientes })));

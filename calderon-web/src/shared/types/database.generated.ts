@@ -1778,6 +1778,8 @@ export type Database = {
       fn_anular_movimiento: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       // Migración 273: cambiar la fecha de un cobro
       fn_cambiar_fecha_cobro: { Args: { p_movimiento: number; p_fecha: string; p_motivo: string }; Returns: undefined };
+      // Migración 274: cuenta corriente con estaciones
+      fn_cuenta_estaciones: { Args: Record<string, never>; Returns: Json };
       fn_importar_cartola: { Args: { p_cuenta: number; p_filas: Json }; Returns: Json };
       fn_conciliar: { Args: { p_linea: number; p_movimiento: number }; Returns: undefined };
       fn_desconciliar: { Args: { p_linea: number }; Returns: undefined };
