@@ -222,7 +222,10 @@ export function GastosFijosPantalla() {
           <Campo label="Desde (mes)">
             <input type="date" value={form.desde} onChange={(e) => setForm({ ...form, desde: e.target.value })} />
           </Campo>
-          <Campo label="Cantidad de cuotas (leasing o crédito)">
+          <Campo
+            label="Cantidad de cuotas (leasing o crédito)"
+            {...(ultimaCuota(form.desde, form.cuotas) ? { ayuda: `La última cuota es la de ${mesCorto(ultimaCuota(form.desde, form.cuotas)!)}.` } : {})}
+          >
             <input
               inputMode="numeric"
               value={form.cuotas}
@@ -230,7 +233,6 @@ export function GastosFijosPantalla() {
               placeholder="Vacío si no tiene cuotas"
               onChange={(e) => setForm({ ...form, cuotas: e.target.value.replace(/\D/g, '') })}
             />
-            {ultimaCuota(form.desde, form.cuotas) && <span className="text-xs text-tinta-suave">La última cuota es la de {mesCorto(ultimaCuota(form.desde, form.cuotas)!)}.</span>}
           </Campo>
           <Campo label={form.cuotas.trim() ? 'Hasta (lo calcula el sistema con las cuotas)' : 'Hasta (si termina)'}>
             <input
