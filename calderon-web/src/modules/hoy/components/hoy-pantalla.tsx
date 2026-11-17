@@ -13,6 +13,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { accionDe, agruparTareas, ETIQUETA_GRUPO_HOY, type Tarea } from '../hoy';
 import { useHoy } from '../use-hoy';
+import { AvisoOperacionesIncompletas } from './aviso-operaciones-incompletas';
 
 // Sprint 4: las tarjetas se cargan solo para los roles que las ven (no suman peso a los demás)
 const TarjetasFinanzas = dynamic(() => import('@/modules/finanzas/components/tablero').then((m) => ({ default: m.TarjetasFinanzas })), {
@@ -59,6 +60,7 @@ export function HoyPantalla() {
   return (
     <div className="space-y-5">
       <Encabezado titulo="Hoy" subtitulo="Lo que te toca, en una sola lista" />
+      <AvisoOperacionesIncompletas />
       <Franja />
       <Tarjetas />
       {isPending ? (

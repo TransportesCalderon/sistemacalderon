@@ -1,5 +1,6 @@
 'use client';
 
+import { useFaltaEnOperacion } from '@/modules/hoy/components/aviso-operaciones-incompletas';
 import { QuienLaLlevo } from './historial/historial';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
@@ -343,10 +344,11 @@ function FilaOperacion({
   const { hacer, enCurso } = useUnClic(o, onAbrir);
   const sinEquipo = !o.tramoId && !o.transportistaId;
   const abiertoAqui = !!abierto;
+  const falta = useFaltaEnOperacion(o.numero);
   return (
     <>
       <tr
-        className={cn('cursor-pointer hover:bg-hover/60', abiertoAqui && 'bg-marca-suave/50')}
+        className={cn('cursor-pointer hover:bg-hover/60', abiertoAqui && 'bg-marca-suave/50', falta && !abiertoAqui && 'bg-error-suave')}
         onClick={() => onAbrir(abiertoAqui ? null : { tipo: 'detalle', o })}
       >
         <td className={cn(TD, 'whitespace-nowrap')}>
@@ -359,6 +361,7 @@ function FilaOperacion({
         </td>
         <td className={cn(TD, 'font-medium text-tinta')}>
           {o.cliente}
+          {falta && <span className="block text-xs font-semibold text-error">{falta}</span>}
           {o.producto && <span className="block text-xs font-normal text-tinta-suave">{o.producto}</span>}
         </td>
         <td className={cn(TD, 'font-mono text-xs whitespace-nowrap')}>

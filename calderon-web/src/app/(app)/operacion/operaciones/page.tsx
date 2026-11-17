@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { requirePermiso } from '@/modules/core/auth/guards';
 import { OperacionesPantalla } from '@/modules/logistica/components/operaciones-pantalla';
+import { AvisoOperacionesIncompletas } from '@/modules/hoy/components/aviso-operaciones-incompletas';
 
 export const metadata: Metadata = { title: 'Operaciones' };
 
@@ -9,5 +10,10 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
   await requirePermiso('operacion.servicios:ver');
   const p = await searchParams;
   const op = p.op && /^\d+$/.test(p.op) ? Number(p.op) : undefined;
-  return <OperacionesPantalla opInicial={op} nueva={p.nueva === '1'} />;
+  return (
+    <div className="space-y-4">
+      <AvisoOperacionesIncompletas />
+      <OperacionesPantalla opInicial={op} nueva={p.nueva === '1'} />
+    </div>
+  );
 }

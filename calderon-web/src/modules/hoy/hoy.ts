@@ -91,6 +91,7 @@ const ACCION: Record<string, string> = {
   // Operaciones con datos que faltan (16/11/2026)
   op_sin_cliente: 'Poner el cliente',
   op_sin_precio: 'Poner el precio',
+  op_incompleta_gerencia: 'Ver la operación',
   gastos_por_revisar: 'Revisar',
   fondo_bajo: 'Ver fondo',
   por_facturar: 'Facturar',

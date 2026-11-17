@@ -1458,6 +1458,7 @@ export type Database = {
       fn_ven_guardar_glosa_sii: { Args: { p_id: number; p_glosa: string | null }; Returns: string | null };
       fn_ven_guardar_oc_sii: { Args: { p_id: number; p_numero: string; p_fecha: string | null }; Returns: Json };
       fn_enex_pendientes: { Args: Record<string, never>; Returns: Json };
+      fn_operaciones_incompletas: { Args: Record<string, never>; Returns: Json };
       fn_enex_registrar: { Args: { p_id: number; p_estacion: number | null }; Returns: Json };
       fn_enex_corregir: { Args: { p_id: number }; Returns: Json };
       fn_enex_descartar: { Args: { p_id: number; p_motivo: string }; Returns: undefined };

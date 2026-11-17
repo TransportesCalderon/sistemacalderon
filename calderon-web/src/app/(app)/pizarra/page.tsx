@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { requirePermiso } from '@/modules/core/auth/guards';
 import { PizarraPantalla } from '@/modules/pizarra/components/pizarra-pantalla';
 import { LibroSalidas } from '@/modules/pizarra/components/libro-salidas';
+import { AvisoOperacionesIncompletas } from '@/modules/hoy/components/aviso-operaciones-incompletas';
 
 export const metadata: Metadata = { title: 'Pizarra Azul' };
 
@@ -16,5 +17,10 @@ export default async function Pagina({ searchParams }: Props) {
   await requirePermiso('flota.pizarra:ver');
   // Migración 196: el libro de salidas de la base es una vista de la Pizarra
   if (vista === 'salidas') return <LibroSalidas />;
-  return <PizarraPantalla />;
+  return (
+    <div className="space-y-4">
+      <AvisoOperacionesIncompletas />
+      <PizarraPantalla />
+    </div>
+  );
 }
