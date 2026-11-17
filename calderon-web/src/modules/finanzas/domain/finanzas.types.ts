@@ -321,9 +321,20 @@ export interface GastoFijo {
   /** Cuotas pagadas antes del sistema, y si pasó la fecha original de fin y todavía faltan cuotas. */
   cuotasPrevias: number | null;
   atrasado: boolean;
+  /** Las cuotas emitidas que falta pagar, con su vencimiento original y la fecha prevista de pago. */
+  cuotasSinPagar: CuotaSinPagar[];
   activo: boolean;
   observacion: string | null;
   generadoMes: boolean;
+}
+export interface CuotaSinPagar {
+  gastoId: number;
+  cuota: number;
+  vence: string;
+  pagoPrevisto: string | null;
+  saldo: number;
+  moneda: string;
+  diasVencido: number;
 }
 export interface GastosFijos {
   mes: string;
@@ -356,6 +367,15 @@ export function parsearGastosFijos(raw: unknown): GastosFijos {
       terminado: f.terminado === true,
       cuotasPrevias: numN(f.cuotas_previas),
       atrasado: f.atrasado === true,
+      cuotasSinPagar: (Array.isArray(f.cuotas_sin_pagar) ? (f.cuotas_sin_pagar as Record<string, unknown>[]) : []).map((c) => ({
+        gastoId: num(c.gasto_id),
+        cuota: num(c.cuota),
+        vence: String(c.vence),
+        pagoPrevisto: txt(c.pago_previsto),
+        saldo: num(c.saldo),
+        moneda: String(c.moneda),
+        diasVencido: num(c.dias_vencido),
+      })),
       activo: f.activo !== false,
       observacion: txt(f.observacion),
       generadoMes: f.generado_mes === true,

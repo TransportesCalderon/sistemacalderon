@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Pencil, Plus, Repeat, Wand2 } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { useProveedores } from '@/modules/catalogos/queries/hooks';
@@ -8,7 +8,7 @@ import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Seccion, Vacio } f
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
-import { hoyEnZona } from '@/shared/lib/fechas';
+import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_ICONO, BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { Pestanas } from '@/shared/ui/pestanas';
@@ -16,6 +16,7 @@ import { PESTANAS_GASTOS } from '@/shared/ui/pestanas-secciones';
 import { cuentasParaGasto, dinero, etiquetaDocumento, mesCorto, TIPOS_DOCUMENTO, type GastoFijo, type TipoDocumento } from '../domain/finanzas.types';
 import { useCamionesFinanzas, useGastosFijos, useGenerarGastosFijos, useGuardarGastoFijo, usePlanCuentas } from '../queries/hooks';
 import { MONEDAS, OpcionesCuentas } from './comun';
+import { PagarGasto } from './gasto-ficha';
 
 interface Form {
   id: number | null;
@@ -64,6 +65,8 @@ export function GastosFijosPantalla() {
   const [periodo, setPeriodo] = useState(mesActual);
   const [generados, setGenerados] = useState<number | null>(null);
   const [form, setForm] = useState<Form | null>(null);
+  const [pagando, setPagando] = useState<number | null>(null);
+  const puedePagar = useCan('finanzas.cobros_pagos:editar');
 
   const nuevo = (): Form => ({
     id: null,
@@ -285,15 +288,16 @@ export function GastosFijosPantalla() {
               </thead>
               <tbody className="divide-y divide-borde">
                 {data.fijos.map((f) => (
-                  <tr key={f.id} className={cn(!f.activo && 'text-tinta-suave')}>
+                  <Fragment key={f.id}>
+                  <tr className={cn(!f.activo && 'text-tinta-suave')}>
                     <td className={TD}>
                       <span className="font-medium">{f.nombre}</span>
                       <span className="block text-xs text-tinta-suave">
                         {[
                           f.proveedor,
                           f.camion,
-                          f.cuotas !== null && f.cuotaActual !== null ? `${f.cuotaActual} de ${f.cuotas} cuotas${f.cuotas - f.cuotaActual > 0 ? ` · faltan ${f.cuotas - f.cuotaActual}` : ''}` : null,
-                          f.atrasado && f.hasta ? `atrasado: el contrato terminaba ${mesCorto(f.hasta)}` : f.hasta ? `${f.terminado ? 'terminó' : 'hasta'} ${mesCorto(f.hasta)}` : null,
+                          f.cuotas !== null && f.cuotaActual !== null ? `${f.cuotaActual} de ${f.cuotas} cuotas pagadas${f.cuotas - f.cuotaActual > 0 ? ` · faltan ${f.cuotas - f.cuotaActual}` : ''}` : null,
+                          f.atrasado ? 'con cuotas vencidas' : f.hasta ? `${f.terminado ? 'terminó' : 'hasta'} ${mesCorto(f.hasta)}` : null,
                         ]
                           .filter(Boolean)
                           .join(' · ') || ' '}
@@ -314,6 +318,38 @@ export function GastosFijosPantalla() {
                       )}
                     </td>
                   </tr>
+                  {/* Las cuotas que falta pagar, con su vencimiento original: se pagan de a una o todas juntas */}
+                  {f.cuotasSinPagar.map((c) => (
+                    <tr key={c.gastoId} className="bg-fondo/40">
+                      <td className={cn(TD, 'pl-8')} colSpan={3}>
+                        <span className="font-medium">Cuota {c.cuota}</span>
+                        <span className={cn('ml-2 text-xs', c.diasVencido > 0 ? 'text-error' : 'text-tinta-suave')}>
+                          {c.diasVencido > 0 ? `venció el ${formatearFechaDia(c.vence)} (hace ${c.diasVencido} días)` : `vence el ${formatearFechaDia(c.vence)}`}
+                        </span>
+                        {c.pagoPrevisto && c.pagoPrevisto !== c.vence && <span className="ml-2 text-xs text-tinta-suave">· pago previsto: {formatearFechaDia(c.pagoPrevisto)}</span>}
+                        {pagando === c.gastoId && (
+                          <PagarGasto
+                            gastoId={c.gastoId}
+                            moneda={c.moneda}
+                            saldo={c.saldo}
+                            onListo={() => {
+                              setPagando(null);
+                              void refetch();
+                            }}
+                          />
+                        )}
+                      </td>
+                      <td className={cn(TD, 'text-right align-top tabular-nums')}>{dinero(c.saldo, c.moneda)}</td>
+                      <td className={cn(TD, 'align-top')} colSpan={3}>
+                        {puedePagar && (
+                          <button type="button" className={BOTON_SECUNDARIO} onClick={() => setPagando(pagando === c.gastoId ? null : c.gastoId)}>
+                            {pagando === c.gastoId ? 'Cerrar' : 'Pagar'}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
