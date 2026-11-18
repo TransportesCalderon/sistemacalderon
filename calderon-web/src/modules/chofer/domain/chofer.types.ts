@@ -324,7 +324,9 @@ export interface GastoPorRevisar {
   apelacion: string | null;
   motivoRechazo: string | null;
   /** Migración 257: lo que leyó la IA y si coincide con otro gasto vigente. */
-  verificacion: 'ia' | 'ia_sin_numero' | 'sin_ia' | null;
+  verificacion: 'ia' | 'ia_sin_numero' | 'ia_patente' | 'sin_ia' | null;
+  /** Migración 276: comprobante sin número (estacionamiento): la patente que leyó Iris. */
+  patenteComprobante: string | null;
   comprobanteNro: string | null;
   operacionNro: string | null;
   emisor: string | null;
@@ -353,6 +355,7 @@ export const parsearGastosPorRevisar = (v: Json | unknown): GastoPorRevisar[] =>
       motivoRechazo: s(x.motivo_rechazo),
       verificacion: (s(x.verificacion) as GastoPorRevisar['verificacion']) ?? null,
       comprobanteNro: s(x.comprobante_nro),
+      patenteComprobante: s(x.patente_comprobante),
       operacionNro: s(x.operacion_nro),
       emisor: s(x.emisor),
       coincideCon: x.coincide_con

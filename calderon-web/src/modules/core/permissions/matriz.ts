@@ -125,7 +125,7 @@ export const PANTALLAS = {
   'finanzas.rentabilidad':   { etiqueta: 'Asignación de costos y rentabilidad', fila: ['L', 'L', '—', '—', '—', '—', '—', 'L', 'E A', 'L', '—', '—', '—'] },
   // IA-3 (migración 126): Iris, el asistente de IA. La base decide quién lo usa (Gerencia y los usuarios de
   // prueba de ia.asistente_usuarios_prueba); la matriz solo deja pedir (el chofer no) y ver el informe de uso.
-  'ia.asistente':            { etiqueta: 'Iris (asistente de IA)', fila: ['E', 'E', 'E', '—', 'E', 'E', 'E', 'E', 'E A', 'L', 'E', '—', '—'] },
+  'ia.asistente':            { etiqueta: 'Iris (asistente)', fila: ['E', 'E', 'E', '—', 'E', 'E', 'E', 'E', 'E A', 'L', 'E', '—', '—'] },
   // Migraciones 135-136: ruta para el chofer de cada operación. Cargan Operaciones, telemetría (Analista de control) y TI.
   'operacion.rutas':         { etiqueta: 'Rutas para los choferes', fila: ['L', 'E', 'L', '—', 'L', 'E', '—', '—', 'E A', 'L', '—', '—', '—'] },
   'finanzas.cierre':         { etiqueta: 'Cierre de período', fila: ['L', '—', '—', '—', '—', '—', '—', 'A', 'E A', 'L', '—', '—', '—'] },

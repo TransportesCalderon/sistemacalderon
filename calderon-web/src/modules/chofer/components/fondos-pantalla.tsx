@@ -166,6 +166,15 @@ function FilaRevisar({ g }: { g: GastoPorRevisar }) {
         )}
         {g.verificacion === 'sin_ia' && <p className="mt-1 text-xs text-alerta">Iris no pudo leer el comprobante: revisalo con cuidado.</p>}
         {g.verificacion === 'ia_sin_numero' && <p className="mt-1 text-xs text-alerta">Iris no encontró el número del comprobante: revisalo con cuidado.</p>}
+        {/* Migración 276: comprobante sin número (estacionamiento): Iris controló que la patente y la fecha no estén en otro gasto */}
+        {g.verificacion === 'ia_patente' && (
+          <p className="mt-1 text-xs text-tinta-suave">
+            Comprobante sin número: Iris controló que la patente {g.patenteComprobante} y la fecha no estén en otro gasto.
+            {g.tractor && g.patenteComprobante && g.tractor.replace(/[^A-Za-z0-9]/g, '').toUpperCase() !== g.patenteComprobante && (
+              <span className="block text-alerta">Ojo: la patente del comprobante no es la del tractor del gasto ({g.tractor}).</span>
+            )}
+          </p>
+        )}
         {g.coincideCon && (
           <p className="mt-1 flex items-start gap-1 rounded-md bg-error-suave px-2 py-1 text-xs text-error">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> Tiene {g.coincideCon.regla} que el gasto {g.coincideCon.numero} de {g.coincideCon.chofer} (

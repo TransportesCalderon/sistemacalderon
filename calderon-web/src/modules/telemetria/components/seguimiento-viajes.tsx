@@ -308,7 +308,7 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
                 )}
                 <div className="space-y-1 text-sm">
                   <p className="text-tinta">
-                    La IA leyó: <b>{num(foto.datos.km)} km</b>
+                    Iris leyó: <b>{num(foto.datos.km)} km</b>
                     {foto.datos.l100km !== null && (
                       <>
                         {' '}
