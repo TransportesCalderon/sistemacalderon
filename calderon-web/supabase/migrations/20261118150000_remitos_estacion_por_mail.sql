@@ -598,7 +598,8 @@ END $do$;
 -- 9 · La tarea de cada 10 minutos
 DO $do$
 BEGIN
-    IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') AND to_regproc('cron.schedule') IS NOT NULL THEN
+    -- to_regprocedure con la firma: to_regproc da NULL porque cron.schedule tiene más de una versión
+    IF to_regprocedure('cron.schedule(text,text,text)') IS NOT NULL THEN
         PERFORM cron.schedule('remitos_estaciones', '*/10 * * * *', 'SELECT fue.fn_remitos_sincronizar()');
     END IF;
 END $do$;
