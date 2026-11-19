@@ -1,3 +1,6 @@
+import { z } from 'zod';
+import { numeroOpc } from '@/modules/ventas/domain/ventas.schemas';
+
 /** Migración 281 · Cuenta corriente de proveedores y órdenes de pago: lo que devuelve la base. */
 type Obj = Record<string, unknown>;
 const num = (v: unknown): number => (v === null || v === undefined || v === '' ? 0 : Number(v));
@@ -103,3 +106,22 @@ export const ETIQUETA_MOVIMIENTO_PROVEEDOR: Record<TipoMovimientoProveedor, stri
   orden_pago: 'Orden de pago',
   carga: 'Carga sin factura',
 };
+
+/** Forma de los formularios (las reglas las decide la base). Van acá y no en las acciones: un archivo «use server» solo admite funciones async. */
+const idSchema = z.number().int().positive();
+export const ordenPagoSchema = z.object({
+  proveedorId: idSchema,
+  cuentaDineroId: idSchema,
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Elegí la fecha.'),
+  monto: numeroOpc.refine((v) => v !== null && v > 0, 'Escribí cuánto salió.'),
+  moneda: z.string().length(3),
+  montoDeuda: numeroOpc,
+  observacion: z
+    .string()
+    .trim()
+    .max(500)
+    .nullish()
+    .transform((v) => (v ? v : null)),
+});
+export const aplicarACuentaSchema = z.object({ proveedorId: idSchema });
+export const anularOrdenPagoSchema = z.object({ id: idSchema, motivo: z.string().trim().min(1, 'Escribí el motivo.').max(500) });
