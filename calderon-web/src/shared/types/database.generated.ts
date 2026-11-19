@@ -1783,6 +1783,15 @@ export type Database = {
       fn_guardar_gasto_fijo_equipos: { Args: { p_id: number | null; p_datos: Json; p_camiones?: number[]; p_semis?: number[] }; Returns: number };
       // Compra de vehículos con documentos (17/11/2026)
       fn_compras_rodados: { Args: Record<string, never>; Returns: Json };
+      // Migración 280: compras (pedido, cotizaciones, recomendación de Iris y orden de compra)
+      fn_pedidos_compra: { Args: { p_todos: boolean }; Returns: Json };
+      fn_pedido_compra: { Args: { p_id: number }; Returns: Json };
+      fn_guardar_pedido_compra: { Args: { p_id: number | null; p_version: number | null; p_datos: Json }; Returns: number };
+      fn_guardar_cotizacion_compra: { Args: { p_id: number | null; p_datos: Json }; Returns: number };
+      fn_anular_cotizacion_compra: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
+      fn_elevar_pedido_compra: { Args: { p_pedido: number; p_nota: string | null }; Returns: undefined };
+      fn_resolver_pedido_compra: { Args: { p_pedido: number; p_accion: string; p_cotizacion: number | null; p_nota: string | null }; Returns: Json };
+      fn_anular_pedido_compra: { Args: { p_pedido: number; p_motivo: string }; Returns: undefined };
       fn_registrar_compra_rodado: { Args: { p_datos: Json }; Returns: number };
       fn_anular_compra_rodado: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_generar_gastos_fijos: { Args: { p_periodo: string }; Returns: number };

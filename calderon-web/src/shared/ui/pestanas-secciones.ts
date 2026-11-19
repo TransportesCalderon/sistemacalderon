@@ -107,6 +107,8 @@ export const PESTANAS_GASTOS = [
   { href: '/analisis/gastos', etiqueta: 'Gastos' },
   { href: '/ajustes/gastos-fijos', etiqueta: 'Gastos fijos' },
   { href: '/analisis/gastos/combustible', etiqueta: 'Combustible' },
+  // Migración 280: pedidos de compra, cotizaciones (Iris recomienda) y orden de compra
+  { href: '/analisis/gastos?vista=compras', etiqueta: 'Compras' },
 ] as const;
 
 /** Migración 123 · Conciliación: los bancos y cajas con su cartola, y los cambios de moneda armados desde ellas. */
