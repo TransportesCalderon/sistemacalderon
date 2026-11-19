@@ -294,7 +294,8 @@ export function GastoFicha({ id }: { id: number | null }) {
 }
 
 /** Proveedor de la lista, o alta rápida (razón social y RUT). Sin documento: solo un nombre. */
-function ElegirProveedor({
+// Migración 280: también lo usa la cotización de una compra
+export function ElegirProveedor({
   proveedores,
   valor,
   texto,
