@@ -1806,6 +1806,12 @@ export type Database = {
       fn_registrar_recibo: { Args: { p_datos: Json }; Returns: Json };
       fn_anular_recibo: { Args: { p_recibo: number; p_motivo: string }; Returns: undefined };
       fn_recibos: { Args: { p_desde?: string | null; p_hasta?: string | null }; Returns: Json };
+      // Migración 281: órdenes de pago y cuenta corriente de proveedores
+      fn_cuenta_proveedores: { Args: Record<string, never>; Returns: Json };
+      fn_cuenta_proveedor: { Args: { p_proveedor: number; p_moneda: string }; Returns: Json };
+      fn_registrar_orden_pago: { Args: { p_datos: Json }; Returns: Json };
+      fn_aplicar_pagos_a_cuenta: { Args: { p_proveedor: number }; Returns: number };
+      fn_anular_orden_pago: { Args: { p_op: number; p_motivo: string }; Returns: undefined };
       // Migración 279: comprobante del recibo
       fn_adjuntar_comprobante_recibo: { Args: { p_recibo: number; p_ruta: string; p_nombre: string | null }; Returns: string | null };
       fn_importar_cartola: { Args: { p_cuenta: number; p_filas: Json }; Returns: Json };
