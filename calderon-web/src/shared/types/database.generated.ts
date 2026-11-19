@@ -1020,7 +1020,7 @@ export type Database = {
         Update: Partial<Omit<ClienteRow, 'id'>>;
         Relationships: [];
       };
-      estacion_servicio: TablaEditable<EstacionIns & Control & { id: number; proveedor_id: number | null; ubicacion_id: number | null; es_tanque_propio: boolean }, EstacionIns>;
+      estacion_servicio: TablaEditable<EstacionIns & Control & { id: number; proveedor_id: number | null; proveedor_directo_id: number | null; ubicacion_id: number | null; es_tanque_propio: boolean }, EstacionIns>;
       proveedor: TablaEditable<ProveedorIns & Control & { id: number; identificador_fiscal: string | null; moneda_defecto: string | null }, ProveedorIns>;
       ubicacion: TablaEditable<Required<UbicacionIns> & Control & { id: number }, UbicacionIns>;
       semirremolque: TablaEditable<SemiRow, SemiIns>;
@@ -1123,6 +1123,7 @@ export type Database = {
       fn_foto_chofer_mini: { Args: { p_chofer: number; p_mini: string }; Returns: undefined };
       // Migración 234: correo de la estación (órdenes de carga)
       fn_estacion_correo: { Args: { p_estacion: number; p_correo: string }; Returns: undefined };
+      fn_estacion_proveedor_directo: { Args: { p_estacion: number; p_proveedor: number | null }; Returns: number };
       fn_ot_visto: { Args: { p_id: number }; Returns: undefined };
       fn_guardar_tarea: {
         Args: {

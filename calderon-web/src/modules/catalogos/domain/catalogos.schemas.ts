@@ -57,6 +57,8 @@ export const estacionSchema = z.object({
   longitud: coordenadaEstacion.optional(),
 });
 export type EstacionEntrada = z.input<typeof estacionSchema>;
+/** Migración 282: quién factura cuando la carga se paga directo a la estación (vacío = el proveedor de la estación). */
+export const proveedorDirectoSchema = z.object({ estacionId: id(), proveedorId: id().nullable() });
 export type EstacionDatos = z.output<typeof estacionSchema>;
 
 /**

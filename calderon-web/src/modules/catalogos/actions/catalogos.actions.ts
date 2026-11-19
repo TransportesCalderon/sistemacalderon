@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createAction } from '@/server/actions/create-action';
 import { ErrorNegocio } from '@/shared/lib/errores';
 import { pedirBcra, periodoBcra } from '@/server/externos/bcra';
-import { eliminarSchema, estacionSchema, parametroSchema, proveedorSchema, tipoCambioSchema, ubicacionSchema } from '../domain/catalogos.schemas';
+import { eliminarSchema, estacionSchema, parametroSchema, proveedorDirectoSchema, proveedorSchema, tipoCambioSchema, ubicacionSchema } from '../domain/catalogos.schemas';
 import { catalogosRepository } from '../repositories/catalogos.repository';
 import { tipoCargaSchema } from '../domain/tipos-carga';
 import { abrirLinkMaps } from '@/server/externos/maps';
@@ -37,6 +37,14 @@ export const guardarEstacion = createAction({
   permiso: 'comercial.proveedores:editar',
   schema: estacionSchema,
   handler: (d, { db }) => catalogosRepository(db).guardarEstacion(d),
+  invalida: comercial,
+});
+
+/** Migración 282: quién factura cuando la carga se paga directo a la estación. La base decide quién puede. */
+export const guardarProveedorDirecto = createAction({
+  permiso: 'comercial.proveedores:editar',
+  schema: proveedorDirectoSchema,
+  handler: (d, { db }) => catalogosRepository(db).guardarProveedorDirecto(d.estacionId, d.proveedorId),
   invalida: comercial,
 });
 
