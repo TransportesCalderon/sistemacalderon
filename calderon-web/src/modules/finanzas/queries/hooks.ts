@@ -7,6 +7,7 @@ import {
   anularGasto,
   anularMovimiento,
   anularRecibo,
+  adjuntarComprobanteRecibo,
   registrarRecibo,
   cambiarFechaCobro,
   conciliar,
@@ -102,6 +103,7 @@ export const useAnularMovimiento = () => useEscritura(anularMovimiento);
 export const useCambiarFechaCobro = () => useEscritura(cambiarFechaCobro);
 export const useRegistrarRecibo = () => useEscritura(registrarRecibo);
 export const useAnularRecibo = () => useEscritura(anularRecibo);
+export const useAdjuntarComprobanteRecibo = () => useEscritura(adjuntarComprobanteRecibo);
 export const useImportarCartola = () => useEscritura(importarCartola);
 export const useConfirmarCambios = () => useEscritura(confirmarCambios);
 export const useConciliar = () => useEscritura(conciliar);

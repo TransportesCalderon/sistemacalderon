@@ -4,6 +4,7 @@ import { createAction } from '@/server/actions/create-action';
 import {
   anularSchema,
   anularReciboSchema,
+  comprobanteReciboSchema,
   reciboSchema,
   cambiarFechaCobroSchema,
   conciliarSchema,
@@ -106,6 +107,12 @@ export const registrarRecibo = createAction({
   permiso: 'finanzas.cobros_pagos:editar',
   schema: reciboSchema,
   handler: (d, { db }) => repo(db).registrarRecibo(d),
+  invalida: () => RUTAS,
+});
+export const adjuntarComprobanteRecibo = createAction({
+  permiso: 'finanzas.cobros_pagos:editar',
+  schema: comprobanteReciboSchema,
+  handler: (d, { db }) => repo(db).adjuntarComprobanteRecibo(d.id, d.ruta, d.nombre),
   invalida: () => RUTAS,
 });
 export const anularRecibo = createAction({

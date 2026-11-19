@@ -243,10 +243,16 @@ export const finanzasRepository = (db: Db) => {
               cuenta_dinero_id: d.cuentaDineroId,
               observacion: d.observacion,
               facturas: d.facturas.map((f) => ({ factura_id: f.facturaId, monto: f.monto })),
+              comprobante_ruta: d.comprobanteRuta ?? null,
+              comprobante_nombre: d.comprobanteNombre ?? null,
             } as Json,
           }),
         ),
       );
+    },
+    /** Migración 279: adjunta o cambia el comprobante del recibo; devuelve el archivo anterior (para borrarlo). */
+    async adjuntarComprobanteRecibo(id: number, ruta: string, nombre: string | null): Promise<string | null> {
+      return leer(fin().rpc('fn_adjuntar_comprobante_recibo', { p_recibo: id, p_ruta: ruta, p_nombre: nombre }));
     },
     async anularRecibo(id: number, motivo: string) {
       await leer(fin().rpc('fn_anular_recibo', { p_recibo: id, p_motivo: motivo }));

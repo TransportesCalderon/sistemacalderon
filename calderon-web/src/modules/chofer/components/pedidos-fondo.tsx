@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidar } from '@/shared/query/invalidar';
-import { Ban, Check, CircleAlert, ExternalLink, Landmark, LoaderCircle, Plus, Send, Wallet, X } from 'lucide-react';
+import { ArrowUpRight, Ban, Check, CircleAlert, ExternalLink, Landmark, LoaderCircle, Plus, Send, Wallet, X } from 'lucide-react';
 import { AccionConMotivo, Cargando, Chip, Encabezado, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useChoferesCombustible, useMonedas } from '@/modules/combustible/queries/hooks';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -13,13 +13,32 @@ import { formatearFechaDia, formatearFechaHora, hoyEnZona } from '@/shared/lib/f
 import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { anularPedidoFondo, depositarPedidoFondo, pedirFondo, resolverPedidoFondo } from '../actions/pedido-fondo.actions';
+import {
+  anularPedidoFondo,
+  autorizarPedidoFondo,
+  depositarPedidoFondo,
+  pagarPedidoFondo,
+  pedirFondo,
+  resolverPedidoFondo,
+  revisarPedidoFondo,
+} from '../actions/pedido-fondo.actions';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { dinero } from '../domain/chofer.types';
 import { abrirArchivo, borrarArchivo, subirArchivo } from './archivos';
 
-/** Migración 256 · Pedidos de FF Chofer: los piden Operaciones y Telemetría, aprueba el gerente, deposita Administración. */
+/**
+ * Migración 256 · Pedidos de FF Chofer. Migración 278: el chofer pide desde su perfil, Operaciones revisa y eleva,
+ * y quien tiene «Aprueba fondos» autoriza el monto y deja registrado el pago (cuenta y medio), así el saldo de la cuenta es el real.
+ */
 
-type Estado = 'pendiente' | 'aprobado' | 'rechazado' | 'depositado' | 'anulado';
+type Estado = 'solicitado' | 'pendiente' | 'aprobado' | 'rechazado' | 'depositado' | 'anulado';
+type Medio = 'transferencia' | 'deposito' | 'efectivo';
+interface CuentaPago {
+  id: number;
+  nombre: string;
+  tipo: 'banco' | 'caja';
+  moneda: string;
+}
 interface CierrePendiente {
   id: number;
   numero: string;
@@ -47,20 +66,31 @@ interface Pedido {
   comprobante_nombre: string | null;
   cierres: CierrePendiente[];
   puede_anular: boolean;
+  // Migración 278
+  importe_solicitado?: number | null;
+  pedido_por_chofer?: boolean;
+  elevado_por?: string | null;
+  nota_revision?: string | null;
+  medio_pago?: Medio | null;
+  cuenta?: string | null;
+  monto_cuenta?: number | null;
 }
 interface Datos {
-  puede: { pedir: boolean; aprobar: boolean; depositar: boolean };
+  puede: { pedir: boolean; aprobar: boolean; depositar: boolean; revisar?: boolean };
   pedidos: Pedido[];
+  cuentas: CuentaPago[];
 }
 
 const ETIQUETA: Record<Estado, string> = {
-  pendiente: 'Para aprobar',
-  aprobado: 'Aprobado · falta depositar',
+  solicitado: 'Para revisar (Operaciones)',
+  pendiente: 'Para autorizar',
+  aprobado: 'Autorizado · falta registrar el pago',
   rechazado: 'Rechazado',
-  depositado: 'Depositado',
+  depositado: 'Pagado',
   anulado: 'Anulado',
 };
-const TONO: Record<Estado, Tono> = { pendiente: 'alerta', aprobado: 'marca', rechazado: 'error', depositado: 'exito', anulado: 'neutro' };
+const TONO: Record<Estado, Tono> = { solicitado: 'alerta', pendiente: 'alerta', aprobado: 'marca', rechazado: 'error', depositado: 'exito', anulado: 'neutro' };
+const MEDIO: Record<Medio, string> = { transferencia: 'transferencia', deposito: 'depósito', efectivo: 'efectivo' };
 const CLAVE = ['chofer', 'pedidos-fondo'] as const;
 
 const aNumero = (s: string) => {
@@ -76,7 +106,16 @@ function usePedidos(todos: boolean) {
       const { data, error } = await browserDb().schema('fin').rpc('fn_pedidos_fondo', { p_todos: todos });
       if (error) throw error;
       const d = data as unknown as Datos;
-      return { puede: d.puede, pedidos: (d.pedidos ?? []).map((p) => ({ ...p, importe: Number(p.importe) })) };
+      return {
+        puede: d.puede,
+        cuentas: Array.isArray(d.cuentas) ? d.cuentas : [],
+        pedidos: (d.pedidos ?? []).map((p) => ({
+          ...p,
+          importe: Number(p.importe),
+          importe_solicitado: p.importe_solicitado === null || p.importe_solicitado === undefined ? null : Number(p.importe_solicitado),
+          monto_cuenta: p.monto_cuenta === null || p.monto_cuenta === undefined ? null : Number(p.monto_cuenta),
+        })),
+      };
     },
   });
 }
@@ -97,8 +136,9 @@ export function PedidosFondo() {
         )}
       </Encabezado>
       <p className="text-sm text-tinta-suave">
-        Operaciones o Telemetría piden el dinero del viaje, lo aprueba el gerente y Administración lo deposita (queda anotado en el fondo del chofer). No se
-        aprueba si el chofer tiene cierres de viaje sin aprobar o sin el acta firmada.
+        El chofer pide el dinero del viaje desde su perfil (u Operaciones lo pide por él). Operaciones lo revisa y lo eleva; quien tiene «Aprueba fondos»
+        autoriza el monto y elige de qué cuenta sale: queda anotado en el fondo del chofer y como egreso de esa cuenta. No se autoriza si el chofer tiene
+        cierres de viaje sin aprobar o sin el acta firmada.
       </p>
       {nuevo && <NuevoPedido onCerrar={() => setNuevo(false)} />}
       {q.isPending ? (
@@ -106,11 +146,11 @@ export function PedidosFondo() {
       ) : q.isError ? (
         <ErrorLectura texto={q.error.message} onReintentar={() => void q.refetch()} />
       ) : q.data.pedidos.length === 0 ? (
-        <Vacio icono={<Wallet className="size-6" />} texto={todos ? 'No hay pedidos en los últimos 120 días.' : 'No hay pedidos para aprobar ni para depositar.'} />
+        <Vacio icono={<Wallet className="size-6" />} texto={todos ? 'No hay pedidos en los últimos 120 días.' : 'No hay pedidos para revisar, autorizar ni pagar.'} />
       ) : (
         <ul className="space-y-3">
           {q.data.pedidos.map((p) => (
-            <FilaPedido key={p.id} p={p} puede={q.data.puede} />
+            <FilaPedido key={p.id} p={p} puede={q.data.puede} cuentas={q.data.cuentas} />
           ))}
         </ul>
       )}
@@ -218,8 +258,9 @@ function NuevoPedido({ onCerrar }: { onCerrar: () => void }) {
   );
 }
 
-function FilaPedido({ p, puede }: { p: Pedido; puede: Datos['puede'] }) {
+function FilaPedido({ p, puede, cuentas }: { p: Pedido; puede: Datos['puede']; cuentas: CuentaPago[] }) {
   const { zonaHoraria } = useSesion();
+  const nuevo = useBaseTiene(278);
   const qc = useQueryClient();
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<ErrorAccion | null>(null);
@@ -236,10 +277,10 @@ function FilaPedido({ p, puede }: { p: Pedido; puede: Datos['puede'] }) {
     await recargar();
     return true;
   };
-  const trabado = p.estado === 'pendiente' && p.cierres.length > 0;
+  const trabado = (p.estado === 'pendiente' || p.estado === 'solicitado') && p.cierres.length > 0;
 
   return (
-    <li className={cn(TARJETA, 'space-y-2 p-4', p.estado === 'pendiente' && 'border-l-4 border-l-alerta', p.estado === 'aprobado' && 'border-l-4 border-l-marca')}>
+    <li className={cn(TARJETA, 'space-y-2 p-4', (p.estado === 'pendiente' || p.estado === 'solicitado') && 'border-l-4 border-l-alerta', p.estado === 'aprobado' && 'border-l-4 border-l-marca')}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-semibold text-tinta">
           {p.numero} · {p.chofer}
@@ -247,20 +288,33 @@ function FilaPedido({ p, puede }: { p: Pedido; puede: Datos['puede'] }) {
         </p>
         <Chip tono={TONO[p.estado]}>{ETIQUETA[p.estado]}</Chip>
       </div>
-      <p className="text-2xl font-semibold text-tinta tabular-nums">{dinero(p.importe, p.moneda)}</p>
+      <p className="text-2xl font-semibold text-tinta tabular-nums">
+        {dinero(p.importe, p.moneda)}
+        {p.importe_solicitado !== null && p.importe_solicitado !== undefined && p.importe_solicitado !== p.importe && (
+          <span className="ml-2 text-sm font-normal text-tinta-suave">(pidió {dinero(p.importe_solicitado, p.moneda)})</span>
+        )}
+      </p>
       <p className="text-sm text-tinta">{p.detalle}</p>
+      {p.nota_revision && <p className="text-sm text-tinta-suave">Operaciones ({p.elevado_por ?? '—'}): {p.nota_revision}</p>}
+      {p.estado === 'depositado' && p.medio_pago && (
+        <p className="text-sm text-tinta-suave">
+          Pagado por {MEDIO[p.medio_pago]}
+          {p.cuenta && ` desde ${p.cuenta}`}
+          {p.monto_cuenta !== null && p.monto_cuenta !== undefined && ` (salieron ${formatearNumeroSimple(p.monto_cuenta)} de la cuenta)`}
+        </p>
+      )}
       <p className="text-xs text-tinta-suave">
-        Pedido por {p.pedido_por ?? '—'} el {formatearFechaHora(p.pedido_en, zonaHoraria)}
-        {p.resuelto_por && p.resuelto_en && p.estado !== 'pendiente' && (
+        Pedido por {p.pedido_por ?? '—'}{p.pedido_por_chofer ? ' (desde su perfil)' : ''} el {formatearFechaHora(p.pedido_en, zonaHoraria)}
+        {p.resuelto_por && p.resuelto_en && p.estado !== 'pendiente' && p.estado !== 'solicitado' && (
           <>
             {' · '}
-            {p.estado === 'rechazado' ? 'Rechazado' : p.estado === 'anulado' ? 'Anulado' : 'Aprobado'} por {p.resuelto_por} el{' '}
+            {p.estado === 'rechazado' ? 'Rechazado' : p.estado === 'anulado' ? 'Anulado' : 'Autorizado'} por {p.resuelto_por} el{' '}
             {formatearFechaHora(p.resuelto_en, zonaHoraria)}
           </>
         )}
         {p.estado === 'depositado' && p.depositado_por && (
           <>
-            {' · '}Depositado por {p.depositado_por}
+            {' · '}Pago registrado por {p.depositado_por}
             {p.fecha_deposito ? ` el ${formatearFechaDia(p.fecha_deposito)}` : ''}
           </>
         )}
@@ -268,7 +322,7 @@ function FilaPedido({ p, puede }: { p: Pedido; puede: Datos['puede'] }) {
       {p.motivo && (p.estado === 'rechazado' || p.estado === 'anulado') && <p className="text-sm text-error">Motivo: {p.motivo}</p>}
       {trabado && (
         <div className="rounded-md bg-alerta-suave p-3 text-sm text-alerta">
-          <p className="font-semibold">No se puede aprobar: el chofer tiene cierres de viaje pendientes</p>
+          <p className="font-semibold">No se puede autorizar: el chofer tiene cierres de viaje pendientes</p>
           <ul className="mt-1 list-disc pl-5">
             {p.cierres.map((c) => (
               <li key={c.id}>
@@ -295,7 +349,46 @@ function FilaPedido({ p, puede }: { p: Pedido; puede: Datos['puede'] }) {
       )}
 
       <div className="flex flex-wrap gap-2 pt-1">
-        {p.estado === 'pendiente' && puede.aprobar && (
+        {/* Migración 278: Operaciones revisa lo que pidió el chofer */}
+        {p.estado === 'solicitado' && puede.revisar && (
+          <>
+            <AccionConMotivo
+              etiqueta="Elevar para autorizar"
+              icono={<ArrowUpRight className="size-4" />}
+              titulo={`Elevar ${p.numero}`}
+              explicacion="Le llega el aviso a quien autoriza fondos. Podés dejarle una nota (por ejemplo, qué viaje hace)."
+              motivoOpcional
+              primario
+              ocupado={ocupado}
+              error={error}
+              onConfirmar={(nota) => correr(() => revisarPedidoFondo({ pedidoId: p.id, elevar: true, nota: nota || null }))}
+            />
+            <AccionConMotivo
+              etiqueta="Rechazar"
+              icono={<X className="size-4" />}
+              titulo={`Rechazar ${p.numero}`}
+              explicacion="Le avisa al chofer, con el motivo."
+              ocupado={ocupado}
+              error={error}
+              onConfirmar={(motivo) => correr(() => revisarPedidoFondo({ pedidoId: p.id, elevar: false, nota: motivo }))}
+            />
+          </>
+        )}
+        {p.estado === 'pendiente' && puede.aprobar && nuevo && (
+          <>
+            <Pagar p={p} cuentas={cuentas} autorizar trabado={trabado} onHecho={recargar} />
+            <AccionConMotivo
+              etiqueta="Rechazar"
+              icono={<X className="size-4" />}
+              titulo={`Rechazar ${p.numero}`}
+              explicacion="Le avisa a quien lo pidió, con el motivo."
+              ocupado={ocupado}
+              error={error}
+              onConfirmar={(motivo) => correr(() => resolverPedidoFondo({ pedidoId: p.id, aprobar: false, motivo }))}
+            />
+          </>
+        )}
+        {p.estado === 'pendiente' && puede.aprobar && !nuevo && (
           <>
             <button
               type="button"
@@ -317,7 +410,8 @@ function FilaPedido({ p, puede }: { p: Pedido; puede: Datos['puede'] }) {
             />
           </>
         )}
-        {p.estado === 'aprobado' && puede.depositar && <Depositar p={p} onHecho={recargar} />}
+        {p.estado === 'aprobado' && nuevo && (puede.aprobar || puede.depositar) && <Pagar p={p} cuentas={cuentas} onHecho={recargar} />}
+        {p.estado === 'aprobado' && !nuevo && puede.depositar && <Depositar p={p} onHecho={recargar} />}
         {p.puede_anular && (
           <AccionConMotivo
             etiqueta="Anular"
@@ -404,6 +498,169 @@ function Depositar({ p, onHecho }: { p: Pedido; onHecho: () => Promise<unknown> 
           }}
         >
           {ocupado ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Confirmar depósito
+        </button>
+        <button type="button" className={BOTON_SECUNDARIO} disabled={ocupado} onClick={() => setAbierto(false)}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const formatearNumeroSimple = (n: number) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
+
+/**
+ * Migración 278 · Autorizar (con el monto, que puede ser otro) y registrar el pago: medio, cuenta de donde sale la plata,
+ * fecha y, si la cuenta es de otra moneda, cuánto salió de la cuenta. Queda la entrega en el fondo del chofer y el egreso de la cuenta.
+ */
+function Pagar({
+  p,
+  cuentas,
+  autorizar = false,
+  trabado = false,
+  onHecho,
+}: {
+  p: Pedido;
+  cuentas: CuentaPago[];
+  autorizar?: boolean;
+  trabado?: boolean;
+  onHecho: () => Promise<unknown>;
+}) {
+  const { zonaHoraria } = useSesion();
+  const [abierto, setAbierto] = useState(false);
+  const [importe, setImporte] = useState(String(p.importe).replace('.', ','));
+  const [medio, setMedio] = useState<Medio>('transferencia');
+  const [cuentaId, setCuentaId] = useState<number | null>(null);
+  const [fecha, setFecha] = useState<string>(hoyEnZona(zonaHoraria));
+  const [montoCuenta, setMontoCuenta] = useState('');
+  const [nota, setNota] = useState('');
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!abierto)
+    return (
+      <button
+        type="button"
+        className={BOTON_PRIMARIO}
+        disabled={trabado}
+        title={trabado ? 'Primero hay que aprobar los cierres y subir el acta firmada' : undefined}
+        onClick={() => setAbierto(true)}
+      >
+        {autorizar ? <Check className="size-4" /> : <Landmark className="size-4" />} {autorizar ? 'Autorizar y pagar' : 'Registrar el pago'}
+      </button>
+    );
+
+  const posibles = cuentas.filter((c) => (medio === 'efectivo' ? c.tipo === 'caja' : c.tipo !== 'caja'));
+  const cuenta = posibles.find((c) => c.id === cuentaId) ?? null;
+  const otraMoneda = cuenta !== null && cuenta.moneda !== p.moneda;
+  const campo = 'block h-10 w-full rounded-md border border-borde bg-panel px-2 text-sm';
+
+  return (
+    <div className="w-full space-y-3 rounded-md border border-borde bg-fondo p-3">
+      <p className="text-sm text-tinta">
+        {autorizar ? 'Autorizás el monto y elegís de dónde sale la plata.' : 'Elegí de dónde salió la plata.'} Queda anotada la entrega en el fondo de {p.chofer} y
+        el egreso de la cuenta.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {autorizar && (
+          <label className="space-y-1 text-xs text-tinta-suave">
+            Monto que se autoriza ({p.moneda})
+            <input className={campo} inputMode="decimal" value={importe} onChange={(e) => setImporte(e.target.value)} />
+          </label>
+        )}
+        <label className="space-y-1 text-xs text-tinta-suave">
+          Medio de pago
+          <select
+            className={campo}
+            value={medio}
+            onChange={(e) => {
+              setMedio(e.target.value as Medio);
+              setCuentaId(null);
+            }}
+          >
+            <option value="transferencia">Transferencia</option>
+            <option value="deposito">Depósito</option>
+            <option value="efectivo">Efectivo</option>
+          </select>
+        </label>
+        <label className="space-y-1 text-xs text-tinta-suave">
+          {medio === 'efectivo' ? 'Caja de donde sale' : 'Cuenta de donde sale'}
+          <select className={campo} value={cuentaId ?? ''} onChange={(e) => setCuentaId(e.target.value ? Number(e.target.value) : null)}>
+            <option value="">Elegí…</option>
+            {posibles.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre} ({c.moneda})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="space-y-1 text-xs text-tinta-suave">
+          Fecha del pago
+          <input type="date" className={campo} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </label>
+        {otraMoneda && (
+          <label className="space-y-1 text-xs text-tinta-suave">
+            Cuánto salió de la cuenta ({cuenta?.moneda})
+            <input className={campo} inputMode="decimal" placeholder="0" value={montoCuenta} onChange={(e) => setMontoCuenta(e.target.value)} />
+          </label>
+        )}
+        <label className="space-y-1 text-xs text-tinta-suave">
+          Comprobante (opcional)
+          <input type="file" accept="application/pdf,image/*" className="block text-sm" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
+        </label>
+        {autorizar && (
+          <label className="space-y-1 text-xs text-tinta-suave sm:col-span-2">
+            Nota (opcional)
+            <input className={campo} maxLength={500} value={nota} onChange={(e) => setNota(e.target.value)} />
+          </label>
+        )}
+      </div>
+      {posibles.length === 0 && <p className="text-sm text-alerta">No hay {medio === 'efectivo' ? 'cajas' : 'bancos'} cargados en Finanzas › Bancos y cajas.</p>}
+      {error && <p className="text-sm text-error">{error}</p>}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          className={BOTON_PRIMARIO}
+          disabled={ocupado || cuentaId === null}
+          onClick={async () => {
+            setOcupado(true);
+            setError(null);
+            let ruta: string | null = null;
+            let nombre: string | null = null;
+            try {
+              if (archivo) {
+                const s = await subirArchivo(archivo, `fondos/${p.id}`);
+                ruta = s.ruta;
+                nombre = s.nombre;
+              }
+              const base = {
+                pedidoId: p.id,
+                cuentaId: cuentaId ?? 0,
+                medio,
+                fecha,
+                montoCuenta: otraMoneda ? aNumero(montoCuenta) || null : null,
+                ruta,
+                nombre,
+              };
+              const r = autorizar
+                ? await autorizarPedidoFondo({ ...base, importe: aNumero(importe), nota: nota.trim() || null })
+                : await pagarPedidoFondo(base);
+              if (!r.ok) {
+                await borrarArchivo(ruta);
+                setError(r.error.mensaje);
+                return;
+              }
+              await onHecho();
+            } catch (e) {
+              await borrarArchivo(ruta);
+              setError(e instanceof Error ? e.message : 'No se pudo registrar el pago.');
+            } finally {
+              setOcupado(false);
+            }
+          }}
+        >
+          {ocupado ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} {autorizar ? 'Autorizar y registrar el pago' : 'Registrar el pago'}
         </button>
         <button type="button" className={BOTON_SECUNDARIO} disabled={ocupado} onClick={() => setAbierto(false)}>
           Cancelar

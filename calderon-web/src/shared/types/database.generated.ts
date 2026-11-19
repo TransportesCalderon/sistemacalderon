@@ -1797,6 +1797,8 @@ export type Database = {
       fn_registrar_recibo: { Args: { p_datos: Json }; Returns: Json };
       fn_anular_recibo: { Args: { p_recibo: number; p_motivo: string }; Returns: undefined };
       fn_recibos: { Args: { p_desde?: string | null; p_hasta?: string | null }; Returns: Json };
+      // Migración 279: comprobante del recibo
+      fn_adjuntar_comprobante_recibo: { Args: { p_recibo: number; p_ruta: string; p_nombre: string | null }; Returns: string | null };
       fn_importar_cartola: { Args: { p_cuenta: number; p_filas: Json }; Returns: Json };
       fn_conciliar: { Args: { p_linea: number; p_movimiento: number }; Returns: undefined };
       fn_desconciliar: { Args: { p_linea: number }; Returns: undefined };
@@ -1874,6 +1876,18 @@ export type Database = {
       fn_depositar_pedido_fondo: { Args: { p_pedido: number; p_fecha: string; p_ruta?: string | null; p_nombre?: string | null }; Returns: Json };
       fn_anular_pedido_fondo: { Args: { p_pedido: number; p_motivo: string }; Returns: undefined };
       fn_pedidos_fondo: { Args: { p_todos?: boolean }; Returns: Json };
+      // Migración 278: el chofer pide, Operaciones revisa, Gerencia autoriza y deja pagado
+      fn_pedir_fondo_chofer: { Args: { p_moneda: string; p_importe: number; p_detalle: string }; Returns: Json };
+      fn_mis_pedidos_fondo: { Args: Record<string, never>; Returns: Json };
+      fn_revisar_pedido_fondo: { Args: { p_pedido: number; p_elevar: boolean; p_nota?: string | null }; Returns: Json };
+      fn_autorizar_pedido_fondo: {
+        Args: { p_pedido: number; p_importe: number; p_cuenta: number; p_medio: string; p_fecha: string; p_monto_cuenta?: number | null; p_nota?: string | null; p_ruta?: string | null; p_nombre?: string | null };
+        Returns: Json;
+      };
+      fn_pagar_pedido_fondo: {
+        Args: { p_pedido: number; p_cuenta: number; p_medio: string; p_fecha: string; p_monto_cuenta?: number | null; p_ruta?: string | null; p_nombre?: string | null };
+        Returns: Json;
+      };
       fn_entregar_fondo: {
         Args: { p_chofer: number; p_moneda: string; p_importe: number; p_fecha: string; p_detalle?: string | null; p_servicio?: number | null; p_cuenta?: number | null };
         Returns: number;

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LoaderCircle, ReceiptText, X } from "lucide-react";
+import { FileText, LoaderCircle, Paperclip, ReceiptText, X } from "lucide-react";
+import { abrirArchivo, borrarArchivo } from "@/modules/chofer/components/archivos";
+import { CampoComprobante, subirComprobante } from "@/modules/ventas/components/comprobante-cobro";
 import { TD, TH, useEnvio } from "@/modules/catalogos/components/comun";
 import {
   AccionConMotivo,
@@ -28,6 +30,7 @@ import {
   type PorCobrar,
 } from "../domain/finanzas.types";
 import {
+  useAdjuntarComprobanteRecibo,
   useAnularRecibo,
   useCuentasDinero,
   useRecibos,
@@ -62,6 +65,9 @@ export function ReciboForm({
   const [f, setF] = useState(hoyEnZona(zonaHoraria) as string);
   const [obs, setObs] = useState("");
   const [montos, setMontos] = useState<Record<number, string>>({});
+  // Migración 279: comprobante de pago (foto o PDF)
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
   useEffect(() => {
     if (cuenta === null && activas.length > 0) setCuenta(activas[0]!.id);
   }, [activas, cuenta]);
@@ -152,14 +158,28 @@ export function ReciboForm({
           </tr>
         </tfoot>
       </table>
+      <CampoComprobante archivo={archivo} onArchivo={setArchivo} />
       <ErrorBase error={envio.error} />
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           className={BOTON_PRIMARIO}
-          disabled={registrar.isPending}
+          disabled={registrar.isPending || subiendo}
           onClick={async () => {
             envio.setError(null);
+            // El comprobante se sube a la carpeta de la primera factura (la base lo deja en el recibo y en sus facturas)
+            let sub: { ruta: string; nombre: string } | null = null;
+            if (archivo && facturas[0]) {
+              setSubiendo(true);
+              try {
+                sub = await subirComprobante(facturas[0].id, archivo);
+              } catch (e) {
+                setSubiendo(false);
+                envio.setError({ codigo: "desconocido", mensaje: e instanceof Error ? e.message : "No se pudo subir el comprobante." });
+                return;
+              }
+              setSubiendo(false);
+            }
             const r = await registrar.mutateAsync({
               fecha: f,
               cuentaDineroId: cuenta ?? 0,
@@ -168,12 +188,17 @@ export function ReciboForm({
                 facturaId: x.id,
                 monto: montos[x.id] ?? x.saldo,
               })),
+              comprobanteRuta: sub?.ruta ?? null,
+              comprobanteNombre: sub?.nombre ?? null,
             });
             if (r.ok) onListo(r.data.numero);
-            else envio.setError(r.error);
+            else {
+              void borrarArchivo(sub?.ruta);
+              envio.setError(r.error);
+            }
           }}
         >
-          {registrar.isPending && <LoaderCircle className="size-4 animate-spin" />}{" "}
+          {(registrar.isPending || subiendo) && <LoaderCircle className="size-4 animate-spin" />}{" "}
           Registrar el recibo
         </button>
         <button type="button" className={BOTON_SECUNDARIO} onClick={onCerrar}>
@@ -187,6 +212,7 @@ export function ReciboForm({
 /** Pestaña «Recibos»: los recibos de cobranza con sus facturas (por defecto, los últimos 90 días). */
 export function Recibos() {
   const puedeAnular = useCan("finanzas.cobros_pagos:transicionar");
+  const puedeAdjuntar = useCan("finanzas.cobros_pagos:editar");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
   const { data, isLoading, isError, error, refetch } = useRecibos(
@@ -265,6 +291,13 @@ export function Recibos() {
                         {r.observacion}
                       </span>
                     )}
+                    <ComprobanteRecibo
+                      id={r.id}
+                      facturaId={r.facturas[0]?.facturaId ?? null}
+                      ruta={r.comprobanteRuta}
+                      nombre={r.comprobanteNombre}
+                      puede={puedeAdjuntar && r.estado === "vigente"}
+                    />
                     {r.estado === "anulado" && (
                       <span className="block text-xs">
                         <Chip tono="neutro">Anulado</Chip> {r.motivoAnulacion}
@@ -314,5 +347,70 @@ export function Recibos() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Migración 279 · Ver el comprobante del recibo, o adjuntarlo / cambiarlo. */
+function ComprobanteRecibo({
+  id,
+  facturaId,
+  ruta,
+  nombre,
+  puede,
+}: {
+  id: number;
+  facturaId: number | null;
+  ruta: string | null;
+  nombre: string | null;
+  puede: boolean;
+}) {
+  const adjuntar = useAdjuntarComprobanteRecibo();
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!ruta && !puede) return null;
+  return (
+    <span className="mt-1 flex flex-wrap items-center gap-3 text-xs">
+      {ruta && (
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 text-marca hover:underline"
+          onClick={async () => setError(await abrirArchivo(ruta))}
+        >
+          <FileText className="size-3.5" /> Comprobante{nombre && ` (${nombre})`}
+        </button>
+      )}
+      {puede && facturaId !== null && (
+        <label className="inline-flex cursor-pointer items-center gap-1 text-tinta-suave hover:underline">
+          {ocupado ? <LoaderCircle className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5" />}
+          {ruta ? "Cambiar" : "Adjuntar comprobante"}
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            className="sr-only"
+            disabled={ocupado}
+            onChange={async (e) => {
+              const a = e.target.files?.[0];
+              e.target.value = "";
+              if (!a) return;
+              setOcupado(true);
+              setError(null);
+              try {
+                const sub = await subirComprobante(facturaId, a);
+                const r = await adjuntar.mutateAsync({ id, ruta: sub.ruta, nombre: sub.nombre });
+                if (!r.ok) {
+                  void borrarArchivo(sub.ruta);
+                  setError(r.error.mensaje);
+                } else if (r.data) void borrarArchivo(r.data);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "No se pudo subir el comprobante.");
+              } finally {
+                setOcupado(false);
+              }
+            }}
+          />
+        </label>
+      )}
+      {error && <span className="text-error">{error}</span>}
+    </span>
   );
 }

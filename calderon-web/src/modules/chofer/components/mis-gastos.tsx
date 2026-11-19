@@ -15,6 +15,7 @@ import { useApelarGasto, useMiFondo, useRetirarGasto, useSubirGasto } from '../q
 import { abrirArchivo, borrarArchivo, posicionActual, subirArchivo } from './archivos';
 import { AvisoIA } from '@/modules/ia/aviso-ia';
 import { useLectorIA } from '@/modules/ia/use-lector-ia';
+import { PedirDinero } from './pedir-dinero';
 
 export const TONO_ESTADO: Record<EstadoMovimiento, Tono> = {
   registrado: 'neutro',
@@ -74,6 +75,9 @@ export function MisGastos({ abrirNuevo = false }: { abrirNuevo?: boolean } = {})
           aprueba.
         </p>
       </section>
+
+      {/* Migración 278: pedir el dinero del viaje */}
+      <PedirDinero />
 
       {cargar ? (
         <NuevoGasto fondo={data} onListo={() => setCargar(false)} onCancelar={() => setCargar(false)} />

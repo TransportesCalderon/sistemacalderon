@@ -813,6 +813,9 @@ export interface Recibo {
   creadoPor: string | null;
   total: number;
   facturas: ReciboFactura[];
+  /** Migración 279: comprobante de pago. */
+  comprobanteRuta: string | null;
+  comprobanteNombre: string | null;
 }
 export function parsearRecibos(raw: unknown): Recibo[] {
   return arr(raw).map((r) => ({
@@ -828,6 +831,8 @@ export function parsearRecibos(raw: unknown): Recibo[] {
     motivoAnulacion: txt(r.motivo_anulacion),
     creadoPor: txt(r.creado_por),
     total: num(r.total),
+    comprobanteRuta: txt(r.comprobante_ruta),
+    comprobanteNombre: txt(r.comprobante_nombre),
     facturas: arr(r.facturas).map((f) => ({
       facturaId: num(f.factura_id),
       numero: String(f.numero ?? ''),

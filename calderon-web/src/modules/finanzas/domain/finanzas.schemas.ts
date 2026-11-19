@@ -156,9 +156,13 @@ export const reciboSchema = z.object({
     .array(z.object({ facturaId: id, monto: numeroOpc }))
     .min(1, 'Elegí al menos una factura.')
     .max(100, 'Un recibo lleva hasta 100 facturas.'),
+  // Migración 279: comprobante de pago (foto o PDF) ya subido a cobros/<factura>/
+  comprobanteRuta: z.string().max(300).nullish(),
+  comprobanteNombre: z.string().max(200).nullish(),
 });
 export type ReciboEntrada = z.infer<typeof reciboSchema>;
 export const anularReciboSchema = z.object({ id, motivo });
+export const comprobanteReciboSchema = z.object({ id, ruta: z.string().min(1, 'Subí el comprobante.').max(300), nombre: z.string().max(200).nullable() });
 
 // Migración 74
 export const medioPagoSchema = z.object({
