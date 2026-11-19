@@ -55,7 +55,7 @@ import { ReciboForm, Recibos } from "./recibos";
 
 type Vista = "cobrar" | "pagar" | "movimientos" | "recibos";
 
-/** Finanzas › Cobros y pagos: lo que nos deben, lo que debemos y todo lo que entró y salió. */
+/** Finanzas › Cobros y pagos: lo por cobrar, lo por pagar y todo lo que entró y salió. */
 export function CobrosPagosPantalla() {
   const params = useSearchParams();
   const [vista, setVista] = useState<Vista>(
@@ -72,8 +72,9 @@ export function CobrosPagosPantalla() {
       >
         {(
           [
-            ["cobrar", "Nos deben"],
-            ["pagar", "Debemos"],
+            // 19/11/2026: un solo nombre en todo el sistema: «Por cobrar» y «Por pagar»
+            ["cobrar", "Por cobrar"],
+            ["pagar", "Por pagar"],
             ["movimientos", "Entradas y salidas"],
             ["recibos", "Recibos"],
           ] as const
@@ -208,7 +209,7 @@ function NosDeben() {
               href="/analisis/facturacion"
               className="font-medium text-marca underline"
             >
-              Finanzas › Facturación y cobranzas
+              Finanzas › Facturación
             </Link>
             . Un cobro puede ser parcial; cuando se completa, la factura queda
             cobrada.

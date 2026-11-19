@@ -172,7 +172,7 @@ export function TableroFinanzas() {
 }
 
 /**
- * Las cuatro tarjetas de números del resumen: plata en bancos, lo que nos deben, lo que debemos y
+ * Las cuatro tarjetas de números del resumen: plata en bancos, lo por cobrar, lo por pagar y
  * el resultado del mes. Sprint 4: se muestran también en «Hoy» de Finanzas y Gerencia.
  */
 export function IndicadoresFinanzas({ t }: { t: Tablero }) {
@@ -183,14 +183,14 @@ export function IndicadoresFinanzas({ t }: { t: Tablero }) {
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Indicador titulo="Plata en bancos y cajas" valor={dinero(t.disponibleClp)} detalle={`${t.bancos.length} cuentas, en pesos de hoy`} href="/conciliacion" />
       <Indicador
-        titulo="Nos deben (clientes)"
+        titulo="Por cobrar (clientes)"
         valor={dinero(t.porCobrarClp)}
         detalle={t.facturasVencidas > 0 ? `${dinero(t.porCobrarVencidoClp)} vencido en ${t.facturasVencidas} facturas` : 'nada vencido'}
         tono={t.facturasVencidas > 0 ? 'error' : 'normal'}
-        href="/finanzas/cobros-pagos"
+        href="/analisis/cobros-pagos"
       />
       <Indicador
-        titulo="Debemos (proveedores)"
+        titulo="Por pagar (proveedores)"
         valor={dinero(t.porPagarClp)}
         detalle={
           t.gastosVencidos > 0
@@ -198,7 +198,7 @@ export function IndicadoresFinanzas({ t }: { t: Tablero }) {
             : `${dinero(t.porPagar7DiasClp)} vence en los próximos 7 días`
         }
         tono={t.gastosVencidos > 0 ? 'error' : 'normal'}
-        href="/finanzas/cobros-pagos?ver=pagar"
+        href="/analisis/cobros-pagos?ver=pagar"
       />
       <Indicador
         titulo={`Resultado de ${t.meses[n] ? mesCorto(t.meses[n]) : 'este mes'}`}

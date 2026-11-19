@@ -94,7 +94,7 @@ const PAGINAS: readonly Ruta[] = [
   { prefijo: '/rrhh/tarifas', pantalla: 'liquidacion.reglas', titulo: 'Tarifas y conceptos' },
   { prefijo: '/rrhh/datos-legales', pantalla: 'liquidacion.reglas', titulo: 'Datos legales' },
   // Finanzas
-  { prefijo: '/ventas/facturacion', pantalla: 'ventas.facturacion', titulo: 'Facturación y cobranzas' },
+  { prefijo: '/ventas/facturacion', pantalla: 'ventas.facturacion', titulo: 'Facturación' },
   { prefijo: '/finanzas', pantalla: 'finanzas.resumen', titulo: 'Resumen' },
   { prefijo: '/finanzas/gastos', pantalla: 'finanzas.gastos', titulo: 'Gastos' },
   { prefijo: '/finanzas/cobros-pagos', pantalla: 'finanzas.cobros_pagos', titulo: 'Cobros y pagos' },
@@ -153,7 +153,7 @@ export const RUTAS_NUEVAS: readonly { nueva: string; vieja: string; titulo: stri
   { nueva: '/analisis/gastos', vieja: '/finanzas/gastos', titulo: 'Gastos' },
   { nueva: '/analisis/gastos/combustible', vieja: '/finanzas/combustible', titulo: 'Combustible' },
   { nueva: '/analisis/cobros-pagos', vieja: '/finanzas/cobros-pagos', titulo: 'Cobros y pagos' },
-  { nueva: '/analisis/facturacion', vieja: '/ventas/facturacion', titulo: 'Facturación y cobranzas' },
+  { nueva: '/analisis/facturacion', vieja: '/ventas/facturacion', titulo: 'Facturación' },
   { nueva: '/analisis/informes', vieja: '/finanzas/informes', titulo: 'Informes' },
   { nueva: '/analisis/resultados', vieja: '/finanzas', titulo: 'Resumen financiero' },
   { nueva: '/analisis/ventas', vieja: '/ventas', titulo: 'Tablero de ventas' },

@@ -38,7 +38,7 @@ function Saldos({ onElegir }: { onElegir: (id: number) => void }) {
           const de = data.filter((c) => c.moneda === m);
           return (
             <div key={m} className={cn(TARJETA, 'px-4 py-3')}>
-              <p className="text-xs text-tinta-suave">Nos deben en {m}</p>
+              <p className="text-xs text-tinta-suave">Por cobrar en {m}</p>
               <p className="text-xl font-semibold text-tinta">{plata(de.reduce((t, c) => t + c.saldo, 0))}</p>
               <p className="text-xs text-error">Vencido: {plata(de.reduce((t, c) => t + c.vencido, 0))}</p>
             </div>

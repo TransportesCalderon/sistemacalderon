@@ -18,6 +18,8 @@ export function TableroVentas() {
   const { data, isLoading, isError, error, refetch } = useTablero();
   const puede = useCan('ventas.empresas:editar');
   const puedeCotizar = useCan('ventas.cotizaciones:editar');
+  // 19/11/2026: «Por cobrar» lleva a Cobros y pagos (si el rol la ve; si no, a Facturación)
+  const veCobros = useCan('finanzas.cobros_pagos:ver');
   const completar = useCompletarActividad();
   const envio = useEnvio();
 
@@ -39,13 +41,13 @@ export function TableroVentas() {
         <Dato titulo="Cotizaciones del mes" valor={String(c.hechas)} detalle={`${c.aceptadas} aceptadas · ${c.rechazadas} rechazadas`} href="/cotizaciones" />
         <Dato titulo="Esperando respuesta" valor={String(data.porResponder)} detalle="cotizaciones enviadas" href="/cotizaciones" />
         <Dato titulo="Aceptado en el mes" valor={usd(c.aceptadoUsd)} detalle="total de las aceptadas" />
-        <Dato titulo="Facturado en el mes" valor={usd(data.facturadoMesUsd)} detalle={`${data.porFacturar} operación(es) por facturar`} href="/ventas/facturacion" />
+        <Dato titulo="Facturado en el mes" valor={usd(data.facturadoMesUsd)} detalle={`${data.porFacturar} operación(es) por facturar`} href="/analisis/facturacion" />
         <Dato
           titulo="Por cobrar"
           valor={usd(data.porCobrarUsd)}
           detalle={data.vencidoUsd > 0 ? `${usd(data.vencidoUsd)} vencido` : 'nada vencido'}
           alerta={data.vencidoUsd > 0}
-          href="/ventas/facturacion"
+          href={veCobros ? "/analisis/cobros-pagos" : "/analisis/facturacion"}
         />
       </div>
 

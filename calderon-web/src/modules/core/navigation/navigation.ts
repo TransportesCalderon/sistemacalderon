@@ -175,7 +175,8 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     etiqueta: 'Finanzas',
     entradas: [
       // Migración 101: el módulo de la encargada de finanzas (antes Ventas › Facturación; la ruta no cambia)
-      { href: '/analisis/facturacion', etiqueta: 'Facturación y cobranzas' },
+      // 19/11/2026: «Facturación» a secas; los cobros se registran en Cobros y pagos
+      { href: '/analisis/facturacion', etiqueta: 'Facturación' },
       { href: '/analisis/resultados', etiqueta: 'Resumen' },
       { href: '/analisis/gastos', etiqueta: 'Gastos', incluye: ['/ajustes/gastos-fijos'] },
       { href: '/analisis/cobros-pagos', etiqueta: 'Cobros y pagos' },

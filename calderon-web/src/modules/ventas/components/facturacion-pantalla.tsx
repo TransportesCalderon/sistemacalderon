@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FilePlus2, LoaderCircle, Plus, Receipt, Save, Trash2, X } from 'lucide-react';
 import { TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { AccionConMotivo, Cargando, Encabezado, ErrorBase, ErrorLectura, Vacio } from '@/modules/combustible/components/comun/ui';
@@ -13,11 +14,9 @@ import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { ESTADO_OPERACION_FAC, ETIQUETA_ESTADO_FAC, ETIQUETA_UNIDAD, usd, type EstadoFactura, type PorFacturar } from '../domain/ventas.types';
-import { useCuentasParaElegir } from '@/modules/finanzas/queries/hooks';
 import {
   useAnularFactura,
   useCambiarFechaCobro,
-  useCobrarFactura,
   useCrearFactura,
   useEmitirFactura,
   useFactura,
@@ -33,7 +32,7 @@ import { CuentaCorrienteVista } from './cuenta-corriente';
 import { FacturaSii } from './factura-sii';
 import { ElegirDetalle } from './detalle-factura';
 import { FacturaLibre } from './factura-libre';
-import { CampoComprobante, ComprobanteCobro, useAdjuntarComprobante } from './comprobante-cobro';
+import { ComprobanteCobro } from './comprobante-cobro';
 import { CambiarFechaCobro } from './cambiar-fecha-cobro';
 import { ConformeDescarga } from '@/modules/logistica/components/conforme-descarga';
 import type { FechaISO } from '@/shared/types/dominio';
@@ -45,7 +44,7 @@ const ETIQUETA_FILTRO = (f: FiltroFactura) =>
   f === null ? 'Todas' : f === 'borrador' ? 'Prefacturas' : f === 'por_cobrar' ? 'Por cobrar' : `${ETIQUETA_ESTADO_FAC[f]}s`;
 
 /**
- * Finanzas › Facturación y cobranzas (migración 101; antes Ventas › Facturación): lo que falta facturar
+ * Finanzas › Facturación (migración 101; antes Ventas › Facturación): lo que falta facturar
  * (también lo que todavía no se entregó), las prefacturas, lo facturado sin cobrar y lo cobrado.
  */
 export function FacturacionPantalla() {
@@ -64,7 +63,7 @@ export function FacturacionPantalla() {
   const [libre, setLibre] = useState(false);
   return (
     <div className="space-y-4">
-      <Encabezado titulo="Facturación y cobranzas" subtitulo="Finanzas">
+      <Encabezado titulo="Facturación" subtitulo="Finanzas">
         {puedeLibre && !libre && (
           <button type="button" className={BOTON_SECUNDARIO} onClick={() => setLibre(true)}>
             <FilePlus2 className="size-4" /> Factura sin operación
@@ -84,7 +83,7 @@ export function FacturacionPantalla() {
       )}
       <p className="text-sm text-tinta-suave">
         El sistema arma la prefactura con las operaciones y el precio de la tarifa. Desde la prefactura se emite la factura electrónica en el SII
-        (Facturacion.cl); si se hizo por fuera, se marca emitida (el número se puede cargar después). Después se registra el cobro.
+        (Facturacion.cl); si se hizo por fuera, se marca emitida (el número se puede cargar después). El cobro se registra en Cobros y pagos › Por cobrar.
       </p>
       <ResumenFacturacion onPorFacturar={() => setVista('por_facturar')} onFacturas={verFacturas} />
       <div className="flex gap-1 border-b border-borde">
@@ -132,6 +131,9 @@ const facturas = (n: number) => `${n} ${n === 1 ? 'factura' : 'facturas'}`;
 /** Los números de arriba: tocar uno abre esa lista. */
 function ResumenFacturacion({ onPorFacturar, onFacturas }: { onPorFacturar: () => void; onFacturas: (f: FiltroFactura) => void }) {
   const { data: r } = useResumenFacturacion();
+  // 19/11/2026: «Por cobrar» lleva a la pantalla donde se cobra (si el rol la ve)
+  const router = useRouter();
+  const veCobros = useCan('finanzas.cobros_pagos:ver');
   if (!r) return null;
   const tarjetas: { titulo: string; valor: string; detalle?: string; tono?: string; onClick: () => void }[] = [
     {
@@ -142,7 +144,7 @@ function ResumenFacturacion({ onPorFacturar, onFacturas }: { onPorFacturar: () =
       onClick: onPorFacturar,
     },
     { titulo: 'Prefacturas', valor: String(r.prefacturas), detalle: 'por emitir', onClick: () => onFacturas('borrador') },
-    { titulo: 'Por cobrar', valor: usd(r.porCobrarUsd), detalle: facturas(r.porCobrar), onClick: () => onFacturas('por_cobrar') },
+    { titulo: 'Por cobrar', valor: usd(r.porCobrarUsd), detalle: facturas(r.porCobrar), onClick: () => (veCobros ? router.push('/analisis/cobros-pagos') : onFacturas('por_cobrar')) },
     {
       titulo: 'Vencidas',
       valor: usd(r.vencidasUsd),
@@ -449,25 +451,17 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
   const puedeEstado = useCan('ventas.facturacion:transicionar');
   const guardar = useGuardarFactura();
   const emitir = useEmitirFactura();
-  const cobrar = useCobrarFactura();
   // Migración 273: corregir la fecha de un cobro ya registrado
   const cambiarFecha = useCambiarFechaCobro();
   const anular = useAnularFactura();
   const numero = useNumeroFactura();
   const rearmar = useRearmarDetalle();
-  const comprobante = useAdjuntarComprobante();
-  // Migración 125: datos del detalle de la prefactura y comprobante del cobro
-  const [archivoCobro, setArchivoCobro] = useState<File | null>(null);
+  // Migración 125: datos del detalle de la prefactura
   const [numeroDespues, setNumeroDespues] = useState('');
   const envio = useEnvio();
   const [filas, setFilas] = useState<FilaEdit[]>([]);
   const [obs, setObs] = useState('');
   const [emision, setEmision] = useState({ numero: '', fecha: hoyEnZona(zonaHoraria) as string });
-  const [cobro, setCobro] = useState(hoyEnZona(zonaHoraria) as string);
-  // Migración 73: en qué banco o caja entró (solo las de la moneda de la factura)
-  const { data: cuentasDinero } = useCuentasParaElegir(puedeEstado);
-  const cuentasCobro = (cuentasDinero ?? []).filter((c) => c.moneda === f?.moneda);
-  const [cuentaCobro, setCuentaCobro] = useState<number | null>(null);
   useEffect(() => {
     if (!f) return;
     setFilas(f.renglones.map((r) => ({ clave: `r${++k}`, servicioId: r.servicioId, descripcion: r.descripcion, cantidad: String(r.cantidad), precio: String(r.precio) })));
@@ -649,43 +643,11 @@ export function FichaFactura({ id, onCerrar }: { id: number; onCerrar: () => voi
             </button>
           </>
         )}
+        {/* 19/11/2026: el cobro se registra solo en Cobros y pagos › Por cobrar, que pide el banco */}
         {(f.estado === 'emitida' || f.estado === 'vencida') && puedeEstado && (
-          <>
-            <Campo label="Fecha del cobro">
-              <input type="date" value={cobro} onChange={(e) => setCobro(e.target.value)} />
-            </Campo>
-            {cuentasCobro.length > 0 && (
-              <Campo label="Entró a">
-                <select value={cuentaCobro ?? ''} onChange={(e) => setCuentaCobro(e.target.value ? Number(e.target.value) : null)}>
-                  <option value="">Elegí el banco o la caja…</option>
-                  {cuentasCobro.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
-              </Campo>
-            )}
-            <CampoComprobante archivo={archivoCobro} onArchivo={setArchivoCobro} />
-            <button
-              type="button"
-              className={BOTON_PRIMARIO}
-              disabled={cobrar.isPending || comprobante.ocupado}
-              onClick={async () => {
-                envio.setError(null);
-                const r = await cobrar.mutateAsync({ id: f.id, fecha: cobro, cuentaId: cuentaCobro });
-                if (!r.ok) return envio.setError(r.error);
-                // Migración 125: el comprobante queda en la factura (comprimido antes de subir)
-                if (archivoCobro) {
-                  const e = await comprobante.adjuntar(f.id, archivoCobro);
-                  if (e) envio.setError({ ...e, mensaje: `El cobro quedó registrado, pero el comprobante no: ${e.mensaje}` });
-                  else setArchivoCobro(null);
-                }
-              }}
-            >
-              {(cobrar.isPending || comprobante.ocupado) && <LoaderCircle className="size-4 animate-spin" />} Registrar el cobro
-            </button>
-          </>
+          <Link href="/analisis/cobros-pagos" className={BOTON_PRIMARIO} onClick={onCerrar}>
+            <Receipt className="size-4" /> Cobrar en Cobros y pagos
+          </Link>
         )}
         {f.estado === 'cobrada' && f.cobradaEn && puedeEstado && (
           <CambiarFechaCobro

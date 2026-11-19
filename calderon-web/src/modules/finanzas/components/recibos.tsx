@@ -243,7 +243,7 @@ export function Recibos() {
           />
         </label>
         <p className="text-sm text-tinta-suave">
-          Los recibos se hacen en «Nos deben», marcando las facturas de un cliente.
+          Los recibos se hacen en «Por cobrar», marcando las facturas de un cliente.
         </p>
       </div>
       <ErrorBase error={envio.error} />
