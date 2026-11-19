@@ -52,8 +52,11 @@ import { SaldosLinea, SaldosResumen } from "./saldos";
 import { agruparSaldos } from "../domain/saldos-por-tercero";
 import { useBaseTiene } from "@/shared/hooks/use-version-base";
 import { ReciboForm, Recibos } from "./recibos";
+// 19/11/2026: la cuenta corriente de los clientes, junto a Por cobrar (antes en Facturación)
+import { CuentaCorrienteVista } from "@/modules/ventas/components/cuenta-corriente";
+import { useAbrirFicha } from "@/modules/core/fichas/contexto";
 
-type Vista = "cobrar" | "pagar" | "movimientos" | "recibos";
+type Vista = "cobrar" | "cuenta" | "pagar" | "movimientos" | "recibos";
 
 /** Finanzas › Cobros y pagos: lo por cobrar, lo por pagar y todo lo que entró y salió. */
 export function CobrosPagosPantalla() {
@@ -63,6 +66,7 @@ export function CobrosPagosPantalla() {
   );
   // Migración 275: recibos de cobranza
   const hayRecibos = useBaseTiene(275);
+  const abrirFicha = useAbrirFicha();
   return (
     <div className="space-y-5">
       <Encabezado titulo="Cobros y pagos" subtitulo="Finanzas" />
@@ -74,6 +78,7 @@ export function CobrosPagosPantalla() {
           [
             // 19/11/2026: un solo nombre en todo el sistema: «Por cobrar» y «Por pagar»
             ["cobrar", "Por cobrar"],
+            ["cuenta", "Cuenta corriente"],
             ["pagar", "Por pagar"],
             ["movimientos", "Entradas y salidas"],
             ["recibos", "Recibos"],
@@ -99,6 +104,8 @@ export function CobrosPagosPantalla() {
       </nav>
       {vista === "cobrar" ? (
         <NosDeben />
+      ) : vista === "cuenta" ? (
+        <CuentaCorrienteVista onAbrirFactura={(id) => abrirFicha("factura", id)} />
       ) : vista === "pagar" ? (
         <Debemos />
       ) : vista === "recibos" && hayRecibos ? (

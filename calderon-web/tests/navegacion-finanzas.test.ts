@@ -23,4 +23,11 @@ describe('Finanzas: Facturación y Por cobrar', () => {
     expect(src).toContain('["pagar", "Por pagar"]');
     expect(src).not.toContain('"Nos deben"');
   });
+
+  it('la cuenta corriente está en Cobros y pagos, no en Facturación', () => {
+    const cobros = readFileSync('src/modules/finanzas/components/cobros-pagos-pantalla.tsx', 'utf8');
+    const fac = readFileSync('src/modules/ventas/components/facturacion-pantalla.tsx', 'utf8');
+    expect(cobros).toContain('["cuenta", "Cuenta corriente"]');
+    expect(fac).not.toContain('CuentaCorrienteVista');
+  });
 });
