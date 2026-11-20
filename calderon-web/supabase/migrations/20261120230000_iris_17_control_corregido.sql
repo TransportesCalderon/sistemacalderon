@@ -6,7 +6,8 @@
 --     y sin decisión, y los litros son los que quedarían a cargo.
 -- 2 · Nuevo dato: alertas de combustible CONFIRMADAS sin descuento (pasó, no tiene explicación y no se descuenta).
 --     En 60 días hubo 19 «carga que no aparece en el tanque» y 5 «carga sobre lo sugerido» confirmadas, con un solo
---     descuento (90 L). Va a «para_decidir_hoy» con los litros.
+--     descuento (90 L). La consulta 331 mostró que casi todas eran cargas repartidas en el tanque secundario y la
+--     mochila (el sensor solo ve el tanque principal), mal cerradas como «confirmada». Va a «para_decidir_hoy» con ese aviso.
 -- Reemplazo con ancla sobre la definición viva de ia.fn_lectura_control_gerencia (iris_14). Se puede correr dos veces.
 -- No cambia datos. Numeración propia de Iris: no toca web.version_base.
 -- =====================================================================================
@@ -27,7 +28,7 @@ DECLARE
                  'litros_a_descontar_decididos',$a$;
     a4 CONSTANT text := $a$n := coalesce((v_al ->> 'vencidas')::int, 0);$a$;
     n4 CONSTANT text := $a$n := coalesce((v_al ->> 'combustible_confirmado_sin_descuento')::int, 0); l := coalesce((v_al ->> 'litros_confirmados_sin_descuento')::numeric, 0);
-    IF n > 0 THEN v_dec := v_dec || to_jsonb(format('Combustible: %s alerta(s) de combustible confirmadas SIN descuento (%s L, unos %s CLP): pasó, no tiene explicación y nadie lo paga.', n, l, round(l * v_precio))); END IF;
+    IF n > 0 THEN v_dec := v_dec || to_jsonb(format('Combustible: %s alerta(s) de combustible cerradas como «confirmada» sin descuento (%s L). Si la carga fue al tanque secundario o a la mochila, van como «justificada»; si no tienen explicación, falta decidir si se descuenta.', n, l)); END IF;
     n := coalesce((v_al ->> 'vencidas')::int, 0);$a$;
 BEGIN
     IF to_regprocedure('ia.fn_lectura_control_gerencia(jsonb)') IS NULL THEN
