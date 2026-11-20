@@ -112,7 +112,8 @@ function FilaPago({ p }: { p: PagoCarga }) {
           {p.litros !== null && ` · ≈ ${formatearNumero(p.litros, 0)} L`}
         </p>
         <p>
-          <span className="text-tinta-suave">Plata aproximada:</span> <strong>{plata(p.importe, p.moneda)}</strong>
+          <span className="text-tinta-suave">Plata aproximada:</span>{' '}
+          {p.importe !== null ? <strong>{plata(p.importe, p.moneda)}</strong> : <span className="text-alerta">sin calcular (no se sabe cuántos litros carga)</span>}
           {p.precio !== null && <span className="text-tinta-suave"> (a {formatearNumero(p.precio, 0)} por litro)</span>}
         </p>
         {!tarjeta && (
