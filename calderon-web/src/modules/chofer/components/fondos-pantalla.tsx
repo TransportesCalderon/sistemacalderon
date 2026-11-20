@@ -30,6 +30,7 @@ import {
 import { abrirArchivo, borrarArchivo, subirArchivo } from './archivos';
 import { IntentosRepetidos } from './intentos-repetidos';
 import { CuentaParaEntrega, CuentasChoferOficina } from './cuentas-chofer';
+import { CargosChofer } from './cargos-chofer';
 import { TONO_ESTADO } from './mis-gastos';
 
 const Saldos = ({ saldos }: { saldos: Saldo[] }) =>
@@ -290,6 +291,8 @@ function CuentaChofer({ f, onCerrar }: { f: FondoDeChofer; onCerrar: () => void 
       )}
       {/* Migración 288: a qué cuenta se le transfiere */}
       <CuentasChoferOficina choferId={f.choferId} puedeEditar={puedeEditar} />
+      {/* Migración 289: gastos que pagó la empresa y se le cobran en cuotas (visa y otros) */}
+      <CargosChofer choferId={f.choferId} />
       {(panel === 'entrega' || panel === 'devolucion') && <FormEntrega choferId={f.choferId} tipo={panel} onListo={() => setPanel(null)} />}
       {panel === 'gasto' && <FormGastoOficina choferId={f.choferId} onListo={() => setPanel(null)} />}
 
