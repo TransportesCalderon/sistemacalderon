@@ -12,6 +12,9 @@ import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { anularMiPedidoFondo, pedirFondoChofer } from '../actions/pedido-fondo.actions';
+import { guardarMiCuentaTransferencia } from '../actions/cuenta-transferencia.actions';
+import { aTexto, parsearCuentaTransferencia, type CuentaTransferenciaTexto } from '../domain/cuenta-transferencia';
+import { CamposCuenta, cuentaCompleta } from './cuenta-transferencia';
 import { dinero } from '../domain/chofer.types';
 import { ESTADO_PEDIDO, parsearMisPedidos, type MiPedido } from '../domain/pedido-fondo';
 
@@ -36,6 +39,22 @@ export function PedirDinero() {
   });
   const [abierto, setAbierto] = useState(false);
   const [moneda, setMoneda] = useState('ARS');
+  // Migración 284: a qué cuenta se le transfiere (una por moneda; queda guardada para la próxima)
+  const hayCuenta = useBaseTiene(284);
+  const qCuenta = useQuery({
+    queryKey: ['chofer', 'fondo', 'mi-cuenta', moneda],
+    enabled: hay && hayCuenta && abierto,
+    queryFn: async () => {
+      const { data, error } = await browserDb().schema('fin').rpc('fn_mi_cuenta_transferencia', { p_moneda: moneda });
+      if (error) throw error;
+      return parsearCuentaTransferencia(data);
+    },
+  });
+  const [cuentaEscrita, setCuentaEscrita] = useState<{ moneda: string; v: CuentaTransferenciaTexto } | null>(null);
+  const guardada = qCuenta.data ?? null;
+  const editandoCuenta = cuentaEscrita !== null && cuentaEscrita.moneda === moneda;
+  const cuenta = editandoCuenta ? cuentaEscrita.v : aTexto(guardada);
+  const pedirCuenta = hayCuenta && !qCuenta.isPending && (editandoCuenta || !guardada);
   const [importe, setImporte] = useState('');
   const [detalle, setDetalle] = useState('');
   const [ocupado, setOcupado] = useState(false);
@@ -62,8 +81,18 @@ export function PedirDinero() {
           className="space-y-3"
           onSubmit={async (e) => {
             e.preventDefault();
-            setOcupado(true);
             setError(null);
+            if (pedirCuenta && !cuentaCompleta(cuenta)) return setError('Escribí a qué cuenta te transferimos: banco, número y a nombre de quién está.');
+            setOcupado(true);
+            if (pedirCuenta) {
+              const c = await guardarMiCuentaTransferencia({ moneda, ...cuenta });
+              if (!c.ok) {
+                setOcupado(false);
+                return setError(c.error.mensaje);
+              }
+              setCuentaEscrita(null);
+              await qCuenta.refetch();
+            }
             const r = await pedirFondoChofer({ moneda, importe: aNumero(importe), detalle });
             setOcupado(false);
             if (!r.ok) return setError(r.error.mensaje);
@@ -95,9 +124,28 @@ export function PedirDinero() {
               onChange={(e) => setDetalle(e.target.value)}
             />
           </Campo>
+          {hayCuenta && (
+            <div className="space-y-2 rounded-md border border-borde p-3">
+              <p className="text-sm font-medium text-tinta">A qué cuenta te transferimos</p>
+              {qCuenta.isPending ? (
+                <p className="text-sm text-tinta-suave">Buscando tu cuenta…</p>
+              ) : pedirCuenta ? (
+                <CamposCuenta v={cuenta} onCambiar={(v) => setCuentaEscrita({ moneda, v })} moneda={moneda} clase={campo} />
+              ) : (
+                guardada && (
+                  <p className="text-sm text-tinta">
+                    {guardada.banco} · <span className="font-mono">{guardada.numero}</span> · {guardada.titular}{' '}
+                    <button type="button" className="text-tinta-suave underline" onClick={() => setCuentaEscrita({ moneda, v: aTexto(guardada) })}>
+                      Cambiar
+                    </button>
+                  </p>
+                )
+              )}
+            </div>
+          )}
           {error && <p className="text-sm text-error">{error}</p>}
           <div className="flex gap-2">
-            <button type="submit" className={cn(BOTON_PRIMARIO, 'h-12 flex-1 justify-center text-base')} disabled={ocupado}>
+            <button type="submit" className={cn(BOTON_PRIMARIO, 'h-12 flex-1 justify-center text-base')} disabled={ocupado || (hayCuenta && qCuenta.isPending)}>
               {ocupado ? <LoaderCircle className="size-5 animate-spin" /> : <Send className="size-5" />} Enviar pedido
             </button>
             <button type="button" className={cn(BOTON_SECUNDARIO, 'h-12')} disabled={ocupado} onClick={() => setAbierto(false)}>

@@ -23,6 +23,8 @@ import {
   revisarPedidoFondo,
 } from '../actions/pedido-fondo.actions';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { parsearCuentasDePedidos, type CuentaTransferencia } from '../domain/cuenta-transferencia';
+import { CuentaDestino } from './cuenta-transferencia';
 import { dinero } from '../domain/chofer.types';
 import { abrirArchivo, borrarArchivo, subirArchivo } from './archivos';
 
@@ -49,6 +51,7 @@ interface Pedido {
   id: number;
   numero: string;
   estado: Estado;
+  chofer_id: number;
   chofer: string;
   legajo: string | null;
   patente: string | null;
@@ -120,11 +123,26 @@ function usePedidos(todos: boolean) {
   });
 }
 
+/** Migración 284: la cuenta a transferir de cada pedido sin pagar. */
+function useCuentasDestino() {
+  const hay = useBaseTiene(284);
+  return useQuery({
+    queryKey: [...CLAVE, 'cuentas-destino'] as const,
+    enabled: hay,
+    queryFn: async () => {
+      const { data, error } = await browserDb().schema('fin').rpc('fn_cuentas_destino_pedidos');
+      if (error) throw error;
+      return parsearCuentasDePedidos(data);
+    },
+  });
+}
+
 /** Liquidaciones › Fondos de choferes › Pedidos de FF. */
 export function PedidosFondo() {
   const [todos, setTodos] = useState(false);
   const [nuevo, setNuevo] = useState(false);
   const q = usePedidos(todos);
+  const destinos = useCuentasDestino();
 
   return (
     <div className="space-y-5">
@@ -150,7 +168,7 @@ export function PedidosFondo() {
       ) : (
         <ul className="space-y-3">
           {q.data.pedidos.map((p) => (
-            <FilaPedido key={p.id} p={p} puede={q.data.puede} cuentas={q.data.cuentas} />
+            <FilaPedido key={p.id} p={p} puede={q.data.puede} cuentas={q.data.cuentas} destino={destinos.data ? (destinos.data[p.id] ?? null) : undefined} />
           ))}
         </ul>
       )}
@@ -258,7 +276,18 @@ function NuevoPedido({ onCerrar }: { onCerrar: () => void }) {
   );
 }
 
-function FilaPedido({ p, puede, cuentas }: { p: Pedido; puede: Datos['puede']; cuentas: CuentaPago[] }) {
+function FilaPedido({
+  p,
+  puede,
+  cuentas,
+  destino,
+}: {
+  p: Pedido;
+  puede: Datos['puede'];
+  cuentas: CuentaPago[];
+  /** undefined = la base todavía no lo tiene o se está leyendo. */
+  destino?: CuentaTransferencia | null;
+}) {
   const { zonaHoraria } = useSesion();
   const nuevo = useBaseTiene(278);
   const qc = useQueryClient();
@@ -295,6 +324,15 @@ function FilaPedido({ p, puede, cuentas }: { p: Pedido; puede: Datos['puede']; c
         )}
       </p>
       <p className="text-sm text-tinta">{p.detalle}</p>
+      {destino !== undefined && (p.estado === 'solicitado' || p.estado === 'pendiente' || p.estado === 'aprobado') && (
+        <CuentaDestino
+          cuenta={destino}
+          choferId={p.chofer_id}
+          moneda={p.moneda}
+          puedeEditar={puede.pedir || puede.aprobar || puede.depositar}
+          onCambio={recargar}
+        />
+      )}
       {p.nota_revision && <p className="text-sm text-tinta-suave">Operaciones ({p.elevado_por ?? '—'}): {p.nota_revision}</p>}
       {p.estado === 'depositado' && p.medio_pago && (
         <p className="text-sm text-tinta-suave">
