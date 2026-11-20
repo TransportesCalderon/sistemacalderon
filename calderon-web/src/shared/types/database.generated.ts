@@ -1020,7 +1020,7 @@ export type Database = {
         Update: Partial<Omit<ClienteRow, 'id'>>;
         Relationships: [];
       };
-      estacion_servicio: TablaEditable<EstacionIns & Control & { id: number; proveedor_id: number | null; ubicacion_id: number | null; es_tanque_propio: boolean }, EstacionIns>;
+      estacion_servicio: TablaEditable<EstacionIns & Control & { id: number; proveedor_id: number | null; proveedor_directo_id: number | null; ubicacion_id: number | null; es_tanque_propio: boolean }, EstacionIns>;
       proveedor: TablaEditable<ProveedorIns & Control & { id: number; identificador_fiscal: string | null; moneda_defecto: string | null }, ProveedorIns>;
       ubicacion: TablaEditable<Required<UbicacionIns> & Control & { id: number }, UbicacionIns>;
       semirremolque: TablaEditable<SemiRow, SemiIns>;
@@ -1123,6 +1123,7 @@ export type Database = {
       fn_foto_chofer_mini: { Args: { p_chofer: number; p_mini: string }; Returns: undefined };
       // Migración 234: correo de la estación (órdenes de carga)
       fn_estacion_correo: { Args: { p_estacion: number; p_correo: string }; Returns: undefined };
+      fn_estacion_proveedor_directo: { Args: { p_estacion: number; p_proveedor: number | null }; Returns: number };
       fn_ot_visto: { Args: { p_id: number }; Returns: undefined };
       fn_guardar_tarea: {
         Args: {
@@ -1806,6 +1807,12 @@ export type Database = {
       fn_registrar_recibo: { Args: { p_datos: Json }; Returns: Json };
       fn_anular_recibo: { Args: { p_recibo: number; p_motivo: string }; Returns: undefined };
       fn_recibos: { Args: { p_desde?: string | null; p_hasta?: string | null }; Returns: Json };
+      // Migración 281: órdenes de pago y cuenta corriente de proveedores
+      fn_cuenta_proveedores: { Args: Record<string, never>; Returns: Json };
+      fn_cuenta_proveedor: { Args: { p_proveedor: number; p_moneda: string }; Returns: Json };
+      fn_registrar_orden_pago: { Args: { p_datos: Json }; Returns: Json };
+      fn_aplicar_pagos_a_cuenta: { Args: { p_proveedor: number }; Returns: number };
+      fn_anular_orden_pago: { Args: { p_op: number; p_motivo: string }; Returns: undefined };
       // Migración 279: comprobante del recibo
       fn_adjuntar_comprobante_recibo: { Args: { p_recibo: number; p_ruta: string; p_nombre: string | null }; Returns: string | null };
       fn_importar_cartola: { Args: { p_cuenta: number; p_filas: Json }; Returns: Json };
@@ -1888,6 +1895,9 @@ export type Database = {
       // Migración 278: el chofer pide, Operaciones revisa, Gerencia autoriza y deja pagado
       fn_pedir_fondo_chofer: { Args: { p_moneda: string; p_importe: number; p_detalle: string }; Returns: Json };
       fn_mis_pedidos_fondo: { Args: Record<string, never>; Returns: Json };
+      fn_mi_cuenta_transferencia: { Args: { p_moneda: string }; Returns: Json };
+      fn_guardar_cuenta_transferencia: { Args: { p_chofer: number | null; p_moneda: string; p_datos: Json }; Returns: Json };
+      fn_cuentas_destino_pedidos: { Args: Record<string, never>; Returns: Json };
       fn_revisar_pedido_fondo: { Args: { p_pedido: number; p_elevar: boolean; p_nota?: string | null }; Returns: Json };
       fn_autorizar_pedido_fondo: {
         Args: { p_pedido: number; p_importe: number; p_cuenta: number; p_medio: string; p_fecha: string; p_monto_cuenta?: number | null; p_nota?: string | null; p_ruta?: string | null; p_nombre?: string | null };

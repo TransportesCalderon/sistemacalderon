@@ -48,6 +48,8 @@ import { fecha, OpcionesCuentas } from "./comun";
 import { CambiarFechaCobro } from "@/modules/ventas/components/cambiar-fecha-cobro";
 import { PagarGasto } from "./gasto-ficha";
 import { CuentaEstaciones } from "./cuenta-estaciones";
+// Migración 281: cuenta corriente de proveedores y orden de pago
+import { CuentaProveedores } from "./cuenta-proveedores";
 import { SaldosLinea, SaldosResumen } from "./saldos";
 import { agruparSaldos } from "../domain/saldos-por-tercero";
 import { useBaseTiene } from "@/shared/hooks/use-version-base";
@@ -488,6 +490,7 @@ function SinCuentas() {
 function Debemos() {
   return (
     <div className="space-y-5">
+      <CuentaProveedores />
       <CuentaEstaciones />
       <GastosPorPagar />
     </div>

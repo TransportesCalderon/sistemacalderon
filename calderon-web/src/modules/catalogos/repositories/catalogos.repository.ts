@@ -145,6 +145,16 @@ export const catalogosRepository = (db: Db) => {
         if (error) throw new RepoError(error);
       }
     },
+    /** Migración 282: por estación, quién factura cuando se paga directo. Solo se pide si la base ya lo tiene. */
+    async proveedoresDirectos(): Promise<Record<number, number | null>> {
+      const { data, error } = await mae().from('estacion_servicio').select('id, proveedor_directo_id').is('eliminado_en', null);
+      if (error) throw new RepoError(error);
+      return Object.fromEntries(data.map((e) => [e.id, e.proveedor_directo_id]));
+    },
+    async guardarProveedorDirecto(estacionId: number, proveedorId: number | null): Promise<void> {
+      const { error } = await mae().rpc('fn_estacion_proveedor_directo', { p_estacion: estacionId, p_proveedor: proveedorId });
+      if (error) throw new RepoError(error);
+    },
     async eliminarEstacion(d: Eliminar): Promise<void> {
       const { data, error } = await mae()
         .from('estacion_servicio')

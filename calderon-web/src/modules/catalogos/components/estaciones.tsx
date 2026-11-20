@@ -12,7 +12,8 @@ import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { useCorreoEstacion } from '@/modules/combustible/queries/orden-carga.hooks';
 import type { Estacion } from '../domain/catalogos.types';
-import { useEliminarEstacion, useEstaciones, useGuardarEstacion, usePaises, useProveedores } from '../queries/hooks';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
+import { useEliminarEstacion, useEstaciones, useGuardarEstacion, useGuardarProveedorDirecto, usePaises, useProveedores, useProveedoresDirectos } from '../queries/hooks';
 import { abrirLinkEstacion } from '../actions/catalogos.actions';
 import { coordenadasDeTexto } from '../domain/ubicacion-link';
 import { esLinkCorto, esLinkDeMaps } from '@/modules/logistica/domain/rutas';
@@ -173,6 +174,13 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
   const guardar = useGuardarEstacion();
   const guardarCorreo = useCorreoEstacion();
   const [correo, setCorreo] = useState(e?.correo ?? '');
+  // Migración 282: quién factura cuando se paga directo a la estación (no con tarjeta)
+  const hayDirecto = useBaseTiene(282);
+  const { data: directos } = useProveedoresDirectos(hayDirecto && !!e);
+  const guardarDirecto = useGuardarProveedorDirecto();
+  const directoActual = e && directos ? (directos[e.id] ?? null) : null;
+  const [directoElegido, setDirecto] = useState<string | null>(null);
+  const directo = directoElegido ?? (directoActual ? String(directoActual) : '');
   const { data: paises } = usePaises();
   const { data: proveedores } = useProveedores();
   const { error, enviar, campo } = useEnvio();
@@ -193,7 +201,7 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
       titulo={e ? `Editar ${e.nombre}` : 'Nueva estación'}
       explicacion="El país define la zona horaria de la carga y, con ella, qué día de cotización se usa."
       error={error}
-      ocupado={guardar.isPending}
+      ocupado={guardar.isPending || guardarDirecto.isPending}
       textoBoton={e ? 'Guardar cambios' : 'Dar de alta'}
       onCerrar={onCerrar}
       onConfirmar={() =>
@@ -207,7 +215,13 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
               longitud: punto?.lng ?? null,
             })
             // Migración 234: el correo para las órdenes de carga (lo valida la base)
-            .then((r) => (r.ok && e && correo.trim() !== (e.correo ?? '') ? guardarCorreo.mutateAsync({ estacionId: e.id, correo }) : r)),
+            .then((r) => (r.ok && e && correo.trim() !== (e.correo ?? '') ? guardarCorreo.mutateAsync({ estacionId: e.id, correo }) : r))
+            // Migración 282: quién factura el pago directo (lo valida la base y rehace los asientos de esas cargas)
+            .then((r) =>
+              r.ok && e && directos && directo !== (directoActual ? String(directoActual) : '')
+                ? guardarDirecto.mutateAsync({ estacionId: e.id, proveedorId: directo === '' ? null : Number(directo) })
+                : r,
+            ),
           onCerrar,
         )
       }
@@ -238,6 +252,23 @@ function FormEstacion({ e, onCerrar }: { e?: Estacion; onCerrar: () => void }) {
           ))}
         </select>
       </Campo>
+      {e && hayDirecto && !v.esTanquePropio && (
+        <Campo
+          label="Quién factura si se paga directo"
+          ayuda="Solo si es otra razón social. Con tarjeta factura el proveedor de arriba; pagando directo a la estación (cuenta corriente), factura este."
+        >
+          <select value={directo} onChange={(ev) => setDirecto(ev.target.value)} disabled={!directos}>
+            <option value="">El mismo proveedor</option>
+            {proveedores
+              ?.filter((p) => String(p.id) !== v.proveedorId)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.razonSocial}
+                </option>
+              ))}
+          </select>
+        </Campo>
+      )}
       <label className="flex items-center gap-2 self-end pb-2 text-sm text-tinta">
         <input type="checkbox" className="size-4 accent-marca" checked={v.esTanquePropio} onChange={(ev) => setV({ ...v, esTanquePropio: ev.target.checked })} />
         Surtidor propio de la empresa (Base Mendoza)

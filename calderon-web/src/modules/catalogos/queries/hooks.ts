@@ -14,8 +14,10 @@ import {
   guardarParametro,
   guardarTipoCarga,
   guardarProveedor,
+  guardarProveedorDirecto,
   guardarUbicacion,
 } from '../actions/catalogos.actions';
+import { catalogosRepository } from '../repositories/catalogos.repository';
 import { catalogosQueries } from './keys';
 import { invalidar } from '@/shared/query/invalidar';
 
@@ -27,6 +29,9 @@ export const useTiposCambio = (moneda?: string) => useQuery({ ...catalogosQuerie
 export const useParametros = () => useQuery(catalogosQueries.parametros(browserDb()));
 export const useUbicaciones = () => useQuery(catalogosQueries.ubicaciones(browserDb()));
 export const useImportaciones = () => useQuery(catalogosQueries.importaciones(browserDb()));
+/** Migración 282: quién factura el pago directo, por estación. Solo se pide si la base ya lo tiene. */
+export const useProveedoresDirectos = (activo: boolean) =>
+  useQuery({ queryKey: ['catalogos', 'estaciones', 'proveedor-directo'] as const, queryFn: () => catalogosRepository(browserDb()).proveedoresDirectos(), enabled: activo });
 /** Migración 121: solo se pide si la base ya tiene la lista de tipos de carga. */
 export const useTiposCarga = (activo = true) => useQuery({ ...catalogosQueries.tiposCarga(browserDb()), enabled: activo });
 
@@ -34,13 +39,14 @@ export const useTiposCarga = (activo = true) => useQuery({ ...catalogosQueries.t
  * Toda escritura de catálogos vuelve a leer los catálogos y también Combustible y Flota,
  * que los usan en sus formularios (estaciones de la carga, monedas…).
  */
-function useEscritura<I, R extends { ok: boolean }>(accion: (input: I) => Promise<R>) {
+function useEscritura<I, R extends { ok: boolean }>(accion: (input: I) => Promise<R>, ademas?: 'finanzas') {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: accion,
     onSuccess: async (r) => {
       if (!r.ok) return;
       await invalidar(qc, 'catalogo');
+      if (ademas) await invalidar(qc, ademas);
     },
   });
 }
@@ -49,6 +55,7 @@ export const useGuardarProveedor = () => useEscritura(guardarProveedor);
 export const useEliminarProveedor = () => useEscritura(eliminarProveedor);
 export const useGuardarEstacion = () => useEscritura(guardarEstacion);
 export const useEliminarEstacion = () => useEscritura(eliminarEstacion);
+export const useGuardarProveedorDirecto = () => useEscritura(guardarProveedorDirecto, 'finanzas');
 export const useCrearTipoCambio = () => useEscritura(crearTipoCambio);
 export const useEliminarTipoCambio = () => useEscritura(eliminarTipoCambio);
 export const useGuardarParametro = () => useEscritura(guardarParametro);
