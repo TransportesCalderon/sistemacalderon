@@ -49,6 +49,8 @@ export interface PreparadoOrden {
   precio: number | null;
   moneda: string | null;
   vigente: string | null;
+  /** Migración 284: estación de Chile, se paga con la tarjeta de flota (sin QR, sin palabra, sin correo). */
+  tarjeta: boolean;
   /** Migración 259: solicitud de carga pendiente del camión (Seguimiento). */
   pendiente?: { id: number; por: string | null; en: FechaISO } | null;
   mail: EstadoMail;
@@ -68,6 +70,8 @@ export interface SolicitudCarga {
   estacionId: number | null;
   estacion: string | null;
   correo: string | null;
+  /** Migración 284: estación de Chile (tarjeta de flota). */
+  tarjeta: boolean;
   detalle: DetalleOrden | null;
   aCargar: string | null;
   /** Litros aproximados que pidió. */
@@ -109,6 +113,9 @@ export interface OrdenCarga {
   observacion: string | null;
   mailEstado: 'pendiente' | 'enviado' | 'error' | null;
   mailError: string | null;
+  /** Migración 284: orden con tarjeta de flota (Chile) y los litros que informó Enex. */
+  tarjeta: boolean;
+  enexLitros: number | null;
 }
 
 export interface CreadaOrden {
@@ -116,8 +123,11 @@ export interface CreadaOrden {
   numero: string;
   palabra: string;
   litrosCalculados: number | null;
-  mail: 'en_cola' | 'sin_configurar' | 'sin_correo';
+  /** Migración 284: «tarjeta» = Chile, la orden quedó autorizada y se le avisó al chofer. */
+  mail: 'en_cola' | 'sin_configurar' | 'sin_correo' | 'tarjeta';
   correo: string | null;
+  autorizado: string | null;
+  choferAvisado: boolean;
 }
 
 export interface MiOrden {
@@ -129,6 +139,9 @@ export interface MiOrden {
   estacion: string;
   /** Migración 252: orden de un genset (al terminar se anota el horómetro). */
   genset: boolean;
+  /** Migración 284: se paga con la tarjeta de flota (Chile): sin QR. */
+  tarjeta: boolean;
+  autorizado: string | null;
 }
 
 /** Migración 252 · Órdenes de carga para gensets. */
@@ -259,6 +272,7 @@ export const parsearPreparado = (d: unknown): PreparadoOrden => {
     precio: n(x.precio),
     moneda: t(x.moneda),
     vigente: t(x.vigente),
+    tarjeta: x.tarjeta === true,
     pendiente: x.pendiente ? { id: Number(o(x.pendiente).id), por: t(o(x.pendiente).por), en: (t(o(x.pendiente).en) ?? '') as FechaISO } : null,
     mail: parsearEstadoMail(x.mail),
   };
@@ -290,6 +304,7 @@ export const parsearSolicitudes = (d: unknown): SolicitudCarga[] =>
     estacionId: n(x.estacion_id),
     estacion: t(x.estacion),
     correo: t(x.correo),
+    tarjeta: x.tarjeta === true,
     detalle: parsearDetalle(x.detalle),
     aCargar: t(x.a_cargar),
     litros: n(x.litros) ?? 0,
@@ -341,6 +356,8 @@ export const parsearOrdenes = (d: unknown): OrdenCarga[] =>
     observacion: t(x.observacion),
     mailEstado: x.mail_estado === 'pendiente' || x.mail_estado === 'enviado' || x.mail_estado === 'error' ? x.mail_estado : null,
     mailError: t(x.mail_error),
+    tarjeta: x.tarjeta === true,
+    enexLitros: n(x.enex_litros),
   }));
 
 export const parsearCreada = (d: unknown): CreadaOrden => {
@@ -350,8 +367,10 @@ export const parsearCreada = (d: unknown): CreadaOrden => {
     numero: t(x.numero) ?? '',
     palabra: t(x.palabra) ?? '',
     litrosCalculados: n(x.litros_calculados),
-    mail: x.mail === 'en_cola' || x.mail === 'sin_correo' ? x.mail : 'sin_configurar',
+    mail: x.mail === 'en_cola' || x.mail === 'sin_correo' || x.mail === 'tarjeta' ? x.mail : 'sin_configurar',
     correo: t(x.correo),
+    autorizado: t(x.autorizado),
+    choferAvisado: x.chofer_avisado === true,
   };
 };
 
@@ -364,6 +383,8 @@ export const parsearMisOrdenes = (d: unknown): MiOrden[] =>
     patente: t(x.patente) ?? '',
     estacion: t(x.estacion) ?? '',
     genset: x.genset === true,
+    tarjeta: x.tarjeta === true,
+    autorizado: t(x.autorizado),
   }));
 
 export const parsearOrdenPublica = (d: unknown): OrdenPublica => {

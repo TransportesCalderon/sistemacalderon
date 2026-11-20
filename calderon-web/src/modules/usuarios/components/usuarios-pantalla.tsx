@@ -20,6 +20,7 @@ import {
   marcarAprobadorSegundoNivel,
   marcarAvisoTanqueBajo,
   marcarAutorizaCargas,
+  marcarHabilitaFueraHorario,
   marcarApruebaFondos,
   marcarRecibeEscalamiento,
   restablecerClave,
@@ -27,6 +28,7 @@ import {
 import { BOTON_PRIMARIO } from '@/shared/ui/clases';
 import { usuariosRepository, type Usuario } from '../usuarios.repository';
 import { invalidar } from '@/shared/query/invalidar';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 
 /** Roles que se asignan desde acá. Migración 60: el chofer entra al celular (Mi carga, Mis gastos), vinculado a su ficha. */
 const ROLES_ASIGNABLES = ROLES_APP;
@@ -87,7 +89,15 @@ export function UsuariosPantalla() {
     queryFn: () => usuariosRepository(db).apruebanFondos(),
     staleTime: FRESCURA.maestro,
   });
-  const columnas = 11;
+  // Migración 286: quién habilita manejo fuera de horario
+  const conHorario = useBaseTiene(286);
+  const habilitanHorario = useQuery({
+    queryKey: ['usuarios', 'habilita-fuera-horario'],
+    queryFn: () => usuariosRepository(db).habilitanFueraHorario(),
+    staleTime: FRESCURA.maestro,
+    enabled: conHorario,
+  });
+  const columnas = conHorario ? 12 : 11;
 
   return (
     <div className="space-y-5">
@@ -167,6 +177,11 @@ export function UsuariosPantalla() {
                   <th className={TH} title="Aprueba o rechaza los pedidos de FF Chofer (dinero del viaje)">
                     Aprueba fondos fijos
                   </th>
+                  {conHorario && (
+                    <th className={TH} title="Puede habilitar a un tractor a circular fuera del horario de manejo (5:30 a 22:00) por una noche">
+                      Habilita fuera de horario
+                    </th>
+                  )}
                   <th className={TH} />
                 </tr>
               </thead>
@@ -242,6 +257,20 @@ export function UsuariosPantalla() {
                           <span className="text-xs text-tinta-suave">—</span>
                         )}
                       </td>
+                      {conHorario && (
+                        <td className={TD}>
+                          {u.choferId === null ? (
+                            <AprobadorCierre
+                              usuario={u.id}
+                              marcado={(habilitanHorario.data ?? []).includes(u.id)}
+                              cargando={habilitanHorario.isPending}
+                              accion={marcarHabilitaFueraHorario}
+                            />
+                          ) : (
+                            <span className="text-xs text-tinta-suave">—</span>
+                          )}
+                        </td>
+                      )}
                       <td className={cn(TD, 'text-right')}>
                         {u.email && (
                           <button

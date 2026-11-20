@@ -1686,6 +1686,9 @@ export type Database = {
       /** Migración 256: quién aprueba los pedidos de FF Chofer. */
       fn_aprueban_fondos: { Args: Record<string, never>; Returns: number[] };
       fn_marcar_aprueba_fondos: { Args: { p_usuario: number; p_aprueba: boolean }; Returns: undefined };
+      // Migración 286: quién habilita manejo fuera de horario
+      fn_habilitan_fuera_horario: { Args: Record<string, never>; Returns: number[] };
+      fn_marcar_habilita_fuera_horario: { Args: { p_usuario: number; p_habilita: boolean }; Returns: undefined };
       fn_marcar_aviso_tanque_bajo: { Args: { p_usuario: number; p_recibe: boolean }; Returns: undefined };
       // Migración 189: quién recibe las alertas vencidas (escalamiento)
       fn_reciben_escalamiento: { Args: Record<string, never>; Returns: number[] };
@@ -2161,6 +2164,10 @@ export type Database = {
       fn_desvio_visto: { Args: { p_desvio: number }; Returns: undefined };
       fn_avisos_tanque_bajo: { Args: Record<string, never>; Returns: Json };
       fn_tanque_bajo_visto: { Args: { p_aviso: number }; Returns: undefined };
+      // Migración 286: horario de manejo (5:30 a 22:00) y habilitación fuera de horario
+      fn_fuera_horario: { Args: Record<string, never>; Returns: Json };
+      fn_habilitar_fuera_horario: { Args: { p_camion: number; p_motivo: string }; Returns: Json };
+      fn_anular_habilitacion_horario: { Args: { p_id: number; p_motivo: string | null }; Returns: undefined };
       fn_trackerway_buscar: { Args: Record<string, never>; Returns: Json };
       fn_trackerway_enlazar: { Args: { p_imei: string; p_camion: number | null }; Returns: undefined };
       fn_trackerway_importar: { Args: { p_imei: string; p_importar: boolean }; Returns: undefined };

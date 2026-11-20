@@ -74,6 +74,16 @@ export const usuariosRepository = (db: Db) => ({
     const { error } = await db.schema('seg').rpc('fn_marcar_autoriza_cargas', { p_usuario: usuario, p_autoriza: autoriza });
     if (error) throw new RepoError(error);
   },
+  /** Migración 286: ids de quienes habilitan manejo fuera de horario. */
+  async habilitanFueraHorario(): Promise<number[]> {
+    const { data, error } = await db.schema('seg').rpc('fn_habilitan_fuera_horario');
+    if (error) throw new RepoError(error);
+    return (data ?? []).map(Number);
+  },
+  async marcarHabilitaFueraHorario(usuario: number, habilita: boolean): Promise<void> {
+    const { error } = await db.schema('seg').rpc('fn_marcar_habilita_fuera_horario', { p_usuario: usuario, p_habilita: habilita });
+    if (error) throw new RepoError(error);
+  },
   /** Migración 256: ids de quienes aprueban el FF Chofer. */
   async apruebanFondos(): Promise<number[]> {
     const { data, error } = await db.schema('seg').rpc('fn_aprueban_fondos');
