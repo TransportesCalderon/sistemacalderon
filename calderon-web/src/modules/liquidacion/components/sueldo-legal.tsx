@@ -42,7 +42,7 @@ export function SueldoLegal({ l }: { l: Liquidacion }) {
     <section className="space-y-3 rounded-lg border border-borde p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-semibold text-tinta">Liquidación de sueldo (Chile)</h3>
-        <Link href="/rrhh/datos-legales" className="text-xs text-marca hover:underline">
+        <Link href="/ajustes/liquidacion/datos-legales" className="text-xs text-marca hover:underline">
           Empresa, UF/UTM y fichas de los choferes
         </Link>
       </div>

@@ -104,7 +104,7 @@ function bajar(c: CuentaCorriente) {
 
 /** La cuenta de un cliente para usar fuera de Facturación (ficha del cliente): cada documento abre la factura en Facturación. */
 export function CuentaDeCliente({ clienteId }: { clienteId: number }) {
-  return <Cuenta clienteId={clienteId} onAbrirFactura={(id) => window.location.assign(`/ventas/facturacion?factura=${id}`)} />;
+  return <Cuenta clienteId={clienteId} onAbrirFactura={(id) => window.location.assign(`/analisis/facturacion?factura=${id}`)} />;
 }
 
 function Cuenta({ clienteId, onVolver, onAbrirFactura }: { clienteId: number; onVolver?: () => void; onAbrirFactura: (id: number) => void }) {

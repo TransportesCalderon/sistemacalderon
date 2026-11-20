@@ -684,7 +684,7 @@ function Pagar({
           </label>
         )}
       </div>
-      {posibles.length === 0 && <p className="text-sm text-alerta">No hay {medio === 'efectivo' ? 'cajas' : 'bancos'} cargados en Finanzas › Bancos y cajas.</p>}
+      {posibles.length === 0 && <p className="text-sm text-alerta">No hay {medio === 'efectivo' ? 'cajas' : 'bancos'} cargados en Finanzas › Bancos.</p>}
       {error && <p className="text-sm text-error">{error}</p>}
       <div className="flex gap-2">
         <button

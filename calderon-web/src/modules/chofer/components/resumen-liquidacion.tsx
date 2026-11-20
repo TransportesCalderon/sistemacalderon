@@ -29,7 +29,8 @@ export function ResumenLiquidacionPantalla() {
 
   return (
     <div className="space-y-4">
-      <Encabezado titulo="Resumen para liquidar" subtitulo="Administración" />
+      {/* 20/11/2026 (navegación de Finanzas, cambio 8): antes «Resumen para liquidar» */}
+      <Encabezado titulo="Datos para liquidar" subtitulo="Administración" />
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className={BOTON_ICONO} aria-label="Período anterior" disabled={!periodo} onClick={() => periodo && setElegido(mover(periodo, -1))}>
           <ChevronLeft className="size-4" />

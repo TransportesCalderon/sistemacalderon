@@ -174,19 +174,21 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     id: 'finanzas',
     etiqueta: 'Finanzas',
     entradas: [
+      // 20/11/2026 (navegación de Finanzas, cambio 9): primero el trabajo de todos los días (facturar, cobrar y pagar,
+      // cargar gastos, el banco) y después el análisis. El Plan de cuentas pasó a Configuración.
       // Migración 101: el módulo de la encargada de finanzas (antes Ventas › Facturación; la ruta no cambia)
       // 19/11/2026: «Facturación» a secas; los cobros se registran en Cobros y pagos
       { href: '/analisis/facturacion', etiqueta: 'Facturación' },
-      { href: '/analisis/resultados', etiqueta: 'Resumen' },
-      { href: '/analisis/gastos', etiqueta: 'Gastos', incluye: ['/ajustes/gastos-fijos'] },
       { href: '/analisis/cobros-pagos', etiqueta: 'Cobros y pagos' },
+      { href: '/analisis/gastos', etiqueta: 'Gastos', incluye: ['/ajustes/gastos-fijos'] },
       // Sprint 7: Bancos y cajas pasa a Conciliación. 20/11/2026 (plan de simplificación, cambio 4): un solo menú para el
-      // banco, «Bancos» (Cuentas · Movimientos · Cambios de moneda), al lado de Cobros y pagos
+      // banco, «Bancos» (Cuentas · Movimientos · Cambios de moneda)
       { href: '/conciliacion', etiqueta: 'Bancos' },
+      // 20/11/2026 (cambio 8): «Tablero financiero» (antes «Resumen»)
+      { href: '/analisis/resultados', etiqueta: 'Tablero financiero' },
       // IA-1: margen de contribución por chofer, camión o viaje (migración 119)
       { href: '/analisis/rentabilidad', etiqueta: 'Rentabilidad' },
       { href: '/analisis/informes', etiqueta: 'Informes' },
-      { href: '/ajustes/plan-cuentas', etiqueta: 'Plan de cuentas' },
     ],
   },
   {
@@ -207,6 +209,9 @@ export const NAVEGACION: readonly GrupoMenu[] = [
     entradas: [
       { href: '/ajustes/usuarios', etiqueta: 'Usuarios' },
       { href: '/ajustes/monedas/tipos-cambio', etiqueta: 'Monedas y tipos de cambio', incluye: ['/ajustes/monedas'] },
+      // 20/11/2026 (navegación de Finanzas, cambio 9): el Plan de cuentas se arma una vez y lo toca el contador, así que va
+      // acá, junto a Monedas. La dirección y el permiso (finanzas.plan_cuentas) no cambian
+      { href: '/ajustes/plan-cuentas', etiqueta: 'Plan de cuentas' },
       { href: '/ajustes/parametros', etiqueta: 'Parámetros y catálogos', incluye: ['/ajustes/parametros/catalogos'] },
       { href: '/ajustes/integraciones', etiqueta: 'Datos de los camiones' },
       { href: '/ajustes/integraciones/equipos', etiqueta: 'Equipos GPS (Trackerway)' },

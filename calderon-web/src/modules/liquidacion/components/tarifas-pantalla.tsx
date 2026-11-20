@@ -14,11 +14,11 @@ import { Campo } from '@/shared/ui/campo';
 import { ETIQUETA_CALCULO, ETIQUETA_TIPO, pesos, TIPOS_RENGLON, type CalculoConcepto, type Concepto, type TipoRenglon } from '../domain/liquidacion.types';
 import { useConceptos, useGuardarConcepto, useGuardarTarifa, useQuitarTarifa, useTarifas } from '../queries/hooks';
 
-/** Administración › Tarifas y conceptos: sueldo fijo, precio por km y los conceptos que define RRHH. */
+/** Administración › Liquidaciones › Tarifas del chofer (antes «Tarifas y conceptos»; 20/11/2026): sueldo fijo, precio por km y los conceptos que define RRHH. */
 export function TarifasPantalla() {
   return (
     <div className="space-y-6">
-      <Encabezado titulo="Tarifas y conceptos" subtitulo="Administración" />
+      <Encabezado titulo="Tarifas del chofer" subtitulo="Administración" />
       <Tarifas />
       <Conceptos />
     </div>

@@ -132,7 +132,7 @@ export function GastoFicha({ id }: { id: number | null }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Encabezado titulo={g ? `Gasto ${g.numero}` : 'Nuevo gasto'} subtitulo="Finanzas" />
-        <Link href="/finanzas/gastos" className={BOTON_SECUNDARIO}>
+        <Link href="/analisis/gastos" className={BOTON_SECUNDARIO}>
           <ArrowLeft className="size-4" /> Volver
         </Link>
       </div>

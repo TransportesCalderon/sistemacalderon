@@ -38,7 +38,8 @@ export function PlanCuentasPantalla() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Encabezado titulo="Plan de cuentas" subtitulo="Finanzas" />
+        {/* 20/11/2026 (navegación de Finanzas, cambio 9): está en el menú Configuración */}
+        <Encabezado titulo="Plan de cuentas" subtitulo="Configuración" />
         {puede && !form && (
           <div className="flex flex-wrap gap-2">
             <button
@@ -124,7 +125,7 @@ export function PlanCuentasPantalla() {
                   <td className={cn(TD, 'text-xs text-tinta-suave')}>{ETIQUETA_TIPO_CUENTA[c.tipo]}</td>
                   <td className={cn(TD, 'text-right tabular-nums')}>
                     {c.imputable && c.saldo !== 0 ? (
-                      <Link href={`/finanzas/informes?mayor=${c.id}`} className="hover:underline">
+                      <Link href={`/analisis/informes?mayor=${c.id}`} className="hover:underline">
                         {dinero(['pasivo', 'patrimonio', 'ingreso'].includes(c.tipo) ? -c.saldo : c.saldo)}
                       </Link>
                     ) : (
