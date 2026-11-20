@@ -1901,6 +1901,7 @@ export type Database = {
       fn_mi_cuenta_transferencia: { Args: { p_moneda: string }; Returns: Json };
       fn_guardar_cuenta_transferencia: { Args: { p_chofer: number | null; p_moneda: string; p_datos: Json }; Returns: Json };
       fn_cuentas_destino_pedidos: { Args: Record<string, never>; Returns: Json };
+      fn_cuentas_transferencia: { Args: { p_chofer: number | null }; Returns: Json };
       fn_mis_trabas_pedido_fondo: { Args: Record<string, never>; Returns: Json };
       fn_trabas_de_pedidos: { Args: Record<string, never>; Returns: Json };
       fn_revisar_pedido_fondo: { Args: { p_pedido: number; p_elevar: boolean; p_nota?: string | null }; Returns: Json };

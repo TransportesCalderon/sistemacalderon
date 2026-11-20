@@ -29,6 +29,7 @@ import {
 } from '../queries/hooks';
 import { abrirArchivo, borrarArchivo, subirArchivo } from './archivos';
 import { IntentosRepetidos } from './intentos-repetidos';
+import { CuentaParaEntrega, CuentasChoferOficina } from './cuentas-chofer';
 import { TONO_ESTADO } from './mis-gastos';
 
 const Saldos = ({ saldos }: { saldos: Saldo[] }) =>
@@ -287,6 +288,8 @@ function CuentaChofer({ f, onCerrar }: { f: FondoDeChofer; onCerrar: () => void 
           </button>
         </div>
       )}
+      {/* Migración 288: a qué cuenta se le transfiere */}
+      <CuentasChoferOficina choferId={f.choferId} puedeEditar={puedeEditar} />
       {(panel === 'entrega' || panel === 'devolucion') && <FormEntrega choferId={f.choferId} tipo={panel} onListo={() => setPanel(null)} />}
       {panel === 'gasto' && <FormGastoOficina choferId={f.choferId} onListo={() => setPanel(null)} />}
 
@@ -405,6 +408,7 @@ function FormEntrega({ choferId, tipo, onListo }: { choferId: number; tipo: 'ent
   const registrar = useRegistrarEntrega();
   const envio = useEnvio();
   const [v, setV] = useState({ moneda: '', importe: '', fecha: hoyEnZona(zonaHoraria) as string, detalle: '', cuentaId: null as number | null });
+  const puedeEditar = useCan('rrhh.fondos:editar');
   return (
     <div className="grid gap-3 rounded-lg border border-borde bg-fondo/40 p-4 sm:grid-cols-4">
       <h3 className="font-medium text-tinta sm:col-span-4">{tipo === 'entrega' ? 'Entregar dinero al chofer' : 'El chofer devolvió el vuelto'}</h3>
@@ -432,6 +436,12 @@ function FormEntrega({ choferId, tipo, onListo }: { choferId: number; tipo: 'ent
         onCambio={(c) => setV({ ...v, cuentaId: c })}
         etiqueta={tipo === 'entrega' ? 'Sale de (banco o caja)' : 'Entra a (banco o caja)'}
       />
+      {/* Migración 288: la cuenta del chofer en esa moneda, sola */}
+      {tipo === 'entrega' && v.moneda && (
+        <div className="sm:col-span-4">
+          <CuentaParaEntrega choferId={choferId} moneda={v.moneda} puedeEditar={puedeEditar} />
+        </div>
+      )}
       <div className="sm:col-span-4">
         <ErrorBase error={envio.error} />
         <button

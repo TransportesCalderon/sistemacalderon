@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { requireSession } from '@/modules/core/auth/guards';
 import { ETIQUETA_ROL } from '@/modules/core/permissions/roles';
 import { AlertasTelefono } from '@/modules/core/push/alertas-telefono';
+import { MisCuentasTransferencia } from '@/modules/chofer/components/cuentas-chofer';
 import { CambiarPasswordForm } from './cambiar-password-form';
 
 export const metadata: Metadata = { title: 'Mi perfil' };
@@ -19,6 +20,8 @@ export default async function PerfilPage() {
         <h2 className="mb-4 font-medium text-tinta">Cambiar contraseña</h2>
         <CambiarPasswordForm />
       </section>
+      {/* Migración 288: el chofer carga la cuenta a la que se le transfiere el fondo fijo */}
+      {ctx.identidad.choferId !== null && <MisCuentasTransferencia />}
       {/* Migración 238: alertas en el teléfono */}
       <AlertasTelefono />
     </div>
