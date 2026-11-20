@@ -133,7 +133,11 @@ function FilaPago({ p }: { p: PagoCarga }) {
         )}
         {p.cargadoL !== null && (
           <p>
-            <span className="text-tinta-suave">Cargó:</span> {formatearNumero(p.cargadoL, 2)} L{p.cargadoImporte !== null && ` · ${plata(p.cargadoImporte, p.moneda)}`}
+            <span className="text-tinta-suave">Cargó de verdad:</span>{' '}
+            <strong>
+              {formatearNumero(p.cargadoL, 2)} L{p.cargadoImporte !== null && ` · ${plata(p.cargadoImporte, p.moneda)}`}
+            </strong>
+            {p.estado === 'pendiente' && <span className="text-tinta-suave"> (es lo que hay que transferir)</span>}
           </p>
         )}
         {p.ordenPago && (
@@ -205,8 +209,10 @@ function FormTransferencia({ p, onCerrar, onListo }: { p: PagoCarga; onCerrar: (
   const cuentas = useCuentasDinero();
   const [cuenta, setCuenta] = useState<number | null>(null);
   const [fecha, setFecha] = useState(hoyEnZona(zonaHoraria) as string);
-  const [monto, setMonto] = useState(p.importe !== null ? String(p.importe) : '');
-  const [deuda, setDeuda] = useState(p.importe !== null ? String(p.importe) : '');
+  // Si el chofer ya registró la carga, se propone lo que cargó de verdad (cargar primero y transferir después)
+  const base = p.cargadoImporte ?? p.importe;
+  const [monto, setMonto] = useState(base !== null ? String(base) : '');
+  const [deuda, setDeuda] = useState(base !== null ? String(base) : '');
   const [obs, setObs] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
