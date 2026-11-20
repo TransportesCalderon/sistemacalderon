@@ -1,6 +1,7 @@
 /**
  * Shell 02 · Cargas de Shell Card informadas por Enex que hay que resolver: las que nadie registró
  * («falta registrar») y las registradas con otros números («difiere»). Enex comanda: se registra y se corrige con sus datos.
+ * Migración 284: las de una orden de carga de Chile se registran y corrigen solas; acá quedan las que no se pudieron.
  */
 export interface CargaEnex {
   id: number;
@@ -15,9 +16,13 @@ export interface CargaEnex {
   documento: string | null;
   /** La estación de IronTrack que el sistema ya recuerda para esa estación de Enex. */
   estacionId: number | null;
-  situacion: 'falta_registrar' | 'difiere';
+  /** Migración 284: «orden_sin_registrar» = es de una orden de carga con tarjeta que no se pudo registrar sola. */
+  situacion: 'falta_registrar' | 'orden_sin_registrar' | 'difiere';
   cargaId: number | null;
   diferencia: string | null;
+  /** Migración 284: la orden de carga (Chile) y por qué no se resolvió sola. */
+  orden: string | null;
+  motivoAuto: string | null;
 }
 
 export interface PendientesEnex {
@@ -54,9 +59,12 @@ export function parsearPendientesEnex(crudo: unknown): PendientesEnex {
         donde: txt(c.donde),
         documento: txt(c.documento),
         estacionId: num(c.estacion_id),
-        situacion: c.situacion === 'difiere' ? ('difiere' as const) : ('falta_registrar' as const),
+        situacion:
+          c.situacion === 'difiere' ? ('difiere' as const) : c.situacion === 'orden_sin_registrar' ? ('orden_sin_registrar' as const) : ('falta_registrar' as const),
         cargaId: num(c.carga_id),
         diferencia: txt(c.diferencia),
+        orden: txt(c.orden),
+        motivoAuto: txt(c.motivo_auto),
       })),
   };
 }

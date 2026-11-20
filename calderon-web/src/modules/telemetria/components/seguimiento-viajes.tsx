@@ -23,6 +23,7 @@ import { useControlesViaje, useRegistrarSeguimiento, useRegistrarSeguimientoFoto
 import { SubirFotoComputadora, VerFotoControl, type FotoLeida } from './foto-computadora';
 import { BotonCopiar } from './boton-copiar';
 import { PedidoCarga } from './pedido-carga';
+import { FueraDeHorario } from './fuera-horario';
 
 const TONO_RESULTADO: Record<Resultado, Tono> = { bien: 'exito', a_mejorar: 'alerta', mal: 'error', sin_datos: 'neutro' };
 const COLOR_ESTADO: Record<NonNullable<Estado>, string> = { verde: 'text-exito', naranja: 'text-alerta', rojo: 'text-error' };
@@ -57,6 +58,8 @@ export function SeguimientoViajes() {
         Cómo viene cada viaje desde la salida: consumo contra el objetivo del viaje (el mismo del cierre) y uso del programador. Tocá un tractor para ver el
         detalle: el sistema arma el mensaje para el chofer; registrá el control y copialo para mandarlo por WhatsApp.
       </p>
+      {/* Migración 286: horario de manejo (fuera de horario y habilitaciones) */}
+      <FueraDeHorario />
       {isPending ? (
         <Cargando texto="Leyendo los viajes en curso…" />
       ) : isError ? (

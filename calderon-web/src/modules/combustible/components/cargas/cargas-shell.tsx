@@ -20,7 +20,7 @@ export function CargasShell() {
   const puede = useCan('combustible.cargas:editar');
   const { data } = usePendientesEnex(puede);
   if (!puede || !data || data.cargas.length === 0) return null;
-  const faltan = data.cargas.filter((c) => c.situacion === 'falta_registrar').length;
+  const faltan = data.cargas.filter((c) => c.situacion !== 'difiere').length;
   const difieren = data.cargas.length - faltan;
   return (
     <section className="mb-4 space-y-3 rounded-xl border-2 border-marca/40 bg-marca-suave/40 p-4">
@@ -83,6 +83,12 @@ function Fila({ c, datos }: { c: CargaEnex; datos: PendientesEnex }) {
       {c.situacion === 'difiere' ? (
         <p className="rounded-md bg-alerta/10 p-2 text-sm text-tinta">
           La carga #{c.cargaId} está registrada con otros números. {c.diferencia}
+          {c.motivoAuto && <> · No se corrigió sola: {c.motivoAuto}</>}
+        </p>
+      ) : c.situacion === 'orden_sin_registrar' ? (
+        <p className="rounded-md bg-alerta/10 p-2 text-sm text-tinta">
+          Es de la orden de carga {c.orden}. {c.motivoAuto ? <>No se registró sola: {c.motivoAuto}. </> : null}
+          Registrala en «Cargas de órdenes para registrar»: ya trae los litros, el precio y la hora de Enex.
         </p>
       ) : !c.esTractor ? (
         <p className="rounded-md bg-alerta/10 p-2 text-sm text-tinta">
@@ -140,7 +146,7 @@ function Fila({ c, datos }: { c: CargaEnex; datos: PendientesEnex }) {
             >
               {corregir.isPending ? <LoaderCircle className="size-5 animate-spin" /> : <PencilLine className="size-5" />} Corregir con Enex
             </button>
-          ) : (
+          ) : c.situacion === 'orden_sin_registrar' ? null : (
             <>
               {c.esTractor && (
                 <button

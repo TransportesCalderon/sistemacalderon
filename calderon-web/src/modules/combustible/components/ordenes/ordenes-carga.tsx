@@ -84,6 +84,7 @@ export function OrdenesCarga() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-tinta-suave">
             La estación recibe un mail con la palabra de seguridad; el chofer, un QR. El playero escanea el QR, escribe la palabra y confirma la carga.
+            En Chile se paga con la tarjeta de flota: la orden queda autorizada al crearla, sin QR, y la carga se registra sola con Enex.
           </p>
           {puede && (
             <button type="button" className={cn(BOTON_PRIMARIO, 'h-12 w-full justify-center text-base sm:w-auto')} onClick={() => setNueva(true)}>
@@ -153,7 +154,15 @@ function FilaOrden({ o, zona, puede }: { o: OrdenCarga; zona: string; puede: boo
           {o.estacion}
           <span className={cn('block text-xs', o.mailEstado === 'enviado' ? 'text-exito' : o.mailEstado ? 'text-alerta' : 'text-tinta-suave')} title={o.mailError ?? undefined}>
             <Mail className="mr-1 inline size-3" />
-            {o.mailEstado === 'enviado' ? 'Mail enviado' : o.mailEstado === 'pendiente' ? 'Mail en cola' : o.mailEstado === 'error' ? 'El mail no salió' : 'Sin correo'}
+            {o.tarjeta
+              ? `Tarjeta de flota${o.enexLitros !== null ? ` · Enex: ${formatearNumero(o.enexLitros, 2)} L` : ''}`
+              : o.mailEstado === 'enviado'
+                ? 'Mail enviado'
+                : o.mailEstado === 'pendiente'
+                  ? 'Mail en cola'
+                  : o.mailEstado === 'error'
+                    ? 'El mail no salió'
+                    : 'Sin correo'}
           </span>
         </td>
         <td className={TD}>
@@ -431,7 +440,14 @@ export function NuevaOrden({
                 {pie ? ': esperá que la aprueben o la rechacen.' : ': aprobala o rechazala arriba.'}
               </p>
             )}
-            {estacion && !p.correo && (
+            {/* Migración 284: en Chile se paga con la tarjeta de flota */}
+            {estacion && p.tarjeta && (
+              <p className="rounded-md bg-hover p-2 text-tinta">
+                Se paga con la <strong>tarjeta de flota</strong>: la orden queda autorizada al crearla (sin QR ni palabra) y al chofer le llega el aviso con lo autorizado.
+                La carga se registra sola con lo que informa Enex.
+              </p>
+            )}
+            {estacion && !p.correo && !p.tarjeta && (
               <div className="space-y-2 pt-1">
                 <Campo label="Correo de la estación (no tiene)" ayuda="Sin correo no se puede generar la orden. Para varios, separalos con coma.">
                   <input type="email" className="h-12 text-base" value={correo} onChange={(e) => setCorreo(e.target.value)} />
@@ -732,6 +748,25 @@ function NuevaOrdenGenset({ onCerrar, onTipo }: { onCerrar: () => void; onTipo: 
 
 /** La orden recién creada: la palabra de seguridad se muestra una sola vez. */
 function OrdenCreada({ creada, onCerrar }: { creada: CreadaOrden; onCerrar: () => void }) {
+  // Migración 284: Chile, tarjeta de flota (sin palabra ni QR)
+  if (creada.mail === 'tarjeta')
+    return (
+      <div className={cn(TARJETA, 'space-y-3 border-exito/40 p-4')}>
+        <p className="flex items-center gap-2 font-semibold text-tinta">
+          <BadgeCheck className="size-5 text-exito" /> Orden {creada.numero} autorizada
+        </p>
+        <p className="text-sm text-tinta">
+          Autorizado: <strong>{creada.autorizado ?? '—'}</strong>. Se paga con la tarjeta de flota.{' '}
+          {creada.choferAvisado
+            ? 'Al chofer le llegó el aviso al teléfono y lo ve en «Mi viaje».'
+            : 'El chofer no tiene usuario con avisos: avisale por otro medio (igual lo ve en «Mi viaje» si entra).'}{' '}
+          Cuando Enex informe la carga, se registra sola.
+        </p>
+        <button type="button" className={BOTON_SECUNDARIO} onClick={onCerrar}>
+          Listo
+        </button>
+      </div>
+    );
   return (
     <div className={cn(TARJETA, 'space-y-3 border-exito/40 p-4')}>
       <p className="flex items-center gap-2 font-semibold text-tinta">
@@ -976,7 +1011,11 @@ function TarjetaSolicitud({
       <div className="rounded-lg bg-hover p-3 text-sm text-tinta">
         <p>
           <span className="text-tinta-suave">Estación:</span> <strong>{s.estacion ?? '—'}</strong>
-          {!s.correo && <span className="text-alerta"> (sin correo: cargalo al editar)</span>}
+          {s.tarjeta ? (
+            <span className="text-tinta-suave"> · tarjeta de flota (sin QR)</span>
+          ) : (
+            !s.correo && <span className="text-alerta"> (sin correo: cargalo al editar)</span>
+          )}
         </p>
         <p>
           <span className="text-tinta-suave">Pedido{s.por ? ` de ${s.por}` : ''}:</span> <strong>{s.aCargar ?? '—'}</strong> · ≈ {formatearNumero(s.litros, 0)} L

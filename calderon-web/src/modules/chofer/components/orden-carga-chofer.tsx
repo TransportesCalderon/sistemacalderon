@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { CheckCircle2, Fuel, LoaderCircle, QrCode, Receipt, Trash2, X } from 'lucide-react';
+import { CheckCircle2, CreditCard, Fuel, LoaderCircle, QrCode, Receipt, Trash2, X } from 'lucide-react';
 import { leerTicketChofer } from '@/modules/combustible/actions/orden-carga.actions';
 import { urlQr, type MiOrden } from '@/modules/combustible/domain/orden-carga.types';
 import { useMisOrdenesCarga, useTerminarOrdenCarga } from '@/modules/combustible/queries/orden-carga.hooks';
@@ -25,6 +25,7 @@ async function aBase64(blob: Blob): Promise<string> {
 /**
  * Migración 234 · La orden de carga del chofer: «Estás autorizado a cargar combustible» → un QR, sin otros datos.
  * Cuando la estación confirma, «Terminé mi carga» → las fotos de los tickets.
+ * Migración 284: en Chile se paga con la tarjeta de flota: no hay QR; la orden ya llega autorizada con lo que se puede cargar.
  */
 export function OrdenCargaChofer() {
   const { data } = useMisOrdenesCarga(true);
@@ -149,9 +150,20 @@ function Terminar({ o }: { o: MiOrden }) {
 
   return (
     <div className="space-y-3 rounded-xl border-2 border-exito bg-exito/10 p-4">
-      <p className="flex items-center gap-2 text-lg font-semibold text-tinta">
-        <CheckCircle2 className="size-6 text-exito" /> La estación autorizó tu carga ({o.patente})
-      </p>
+      {o.tarjeta ? (
+        <div className="space-y-1">
+          <p className="flex items-center gap-2 text-lg font-semibold text-tinta">
+            <CreditCard className="size-6 text-exito" /> Estás autorizado a cargar ({o.patente})
+          </p>
+          <p className="text-sm text-tinta">
+            En <strong>{o.estacion}</strong>: <strong>{o.autorizado ?? 'lo autorizado'}</strong>. Pagá con la tarjeta de flota.
+          </p>
+        </div>
+      ) : (
+        <p className="flex items-center gap-2 text-lg font-semibold text-tinta">
+          <CheckCircle2 className="size-6 text-exito" /> La estación autorizó tu carga ({o.patente})
+        </p>
+      )}
       {!abierto ? (
         <button type="button" className={`${BOTON_PRIMARIO} w-full justify-center`} onClick={() => setAbierto(true)}>
           <Receipt className="size-5" /> Terminé mi carga

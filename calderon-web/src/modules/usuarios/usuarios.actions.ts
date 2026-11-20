@@ -76,6 +76,13 @@ export const marcarAutorizaCargas = createAction({
   handler: (d, { db }) => usuariosRepository(db).marcarAutorizaCargas(d.usuario, d.aprueba),
 });
 
+/** Migración 286: marcar quién habilita manejo fuera de horario (5:30 a 22:00). Solo TI. */
+export const marcarHabilitaFueraHorario = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({ usuario: z.number().int().positive(), aprueba: z.boolean() }),
+  handler: (d, { db }) => usuariosRepository(db).marcarHabilitaFueraHorario(d.usuario, d.aprueba),
+});
+
 /** Migración 256: marcar quién aprueba los pedidos de FF Chofer. Solo TI. */
 export const marcarApruebaFondos = createAction({
   permiso: 'configuracion.usuarios:editar',
