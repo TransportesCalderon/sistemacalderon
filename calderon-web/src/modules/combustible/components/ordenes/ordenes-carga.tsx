@@ -294,6 +294,8 @@ export function NuevaOrden({
   const [pago, setPago] = useState<'tarjeta' | 'transferencia' | null>(inicial?.detalle?.medio_pago ?? null);
   // Migración 292: a cuánto está el litro (null = el sugerido)
   const [precioTxt, setPrecioTxt] = useState<string | null>(inicial?.detalle?.precio_litro != null ? aTexto(inicial.detalle.precio_litro) : null);
+  // Migración 294: litros aproximados a mano cuando el sistema no los puede calcular
+  const [litrosEstTxt, setLitrosEstTxt] = useState(aTexto(inicial?.detalle?.litros_estimados));
   // Otro chofer que el de la Pizarra (vacío = el de la Pizarra): es quien ve el QR en «Mi viaje»
   const [chofer, setChofer] = useState(inicial?.choferId ? String(inicial.choferId) : '');
   const choferes = useChoferesCombustible();
@@ -337,11 +339,17 @@ export function NuevaOrden({
   const enChile = !!estacion && p?.tarjeta === true;
   const precioMostrado = precioTxt ?? (p?.precio != null ? aTexto(p.precio) : '');
   const precioLitro = aNumero(precioMostrado);
+  const aproxSistema = !destino ? null : !algoLleno ? (lt !== null && (destino === 'tanques' || lm !== null) ? lt + (lm ?? 0) : null) : (p?.litrosParaLlenar ?? null);
+  const pideLitros = !pie && !!estacion && !!destino && aproxSistema === null;
+  const litrosEst = pideLitros ? aNumero(litrosEstTxt) : null;
+  // Migración 295: lo que vio quien hizo la orden (estimación del sistema o escrito a mano) queda en la orden para Finanzas
+  const aproxOrden = aproxSistema ?? (litrosEst !== null && litrosEst > 0 ? litrosEst : null);
   const listo =
     !!camion &&
     !!estacion &&
     !!destino &&
     (!enChile || pago !== null) &&
+    (!pideLitros || !enChile || pago !== 'transferencia' || (litrosEst !== null && litrosEst > 0)) &&
     (tanques === 'lleno' || (tanques === 'litros' && aNumero(litrosTanques) !== null)) &&
     (destino === 'tanques' || mochila === 'llena' || (mochila === 'litros' && aNumero(litrosMochila) !== null));
   const detalle: DetalleOrden | null = destino
@@ -351,6 +359,7 @@ export function NuevaOrden({
         ...(destino === 'tanques_mochila' ? { mochila: { modo: mochila ?? 'llena', litros: mochila === 'litros' ? aNumero(litrosMochila) : null } } : {}),
         ...(enChile && pago ? { medio_pago: pago } : {}),
         ...(precioLitro !== null && precioLitro > 0 ? { precio_litro: precioLitro } : {}),
+        ...(aproxOrden !== null && aproxOrden > 0 ? { litros_estimados: Math.round(aproxOrden) } : {}),
       }
     : null;
   const datos: DatosFormularioOrden = {
@@ -359,7 +368,7 @@ export function NuevaOrden({
     detalle,
     choferId: chofer ? Number(chofer) : (p?.choferId ?? null),
     observacion: obs.trim() || null,
-    aproximadoL: !destino ? null : !algoLleno ? (lt !== null && (destino === 'tanques' || lm !== null) ? lt + (lm ?? 0) : null) : (p?.litrosParaLlenar ?? null),
+    aproximadoL: aproxOrden,
     prep: p,
     listo,
   };
@@ -532,6 +541,16 @@ export function NuevaOrden({
             <Opcion activa={pago === 'transferencia'} onClick={() => setPago('transferencia')} titulo="Transferencia" detalle="Finanzas le transfiere a la estación" />
           </div>
         </Paso>
+      )}
+
+      {/* Migración 294: el sistema no puede calcular cuánto carga: se escribe (obligatorio si se paga por transferencia) */}
+      {pideLitros && (
+        <Campo
+          label={`Litros aproximados${enChile && pago === 'transferencia' ? ' *' : ' (opcional)'}`}
+          ayuda="El sistema no sabe cuánto le falta a este camión. Escribí más o menos cuántos litros va a cargar: con eso se calcula la plata."
+        >
+          <input className="h-12 text-base" inputMode="decimal" value={litrosEstTxt} onChange={(e) => setLitrosEstTxt(e.target.value)} placeholder="Ej. 600" />
+        </Campo>
       )}
 
       {/* Migración 292: a cuánto está el litro (sugerido, editable) */}

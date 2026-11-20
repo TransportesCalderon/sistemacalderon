@@ -16,6 +16,9 @@ export interface PagoCarga {
   precio: number | null;
   moneda: string;
   importe: number | null;
+  /** Migración 294: lo más que puede entrar (tanques + mochila) y su plata. */
+  litrosMax: number | null;
+  importeMax: number | null;
   aCargar: string | null;
   autorizadaEn: string | null;
   venceEn: string | null;
@@ -51,6 +54,8 @@ export function parsearPagosCarga(v: unknown): PagoCarga[] {
       precio: n(x.precio),
       moneda: t(x.moneda) ?? 'CLP',
       importe: n(x.importe),
+      litrosMax: n(x.litros_max),
+      importeMax: n(x.importe_max),
       aCargar: t(x.a_cargar),
       autorizadaEn: t(x.autorizada_en),
       venceEn: t(x.vence_en),

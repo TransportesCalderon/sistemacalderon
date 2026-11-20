@@ -58,6 +58,8 @@ export const pedirCarga = createAction({
         medio_pago: z.enum(['tarjeta', 'transferencia']).optional(),
         /** Migración 292: a cuánto está el litro. */
         precio_litro: z.number().positive('El precio por litro tiene que ser mayor que cero.').nullable().optional(),
+        /** Migración 294: litros aproximados a mano. */
+        litros_estimados: z.number().positive('Los litros aproximados tienen que ser mayores que cero.').nullable().optional(),
       })
       .nullable()
       .optional(),
