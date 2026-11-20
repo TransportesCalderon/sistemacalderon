@@ -25,6 +25,7 @@ import {
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { parsearCuentasDePedidos, type CuentaTransferencia } from '../domain/cuenta-transferencia';
 import { CuentaDestino } from './cuenta-transferencia';
+import { parsearTrabasDePedidos, type TrabaPedido } from '../domain/trabas-pedido';
 import { dinero } from '../domain/chofer.types';
 import { abrirArchivo, borrarArchivo, subirArchivo } from './archivos';
 
@@ -137,12 +138,28 @@ function useCuentasDestino() {
   });
 }
 
+/** Migración 285: qué le falta al chofer de cada pedido sin pagar (gastos sin subir, tareas). */
+function useTrabasDePedidos() {
+  const hay = useBaseTiene(285);
+  return useQuery({
+    queryKey: [...CLAVE, 'trabas'] as const,
+    enabled: hay,
+    refetchInterval: 120_000,
+    queryFn: async () => {
+      const { data, error } = await browserDb().schema('fin').rpc('fn_trabas_de_pedidos');
+      if (error) throw error;
+      return parsearTrabasDePedidos(data);
+    },
+  });
+}
+
 /** Liquidaciones › Fondos de choferes › Pedidos de FF. */
 export function PedidosFondo() {
   const [todos, setTodos] = useState(false);
   const [nuevo, setNuevo] = useState(false);
   const q = usePedidos(todos);
   const destinos = useCuentasDestino();
+  const trabas = useTrabasDePedidos();
 
   return (
     <div className="space-y-5">
@@ -168,7 +185,7 @@ export function PedidosFondo() {
       ) : (
         <ul className="space-y-3">
           {q.data.pedidos.map((p) => (
-            <FilaPedido key={p.id} p={p} puede={q.data.puede} cuentas={q.data.cuentas} destino={destinos.data ? (destinos.data[p.id] ?? null) : undefined} />
+            <FilaPedido key={p.id} p={p} puede={q.data.puede} cuentas={q.data.cuentas} destino={destinos.data ? (destinos.data[p.id] ?? null) : undefined} trabas={trabas.data?.[p.id]} />
           ))}
         </ul>
       )}
@@ -281,12 +298,15 @@ function FilaPedido({
   puede,
   cuentas,
   destino,
+  trabas,
 }: {
   p: Pedido;
   puede: Datos['puede'];
   cuentas: CuentaPago[];
   /** undefined = la base todavía no lo tiene o se está leyendo. */
   destino?: CuentaTransferencia | null;
+  /** Migración 285: lo que le falta al chofer (a él le frena pedir; acá es un aviso para decidir). */
+  trabas?: TrabaPedido[];
 }) {
   const { zonaHoraria } = useSesion();
   const nuevo = useBaseTiene(278);
@@ -324,6 +344,16 @@ function FilaPedido({
         )}
       </p>
       <p className="text-sm text-tinta">{p.detalle}</p>
+      {trabas && trabas.length > 0 && (
+        <div className="rounded-md border border-alerta/40 bg-alerta/10 px-3 py-2 text-sm text-tinta">
+          <p className="font-medium">El chofer no está al día. El sistema le pide:</p>
+          <ul className="list-disc pl-5">
+            {trabas.map((t, i) => (
+              <li key={i}>{t.texto}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {destino !== undefined && (p.estado === 'solicitado' || p.estado === 'pendiente' || p.estado === 'aprobado') && (
         <CuentaDestino
           cuenta={destino}
