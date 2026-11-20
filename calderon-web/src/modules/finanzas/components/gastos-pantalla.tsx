@@ -94,7 +94,7 @@ export function GastosPantalla() {
       ) : data.length === 0 ? (
         <Vacio icono={<Receipt className="size-6" />} texto="No hay gastos con ese filtro.">
           {puede && (
-            <Link href="/finanzas/gastos-fijos" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-marca underline">
+            <Link href="/ajustes/gastos-fijos" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-marca underline">
               <Repeat className="size-4" /> Cargar los gastos que se repiten todos los meses
             </Link>
           )}

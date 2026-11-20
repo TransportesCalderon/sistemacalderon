@@ -80,26 +80,30 @@ export const PESTANAS_INTEGRACIONES = [
   { href: '/ajustes/integraciones/equipos', etiqueta: 'Equipos GPS' },
 ] as const;
 
-/** Sprint 7: Liquidaciones, con el resumen y los fondos (cierre del período) como pestañas. */
+/**
+ * Sprint 7: Liquidaciones, con el resumen y los fondos (cierre del período) como pestañas.
+ * 20/11/2026 (navegación de Finanzas, cambio 8): «Datos para liquidar» y «Tarifas del chofer» (antes «Resumen para
+ * liquidar» y «Tarifas y conceptos»).
+ */
 export const PESTANAS_LIQUIDACIONES = [
   { href: '/liquidaciones', etiqueta: 'Liquidaciones' },
-  { href: '/liquidaciones/resumen', etiqueta: 'Resumen para liquidar' },
+  { href: '/liquidaciones/resumen', etiqueta: 'Datos para liquidar' },
   { href: '/liquidaciones/fondos', etiqueta: 'Fondos de choferes' },
   // Migración 256: pedidos de FF Chofer (los piden Operaciones y Telemetría, aprueba el gerente, deposita Administración)
   { href: '/liquidaciones/fondos?vista=pedidos', etiqueta: 'Pedidos de FF' },
-  { href: '/ajustes/liquidacion', etiqueta: 'Tarifas y conceptos' },
+  { href: '/ajustes/liquidacion', etiqueta: 'Tarifas del chofer' },
   { href: '/ajustes/liquidacion/datos-legales', etiqueta: 'Datos legales' },
 ] as const;
 
 /** Tarifas y datos legales (Ajustes › Liquidación) usan las mismas pestañas. */
 export const PESTANAS_RRHH = PESTANAS_LIQUIDACIONES;
 
-/** Sprint 7: Cotizaciones, con los clientes y las tarifas como pestañas. */
+/** Sprint 7: Cotizaciones, con los clientes y las tarifas como pestañas. 20/11/2026 (cambio 8): «Tarifas a clientes» (antes «Tarifas y costos»). */
 export const PESTANAS_COTIZACIONES = [
   { href: '/cotizaciones', etiqueta: 'Cotizaciones' },
   { href: '/cotizaciones/clientes', etiqueta: 'Clientes y prospectos' },
   { href: '/cotizaciones/datos-clientes', etiqueta: 'Datos de los clientes' },
-  { href: '/cotizaciones/tarifas', etiqueta: 'Tarifas y costos' },
+  { href: '/cotizaciones/tarifas', etiqueta: 'Tarifas a clientes' },
 ] as const;
 
 /** Migración 73: gastos y su plantilla mensual. */

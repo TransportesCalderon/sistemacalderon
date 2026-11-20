@@ -4,9 +4,9 @@ import { TarifasVentasPantalla } from '@/modules/ventas/components/tarifas-panta
 import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_COTIZACIONES } from '@/shared/ui/pestanas-secciones';
 
-export const metadata: Metadata = { title: 'Tarifas y costos' };
+export const metadata: Metadata = { title: 'Tarifas a clientes' };
 
-/** Cotizaciones › Tarifas y costos (Sprint 7: antes /ventas/tarifas). */
+/** Cotizaciones › Tarifas a clientes (antes «Tarifas y costos»; Sprint 7: antes /ventas/tarifas). */
 export default async function Pagina() {
   await requirePermiso('ventas.tarifas:ver');
   return (

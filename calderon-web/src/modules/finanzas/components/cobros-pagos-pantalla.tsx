@@ -151,7 +151,8 @@ function NosDeben() {
   return (
     <div className="space-y-5">
       {sinCuenta.length > 0 && (
-        <Seccion titulo="Cobradas desde Ventas sin decir el banco">
+        // 20/11/2026 (navegación de Finanzas, cambio 10): ya no se cobra desde Ventas; son las que quedaron así
+        <Seccion titulo="Facturas cobradas sin decir el banco">
           <p className="text-sm text-tinta-suave">
             Decí a qué banco o caja entró cada una, así el saldo del banco y la
             contabilidad quedan bien.

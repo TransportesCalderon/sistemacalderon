@@ -4,9 +4,9 @@ import { TarifasPantalla } from '@/modules/liquidacion/components/tarifas-pantal
 import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_RRHH } from '@/shared/ui/pestanas-secciones';
 
-export const metadata: Metadata = { title: 'Tarifas y conceptos' };
+export const metadata: Metadata = { title: 'Tarifas del chofer' };
 
-/** Administración › Tarifas y conceptos de la liquidación (migración 62). */
+/** Administración › Liquidaciones › Tarifas del chofer (antes «Tarifas y conceptos»; migración 62). */
 export default async function Pagina() {
   await requirePermiso('liquidacion.reglas:ver');
   return (

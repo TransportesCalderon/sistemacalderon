@@ -75,7 +75,7 @@ export function CombustiblePantalla() {
       {data.pendientes > 0 && (
         <p className="rounded-md bg-alerta-suave p-3 text-sm text-alerta">
           Hay {data.pendientes} documento(s) que no se pudieron contabilizar.{' '}
-          <Link href="/finanzas/plan-cuentas" className="underline">
+          <Link href="/ajustes/plan-cuentas" className="underline">
             Ver cuáles
           </Link>
         </p>

@@ -22,14 +22,14 @@ import {
   useTarifario,
 } from '../queries/hooks';
 
-/** Ventas › Tarifas y costos: el costo por km, el tarifario por ruta y los adicionales. */
+/** Ventas › Cotizaciones › Tarifas a clientes (antes «Tarifas y costos»; 20/11/2026): el costo por km, el tarifario por ruta y los adicionales. */
 export function TarifasVentasPantalla() {
   const { data, isLoading, isError, error, refetch } = useTarifario();
   if (isLoading) return <Cargando texto="Leyendo las tarifas…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudieron leer las tarifas." onReintentar={() => void refetch()} error={error} />;
   return (
     <div className="space-y-5">
-      <Encabezado titulo="Tarifas y costos" subtitulo="Ventas" />
+      <Encabezado titulo="Tarifas a clientes" subtitulo="Ventas" />
       <Costos t={data} />
       <Tarifas t={data} />
       <Adicionales t={data} />

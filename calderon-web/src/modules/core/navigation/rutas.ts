@@ -13,7 +13,11 @@ export interface Ruta {
   titulo: string;
 }
 
-/** Las rutas de las páginas (las de antes del Sprint 8 siguen acá: son las que se dibujan por dentro). */
+/**
+ * Las rutas de las páginas (las de antes del Sprint 8 siguen acá: son las que se dibujan por dentro).
+ * 20/11/2026 (navegación de Finanzas, cambio 8): Tablero financiero, Datos para liquidar, Tarifas a clientes y Tarifas
+ * del chofer (antes Resumen, Resumen para liquidar, Tarifas y costos y Tarifas y conceptos). Solo cambian los títulos.
+ */
 const PAGINAS: readonly Ruta[] = [
   // Inicio
   { prefijo: '/inicio', pantalla: 'inicio.dashboard', titulo: 'Inicio' },
@@ -41,15 +45,15 @@ const PAGINAS: readonly Ruta[] = [
   { prefijo: '/ventas', pantalla: 'ventas.tablero', titulo: 'Tablero' },
   { prefijo: '/ventas/empresas', pantalla: 'ventas.empresas', titulo: 'Clientes y prospectos' },
   { prefijo: '/ventas/cotizaciones', pantalla: 'ventas.cotizaciones', titulo: 'Cotizaciones' },
-  { prefijo: '/ventas/tarifas', pantalla: 'ventas.tarifas', titulo: 'Tarifas y costos' },
+  { prefijo: '/ventas/tarifas', pantalla: 'ventas.tarifas', titulo: 'Tarifas a clientes' },
   // Sprint 7: Cotizaciones, con pestañas (cada una con su pantalla)
   { prefijo: '/cotizaciones', pantalla: 'ventas.cotizaciones', titulo: 'Cotizaciones' },
   { prefijo: '/cotizaciones/clientes', pantalla: 'ventas.empresas', titulo: 'Clientes y prospectos' },
   { prefijo: '/cotizaciones/datos-clientes', pantalla: 'comercial.clientes', titulo: 'Datos de los clientes' },
-  { prefijo: '/cotizaciones/tarifas', pantalla: 'ventas.tarifas', titulo: 'Tarifas y costos' },
+  { prefijo: '/cotizaciones/tarifas', pantalla: 'ventas.tarifas', titulo: 'Tarifas a clientes' },
   // Sprint 7: Liquidaciones, con el resumen y los fondos como pestañas
   { prefijo: '/liquidaciones', pantalla: 'liquidacion.liquidaciones', titulo: 'Liquidaciones' },
-  { prefijo: '/liquidaciones/resumen', pantalla: 'liquidacion.liquidaciones', titulo: 'Resumen para liquidar' },
+  { prefijo: '/liquidaciones/resumen', pantalla: 'liquidacion.liquidaciones', titulo: 'Datos para liquidar' },
   { prefijo: '/liquidaciones/fondos', pantalla: 'rrhh.fondos', titulo: 'Fondos de choferes' },
   // Sprint 7: Bancos y cajas pasa a Conciliación. 20/11/2026 (plan de simplificación, cambio 4): se llama «Bancos»
   { prefijo: '/conciliacion', pantalla: 'finanzas.bancos', titulo: 'Bancos' },
@@ -90,12 +94,12 @@ const PAGINAS: readonly Ruta[] = [
   // Administración
   { prefijo: '/rrhh/fondos', pantalla: 'rrhh.fondos', titulo: 'Fondos de choferes' },
   { prefijo: '/rrhh/liquidaciones', pantalla: 'liquidacion.liquidaciones', titulo: 'Liquidaciones' },
-  { prefijo: '/rrhh/liquidacion', pantalla: 'liquidacion.liquidaciones', titulo: 'Resumen para liquidar' },
-  { prefijo: '/rrhh/tarifas', pantalla: 'liquidacion.reglas', titulo: 'Tarifas y conceptos' },
+  { prefijo: '/rrhh/liquidacion', pantalla: 'liquidacion.liquidaciones', titulo: 'Datos para liquidar' },
+  { prefijo: '/rrhh/tarifas', pantalla: 'liquidacion.reglas', titulo: 'Tarifas del chofer' },
   { prefijo: '/rrhh/datos-legales', pantalla: 'liquidacion.reglas', titulo: 'Datos legales' },
   // Finanzas
   { prefijo: '/ventas/facturacion', pantalla: 'ventas.facturacion', titulo: 'Facturación' },
-  { prefijo: '/finanzas', pantalla: 'finanzas.resumen', titulo: 'Resumen' },
+  { prefijo: '/finanzas', pantalla: 'finanzas.resumen', titulo: 'Tablero financiero' },
   { prefijo: '/finanzas/gastos', pantalla: 'finanzas.gastos', titulo: 'Gastos' },
   { prefijo: '/finanzas/cobros-pagos', pantalla: 'finanzas.cobros_pagos', titulo: 'Cobros y pagos' },
   { prefijo: '/finanzas/bancos', pantalla: 'finanzas.bancos', titulo: 'Bancos' },
@@ -155,7 +159,7 @@ export const RUTAS_NUEVAS: readonly { nueva: string; vieja: string; titulo: stri
   { nueva: '/analisis/cobros-pagos', vieja: '/finanzas/cobros-pagos', titulo: 'Cobros y pagos' },
   { nueva: '/analisis/facturacion', vieja: '/ventas/facturacion', titulo: 'Facturación' },
   { nueva: '/analisis/informes', vieja: '/finanzas/informes', titulo: 'Informes' },
-  { nueva: '/analisis/resultados', vieja: '/finanzas', titulo: 'Resumen financiero' },
+  { nueva: '/analisis/resultados', vieja: '/finanzas', titulo: 'Tablero financiero' },
   { nueva: '/analisis/ventas', vieja: '/ventas', titulo: 'Tablero de ventas' },
   // Ajustes
   { nueva: '/ajustes/usuarios', vieja: '/configuracion/usuarios', titulo: 'Usuarios' },
@@ -175,7 +179,7 @@ export const RUTAS_NUEVAS: readonly { nueva: string; vieja: string; titulo: stri
   { nueva: '/ajustes/flota/gensets', vieja: '/flota/gensets', titulo: 'Gensets' },
   { nueva: '/ajustes/flota/accesorios', vieja: '/flota/accesorios', titulo: 'Tipos de accesorio' },
   { nueva: '/ajustes/flota/choferes', vieja: '/flota/choferes', titulo: 'Choferes' },
-  { nueva: '/ajustes/liquidacion', vieja: '/rrhh/tarifas', titulo: 'Tarifas y conceptos' },
+  { nueva: '/ajustes/liquidacion', vieja: '/rrhh/tarifas', titulo: 'Tarifas del chofer' },
   { nueva: '/ajustes/liquidacion/datos-legales', vieja: '/rrhh/datos-legales', titulo: 'Datos legales' },
   { nueva: '/ajustes/integraciones', vieja: '/telemetria/datos', titulo: 'Datos de los camiones' },
   { nueva: '/ajustes/integraciones/equipos', vieja: '/telemetria/equipos', titulo: 'Equipos GPS' },

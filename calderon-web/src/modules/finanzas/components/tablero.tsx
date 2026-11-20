@@ -9,11 +9,14 @@ import { useTableroFinanzas } from '../queries/hooks';
 import { Aviso, Indicador } from './comun';
 import { GraficoIngresosGastos, GraficoPrincipales, GraficoResultado } from './graficos';
 
-/** Finanzas › Resumen: plata disponible, lo que nos deben y lo que debemos, y cómo vienen los meses. */
+/**
+ * Finanzas › Tablero financiero (antes «Resumen»; 20/11/2026, cambio 8): plata disponible, lo que nos deben y lo que
+ * debemos, y cómo vienen los meses. Cambio 10: los avisos llevan a la dirección vigente (no a la vieja que redirige).
+ */
 export function TableroFinanzas() {
   const { data: t, isLoading, isError, error, refetch } = useTableroFinanzas();
-  if (isLoading) return <Cargando texto="Armando el resumen…" />;
-  if (isError || !t) return <ErrorLectura texto="No se pudo leer el resumen financiero." onReintentar={() => void refetch()} error={error} />;
+  if (isLoading) return <Cargando texto="Armando el tablero…" />;
+  if (isError || !t) return <ErrorLectura texto="No se pudo leer el tablero financiero." onReintentar={() => void refetch()} error={error} />;
 
   const egresos = t.costos.map((c, i) => c + (t.gastos[i] ?? 0));
   const n = t.meses.length - 1;
@@ -23,7 +26,7 @@ export function TableroFinanzas() {
 
   return (
     <div className="space-y-5">
-      <Encabezado titulo="Resumen financiero" subtitulo="Finanzas" />
+      <Encabezado titulo="Tablero financiero" subtitulo="Finanzas" />
 
       {sinDatos && (
         <Aviso>
@@ -32,11 +35,11 @@ export function TableroFinanzas() {
             Bancos
           </Link>{' '}
           (con el saldo de hoy), los gastos que se repiten en{' '}
-          <Link href="/finanzas/gastos-fijos" className="font-medium underline">
+          <Link href="/ajustes/gastos-fijos" className="font-medium underline">
             Gastos fijos
           </Link>{' '}
           y los gastos del mes en{' '}
-          <Link href="/finanzas/gastos" className="font-medium underline">
+          <Link href="/analisis/gastos" className="font-medium underline">
             Gastos
           </Link>
           .
@@ -45,7 +48,7 @@ export function TableroFinanzas() {
       {t.fijosSinGenerar > 0 && (
         <Aviso>
           Faltan generar {t.fijosSinGenerar === 1 ? '1 gasto fijo' : `${t.fijosSinGenerar} gastos fijos`} de este mes.{' '}
-          <Link href="/finanzas/gastos-fijos" className="font-medium underline">
+          <Link href="/ajustes/gastos-fijos" className="font-medium underline">
             Generarlos
           </Link>
         </Aviso>
@@ -62,7 +65,7 @@ export function TableroFinanzas() {
         <Aviso>
           {t.facturasSinAsiento === 1 ? 'Una factura emitida no tiene' : `${t.facturasSinAsiento} facturas emitidas no tienen`} asiento porque falta el tipo de cambio del día.
           Cargalo en{' '}
-          <Link href="/finanzas/tipos-cambio" className="font-medium underline">
+          <Link href="/ajustes/monedas/tipos-cambio" className="font-medium underline">
             Monedas y tipos de cambio
           </Link>{' '}
           y después tocá «Rehacer asientos» en el Plan de cuentas.
@@ -71,7 +74,7 @@ export function TableroFinanzas() {
       {t.pendientesContables > 0 && (
         <Aviso>
           {t.pendientesContables === 1 ? 'Un documento no entró' : `${t.pendientesContables} documentos no entraron`} a la contabilidad.{' '}
-          <Link href="/finanzas/plan-cuentas" className="font-medium underline">
+          <Link href="/ajustes/plan-cuentas" className="font-medium underline">
             Ver por qué
           </Link>
         </Aviso>
@@ -79,7 +82,7 @@ export function TableroFinanzas() {
       {t.cobrosSinCuentaClp !== 0 && (
         <Aviso>
           Hay {dinero(t.cobrosSinCuentaClp)} de facturas cobradas sin decir a qué banco entraron.{' '}
-          <Link href="/finanzas/cobros-pagos" className="font-medium underline">
+          <Link href="/analisis/cobros-pagos?ver=cobrar" className="font-medium underline">
             Decir el banco
           </Link>
         </Aviso>
@@ -92,7 +95,7 @@ export function TableroFinanzas() {
           titulo="Fletes entregados sin facturar"
           valor={dinero(t.fletesPorFacturarClp)}
           detalle="ya son ingreso; falta emitir la factura"
-          href="/finanzas/informes"
+          href="/analisis/informes"
         />
         {/* 20/11/2026 (plan de simplificación, cambio 1): el detalle está en Por pagar › Detalle por estación */}
         <Indicador
@@ -207,7 +210,7 @@ export function IndicadoresFinanzas({ t }: { t: Tablero }) {
         valor={dinero(resMes)}
         detalle={`${mesCorto(t.meses[n - 1] ?? t.hoy)}: ${dinero(resAnt)}`}
         tono={resMes < 0 ? 'alerta' : 'normal'}
-        href="/finanzas/informes"
+        href="/analisis/informes"
       />
     </div>
   );
@@ -217,6 +220,6 @@ export function IndicadoresFinanzas({ t }: { t: Tablero }) {
 export function TarjetasFinanzas() {
   const { data: t, isLoading, isError, error, refetch } = useTableroFinanzas();
   if (isLoading) return <Cargando texto="Leyendo los números…" />;
-  if (isError || !t) return <ErrorLectura texto="No se pudo leer el resumen financiero." onReintentar={() => void refetch()} error={error} />;
+  if (isError || !t) return <ErrorLectura texto="No se pudo leer el tablero financiero." onReintentar={() => void refetch()} error={error} />;
   return <IndicadoresFinanzas t={t} />;
 }
