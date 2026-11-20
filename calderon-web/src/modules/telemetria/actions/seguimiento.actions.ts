@@ -54,6 +54,8 @@ export const pedirCarga = createAction({
         destino: z.enum(['tanques', 'tanques_mochila']),
         tanques: z.object({ modo: z.enum(['lleno', 'litros']), litros: z.number().finite().nullable().optional() }),
         mochila: z.object({ modo: z.enum(['llena', 'litros']), litros: z.number().finite().nullable().optional() }).optional(),
+        /** Migración 290: en Chile, tarjeta de flota o transferencia a la estación. */
+        medio_pago: z.enum(['tarjeta', 'transferencia']).optional(),
       })
       .nullable()
       .optional(),

@@ -1912,6 +1912,13 @@ export type Database = {
       fn_registrar_cargo_chofer: { Args: { p_datos: Json }; Returns: Json };
       fn_terminar_cargo_chofer: { Args: { p_id: number; p_motivo: string }; Returns: string };
       fn_cargos_chofer: { Args: { p_chofer: number }; Returns: Json };
+      fn_pagos_carga: { Args: { p_todos?: boolean }; Returns: Json };
+      fn_pago_carga_tarjeta: { Args: { p_id: number; p_nota?: string | null }; Returns: undefined };
+      fn_pago_carga_transferir: {
+        Args: { p_id: number; p_cuenta: number; p_fecha: string; p_monto: number; p_monto_deuda?: number | null; p_observacion?: string | null };
+        Returns: Json;
+      };
+      fn_pago_carga_anular: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_mis_trabas_pedido_fondo: { Args: Record<string, never>; Returns: Json };
       fn_trabas_de_pedidos: { Args: Record<string, never>; Returns: Json };
       fn_revisar_pedido_fondo: { Args: { p_pedido: number; p_elevar: boolean; p_nota?: string | null }; Returns: Json };

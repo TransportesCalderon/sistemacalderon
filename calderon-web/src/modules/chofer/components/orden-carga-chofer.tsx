@@ -156,7 +156,8 @@ function Terminar({ o }: { o: MiOrden }) {
             <CreditCard className="size-6 text-exito" /> Estás autorizado a cargar ({o.patente})
           </p>
           <p className="text-sm text-tinta">
-            En <strong>{o.estacion}</strong>: <strong>{o.autorizado ?? 'lo autorizado'}</strong>. Pagá con la tarjeta de flota.
+            En <strong>{o.estacion}</strong>: <strong>{o.autorizado ?? 'lo autorizado'}</strong>.{' '}
+            {o.transferencia ? <strong>La paga la oficina por transferencia: no uses la tarjeta.</strong> : 'Pagá con la tarjeta de flota.'}
           </p>
         </div>
       ) : (

@@ -30,6 +30,8 @@ export interface DetalleOrden {
   destino: 'tanques' | 'tanques_mochila';
   tanques: { modo: 'lleno' | 'litros'; litros?: number | null };
   mochila?: { modo: 'llena' | 'litros'; litros?: number | null };
+  /** Migración 290: en Chile (sin QR), cómo se paga: tarjeta de flota o transferencia a la estación. */
+  medio_pago?: 'tarjeta' | 'transferencia';
 }
 
 export interface PreparadoOrden {
@@ -142,6 +144,8 @@ export interface MiOrden {
   /** Migración 284: se paga con la tarjeta de flota (Chile): sin QR. */
   tarjeta: boolean;
   autorizado: string | null;
+  /** Migración 290: en Chile, si la paga la oficina por transferencia (el chofer no usa la tarjeta). */
+  transferencia: boolean;
 }
 
 /** Migración 252 · Órdenes de carga para gensets. */
@@ -288,6 +292,7 @@ export const parsearDetalle = (d: unknown): DetalleOrden | null => {
     destino: x.destino,
     tanques: { modo: tq.modo === 'litros' ? 'litros' : 'lleno', litros: n(tq.litros) },
     ...(x.destino === 'tanques_mochila' ? { mochila: { modo: mo.modo === 'litros' ? ('litros' as const) : ('llena' as const), litros: n(mo.litros) } } : {}),
+    ...(x.medio_pago === 'tarjeta' || x.medio_pago === 'transferencia' ? { medio_pago: x.medio_pago } : {}),
   };
 };
 
@@ -385,6 +390,7 @@ export const parsearMisOrdenes = (d: unknown): MiOrden[] =>
     genset: x.genset === true,
     tarjeta: x.tarjeta === true,
     autorizado: t(x.autorizado),
+    transferencia: x.medio_pago === 'transferencia',
   }));
 
 export const parsearOrdenPublica = (d: unknown): OrdenPublica => {
