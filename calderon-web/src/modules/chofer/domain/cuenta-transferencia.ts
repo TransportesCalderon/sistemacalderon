@@ -32,6 +32,15 @@ export function parsearCuentaTransferencia(v: unknown): CuentaTransferencia | nu
   return { moneda: texto(o.moneda) ?? '', banco, tipoCuenta: texto(o.tipo_cuenta), numero, titular, titularDocumento: texto(o.titular_documento) };
 }
 
+/** Migración 288 · Las monedas en que se le puede transferir al chofer. */
+export const MONEDAS_CUENTA = ['ARS', 'CLP', 'USD'] as const;
+
+/** Migración 288 · Todas las cuentas de un chofer (una por moneda). */
+export function parsearCuentas(v: unknown): CuentaTransferencia[] {
+  if (!Array.isArray(v)) return [];
+  return v.map(parsearCuentaTransferencia).filter((c): c is CuentaTransferencia => c !== null);
+}
+
 /** Las cuentas de los pedidos sin pagar, por id de pedido. */
 export function parsearCuentasDePedidos(v: unknown): Record<number, CuentaTransferencia> {
   const r: Record<number, CuentaTransferencia> = {};
