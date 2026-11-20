@@ -2211,6 +2211,7 @@ export type Database = {
       fn_cambiar_umbrales: { Args: { p_codigo: string; p_parametros: Json; p_activa?: boolean }; Returns: string };
       // Migración 189: responsable, vencimiento, prórroga y escalamiento
       fn_gestion_alertas: { Args: { p_ids: number[] }; Returns: Json };
+      fn_ficha_cumplimiento: { Args: { p_mes?: string | null; p_chofer?: string | null }; Returns: Json };
       fn_avance_alerta: { Args: { p_alerta: number; p_hecho: string; p_falta: string | null }; Returns: undefined };
       fn_reasignar_alerta: { Args: { p_alerta: number; p_rol: string; p_usuario: number | null; p_motivo: string }; Returns: undefined };
       fn_pedir_prorroga_alerta: { Args: { p_alerta: number; p_horas: number; p_motivo: string }; Returns: undefined };
