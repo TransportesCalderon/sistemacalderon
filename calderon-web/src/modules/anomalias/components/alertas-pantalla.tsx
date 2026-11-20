@@ -30,6 +30,7 @@ import { useBandejaAlertas, useComentarAlerta, useDetalleAlerta, useGestionAlert
 import { type GestionAlerta } from '../domain/gestion.types';
 import { ChipsGestion, GestionAlertaPanel } from './gestion-alerta';
 import { ResponsablesAlertas, ResumenCargaImposible } from './responsables-alertas';
+import { FichaCumplimiento } from './ficha-cumplimiento';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import dynamic from 'next/dynamic';
 
@@ -59,6 +60,9 @@ const valor = (v: number | null, unidad: string | null) => (v === null ? '—' :
  * justificar, descartar, confirmar o descontar al chofer. Todo lo decide la base.
  */
 export function AlertasPantalla() {
+  // Iris 16: la ficha de cumplimiento la ven Gerencia, TI y el auditor (la base igual lo controla)
+  const { rolesApp } = useSesion();
+  const veFicha = rolesApp.some((r) => r === 'gerencia' || r === 'ti' || r === 'auditor');
   const [vista, setVista] = useState<Vista>('abiertas');
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
@@ -156,6 +160,7 @@ export function AlertasPantalla() {
       )}
       <ResponsablesAlertas />
       <ResumenCargaImposible />
+      {veFicha && <FichaCumplimiento />}
     </div>
   );
 }
