@@ -15,6 +15,7 @@ import { anularMiPedidoFondo, pedirFondoChofer } from '../actions/pedido-fondo.a
 import { guardarMiCuentaTransferencia } from '../actions/cuenta-transferencia.actions';
 import { aTexto, parsearCuentaTransferencia, type CuentaTransferenciaTexto } from '../domain/cuenta-transferencia';
 import { CamposCuenta, cuentaCompleta } from './cuenta-transferencia';
+import { parsearTrabas } from '../domain/trabas-pedido';
 import { dinero } from '../domain/chofer.types';
 import { ESTADO_PEDIDO, parsearMisPedidos, type MiPedido } from '../domain/pedido-fondo';
 
@@ -50,6 +51,19 @@ export function PedirDinero() {
       return parsearCuentaTransferencia(data);
     },
   });
+  // Migración 285: sin gastos al día ni tareas terminadas, no se pide (la base igual lo frena)
+  const hayTrabas = useBaseTiene(285);
+  const qTrabas = useQuery({
+    queryKey: ['chofer', 'fondo', 'mis-trabas'],
+    enabled: hay && hayTrabas,
+    refetchInterval: 120_000,
+    queryFn: async () => {
+      const { data, error } = await browserDb().schema('fin').rpc('fn_mis_trabas_pedido_fondo');
+      if (error) throw error;
+      return parsearTrabas(data);
+    },
+  });
+  const trabas = qTrabas.data ?? [];
   const [cuentaEscrita, setCuentaEscrita] = useState<{ moneda: string; v: CuentaTransferenciaTexto } | null>(null);
   const guardada = qCuenta.data ?? null;
   const editandoCuenta = cuentaEscrita !== null && cuentaEscrita.moneda === moneda;
@@ -76,7 +90,18 @@ export function PedirDinero() {
           <Check className="size-4" /> Pedido {hecho} enviado. Te avisamos cuando lo resuelvan.
         </p>
       )}
-      {abierto ? (
+      {trabas.length > 0 && !enCurso && (
+        <div className="space-y-1 rounded-md border border-alerta/40 bg-alerta/10 p-3 text-sm text-tinta">
+          <p className="font-medium">Para pedir dinero, primero te falta:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            {trabas.map((t, i) => (
+              <li key={i}>{t.texto}</li>
+            ))}
+          </ul>
+          <p className="text-xs text-tinta-suave">Si ya lo hiciste o es urgente, hablá con Operaciones.</p>
+        </div>
+      )}
+      {abierto && trabas.length === 0 ? (
         <form
           className="space-y-3"
           onSubmit={async (e) => {
@@ -154,7 +179,9 @@ export function PedirDinero() {
           </div>
         </form>
       ) : (
-        !enCurso && (
+        !enCurso &&
+        !abierto &&
+        trabas.length === 0 && (
           <button type="button" className={cn(BOTON_SECUNDARIO, 'h-12 w-full justify-center text-base')} onClick={() => { setHecho(null); setAbierto(true); }}>
             <HandCoins className="size-5" /> Pedir dinero
           </button>
