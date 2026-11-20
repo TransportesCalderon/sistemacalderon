@@ -34,6 +34,26 @@ export const crearUsuario = createAction({
   invalida: () => ({ paths: ['/configuracion/usuarios'] }),
 });
 
+/**
+ * Migración 288: usuario de un cliente (solo ve el mapa con los camiones que llevan su carga). Crea la cuenta
+ * (nuevo) o guarda; la base deja solo el rol Cliente y exige el cliente. Solo TI.
+ */
+export const guardarUsuarioCliente = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({
+    email: z.string().trim().toLowerCase().email('Email no válido.'),
+    nombre: z.string().trim().min(1, 'Escribí el nombre.').max(200, 'Máximo 200 caracteres.'),
+    // Si falta, lo dice la base
+    clienteId: z.number().int().positive().nullable(),
+    activo: z.boolean(),
+    nuevo: z.boolean(),
+    // Solo al crear; vacía = sin contraseña inicial (la base pone una al azar)
+    clave: z.string().max(72, 'Máximo 72 caracteres.').nullable(),
+  }),
+  handler: (d, { db }) => usuariosRepository(db).guardarCliente(d),
+  invalida: () => ({ paths: ['/configuracion/usuarios'] }),
+});
+
 /** Migración 170: marcar quién aprueba cierres de viaje (aprobación cruzada). Solo TI. */
 export const marcarAprobadorCierre = createAction({
   permiso: 'configuracion.usuarios:editar',

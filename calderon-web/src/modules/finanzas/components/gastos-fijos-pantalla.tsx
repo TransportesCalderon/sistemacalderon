@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useState } from 'react';
+import Link from 'next/link';
 import { ChevronDown, ChevronRight, Pencil, Plus, Repeat, Wand2 } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { useProveedores } from '@/modules/catalogos/queries/hooks';
@@ -19,7 +20,6 @@ import { useComprasRodados } from '../queries/compra-rodado.hooks';
 import { useCamionesFinanzas, useGastosFijos, useGenerarGastosFijos, useGuardarGastoFijo, usePlanCuentas } from '../queries/hooks';
 import { MONEDAS, OpcionesCuentas } from './comun';
 import { ComprasRodados } from './compras-rodados';
-import { PagarGasto } from './gasto-ficha';
 import { SueldosEstructura } from './sueldos-estructura';
 
 interface Form {
@@ -76,7 +76,6 @@ export function GastosFijosPantalla() {
   const [periodo, setPeriodo] = useState(mesActual);
   const [generados, setGenerados] = useState<number | null>(null);
   const [form, setForm] = useState<Form | null>(null);
-  const [pagando, setPagando] = useState<number | null>(null);
   // Las cuotas sin pagar van plegadas: se despliegan al tocar el renglón del gasto fijo
   const [desplegado, setDesplegado] = useState<number | null>(null);
   const puedePagar = useCan('finanzas.cobros_pagos:editar');
@@ -394,7 +393,8 @@ export function GastosFijosPantalla() {
                       )}
                     </td>
                   </tr>
-                  {/* Las cuotas que falta pagar, con su vencimiento original: se pagan de a una o todas juntas */}
+                  {/* Las cuotas que falta pagar, con su vencimiento original. 20/11/2026 (plan de simplificación): se pagan en
+                      un solo lugar, Cobros y pagos › Por pagar; el enlace abre el pago de esa cuota */}
                   {desplegado === f.id && f.cuotasSinPagar.map((c) => (
                     <tr key={c.gastoId} className="bg-fondo/40">
                       <td className={cn(TD, 'pl-8')} colSpan={3}>
@@ -403,24 +403,13 @@ export function GastosFijosPantalla() {
                           {c.diasVencido > 0 ? `venció el ${formatearFechaDia(c.vence)} (hace ${c.diasVencido} días)` : `vence el ${formatearFechaDia(c.vence)}`}
                         </span>
                         {c.pagoPrevisto && c.pagoPrevisto !== c.vence && <span className="ml-2 text-xs text-tinta-suave">· pago previsto: {formatearFechaDia(c.pagoPrevisto)}</span>}
-                        {pagando === c.gastoId && (
-                          <PagarGasto
-                            gastoId={c.gastoId}
-                            moneda={c.moneda}
-                            saldo={c.saldo}
-                            onListo={() => {
-                              setPagando(null);
-                              void refetch();
-                            }}
-                          />
-                        )}
                       </td>
                       <td className={cn(TD, 'text-right align-top tabular-nums')}>{dinero(c.saldo, c.moneda)}</td>
                       <td className={cn(TD, 'align-top')} colSpan={3}>
                         {puedePagar && (
-                          <button type="button" className={BOTON_SECUNDARIO} onClick={() => setPagando(pagando === c.gastoId ? null : c.gastoId)}>
-                            {pagando === c.gastoId ? 'Cerrar' : 'Pagar'}
-                          </button>
+                          <Link href={`/analisis/cobros-pagos?ver=pagar&facturas=1&gasto=${c.gastoId}`} className={BOTON_SECUNDARIO}>
+                            Pagar en Por pagar →
+                          </Link>
                         )}
                       </td>
                     </tr>

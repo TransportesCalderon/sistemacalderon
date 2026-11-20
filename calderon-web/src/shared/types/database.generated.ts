@@ -1703,6 +1703,13 @@ export type Database = {
         Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean; p_chofer?: number | null; p_clave?: string | null };
         Returns: number;
       };
+      /** Migración 288: usuario de un cliente (solo el rol Cliente y de qué cliente es; p_nuevo crea la cuenta). Solo TI. */
+      fn_guardar_usuario_cliente: {
+        Args: { p_email: string; p_nombre: string; p_cliente: number | null; p_activo?: boolean; p_nuevo?: boolean; p_clave?: string | null };
+        Returns: number;
+      };
+      fn_usuarios_clientes: { Args: Record<string, never>; Returns: { usuario_id: number; cliente_id: number; cliente: string }[] };
+      fn_clientes_para_usuario: { Args: Record<string, never>; Returns: { id: number; nombre: string }[] };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
@@ -2539,6 +2546,10 @@ export type Database = {
     Functions: {
       fn_orden_carga_qr: { Args: { p_token: string }; Returns: Json };
       fn_orden_carga_autorizar: { Args: { p_token: string; p_palabra: string; p_dispositivo?: string | null }; Returns: Json };
+      /** Migración 288: lo único que ejecuta el usuario de un cliente (rol de base tc_cliente). */
+      fn_mapa_cliente: { Args: Record<string, never>; Returns: Json };
+      fn_cliente_debo_cambiar_clave: { Args: Record<string, never>; Returns: boolean };
+      fn_cliente_clave_cambiada: { Args: Record<string, never>; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

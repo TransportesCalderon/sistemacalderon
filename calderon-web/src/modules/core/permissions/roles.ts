@@ -21,7 +21,9 @@ export const ROLES_APP = [
 
 export type RolApp = (typeof ROLES_APP)[number];
 
-export const ROLES_BD = ['tc_admin', 'tc_app', 'tc_lectura', 'tc_auditor', 'tc_chofer'] as const;
+// Migración 288: tc_cliente, el usuario de un cliente (solo ve su mapa). Su rol de la aplicación («cliente») no va en
+// ROLES_APP: no tiene pantallas ni permisos; la web lo reconoce por el rol de base.
+export const ROLES_BD = ['tc_admin', 'tc_app', 'tc_lectura', 'tc_auditor', 'tc_chofer', 'tc_cliente'] as const;
 export type RolBd = (typeof ROLES_BD)[number];
 
 export const ETIQUETA_ROL: Record<RolApp, string> = {

@@ -3,6 +3,7 @@ import { actualizarSesion } from '@/server/supabase/middleware';
 import { decodificarClaims, identidadDesdeClaims } from '@/modules/core/auth/claims';
 import { esRutaPublica, esRutaSinPantalla, pantallaDeRuta } from '@/modules/core/navigation/rutas';
 import { can, permisosDe } from '@/modules/core/permissions/resolver';
+import { destinoDelCliente } from '@/modules/cliente/domain/seguimiento';
 
 /**
  * Capa 1 de permisos (arquitectura §7): refresca la sesión de Supabase y aplica la
@@ -33,9 +34,16 @@ export async function middleware(request: NextRequest) {
     return redirigir(`/login?next=${encodeURIComponent(pathname + search)}`);
   }
 
+  const identidad = identidadDesdeClaims(sesion.accessToken ? decodificarClaims(sesion.accessToken) : null);
+
+  // Migración 288: el usuario de un cliente solo entra a su seguimiento (el mapa con sus cargas)
+  if (identidad?.rolBd === 'tc_cliente') {
+    const destino = destinoDelCliente(pathname);
+    return destino ? redirigir(destino) : sesion.response();
+  }
+
   if (pathname === '/' || esRutaSinPantalla(pathname)) return sesion.response();
 
-  const identidad = identidadDesdeClaims(sesion.accessToken ? decodificarClaims(sesion.accessToken) : null);
   if (!identidad) return redirigir('/sin-acceso?motivo=vinculo');
 
   const pantalla = pantallaDeRuta(pathname);
