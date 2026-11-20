@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from '@/server/supabase/server';
 import { fallo, ok, type ActionResult } from '@/server/actions/result';
 import { permisosDe } from '@/modules/core/permissions/resolver';
 import { rutaInicial } from '@/modules/core/navigation/filtrar';
+import { RUTA_CLIENTE } from '@/modules/cliente/domain/seguimiento';
 import { decodificarClaims, identidadDesdeClaims } from './claims';
 import {
   cambiarPasswordSchema,
@@ -47,6 +48,12 @@ export async function iniciarSesion(input: LoginInput): Promise<ActionResult<{ d
 
   const identidad = identidadDesdeClaims(decodificarClaims(data.session.access_token));
   if (!identidad) return ok({ destino: '/sin-acceso?motivo=vinculo' });
+
+  // Migración 288: el usuario de un cliente va siempre a su seguimiento
+  if (identidad.rolBd === 'tc_cliente') {
+    revalidatePath('/', 'layout');
+    return ok({ destino: RUTA_CLIENTE });
+  }
 
   const permisos = permisosDe(identidad.rolesApp, { gerenciaDetalleAlertas: 'agregado' });
   revalidatePath('/', 'layout');
@@ -93,6 +100,10 @@ export async function cambiarPassword(input: CambiarPasswordInput): Promise<Acti
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return fallo('desconocido', 'No se pudo cambiar la contraseña. Probá con otra.');
   // Migración 192: si TI le había puesto una provisoria, ya eligió la suya (en bases anteriores no existe: se ignora)
-  await supabase.schema('seg').rpc('fn_clave_cambiada');
+  // Migración 288: el usuario de un cliente no entra al esquema seg: avisa con la suya, en public
+  const { data: sesion } = await supabase.auth.getSession();
+  const identidad = identidadDesdeClaims(sesion.session ? decodificarClaims(sesion.session.access_token) : null);
+  if (identidad?.rolBd === 'tc_cliente') await supabase.schema('public').rpc('fn_cliente_clave_cambiada');
+  else await supabase.schema('seg').rpc('fn_clave_cambiada');
   return ok(null);
 }

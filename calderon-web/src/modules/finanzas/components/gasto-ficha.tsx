@@ -415,7 +415,7 @@ function IrAPagar({ gasto: g }: { gasto: Gasto }) {
   );
 }
 
-/** Registrar un pago del gasto desde un banco o caja (en Por pagar, «Pagar solo esta factura», y en Gastos fijos). */
+/** Registrar un pago del gasto desde un banco o caja: solo en Por pagar, «Pagar solo esta factura». */
 export function PagarGasto({ gastoId, moneda, saldo, onListo }: { gastoId: number; moneda: string; saldo: number; onListo?: () => void }) {
   const { zonaHoraria } = useSesion();
   const puede = useCan('finanzas.cobros_pagos:editar');

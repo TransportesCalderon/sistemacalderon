@@ -16,6 +16,7 @@ import { useChoferesCombustible } from '@/modules/combustible/queries/hooks';
 import {
   crearUsuario,
   guardarUsuario,
+  guardarUsuarioCliente,
   marcarAprobadorCierre,
   marcarAprobadorSegundoNivel,
   marcarAvisoTanqueBajo,
@@ -26,7 +27,7 @@ import {
   restablecerClave,
 } from '../usuarios.actions';
 import { BOTON_PRIMARIO } from '@/shared/ui/clases';
-import { usuariosRepository, type Usuario } from '../usuarios.repository';
+import { usuariosRepository, type Usuario, type UsuarioDeCliente } from '../usuarios.repository';
 import { invalidar } from '@/shared/query/invalidar';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 
@@ -98,6 +99,15 @@ export function UsuariosPantalla() {
     enabled: conHorario,
   });
   const columnas = conHorario ? 12 : 11;
+  // Migración 288: usuarios de clientes (solo ven el mapa con los camiones que llevan su carga)
+  const conClientes = useBaseTiene(288);
+  const deClientes = useQuery({
+    queryKey: ['usuarios', 'de-clientes'],
+    queryFn: () => usuariosRepository(db).usuariosDeClientes(),
+    staleTime: FRESCURA.maestro,
+    enabled: conClientes,
+  });
+  const clienteDe = new Map((deClientes.data ?? []).map((x) => [x.usuarioId, x]));
 
   return (
     <div className="space-y-5">
@@ -111,6 +121,7 @@ export function UsuariosPantalla() {
       <p className="text-sm text-tinta-suave">
         Para sumar a alguien: <span className="font-medium">Nuevo usuario</span>, con su email, nombre y roles. Los roles nuevos rigen
         cuando la persona vuelve a entrar (hasta 1 hora); desactivar corta el acceso en el momento.
+        {conClientes && ' Para un cliente que quiere seguir sus cargas: Nuevo usuario y marcá «Es un usuario de un cliente».'}
       </p>
 
       {abierto === 'nuevo' && <FormUsuario nuevo onCerrar={() => setAbierto(null)} />}
@@ -195,6 +206,11 @@ export function UsuariosPantalla() {
                       </td>
                       <td className={TD}>
                         <div className="flex flex-wrap gap-1">
+                          {clienteDe.has(u.id) && (
+                            <Chip tono="marca" title="Usuario de un cliente: solo ve el mapa con los camiones que llevan su carga">
+                              Cliente: {clienteDe.get(u.id)!.cliente}
+                            </Chip>
+                          )}
                           {u.roles.map((r) => (
                             <Chip key={r} tono={r === 'ti' ? 'marca' : 'neutro'}>
                               {ETIQUETA_ROL[r]}
@@ -207,13 +223,19 @@ export function UsuariosPantalla() {
                       </td>
                       <td className={TD}>{u.activo ? <Chip tono="exito">Activo</Chip> : <Chip tono="neutro">Desactivado</Chip>}</td>
                       <td className={TD}>
-                        <AprobadorCierre usuario={u.id} marcado={(aprobadores.data ?? []).includes(u.id)} cargando={aprobadores.isPending} />
+                        <AprobadorCierre
+                          usuario={u.id}
+                          marcado={(aprobadores.data ?? []).includes(u.id)}
+                          cargando={aprobadores.isPending}
+                          oculto={clienteDe.has(u.id)}
+                        />
                       </td>
                       <td className={TD}>
                         <AprobadorCierre
                           usuario={u.id}
                           marcado={(segundoNivel.data ?? []).includes(u.id)}
                           cargando={segundoNivel.isPending}
+                          oculto={clienteDe.has(u.id)}
                           accion={marcarAprobadorSegundoNivel}
                         />
                       </td>
@@ -222,6 +244,7 @@ export function UsuariosPantalla() {
                           usuario={u.id}
                           marcado={(avisados.data ?? []).includes(u.id)}
                           cargando={avisados.isPending}
+                          oculto={clienteDe.has(u.id)}
                           accion={marcarAvisoTanqueBajo}
                         />
                       </td>
@@ -230,6 +253,7 @@ export function UsuariosPantalla() {
                           usuario={u.id}
                           marcado={(escalamiento.data ?? []).includes(u.id)}
                           cargando={escalamiento.isPending}
+                          oculto={clienteDe.has(u.id)}
                           accion={marcarRecibeEscalamiento}
                         />
                       </td>
@@ -239,6 +263,7 @@ export function UsuariosPantalla() {
                             usuario={u.id}
                             marcado={(autorizan.data ?? []).includes(u.id)}
                             cargando={autorizan.isPending}
+                            oculto={clienteDe.has(u.id)}
                             accion={marcarAutorizaCargas}
                           />
                         ) : (
@@ -251,6 +276,7 @@ export function UsuariosPantalla() {
                             usuario={u.id}
                             marcado={(apruebanFondos.data ?? []).includes(u.id)}
                             cargando={apruebanFondos.isPending}
+                            oculto={clienteDe.has(u.id)}
                             accion={marcarApruebaFondos}
                           />
                         ) : (
@@ -264,6 +290,7 @@ export function UsuariosPantalla() {
                               usuario={u.id}
                               marcado={(habilitanHorario.data ?? []).includes(u.id)}
                               cargando={habilitanHorario.isPending}
+                              oculto={clienteDe.has(u.id)}
                               accion={marcarHabilitaFueraHorario}
                             />
                           ) : (
@@ -295,7 +322,7 @@ export function UsuariosPantalla() {
                     {abierto === `u:${u.id}` && u.email && (
                       <tr>
                         <td colSpan={columnas} className="px-3 pb-3">
-                          <FormUsuario email={u.email} usuario={u} onCerrar={() => setAbierto(null)} />
+                          <FormUsuario email={u.email} usuario={u} cliente={clienteDe.get(u.id)} onCerrar={() => setAbierto(null)} />
                         </td>
                       </tr>
                     )}
@@ -324,11 +351,14 @@ function AprobadorCierre({
   marcado,
   cargando,
   accion = marcarAprobadorCierre,
+  oculto = false,
 }: {
   usuario: number;
   marcado: boolean;
   cargando: boolean;
   accion?: typeof marcarAprobadorCierre;
+  /** Migración 288: el usuario de un cliente no tiene estas marcas. */
+  oculto?: boolean;
 }) {
   const qc = useQueryClient();
   const envio = useEnvio();
@@ -336,6 +366,7 @@ function AprobadorCierre({
     mutationFn: accion,
     onSuccess: (r) => (r.ok ? invalidar(qc, 'usuario') : undefined),
   });
+  if (oculto) return <span className="text-xs text-tinta-suave">—</span>;
   return (
     <span className="inline-flex flex-col">
       <label className="inline-flex items-center gap-2 text-xs">
@@ -353,7 +384,20 @@ function AprobadorCierre({
   );
 }
 
-function FormUsuario({ email: emailFijo = '', usuario, nuevo = false, onCerrar }: { email?: string; usuario?: Usuario; nuevo?: boolean; onCerrar: () => void }) {
+function FormUsuario({
+  email: emailFijo = '',
+  usuario,
+  cliente,
+  nuevo = false,
+  onCerrar,
+}: {
+  email?: string;
+  usuario?: Usuario;
+  /** Migración 288: si es un usuario de un cliente, de cuál. */
+  cliente?: UsuarioDeCliente;
+  nuevo?: boolean;
+  onCerrar: () => void;
+}) {
   const qc = useQueryClient();
   const guardar = useMutation({
     mutationFn: guardarUsuario,
@@ -373,23 +417,41 @@ function FormUsuario({ email: emailFijo = '', usuario, nuevo = false, onCerrar }
   const [choferId, setChoferId] = useState<number | null>(usuario?.choferId ?? null);
   const choferes = useChoferesCombustible();
   const alternar = (r: RolApp) => setRoles(roles.includes(r) ? roles.filter((x) => x !== r) : [...roles, r]);
+  // Migración 288: usuario de un cliente (solo el rol Cliente; la base lo controla)
+  const conClientes = useBaseTiene(288);
+  const [esCliente, setEsCliente] = useState(cliente !== undefined);
+  const [clienteId, setClienteId] = useState<number | null>(cliente?.clienteId ?? null);
+  const clientes = useQuery({
+    queryKey: ['usuarios', 'clientes-para-elegir'],
+    queryFn: () => usuariosRepository(browserDb()).clientesParaUsuario(),
+    staleTime: FRESCURA.maestro,
+    enabled: conClientes && esCliente,
+  });
+  const guardarCliente = useMutation({
+    mutationFn: guardarUsuarioCliente,
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'usuario') : undefined),
+  });
 
   return (
     <Panel
       titulo={nuevo ? 'Nuevo usuario' : usuario ? `Editar ${usuario.nombre}` : `Vincular ${email}`}
       explicacion={
-        nuevo
-          ? 'Se crea su cuenta para entrar (email y contraseña) y el usuario con sus roles. Si dejás la contraseña vacía, la persona entra con «¿Olvidaste tu contraseña?» y elige la suya.'
-          : 'Con varios roles, el usuario suma los permisos de todos. Las aprobaciones las hacen Administración de combustible, Finanzas y TI (parámetro fue.correccion_roles_aprobadores).'
+        esCliente
+          ? 'Usuario de un cliente: entra solo a «Mis cargas en camino», el mapa con los camiones que llevan su carga (posición, chofer, tractor y semi). Cada camión aparece cuando se retira la carga y sale cuando se entrega.'
+          : nuevo
+            ? 'Se crea su cuenta para entrar (email y contraseña) y el usuario con sus roles. Si dejás la contraseña vacía, la persona entra con «¿Olvidaste tu contraseña?» y elige la suya.'
+            : 'Con varios roles, el usuario suma los permisos de todos. Las aprobaciones las hacen Administración de combustible, Finanzas y TI (parámetro fue.correccion_roles_aprobadores).'
       }
       error={error}
-      ocupado={guardar.isPending || crear.isPending}
+      ocupado={guardar.isPending || crear.isPending || guardarCliente.isPending}
       textoBoton={nuevo ? 'Crear usuario' : usuario ? 'Guardar cambios' : 'Vincular'}
       onCerrar={onCerrar}
       onConfirmar={() =>
-        nuevo
-          ? enviar(crear.mutateAsync({ email, nombre, roles, choferId: roles.includes('chofer') ? choferId : null, clave }), onCerrar)
-          : enviar(guardar.mutateAsync({ email, nombre, roles, activo, choferId: roles.includes('chofer') ? choferId : null }), onCerrar)
+        esCliente
+          ? enviar(guardarCliente.mutateAsync({ email, nombre, clienteId, activo, nuevo, clave: nuevo ? clave : null }), onCerrar)
+          : nuevo
+            ? enviar(crear.mutateAsync({ email, nombre, roles, choferId: roles.includes('chofer') ? choferId : null, clave }), onCerrar)
+            : enviar(guardar.mutateAsync({ email, nombre, roles, activo, choferId: roles.includes('chofer') ? choferId : null }), onCerrar)
       }
     >
       {nuevo && (
@@ -405,19 +467,39 @@ function FormUsuario({ email: emailFijo = '', usuario, nuevo = false, onCerrar }
       <Campo label="Nombre *" error={campo('nombre')}>
         <input maxLength={200} value={nombre} onChange={(e) => setNombre(e.target.value)} />
       </Campo>
-      <fieldset className="space-y-1.5 sm:col-span-2">
-        <legend className="text-sm font-medium text-tinta">Roles *</legend>
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
-          {ROLES_ASIGNABLES.map((r) => (
-            <label key={r} className="flex items-center gap-2 text-sm text-tinta">
-              <input type="checkbox" className="size-4 accent-marca" checked={roles.includes(r)} onChange={() => alternar(r)} />
-              {ETIQUETA_ROL[r]}
-            </label>
-          ))}
-        </div>
-        {campo('roles') && <p className="text-xs text-error">{campo('roles')}</p>}
-      </fieldset>
-      {roles.includes('chofer') && (
+      {conClientes && (
+        <label className="flex items-center gap-2 text-sm text-tinta sm:col-span-2 lg:col-span-3">
+          <input type="checkbox" className="size-4 accent-marca" checked={esCliente} onChange={(e) => setEsCliente(e.target.checked)} />
+          Es un usuario de un cliente (solo ve el mapa con los camiones que llevan su carga)
+        </label>
+      )}
+      {esCliente && (
+        <Campo label="Cliente *" ayuda="Ve solo los camiones con carga de este cliente.">
+          <select value={clienteId ?? ''} onChange={(e) => setClienteId(e.target.value ? Number(e.target.value) : null)}>
+            <option value="">{clientes.isLoading ? 'Cargando…' : 'Elegí…'}</option>
+            {(clientes.data ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+        </Campo>
+      )}
+      {!esCliente && (
+        <fieldset className="space-y-1.5 sm:col-span-2">
+          <legend className="text-sm font-medium text-tinta">Roles *</legend>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {ROLES_ASIGNABLES.map((r) => (
+              <label key={r} className="flex items-center gap-2 text-sm text-tinta">
+                <input type="checkbox" className="size-4 accent-marca" checked={roles.includes(r)} onChange={() => alternar(r)} />
+                {ETIQUETA_ROL[r]}
+              </label>
+            ))}
+          </div>
+          {campo('roles') && <p className="text-xs text-error">{campo('roles')}</p>}
+        </fieldset>
+      )}
+      {!esCliente && roles.includes('chofer') && (
         <Campo label="Es el chofer *" ayuda="Ve solo su carga asignada y sus gastos, desde el celular.">
           <select value={choferId ?? ''} onChange={(e) => setChoferId(e.target.value ? Number(e.target.value) : null)}>
             <option value="">Elegí…</option>

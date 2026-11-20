@@ -37,6 +37,12 @@ describe('plan de simplificación: proveedores, pagos y bancos', () => {
     expect(cuenta).toContain("params.get('pagar') === '1'");
   });
 
+  it('3 · Gastos fijos tampoco registra pagos: cada cuota lleva a Por pagar', () => {
+    const fijos = leer(`${FIN}/gastos-fijos-pantalla.tsx`);
+    expect(fijos).not.toContain('<PagarGasto');
+    expect(fijos).toContain('/analisis/cobros-pagos?ver=pagar&facturas=1&gasto=${c.gastoId}');
+  });
+
   it('4 · un solo menú para el banco: «Bancos» con Cuentas, Movimientos y Cambios de moneda', () => {
     const fin = NAVEGACION.find((g) => g.id === 'finanzas')!;
     expect(fin.entradas.find((e) => e.href === '/conciliacion')?.etiqueta).toBe('Bancos');

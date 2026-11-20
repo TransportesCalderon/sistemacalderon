@@ -62,7 +62,9 @@ export const getSessionContext = cache(async (): Promise<ContextoSesion | null> 
   // Si falla (por ejemplo, la migración 113 todavía no se aplicó) vale 0 y lo nuevo queda apagado.
   // El .then() la envía ya (las consultas de Supabase salen recién al pedir el resultado) y se espera
   // después, en paralelo con la moneda y el parámetro de Gerencia.
-  const pedidoVersion = identidad?.rolBd
+  // Migración 288: el usuario de un cliente (tc_cliente) solo ejecuta las funciones de su mapa: no se le pide nada más.
+  const esCliente = identidad?.rolBd === 'tc_cliente';
+  const pedidoVersion = identidad?.rolBd && !esCliente
     ? supabase
         .schema('ref')
         .rpc('fn_version_base')
@@ -74,7 +76,7 @@ export const getSessionContext = cache(async (): Promise<ContextoSesion | null> 
 
   // Sin rol de base de datos (usuario sin vínculo) o con el del chofer (tc_chofer, migración 60:
   // solo ejecuta sus funciones) PostgREST no permite leer ref.*: no se consulta.
-  if (identidad?.rolBd && identidad.rolBd !== 'tc_chofer') {
+  if (identidad?.rolBd && identidad.rolBd !== 'tc_chofer' && !esCliente) {
     const [moneda, parametro] = await Promise.all([
       supabase.schema('ref').from('moneda').select('codigo').eq('es_base', true).is('eliminado_en', null).maybeSingle(),
       supabase

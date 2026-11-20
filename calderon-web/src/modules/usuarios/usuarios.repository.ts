@@ -18,6 +18,13 @@ export interface CuentaSinVincular {
   creadaEn: FechaISO;
 }
 
+/** Migración 288: un usuario con el rol Cliente y de qué cliente es (solo ve el mapa con su carga). */
+export interface UsuarioDeCliente {
+  usuarioId: number;
+  clienteId: number;
+  cliente: string;
+}
+
 const esRol = (r: string): r is RolApp => (ROLES_APP as readonly string[]).includes(r);
 
 export const usuariosRepository = (db: Db) => ({
@@ -122,6 +129,31 @@ export const usuariosRepository = (db: Db) => ({
       p_roles: d.roles,
       p_activo: true,
       p_chofer: d.choferId,
+      p_clave: d.clave || null,
+    });
+    if (error) throw new RepoError(error);
+    return data as number;
+  },
+  /** Migración 288: de qué cliente es cada usuario con el rol Cliente. */
+  async usuariosDeClientes(): Promise<UsuarioDeCliente[]> {
+    const { data, error } = await db.schema('seg').rpc('fn_usuarios_clientes');
+    if (error) throw new RepoError(error);
+    return (data ?? []).map((u) => ({ usuarioId: Number(u.usuario_id), clienteId: Number(u.cliente_id), cliente: u.cliente }));
+  },
+  /** Migración 288: los clientes que se pueden elegir para un usuario de cliente. */
+  async clientesParaUsuario(): Promise<{ id: number; nombre: string }[]> {
+    const { data, error } = await db.schema('seg').rpc('fn_clientes_para_usuario');
+    if (error) throw new RepoError(error);
+    return (data ?? []).map((c) => ({ id: Number(c.id), nombre: c.nombre }));
+  },
+  /** Migración 288: crea (nuevo, con su cuenta de acceso) o guarda un usuario de cliente: solo el rol Cliente y de qué cliente es. */
+  async guardarCliente(d: { email: string; nombre: string; clienteId: number | null; activo: boolean; nuevo: boolean; clave: string | null }): Promise<number> {
+    const { data, error } = await db.schema('seg').rpc('fn_guardar_usuario_cliente', {
+      p_email: d.email,
+      p_nombre: d.nombre,
+      p_cliente: d.clienteId,
+      p_activo: d.activo,
+      p_nuevo: d.nuevo,
       p_clave: d.clave || null,
     });
     if (error) throw new RepoError(error);
