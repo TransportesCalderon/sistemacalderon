@@ -32,6 +32,8 @@ export interface DetalleOrden {
   mochila?: { modo: 'llena' | 'litros'; litros?: number | null };
   /** Migración 290: en Chile (sin QR), cómo se paga: tarjeta de flota o transferencia a la estación. */
   medio_pago?: 'tarjeta' | 'transferencia';
+  /** Migración 292: a cuánto está el litro (sugerido por la última carga en la estación, editable). */
+  precio_litro?: number | null;
 }
 
 export interface PreparadoOrden {
@@ -293,6 +295,7 @@ export const parsearDetalle = (d: unknown): DetalleOrden | null => {
     tanques: { modo: tq.modo === 'litros' ? 'litros' : 'lleno', litros: n(tq.litros) },
     ...(x.destino === 'tanques_mochila' ? { mochila: { modo: mo.modo === 'litros' ? ('litros' as const) : ('llena' as const), litros: n(mo.litros) } } : {}),
     ...(x.medio_pago === 'tarjeta' || x.medio_pago === 'transferencia' ? { medio_pago: x.medio_pago } : {}),
+    ...(n(x.precio_litro) !== null ? { precio_litro: n(x.precio_litro) } : {}),
   };
 };
 

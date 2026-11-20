@@ -56,6 +56,8 @@ export const pedirCarga = createAction({
         mochila: z.object({ modo: z.enum(['llena', 'litros']), litros: z.number().finite().nullable().optional() }).optional(),
         /** Migración 290: en Chile, tarjeta de flota o transferencia a la estación. */
         medio_pago: z.enum(['tarjeta', 'transferencia']).optional(),
+        /** Migración 292: a cuánto está el litro. */
+        precio_litro: z.number().positive('El precio por litro tiene que ser mayor que cero.').nullable().optional(),
       })
       .nullable()
       .optional(),

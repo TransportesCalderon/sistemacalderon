@@ -292,6 +292,8 @@ export function NuevaOrden({
   const [obs, setObs] = useState(inicial?.observacion ?? '');
   // Migración 290: en Chile (sin QR) se elige cómo se paga
   const [pago, setPago] = useState<'tarjeta' | 'transferencia' | null>(inicial?.detalle?.medio_pago ?? null);
+  // Migración 292: a cuánto está el litro (null = el sugerido)
+  const [precioTxt, setPrecioTxt] = useState<string | null>(inicial?.detalle?.precio_litro != null ? aTexto(inicial.detalle.precio_litro) : null);
   // Otro chofer que el de la Pizarra (vacío = el de la Pizarra): es quien ve el QR en «Mi viaje»
   const [chofer, setChofer] = useState(inicial?.choferId ? String(inicial.choferId) : '');
   const choferes = useChoferesCombustible();
@@ -333,6 +335,8 @@ export function NuevaOrden({
         ? `${lt !== null || lm !== null ? 'hasta ' : ''}≈ ${formatearNumero(p.litrosParaLlenar, 0)} L`
         : null;
   const enChile = !!estacion && p?.tarjeta === true;
+  const precioMostrado = precioTxt ?? (p?.precio != null ? aTexto(p.precio) : '');
+  const precioLitro = aNumero(precioMostrado);
   const listo =
     !!camion &&
     !!estacion &&
@@ -346,6 +350,7 @@ export function NuevaOrden({
         tanques: { modo: tanques ?? 'lleno', litros: tanques === 'litros' ? aNumero(litrosTanques) : null },
         ...(destino === 'tanques_mochila' ? { mochila: { modo: mochila ?? 'llena', litros: mochila === 'litros' ? aNumero(litrosMochila) : null } } : {}),
         ...(enChile && pago ? { medio_pago: pago } : {}),
+        ...(precioLitro !== null && precioLitro > 0 ? { precio_litro: precioLitro } : {}),
       }
     : null;
   const datos: DatosFormularioOrden = {
@@ -529,6 +534,20 @@ export function NuevaOrden({
         </Paso>
       )}
 
+      {/* Migración 292: a cuánto está el litro (sugerido, editable) */}
+      {estacion && (
+        <Campo
+          label={`Precio por litro${p?.moneda ? ` (${p.moneda})` : ''}`}
+          ayuda={
+            p?.precio != null
+              ? `Sugerido: ${formatearNumero(p.precio, 2)}, de la última carga en esa estación. Cambialo si sabés que es otro${enChile ? ': es lo que se usa para la transferencia' : ''}.`
+              : 'Sin cargas anteriores en esa estación: escribí a cuánto está.'
+          }
+        >
+          <input className="h-12 text-base" inputMode="decimal" value={precioMostrado} onChange={(e) => setPrecioTxt(e.target.value)} />
+        </Campo>
+      )}
+
       <Campo label="Observación (opcional)">
         <input className="h-12 text-base" maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} />
       </Campo>
@@ -539,10 +558,10 @@ export function NuevaOrden({
           <p className="text-base font-semibold text-tinta">{resumen}</p>
           {aproximado && <p className="text-sm text-tinta">Aproximado a cargar: <strong>{aproximado}</strong></p>}
           {/* Migración 290: la plata aproximada (lo que Finanzas habilita o transfiere) */}
-          {enChile && datos.aproximadoL !== null && p?.precio != null && (
+          {datos.aproximadoL !== null && precioLitro !== null && precioLitro > 0 && (
             <p className="text-sm text-tinta">
-              Plata aproximada: <strong>{`${p.moneda ?? ''} ${formatearNumero(Math.round(datos.aproximadoL * p.precio), 0)}`.trim()}</strong>
-              <span className="text-tinta-suave"> (a {formatearNumero(p.precio, 0)} por litro)</span>
+              Plata aproximada: <strong>{`${p?.moneda ?? ''} ${formatearNumero(Math.round(datos.aproximadoL * precioLitro), 0)}`.trim()}</strong>
+              <span className="text-tinta-suave"> (a {formatearNumero(precioLitro, 2)} por litro)</span>
               {pago === 'transferencia' ? ' · Finanzas la transfiere a la estación.' : pago === 'tarjeta' ? ' · Finanzas habilita la tarjeta.' : ''}
             </p>
           )}
@@ -1039,9 +1058,9 @@ function TarjetaSolicitud({
               {' '}
               · {s.detalle?.medio_pago === 'transferencia' ? 'transferencia a la estación' : s.detalle?.medio_pago === 'tarjeta' ? 'tarjeta de flota' : 'sin decir cómo se paga'} (sin QR)
             </span>
-          ) : (
-            !s.correo && <span className="text-alerta"> (sin correo: cargalo al editar)</span>
-          )}
+          ) : null}
+          {s.detalle?.precio_litro != null && <span className="text-tinta-suave"> · a {formatearNumero(s.detalle.precio_litro, 2)} por litro</span>}
+          {!s.tarjeta && !s.correo && <span className="text-alerta"> (sin correo: cargalo al editar)</span>}
         </p>
         <p>
           <span className="text-tinta-suave">Pedido{s.por ? ` de ${s.por}` : ''}:</span> <strong>{s.aCargar ?? '—'}</strong> · ≈ {formatearNumero(s.litros, 0)} L

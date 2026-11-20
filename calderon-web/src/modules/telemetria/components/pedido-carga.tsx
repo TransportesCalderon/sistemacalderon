@@ -203,7 +203,8 @@ function PieSolicitud({
   const [precio, setPrecio] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const litrosTxt = litros ?? texto(f.aproximadoL);
-  const precioTxt = precio ?? texto(f.prep?.precio ?? null, 2);
+  // Migración 292: el precio que se escribió en el formulario (o el sugerido)
+  const precioTxt = precio ?? texto(f.detalle?.precio_litro ?? f.prep?.precio ?? null, 2);
   const listo = f.listo && via !== null && decimal(litrosTxt) !== null;
   const paso = f.detalle?.destino === 'tanques_mochila' ? 5 : 4;
   // Migración 263: cuánto se aparta lo que se pide de lo recomendado
