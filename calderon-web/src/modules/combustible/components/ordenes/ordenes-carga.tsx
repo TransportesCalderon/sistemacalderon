@@ -290,6 +290,8 @@ export function NuevaOrden({
   const [mochila, setMochila] = useState<'llena' | 'litros' | null>(inicial?.detalle?.mochila?.modo ?? null);
   const [litrosMochila, setLitrosMochila] = useState(aTexto(inicial?.detalle?.mochila?.litros));
   const [obs, setObs] = useState(inicial?.observacion ?? '');
+  // Migración 290: en Chile (sin QR) se elige cómo se paga
+  const [pago, setPago] = useState<'tarjeta' | 'transferencia' | null>(inicial?.detalle?.medio_pago ?? null);
   // Otro chofer que el de la Pizarra (vacío = el de la Pizarra): es quien ve el QR en «Mi viaje»
   const [chofer, setChofer] = useState(inicial?.choferId ? String(inicial.choferId) : '');
   const choferes = useChoferesCombustible();
@@ -330,10 +332,12 @@ export function NuevaOrden({
       : p?.litrosParaLlenar != null
         ? `${lt !== null || lm !== null ? 'hasta ' : ''}≈ ${formatearNumero(p.litrosParaLlenar, 0)} L`
         : null;
+  const enChile = !!estacion && p?.tarjeta === true;
   const listo =
     !!camion &&
     !!estacion &&
     !!destino &&
+    (!enChile || pago !== null) &&
     (tanques === 'lleno' || (tanques === 'litros' && aNumero(litrosTanques) !== null)) &&
     (destino === 'tanques' || mochila === 'llena' || (mochila === 'litros' && aNumero(litrosMochila) !== null));
   const detalle: DetalleOrden | null = destino
@@ -341,6 +345,7 @@ export function NuevaOrden({
         destino,
         tanques: { modo: tanques ?? 'lleno', litros: tanques === 'litros' ? aNumero(litrosTanques) : null },
         ...(destino === 'tanques_mochila' ? { mochila: { modo: mochila ?? 'llena', litros: mochila === 'litros' ? aNumero(litrosMochila) : null } } : {}),
+        ...(enChile && pago ? { medio_pago: pago } : {}),
       }
     : null;
   const datos: DatosFormularioOrden = {
@@ -443,8 +448,8 @@ export function NuevaOrden({
             {/* Migración 284: en Chile se paga con la tarjeta de flota */}
             {estacion && p.tarjeta && (
               <p className="rounded-md bg-hover p-2 text-tinta">
-                Se paga con la <strong>tarjeta de flota</strong>: la orden queda autorizada al crearla (sin QR ni palabra) y al chofer le llega el aviso con lo autorizado.
-                La carga se registra sola con lo que informa Enex.
+                Estación de Chile (sin QR): la orden queda autorizada al crearla y al chofer le llega el aviso con lo autorizado. Abajo elegí cómo se paga: con la
+                tarjeta de flota o por transferencia a la estación. Al autorizarse, a Finanzas le llega qué tiene que hacer.
               </p>
             )}
             {estacion && !p.correo && !p.tarjeta && (
@@ -514,6 +519,16 @@ export function NuevaOrden({
         </Paso>
       )}
 
+      {/* Migración 290: en Chile, cómo se paga */}
+      {enChile && (
+        <Paso numero={destino === 'tanques_mochila' ? 5 : 4} titulo="¿Cómo se paga?">
+          <div className="grid grid-cols-2 gap-2">
+            <Opcion activa={pago === 'tarjeta'} onClick={() => setPago('tarjeta')} titulo="Tarjeta de flota" detalle="Lo habitual. Finanzas la habilita" />
+            <Opcion activa={pago === 'transferencia'} onClick={() => setPago('transferencia')} titulo="Transferencia" detalle="Finanzas le transfiere a la estación" />
+          </div>
+        </Paso>
+      )}
+
       <Campo label="Observación (opcional)">
         <input className="h-12 text-base" maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} />
       </Campo>
@@ -523,6 +538,14 @@ export function NuevaOrden({
           <p className="text-xs font-medium tracking-wide text-tinta-suave uppercase">{pie ? 'Vas a pedir' : 'Vas a autorizar'}</p>
           <p className="text-base font-semibold text-tinta">{resumen}</p>
           {aproximado && <p className="text-sm text-tinta">Aproximado a cargar: <strong>{aproximado}</strong></p>}
+          {/* Migración 290: la plata aproximada (lo que Finanzas habilita o transfiere) */}
+          {enChile && datos.aproximadoL !== null && p?.precio != null && (
+            <p className="text-sm text-tinta">
+              Plata aproximada: <strong>{`${p.moneda ?? ''} ${formatearNumero(Math.round(datos.aproximadoL * p.precio), 0)}`.trim()}</strong>
+              <span className="text-tinta-suave"> (a {formatearNumero(p.precio, 0)} por litro)</span>
+              {pago === 'transferencia' ? ' · Finanzas la transfiere a la estación.' : pago === 'tarjeta' ? ' · Finanzas habilita la tarjeta.' : ''}
+            </p>
+          )}
           {(tanques === 'lleno' || mochila === 'llena') && (
             <p className="mt-1 text-xs text-tinta-suave">Lleno va sin tope; si se carga más de lo que le faltaba al camión, queda una alerta.</p>
           )}
@@ -756,11 +779,11 @@ function OrdenCreada({ creada, onCerrar }: { creada: CreadaOrden; onCerrar: () =
           <BadgeCheck className="size-5 text-exito" /> Orden {creada.numero} autorizada
         </p>
         <p className="text-sm text-tinta">
-          Autorizado: <strong>{creada.autorizado ?? '—'}</strong>. Se paga con la tarjeta de flota.{' '}
+          Autorizado: <strong>{creada.autorizado ?? '—'}</strong>. A Finanzas le llegó el aviso para habilitar la tarjeta o transferir a la estación.{' '}
           {creada.choferAvisado
             ? 'Al chofer le llegó el aviso al teléfono y lo ve en «Mi viaje».'
             : 'El chofer no tiene usuario con avisos: avisale por otro medio (igual lo ve en «Mi viaje» si entra).'}{' '}
-          Cuando Enex informe la carga, se registra sola.
+          Con tarjeta, cuando Enex informe la carga se registra sola.
         </p>
         <button type="button" className={BOTON_SECUNDARIO} onClick={onCerrar}>
           Listo
@@ -1012,7 +1035,10 @@ function TarjetaSolicitud({
         <p>
           <span className="text-tinta-suave">Estación:</span> <strong>{s.estacion ?? '—'}</strong>
           {s.tarjeta ? (
-            <span className="text-tinta-suave"> · tarjeta de flota (sin QR)</span>
+            <span className="text-tinta-suave">
+              {' '}
+              · {s.detalle?.medio_pago === 'transferencia' ? 'transferencia a la estación' : s.detalle?.medio_pago === 'tarjeta' ? 'tarjeta de flota' : 'sin decir cómo se paga'} (sin QR)
+            </span>
           ) : (
             !s.correo && <span className="text-alerta"> (sin correo: cargalo al editar)</span>
           )}

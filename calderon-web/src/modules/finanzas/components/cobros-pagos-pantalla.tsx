@@ -31,6 +31,7 @@ import { PagarGasto } from "./gasto-ficha";
 import { CuentaEstaciones } from "./cuenta-estaciones";
 // Migración 281: cuenta corriente de proveedores y orden de pago
 import { CuentaProveedores } from "./cuenta-proveedores";
+import { PagosCarga } from "./pagos-carga";
 import { SaldosLinea, SaldosResumen } from "./saldos";
 import { agruparSaldos } from "../domain/saldos-por-tercero";
 import { useBaseTiene } from "@/shared/hooks/use-version-base";
@@ -484,6 +485,8 @@ function Debemos() {
   const gasto = Number(params.get("gasto")) || null;
   return (
     <div className="space-y-5">
+      {/* Migración 290: cargas de Chile para habilitar la tarjeta o transferir */}
+      <PagosCarga />
       <CuentaProveedores />
       <GastosPorPagar
         plegado={conCuenta}
