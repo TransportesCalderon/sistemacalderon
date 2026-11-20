@@ -41,8 +41,8 @@ import { useCamionesFinanzas } from '../queries/hooks';
 import { fecha, MONEDAS } from './comun';
 import { ElegirProveedor } from './gasto-ficha';
 
-/** Migración 280: la base que trae los pedidos de compra, las cotizaciones y la orden de compra. */
-export const VERSION_COMPRAS = 280;
+/** Migración 282: la base que trae los pedidos de compra, las cotizaciones y la orden de compra. */
+export const VERSION_COMPRAS = 282;
 
 const TONO_ESTADO: Record<EstadoPedidoCompra, 'neutro' | 'marca' | 'exito' | 'alerta' | 'error'> = {
   cotizando: 'marca',
@@ -55,7 +55,7 @@ const TONO_ESTADO: Record<EstadoPedidoCompra, 'neutro' | 'marca' | 'exito' | 'al
 const errorDe = (e: unknown): ErrorAccion => ({ codigo: 'desconocido', mensaje: e instanceof Error ? e.message : 'No se pudo subir el archivo.' });
 
 /**
- * Finanzas › Gastos › Compras (migración 280): pedir una compra, cargar las cotizaciones de cada proveedor,
+ * Finanzas › Gastos › Compras (migración 282): pedir una compra, cargar las cotizaciones de cada proveedor,
  * ver cuál recomienda Iris y que Gerencia apruebe. Al aprobar, la base arma la orden de compra.
  */
 export function ComprasPantalla() {
@@ -78,7 +78,7 @@ export function ComprasPantalla() {
       </div>
       <Pestanas items={PESTANAS_GASTOS} />
       {!hayBase ? (
-        <Vacio icono={<ShoppingCart className="size-6" />} texto="Falta aplicar en la base la migración 280 (compras y cotizaciones)." />
+        <Vacio icono={<ShoppingCart className="size-6" />} texto="Falta aplicar en la base la migración 282 (compras y cotizaciones)." />
       ) : (
         <>
           <p className="text-sm text-tinta-suave">

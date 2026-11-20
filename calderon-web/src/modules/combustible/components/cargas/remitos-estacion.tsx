@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, FileText, LoaderCircle, PencilLine, ReceiptText, X } from 'lucide-react';
+import { CheckCircle2, FileText, LoaderCircle, PencilLine, ReceiptText, Sparkles, X } from 'lucide-react';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
@@ -16,6 +16,8 @@ import { abrirPdfRemito, useCorregirConRemito, useDescartarRemito, usePendientes
  * Migración 277 · Arriba de Cargas: los remitos que mandó la estación por mail (Shell Rodríguez Peña) y no cuadran con
  * la carga del chofer. Se propone corregir la carga con el remito o registrarla; una persona confirma. Los que coinciden
  * no aparecen. Si la casilla no se pudo leer, se avisa acá.
+ * Migración 283: manda el remito. Con orden de carga la carga se registra sola y la que difiere se corrige sola (salvo
+ * período cerrado). Acá quedan los que no se pudieron hacer solos, con el motivo, y abajo lo que se hizo solo en 7 días.
  */
 export function RemitosEstacion() {
   const puede = useCan('combustible.cargas:editar');
@@ -23,14 +25,15 @@ export function RemitosEstacion() {
   const { data } = usePendientesRemitos(puede && hay);
   if (!puede || !hay || !data) return null;
   const fallaCasilla = data.activo && data.ultimaConsulta !== null && !data.ultimaConsulta.ok;
-  if (data.remitos.length === 0 && !fallaCasilla) return null;
+  if (data.remitos.length === 0 && !fallaCasilla) return data.automaticos.length > 0 ? <HechosSolos datos={data} /> : null;
   return (
     <section className="mb-4 space-y-3 rounded-xl border-2 border-marca/40 bg-marca-suave/40 p-4">
       <p className="flex items-center gap-2 font-semibold text-tinta">
         <ReceiptText className="size-5 text-marca" /> Remitos de estaciones para resolver ({data.remitos.length})
       </p>
       <p className="text-sm text-tinta-suave">
-        Llegan por mail y los lee Iris. Se comparan con la carga del chofer: litros (desde 0,02 L) y precio por litro. Vale el remito.
+        Llegan por mail y los lee Iris. Se comparan con la carga: litros (desde 0,02 L), precio por litro y hora. Vale el remito.
+        {data.automatico && ' Con orden de carga se registra sola y si difiere se corrige sola (salvo período cerrado): acá quedan las que no se pudieron.'}
         {data.coinciden30Dias > 0 && ` ${data.coinciden30Dias} coincidieron en los últimos 30 días.`}
         {data.esperandoChofer > 0 && ` ${data.esperandoChofer} esperan que el chofer registre la carga.`}
         {data.leyendo > 0 && ` Iris está leyendo ${data.leyendo}.`}
@@ -41,7 +44,33 @@ export function RemitosEstacion() {
       {data.remitos.map((r) => (
         <Fila key={r.id} r={r} datos={data} />
       ))}
+      {data.automaticos.length > 0 && <HechosSolos datos={data} />}
     </section>
+  );
+}
+
+/** Migración 283 · Lo que se registró o corrigió solo con el remito en los últimos 7 días (plegado). */
+function HechosSolos({ datos }: { datos: PendientesRemitos }) {
+  const { zonaHoraria } = useSesion();
+  const registradas = datos.automaticos.filter((a) => a.accion === 'registrada').length;
+  const corregidas = datos.automaticos.length - registradas;
+  return (
+    <details className="mb-4 rounded-lg border border-borde bg-panel p-3 text-sm text-tinta">
+      <summary className="flex cursor-pointer items-center gap-2 text-tinta-suave">
+        <Sparkles className="size-4 text-marca" /> Con los remitos de la estación, en 7 días se registraron solas {registradas} cargas y se corrigieron solas{' '}
+        {corregidas}.
+      </summary>
+      <ul className="mt-2 space-y-1">
+        {datos.automaticos.map((a) => (
+          <li key={a.id}>
+            {a.accion === 'registrada' ? 'Registrada' : 'Corregida'} · carga #{a.cargaId} · <span className="font-mono">{a.patente ?? 'sin patente'}</span>
+            {a.litros !== null && <> · {formatearNumero(a.litros, 2)} L</>}
+            {a.fechaHora && <> · {formatearFechaHora(a.fechaHora, zonaHoraria)}</>} · remito {a.numero ?? '¿?'}
+            {a.orden && <> · orden {a.orden}</>}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -93,6 +122,12 @@ function Fila({ r, datos }: { r: RemitoEstacion; datos: PendientesRemitos }) {
       ) : r.situacion === 'difiere' ? (
         <p className="rounded-md bg-alerta/10 p-2 text-sm text-tinta">
           La carga #{r.cargaId} está registrada con otros números. {r.diferencia}
+          {r.motivoAuto && <> · No se corrigió sola: {r.motivoAuto}</>}
+        </p>
+      ) : r.situacion === 'orden_sin_registrar' ? (
+        <p className="rounded-md bg-alerta/10 p-2 text-sm text-tinta">
+          Es de la orden de carga {r.orden}. {r.motivoAuto ? <>No se registró sola: {r.motivoAuto}. </> : null}
+          Registrala en «Cargas de órdenes para registrar»: ya trae los litros, el precio y la hora del remito.
         </p>
       ) : !r.esTractor ? (
         <p className="rounded-md bg-alerta/10 p-2 text-sm text-tinta">

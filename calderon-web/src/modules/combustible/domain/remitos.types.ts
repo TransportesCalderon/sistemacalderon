@@ -2,6 +2,8 @@
  * Migración 277 · Remitos que mandan las estaciones por mail (Shell Rodríguez Peña), leídos por Iris y cruzados con la
  * carga del chofer. Para resolver: «falta registrar» (no hay carga de ese tractor a esa hora), «difiere» (litros, precio
  * por litro, moneda o estación distintos) y «no se leyó» (Iris no pudo leer el PDF).
+ * Migración 283: el remito manda. Con orden de carga se registra solo y la carga que difiere se corrige sola (salvo
+ * período cerrado); acá quedan los que no se pudieron hacer solos, con el motivo.
  */
 export interface RemitoEstacion {
   id: number;
@@ -18,7 +20,12 @@ export interface RemitoEstacion {
   /** La estación que el sistema reconoce por el CUIT del remito. */
   estacionId: number | null;
   estacion: string | null;
-  situacion: 'falta_registrar' | 'difiere' | 'no_se_leyo';
+  /** Migración 283: «orden_sin_registrar» = el remito es de una orden de carga que no se pudo registrar sola. */
+  situacion: 'falta_registrar' | 'orden_sin_registrar' | 'difiere' | 'no_se_leyo';
+  /** Número de la orden de carga del remito (migración 283). */
+  orden: string | null;
+  /** Por qué no se registró o corrigió solo (migración 283). */
+  motivoAuto: string | null;
   cargaId: number | null;
   diferencia: string | null;
   avisos: string | null;
@@ -26,9 +33,24 @@ export interface RemitoEstacion {
   archivo: string;
 }
 
+/** Migración 283 · Lo que se registró o corrigió solo con el remito en los últimos 7 días. */
+export interface RemitoAutomatico {
+  id: number;
+  numero: string | null;
+  fechaHora: string | null;
+  patente: string | null;
+  litros: number | null;
+  cargaId: number | null;
+  orden: string | null;
+  accion: 'registrada' | 'corregida';
+}
+
 export interface PendientesRemitos {
   puedeResolver: boolean;
   activo: boolean;
+  /** Migración 283: con el remito la carga se registra o se corrige sola. */
+  automatico: boolean;
+  automaticos: RemitoAutomatico[];
   ultimaConsulta: { cuando: string; ok: boolean; mensaje: string | null } | null;
   coinciden30Dias: number;
   leyendo: number;
@@ -48,6 +70,20 @@ export function parsearPendientesRemitos(crudo: unknown): PendientesRemitos {
   return {
     puedeResolver: j.puede_resolver === true,
     activo: j.activo === true,
+    automatico: j.automatico === true,
+    automaticos: (Array.isArray(j.automaticos) ? j.automaticos : [])
+      .filter(esObj)
+      .filter((r) => num(r.id) !== null)
+      .map((r) => ({
+        id: Number(r.id),
+        numero: txt(r.numero),
+        fechaHora: txt(r.fecha_hora),
+        patente: txt(r.patente),
+        litros: num(r.litros),
+        cargaId: num(r.carga_id),
+        orden: txt(r.orden),
+        accion: r.accion === 'corregida' ? ('corregida' as const) : ('registrada' as const),
+      })),
     ultimaConsulta: u && typeof u.cuando === 'string' ? { cuando: u.cuando, ok: u.ok === true, mensaje: txt(u.mensaje) } : null,
     coinciden30Dias: num(j.coinciden_30_dias) ?? 0,
     leyendo: num(j.leyendo) ?? 0,
@@ -70,7 +106,16 @@ export function parsearPendientesRemitos(crudo: unknown): PendientesRemitos {
         moneda: txt(r.moneda) ?? 'ARS',
         estacionId: num(r.estacion_id),
         estacion: txt(r.estacion),
-        situacion: r.situacion === 'difiere' ? ('difiere' as const) : r.situacion === 'no_se_leyo' ? ('no_se_leyo' as const) : ('falta_registrar' as const),
+        situacion:
+          r.situacion === 'difiere'
+            ? ('difiere' as const)
+            : r.situacion === 'no_se_leyo'
+              ? ('no_se_leyo' as const)
+              : r.situacion === 'orden_sin_registrar'
+                ? ('orden_sin_registrar' as const)
+                : ('falta_registrar' as const),
+        orden: txt(r.orden),
+        motivoAuto: txt(r.motivo_auto),
         cargaId: num(r.carga_id),
         diferencia: txt(r.diferencia),
         avisos: txt(r.avisos),
