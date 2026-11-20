@@ -138,7 +138,8 @@ BEGIN
     IF v_pre IS NULL THEN SELECT r.precio, r.moneda INTO v_pre, v_mon FROM fin.fn_precio_referencia_estacion(NEW.estacion_id) r; END IF;
     INSERT INTO fin.pago_carga (orden_id, medio, camion_id, estacion_id, proveedor_id, litros, precio, moneda, importe)
     VALUES (NEW.id, v_medio, NEW.camion_id, NEW.estacion_id,
-            fin.fn_proveedor_de_carga(NEW.estacion_id, CASE WHEN v_medio = 'tarjeta' THEN 'tarjeta' ELSE 'cuenta_corriente' END),
+            (SELECT pr.id FROM mae.proveedor pr
+              WHERE pr.id = fin.fn_proveedor_de_carga(NEW.estacion_id, CASE WHEN v_medio = 'tarjeta' THEN 'tarjeta' ELSE 'cuenta_corriente' END)),
             round(v_lit, 1), v_pre, coalesce(v_mon, 'CLP'), round(v_lit * v_pre, 0));
     SELECT patente INTO v_pat FROM mae.camion WHERE id = NEW.camion_id;
     SELECT nombre INTO v_est FROM mae.estacion_servicio WHERE id = NEW.estacion_id;
@@ -151,6 +152,10 @@ BEGIN
                       CASE WHEN v_pre IS NOT NULL THEN '≈ $' || tel.fn_num_ar(round(v_lit * v_pre, 0)) || ' ' || coalesce(v_mon, '') END),
             '/analisis/cobros-pagos?ver=pagar', true);
     END IF;
+    RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+    -- El aviso a Finanzas nunca frena la orden de carga
+    RAISE WARNING 'No se pudo armar el pago de la orden %: %', NEW.numero, SQLERRM;
     RETURN NEW;
 END $f$;
 CREATE TRIGGER tg_95_pago_carga AFTER INSERT OR UPDATE OF estado ON fue.orden_carga
