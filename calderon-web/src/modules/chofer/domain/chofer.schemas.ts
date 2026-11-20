@@ -95,6 +95,8 @@ export const gastoOficinaSchema = z.object({
 export type GastoOficina = z.infer<typeof gastoOficinaSchema>;
 
 export const revisarGastoSchema = z.object({ gastoId: id, aprobar: z.boolean(), motivo: textoOpc(500) });
+/** Migración 296: cambiar la moneda de un gasto sin revisar. */
+export const cambiarMonedaGastoSchema = z.object({ gastoId: id, moneda: z.string().trim().toUpperCase().length(3) });
 export const anularMovimientoSchema = z.object({ movimientoId: id, motivo: z.string().trim().min(1, 'Escribí el motivo.').max(500) });
 export const cerrarFondoSchema = z.object({ choferId: id, periodo: fecha });
 export const reabrirFondoSchema = z.object({ choferId: id, periodo: fecha, motivo: z.string().trim().min(1, 'Escribí el motivo.').max(500) });

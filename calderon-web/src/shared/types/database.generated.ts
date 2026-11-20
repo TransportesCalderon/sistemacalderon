@@ -1953,6 +1953,7 @@ export type Database = {
         Returns: Json;
       };
       fn_revisar_gasto: { Args: { p_gasto: number; p_aprobar: boolean; p_motivo?: string | null }; Returns: Json };
+      fn_cambiar_moneda_gasto: { Args: { p_gasto: number; p_moneda: string }; Returns: Json };
       fn_anular_movimiento_fondo: { Args: { p_movimiento: number; p_motivo: string }; Returns: undefined };
       fn_cerrar_fondo: { Args: { p_chofer: number; p_periodo: string }; Returns: Json };
       fn_reabrir_fondo: { Args: { p_chofer: number; p_periodo: string; p_motivo: string }; Returns: undefined };

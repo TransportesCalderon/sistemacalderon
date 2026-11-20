@@ -12,6 +12,7 @@ import {
   apelarGastoSchema,
   retirarGastoSchema,
   revisarGastoSchema,
+  cambiarMonedaGastoSchema,
   subirDocumentoSchema,
   subirGastoSchema,
 } from '../domain/chofer.schemas';
@@ -95,6 +96,12 @@ export const revisarGasto = createAction({
   permiso: 'rrhh.fondos:transicionar',
   schema: revisarGastoSchema,
   handler: (d, { db }) => choferRepository(db).revisarGasto(d.gastoId, d.aprobar, d.motivo),
+  invalida: rutasFondos,
+});
+export const cambiarMonedaGasto = createAction({
+  permiso: 'rrhh.fondos:transicionar',
+  schema: cambiarMonedaGastoSchema,
+  handler: (d, { db }) => choferRepository(db).cambiarMonedaGasto(d.gastoId, d.moneda),
   invalida: rutasFondos,
 });
 export const anularMovimientoFondo = createAction({

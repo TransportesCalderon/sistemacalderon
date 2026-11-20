@@ -26,6 +26,7 @@ import {
   useReabrirFondo,
   useRegistrarEntrega,
   useRevisarGasto,
+  useCambiarMonedaGasto,
 } from '../queries/hooks';
 import { abrirArchivo, borrarArchivo, subirArchivo } from './archivos';
 import { IntentosRepetidos } from './intentos-repetidos';
@@ -132,6 +133,52 @@ function GastosPorRevisar() {
   );
 }
 
+/** Migración 296: el gasto se cargó en otra moneda (por ejemplo un peaje de Chile en ARS): se reemplaza por uno con la moneda correcta. */
+function CambiarMoneda({ g, onError }: { g: GastoPorRevisar; onError: (e: ErrorAccion | null) => void }) {
+  const cambiar = useCambiarMonedaGasto();
+  const monedas = useMonedas();
+  const [abierto, setAbierto] = useState(false);
+  const [moneda, setMoneda] = useState(g.monedaSugerida ?? '');
+  const confirmar = async (m: string) => {
+    onError(null);
+    const r = await cambiar.mutateAsync({ gastoId: g.id, moneda: m });
+    if (!r.ok) onError(r.error);
+    else setAbierto(false);
+  };
+  if (g.monedaSugerida && !abierto)
+    return (
+      <button type="button" className={BOTON_SECUNDARIO} disabled={cambiar.isPending} onClick={() => confirmar(g.monedaSugerida!)}>
+        {cambiar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : null} Pasar a {g.monedaSugerida}
+      </button>
+    );
+  if (!abierto)
+    return (
+      <button type="button" className="text-xs text-marca hover:underline" onClick={() => setAbierto(true)}>
+        Cambiar moneda
+      </button>
+    );
+  return (
+    <span className="inline-flex items-center gap-1">
+      <select className="rounded-md border border-borde px-2 py-1 text-sm" value={moneda} onChange={(e) => setMoneda(e.target.value)}>
+        <option value="">Moneda…</option>
+        {(monedas.data ?? [])
+          .filter((m) => m.codigo !== g.moneda)
+          .map((m) => (
+            <option key={m.codigo} value={m.codigo}>
+              {m.codigo}
+            </option>
+          ))}
+      </select>
+      <button type="button" className={BOTON_SECUNDARIO} disabled={!moneda || cambiar.isPending} onClick={() => confirmar(moneda)}>
+        {cambiar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Cambiar
+      </button>
+      <button type="button" className="text-xs text-tinta-suave hover:underline" onClick={() => setAbierto(false)}>
+        Cancelar
+      </button>
+    </span>
+  );
+}
+
 function FilaRevisar({ g }: { g: GastoPorRevisar }) {
   const puede = useCan('rrhh.fondos:transicionar');
   const revisar = useRevisarGasto();
@@ -183,6 +230,13 @@ function FilaRevisar({ g }: { g: GastoPorRevisar }) {
             {formatearFechaDia(g.coincideCon.fecha)}, {g.coincideCon.estado.replace('_', ' ')}).
           </p>
         )}
+        {/* Migración 296: moneda según el RUT o CUIT del comprobante */}
+        {g.monedaSugerida && (
+          <p className="mt-1 flex items-start gap-1 rounded-md bg-alerta-suave px-2 py-1 text-xs text-alerta">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> El comprobante tiene {g.monedaSugerida === 'CLP' ? 'RUT de Chile' : 'CUIT de Argentina'} (
+            {g.emisorFiscal}): debería estar en {g.monedaSugerida}, no en {g.moneda}.
+          </p>
+        )}
         {g.repetido && (
           <p className="mt-1 inline-flex items-center gap-1 text-xs text-alerta">
             <AlertTriangle className="size-3.5" /> Hay otro gasto del mismo día, moneda e importe
@@ -221,6 +275,7 @@ function FilaRevisar({ g }: { g: GastoPorRevisar }) {
               {revisar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}{' '}
               {g.apelado ? 'Aceptar la explicación' : 'Aprobar'}
             </button>
+            {g.puedeCambiarMoneda && <CambiarMoneda g={g} onError={setError} />}
             <AccionConMotivo
               etiqueta={g.apelado ? 'Rechazar definitivamente' : 'Rechazar'}
               icono={<X className="size-4" />}

@@ -170,6 +170,11 @@ export const choferRepository = (db: Db) => {
       } | null;
       return { aviso: r?.aviso ?? null };
     },
+    /** Migración 296: el gasto se reemplaza por uno nuevo con la otra moneda. */
+    async cambiarMonedaGasto(gastoId: number, moneda: string) {
+      const r = (await leer(fin().rpc('fn_cambiar_moneda_gasto', { p_gasto: gastoId, p_moneda: moneda }))) as { numero?: string } | null;
+      return { numero: r?.numero ?? null };
+    },
     async anularMovimiento(movimientoId: number, motivo: string) {
       await leer(fin().rpc('fn_anular_movimiento_fondo', { p_movimiento: movimientoId, p_motivo: motivo }));
     },

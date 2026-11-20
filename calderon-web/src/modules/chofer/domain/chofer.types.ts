@@ -331,6 +331,10 @@ export interface GastoPorRevisar {
   operacionNro: string | null;
   emisor: string | null;
   coincideCon: { numero: string; chofer: string; fecha: string; estado: string; regla: string } | null;
+  /** Migración 296: RUT o CUIT que leyó Iris y la moneda que corresponde si no es la cargada; se puede cambiar la moneda. */
+  emisorFiscal: string | null;
+  monedaSugerida: string | null;
+  puedeCambiarMoneda: boolean;
 }
 export const parsearGastosPorRevisar = (v: Json | unknown): GastoPorRevisar[] =>
   arr(v).map((g) => {
@@ -358,6 +362,9 @@ export const parsearGastosPorRevisar = (v: Json | unknown): GastoPorRevisar[] =>
       patenteComprobante: s(x.patente_comprobante),
       operacionNro: s(x.operacion_nro),
       emisor: s(x.emisor),
+      emisorFiscal: s(x.emisor_fiscal),
+      monedaSugerida: s(x.moneda_sugerida),
+      puedeCambiarMoneda: 'moneda_sugerida' in x,
       coincideCon: x.coincide_con
         ? (() => {
             const c = o(x.coincide_con);

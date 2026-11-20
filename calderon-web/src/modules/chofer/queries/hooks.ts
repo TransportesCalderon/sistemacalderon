@@ -16,6 +16,7 @@ import {
   registrarEntregaFondo,
   retirarGasto,
   revisarGasto,
+  cambiarMonedaGasto,
   subirDocumentoChofer,
   subirDocumentoOficina,
   subirGasto, apelarGasto } from '../actions/chofer.actions';
@@ -71,6 +72,7 @@ export const useApelarGasto = () => useEscritura(apelarGasto);
 export const useRegistrarEntrega = () => useEscritura(registrarEntregaFondo);
 export const useCargarGastoOficina = () => useEscritura(cargarGastoOficina);
 export const useRevisarGasto = () => useEscritura(revisarGasto);
+export const useCambiarMonedaGasto = () => useEscritura(cambiarMonedaGasto);
 export const useAnularMovimiento = () => useEscritura(anularMovimientoFondo);
 export const useCerrarFondo = () => useEscritura(cerrarFondo);
 export const useReabrirFondo = () => useEscritura(reabrirFondo);
