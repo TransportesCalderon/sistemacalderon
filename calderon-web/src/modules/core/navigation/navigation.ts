@@ -180,10 +180,11 @@ export const NAVEGACION: readonly GrupoMenu[] = [
       { href: '/analisis/resultados', etiqueta: 'Resumen' },
       { href: '/analisis/gastos', etiqueta: 'Gastos', incluye: ['/ajustes/gastos-fijos'] },
       { href: '/analisis/cobros-pagos', etiqueta: 'Cobros y pagos' },
+      // Sprint 7: Bancos y cajas pasa a Conciliación. 20/11/2026 (plan de simplificación, cambio 4): un solo menú para el
+      // banco, «Bancos» (Cuentas · Movimientos · Cambios de moneda), al lado de Cobros y pagos
+      { href: '/conciliacion', etiqueta: 'Bancos' },
       // IA-1: margen de contribución por chofer, camión o viaje (migración 119)
       { href: '/analisis/rentabilidad', etiqueta: 'Rentabilidad' },
-      // Sprint 7: Bancos y cajas pasa a Conciliación
-      { href: '/conciliacion', etiqueta: 'Conciliación' },
       { href: '/analisis/informes', etiqueta: 'Informes' },
       { href: '/ajustes/plan-cuentas', etiqueta: 'Plan de cuentas' },
     ],

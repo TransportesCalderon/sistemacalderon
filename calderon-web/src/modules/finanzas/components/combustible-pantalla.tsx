@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Fuel, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { useProveedores } from '@/modules/catalogos/queries/hooks';
-import { Cargando, Chip, Encabezado, ErrorLectura, Seccion, Vacio } from '@/modules/combustible/components/comun/ui';
+import { Cargando, Chip, Encabezado, ErrorLectura, Seccion } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_ICONO, BOTON_PRIMARIO } from '@/shared/ui/clases';
@@ -14,7 +14,6 @@ import { Pestanas } from '@/shared/ui/pestanas';
 import { PESTANAS_GASTOS } from '@/shared/ui/pestanas-secciones';
 import { dinero, ETIQUETA_MEDIO_CARGA, ETIQUETA_TIPO_MEDIO, type MedioPago, type TipoMedioPago } from '../domain/finanzas.types';
 import { useCombustibleFinanzas, useCuentasParaElegir, useGuardarMedioPago } from '../queries/hooks';
-import { fecha } from './comun';
 
 interface Form {
   id: number | null;
@@ -27,8 +26,10 @@ interface Form {
 }
 
 /**
- * Finanzas › Combustible (migración 74): cómo se paga cada carga y cuánto falta que facture cada
- * estación. La regla de un proveedor (ej.: Shell cuenta corriente) gana sobre la regla general del medio.
+ * Finanzas › Combustible (migración 74): cómo se paga cada carga. La regla de un proveedor (ej.: Shell cuenta
+ * corriente) gana sobre la regla general del medio.
+ * 20/11/2026 (plan de simplificación, cambio 1): lo que falta que facture cada estación se ve en Cobros y pagos ›
+ * Por pagar (Detalle por estación), junto con lo que se le debe; acá queda un acceso.
  */
 export function CombustiblePantalla() {
   const puede = useCan('finanzas.gastos:editar');
@@ -52,7 +53,8 @@ export function CombustiblePantalla() {
 
   if (isLoading) return <Cargando texto="Cargando el combustible…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudo leer el combustible." onReintentar={() => void refetch()} error={error} />;
-  const totalPorFacturar = data.porFacturar.reduce((s, p) => s + p.saldo, 0);
+  // Lo único que Por pagar no muestra: cargas por facturar de estaciones que no tienen proveedor
+  const sinProveedor = data.porFacturar.filter((p) => p.proveedorId === null).reduce((s, p) => s + p.saldo, 0);
 
   return (
     <div className="space-y-5">
@@ -180,36 +182,23 @@ export function CombustiblePantalla() {
           </table>
         </div>
         <p className="mt-2 text-xs text-tinta-suave">
-          Para cargar saldo a una tarjeta prepaga: Cobros y pagos › Egreso, y como categoría elegí la tarjeta.
+          Para cargar saldo a una tarjeta prepaga: Bancos › Movimientos › «Otro ingreso, egreso o transferencia», y como cuenta contable elegí
+          la tarjeta.
         </p>
       </Seccion>
 
-      <Seccion titulo={`Cargas sin factura del proveedor · ${dinero(totalPorFacturar)}`}>
-        {data.porFacturar.length === 0 ? (
-          <Vacio icono={<Fuel className="size-6" />} texto="No hay cargas esperando factura." />
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="border-y border-borde bg-fondo">
-              <tr>
-                <th className={TH}>Proveedor</th>
-                <th className={cn(TH, 'text-right')}>Cargas</th>
-                <th className={TH}>Desde</th>
-                <th className={cn(TH, 'text-right')}>Falta facturar</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-borde">
-              {data.porFacturar.map((p) => (
-                <tr key={p.proveedorId ?? 0}>
-                  <td className={TD}>{p.proveedor ?? 'Sin proveedor'}</td>
-                  <td className={cn(TD, 'text-right tabular-nums')}>{p.cargas}</td>
-                  <td className={cn(TD, 'tabular-nums')}>{fecha(p.desde)}</td>
-                  <td className={cn(TD, 'text-right font-medium tabular-nums')}>{dinero(p.saldo)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Seccion>
+      {sinProveedor !== 0 && (
+        <p className="rounded-md bg-alerta-suave p-3 text-sm text-alerta">
+          Hay {dinero(sinProveedor)} de cargas sin factura en estaciones que no tienen proveedor, y no se ven en Por pagar. Asigná el proveedor de cada
+          estación en Datos › Proveedores y estaciones.
+        </p>
+      )}
+      <p className="text-sm text-tinta-suave">
+        Las cargas que todavía no tienen factura del proveedor, y lo que se le debe a cada estación, están en{' '}
+        <Link href="/analisis/cobros-pagos?ver=pagar&estaciones=1" className="font-medium text-marca hover:underline">
+          Cobros y pagos › Por pagar →
+        </Link>
+      </p>
     </div>
   );
 }

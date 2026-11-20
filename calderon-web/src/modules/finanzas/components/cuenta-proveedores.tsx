@@ -1,6 +1,7 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { useProveedores } from '@/modules/catalogos/queries/hooks';
@@ -10,7 +11,7 @@ import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
 import { hoyEnZona } from '@/shared/lib/fechas';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
-import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
+import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { dinero } from '../domain/finanzas.types';
 import { ETIQUETA_MOVIMIENTO_PROVEEDOR, type SaldoProveedor } from '../domain/orden-pago';
@@ -21,6 +22,9 @@ import { fecha, MONEDAS } from './comun';
 /**
  * Migración 281 · Por pagar › Cuenta corriente de proveedores: por proveedor, el saldo (facturas sin pagar + cargas sin
  * factura − pagos a cuenta) y sus movimientos, y la orden de pago (un pago al proveedor, a facturas o a cuenta).
+ * 20/11/2026 (plan de simplificación, cambios 2 y 3): es el total de Por pagar y su «Pagar» es el botón de pago del
+ * sistema. El formulario se abre debajo de la fila del proveedor; la ficha de un gasto llega con
+ * ?proveedor=&moneda=&pagar=1 y abre ese proveedor con el pago listo.
  */
 export function CuentaProveedores() {
   // Llega con la migración 281: antes de aplicarla en la base, no se muestra (en vez de un error)
@@ -32,24 +36,35 @@ export function CuentaProveedores() {
 function CuentaProveedoresLista() {
   const { data, isLoading, isError, error, refetch } = useSaldosProveedores();
   const puede = useCan('finanzas.cobros_pagos:editar');
-  const [abierto, setAbierto] = useState<string | null>(null);
-  const [pagar, setPagar] = useState<{ proveedorId: number | null; moneda: string } | null>(null);
+  // Mientras no se toque nada, manda la dirección (el enlace de la ficha del gasto); después, lo que se elige acá
+  const params = useSearchParams();
+  const provUrl = Number(params.get('proveedor')) || null;
+  const monUrl = params.get('moneda') || 'CLP';
+  const [abiertoElegido, setAbierto] = useState<string | null | undefined>(undefined);
+  const [pagarElegido, setPagar] = useState<{ proveedorId: number | null; moneda: string } | null | undefined>(undefined);
+  const abierto = abiertoElegido !== undefined ? abiertoElegido : provUrl ? `${provUrl}-${monUrl}` : null;
+  const pagar = pagarElegido !== undefined ? pagarElegido : puede && provUrl && params.get('pagar') === '1' ? { proveedorId: provUrl, moneda: monUrl } : null;
   if (isLoading) return <Cargando texto="Buscando la cuenta de cada proveedor…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudo leer la cuenta corriente de los proveedores." onReintentar={() => void refetch()} error={error} />;
   const totales = Object.entries(data.reduce<Record<string, number>>((t, x) => ({ ...t, [x.moneda]: (t[x.moneda] ?? 0) + x.saldo }), {})).map(([m, v]) => dinero(v, m));
+  // El pago de un proveedor de la lista se abre debajo de su fila; el de otro proveedor, arriba de la lista
+  const enLaLista = pagar !== null && data.some((x) => x.proveedorId === pagar.proveedorId && x.moneda === pagar.moneda);
   return (
     <Seccion titulo={`Cuenta corriente de proveedores${totales.length > 0 ? ` · ${totales.join(' · ')}` : ''}`}>
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <p className="text-sm text-tinta-suave">
-          Lo que se le debe a cada proveedor: facturas sin pagar más cargas sin factura, menos lo pagado a cuenta. Tocá un proveedor para ver sus movimientos.
+          Lo que se le debe a cada proveedor: facturas sin pagar más cargas sin factura, menos lo pagado a cuenta. Para pagarle, tocá «Pagar» en su
+          fila: cancela sus facturas de la más vieja a la más nueva y lo que sobra queda a cuenta. Tocá el nombre para ver sus movimientos.
         </p>
         {puede && !pagar && (
-          <button type="button" className={cn(BOTON_PRIMARIO, 'ml-auto')} onClick={() => setPagar({ proveedorId: null, moneda: 'CLP' })}>
-            <Plus className="size-4" /> Orden de pago
+          <button type="button" className={cn(BOTON_SECUNDARIO, 'ml-auto')} onClick={() => setPagar({ proveedorId: null, moneda: 'CLP' })}>
+            <Plus className="size-4" /> {data.length > 0 ? 'Pagar a otro proveedor' : 'Pagar a un proveedor'}
           </button>
         )}
       </div>
-      {pagar && <OrdenPagoForm proveedorId={pagar.proveedorId} moneda={pagar.moneda} onCerrar={() => setPagar(null)} />}
+      {pagar && !enLaLista && (
+        <OrdenPagoForm key={`${pagar.proveedorId ?? 0}-${pagar.moneda}`} proveedorId={pagar.proveedorId} moneda={pagar.moneda} onCerrar={() => setPagar(null)} />
+      )}
       {data.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-sm">
@@ -66,15 +81,25 @@ function CuentaProveedoresLista() {
             <tbody className="divide-y divide-borde">
               {data.map((x) => {
                 const clave = `${x.proveedorId}-${x.moneda}`;
+                const pagando = pagar !== null && pagar.proveedorId === x.proveedorId && pagar.moneda === x.moneda;
                 return (
                   <Fragment key={clave}>
                     <Fila
                       x={x}
                       abierta={abierto === clave}
+                      pagando={pagando}
+                      enfocar={pagando && pagarElegido === undefined}
                       puede={puede}
                       onAbrir={() => setAbierto(abierto === clave ? null : clave)}
-                      onPagar={() => setPagar({ proveedorId: x.proveedorId, moneda: x.moneda })}
+                      onPagar={() => setPagar(pagando ? null : { proveedorId: x.proveedorId, moneda: x.moneda })}
                     />
+                    {pagando && (
+                      <tr>
+                        <td colSpan={6} className="px-3 pb-1">
+                          <OrdenPagoForm key={clave} proveedorId={x.proveedorId} moneda={x.moneda} onCerrar={() => setPagar(null)} />
+                        </td>
+                      </tr>
+                    )}
                     {abierto === clave && (
                       <tr>
                         <td colSpan={6} className="bg-fondo px-3 py-2">
@@ -93,9 +118,30 @@ function CuentaProveedoresLista() {
   );
 }
 
-function Fila({ x, abierta, puede, onAbrir, onPagar }: { x: SaldoProveedor; abierta: boolean; puede: boolean; onAbrir: () => void; onPagar: () => void }) {
+function Fila({
+  x,
+  abierta,
+  pagando,
+  enfocar,
+  puede,
+  onAbrir,
+  onPagar,
+}: {
+  x: SaldoProveedor;
+  abierta: boolean;
+  pagando: boolean;
+  enfocar: boolean;
+  puede: boolean;
+  onAbrir: () => void;
+  onPagar: () => void;
+}) {
+  const fila = useRef<HTMLTableRowElement>(null);
+  // Si se llegó desde la ficha de un gasto, el proveedor queda a la vista con su pago abierto
+  useEffect(() => {
+    if (enfocar) fila.current?.scrollIntoView({ block: 'center' });
+  }, [enfocar]);
   return (
-    <tr>
+    <tr ref={fila}>
       <td className={TD}>
         <button type="button" className="flex items-center gap-1 text-left font-medium text-tinta" onClick={onAbrir} aria-expanded={abierta}>
           {abierta ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
@@ -113,8 +159,8 @@ function Fila({ x, abierta, puede, onAbrir, onPagar }: { x: SaldoProveedor; abie
       <td className={cn(TD, 'text-right font-semibold tabular-nums')}>{dinero(x.saldo, x.moneda)}</td>
       <td className={cn(TD, 'text-right')}>
         {puede && (
-          <button type="button" className={BOTON_SECUNDARIO} onClick={onPagar}>
-            Pagar
+          <button type="button" className={BOTON_SECUNDARIO} onClick={onPagar} aria-expanded={pagando}>
+            {pagando ? 'Cerrar' : 'Pagar'}
           </button>
         )}
       </td>
@@ -227,8 +273,8 @@ function OrdenPagoForm({ proveedorId, moneda, onCerrar }: { proveedorId: number 
   return (
     <div className="mb-4">
       <Panel
-        titulo="Orden de pago"
-        explicacion="Un pago a un proveedor. Cancela sus facturas sin pagar, de la más vieja a la más nueva; si sobra o todavía no hay factura, queda a cuenta y se descuenta del saldo."
+        titulo="Pagar a un proveedor"
+        explicacion="Queda como orden de pago. Cancela sus facturas sin pagar, de la más vieja a la más nueva; si sobra o todavía no hay factura, queda a cuenta y se descuenta del saldo."
         error={envio.error}
         ocupado={registrar.isPending}
         textoBoton="Registrar el pago"

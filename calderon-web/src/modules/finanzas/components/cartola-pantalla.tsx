@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Check, EyeOff, FileSpreadsheet, LoaderCircle, Undo2, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, EyeOff, FileSpreadsheet, LoaderCircle, Undo2, Upload } from 'lucide-react';
 import { TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Seccion, Vacio } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
@@ -34,7 +34,11 @@ import {
 } from '../queries/hooks';
 import { fecha, OpcionesCuentas } from './comun';
 
-/** Finanzas › Bancos y cajas › cuenta: importar la cartola y conciliar cada línea. */
+/**
+ * Bancos › cuenta: importar la cartola y conciliar cada línea.
+ * 20/11/2026 (plan de simplificación, cambio 5): conciliación en cadena, con el paso a la siguiente cuenta que tiene
+ * líneas por conciliar (en el orden de Bancos › Cuentas, dando la vuelta).
+ */
 export function CartolaPantalla({ cuentaId }: { cuentaId: number }) {
   const { data: cuentas, isLoading } = useCuentasDinero();
   const c = cuentas?.find((x) => x.id === cuentaId);
@@ -42,13 +46,24 @@ export function CartolaPantalla({ cuentaId }: { cuentaId: number }) {
   const [todas, setTodas] = useState(false);
   if (isLoading) return <Cargando texto="Abriendo la cuenta…" />;
   if (!c) return <ErrorLectura texto="La cuenta no existe." onReintentar={() => undefined} />;
+  const lista = cuentas ?? [];
+  const i = lista.findIndex((x) => x.id === cuentaId);
+  const conLineas = (x: CuentaDinero) => x.id !== cuentaId && x.activa && x.porConciliar > 0;
+  const siguiente = lista.slice(i + 1).find(conLineas) ?? lista.slice(0, i).find(conLineas);
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Encabezado titulo={c.nombre} subtitulo="Conciliación" />
-        <Link href="/conciliacion" className={BOTON_SECUNDARIO}>
-          <ArrowLeft className="size-4" /> Volver
-        </Link>
+        <Encabezado titulo={c.nombre} subtitulo="Bancos" />
+        <div className="flex flex-wrap gap-2">
+          {siguiente && (
+            <Link href={`/conciliacion/${siguiente.id}`} className={BOTON_SECUNDARIO}>
+              Siguiente cuenta con líneas por conciliar: {siguiente.nombre} <ArrowRight className="size-4" />
+            </Link>
+          )}
+          <Link href="/conciliacion" className={BOTON_SECUNDARIO}>
+            <ArrowLeft className="size-4" /> Volver
+          </Link>
+        </div>
       </div>
       <div className="flex flex-wrap gap-6 text-sm">
         <span>
@@ -371,7 +386,11 @@ function FilaLinea({ l, cuenta, onError }: { l: LineaCartola; cuenta: CuentaDine
   );
 }
 
-/** La línea es otra cosa: un movimiento ya cargado, otro ingreso/egreso o una transferencia. */
+/**
+ * La línea es otra cosa: un movimiento ya cargado, otro ingreso/egreso o una transferencia.
+ * 20/11/2026 (plan de simplificación, cambio 5): si hay un movimiento sin conciliar por el mismo monto, «Un movimiento que
+ * ya cargué» va primero y ya elegido (el más cercano en fecha). Mientras no se cambie nada, manda esa propuesta.
+ */
 function OtroMovimiento({ linea, cuenta, onListo, onError }: { linea: LineaCartola; cuenta: CuentaDinero; onListo: () => void; onError: (e: ErrorAccion | null) => void }) {
   const { data: plan } = usePlanCuentas();
   const { data: cuentas } = useCuentasDinero();
@@ -379,18 +398,28 @@ function OtroMovimiento({ linea, cuenta, onListo, onError }: { linea: LineaCarto
   const crear = useCrearDesdeLinea();
   const conciliar = useConciliar();
   const entra = linea.monto > 0;
-  const [tipo, setTipo] = useState<'mov' | 'ingreso' | 'egreso' | 'transferencia'>(entra ? 'ingreso' : 'egreso');
+  const [tipoElegido, setTipo] = useState<'mov' | 'ingreso' | 'egreso' | 'transferencia' | null>(null);
   const [cuentaId, setCuentaId] = useState<number | null>(null);
   const [destino, setDestino] = useState<number | null>(null);
-  const [movId, setMovId] = useState<number | null>(null);
+  const [movElegido, setMovId] = useState<number | null | undefined>(undefined);
   const [desc, setDesc] = useState(linea.descripcion);
   const sueltos = (movs ?? []).filter((m) => m.estado === 'vigente' && !m.conciliado);
+  const lejania = (f: string) => Math.abs(Date.parse(f) - Date.parse(linea.fecha));
+  const mismoMonto = sueltos.filter((m) => Math.abs(m.monto - linea.monto) < 0.005).sort((a, b) => lejania(a.fecha) - lejania(b.fecha))[0];
+  const tipo = tipoElegido ?? (mismoMonto ? 'mov' : entra ? 'ingreso' : 'egreso');
+  const movId = movElegido !== undefined ? movElegido : (mismoMonto?.id ?? null);
+  const yaCargado = <option value="mov">Un movimiento que ya cargué</option>;
   return (
     <div className="space-y-2 rounded-md border border-borde p-2">
       <select className={cn(CONTROL_FILTRO, 'w-full')} value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)} aria-label="Qué es">
-        {entra ? <option value="ingreso">Otro ingreso</option> : <option value="egreso">Otro egreso (comisión, impuesto, retiro…)</option>}
+        {mismoMonto && yaCargado}
+        {entra ? (
+          <option value="ingreso">Otro ingreso (no es una transferencia entre nuestras cuentas)</option>
+        ) : (
+          <option value="egreso">Otro egreso (comisión, impuesto, retiro…)</option>
+        )}
         {!entra && <option value="transferencia">Transferencia a otra cuenta mía</option>}
-        <option value="mov">Un movimiento que ya cargué</option>
+        {!mismoMonto && yaCargado}
       </select>
       {tipo === 'mov' ? (
         <select className={cn(CONTROL_FILTRO, 'w-full')} value={movId ?? ''} onChange={(e) => setMovId(e.target.value ? Number(e.target.value) : null)} aria-label="Movimiento">

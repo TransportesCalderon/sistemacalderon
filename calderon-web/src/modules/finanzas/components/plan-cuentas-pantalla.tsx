@@ -71,7 +71,7 @@ export function PlanCuentasPantalla() {
       </div>
       <p className="text-sm text-tinta-suave">
         Es el plan base para una empresa de transporte en Chile. Las cuentas marcadas «del sistema» las usa el programa solo (clientes, proveedores, IVA…).
-        Las de bancos y cajas se crean solas en Bancos y cajas. Mostráselo a tu contador: puede agregar subcuentas o cambiar nombres.
+        Las de bancos y cajas se crean solas en Bancos › Cuentas. Mostráselo a tu contador: puede agregar subcuentas o cambiar nombres.
       </p>
       {rehecho && <p className="text-sm text-exito">{rehecho}</p>}
       <ErrorBase error={envioR.error} />

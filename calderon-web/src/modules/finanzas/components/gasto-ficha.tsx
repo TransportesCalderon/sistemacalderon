@@ -11,6 +11,7 @@ import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
 import { hoyEnZona } from '@/shared/lib/fechas';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { cuentasParaGasto, dinero, TIPOS_DOCUMENTO, type Gasto, type TipoDocumento } from '../domain/finanzas.types';
@@ -283,7 +284,7 @@ export function GastoFicha({ id }: { id: number | null }) {
                 ))}
               </ul>
             )}
-            {g.estado === 'vigente' && g.saldo > 0 && <PagarGasto gastoId={g.id} moneda={g.moneda} saldo={g.saldo} />}
+            {g.estado === 'vigente' && g.saldo > 0 && <IrAPagar gasto={g} />}
           </Seccion>
           {g.proveedorId && <CargasDeLaFactura gasto={g} />}
           <TrazaContable origen="gasto" id={g.id} />
@@ -383,7 +384,38 @@ export function ElegirProveedor({
   );
 }
 
-/** Registrar un pago del gasto desde un banco o caja. */
+/**
+ * 20/11/2026 (plan de simplificación, cambio 3): el pago se registra en un solo lugar, Cobros y pagos › Por pagar. Con
+ * proveedor, abre su cuenta con «Pagar» listo (orden de pago: cancela primero las facturas más viejas) y ofrece pagar
+ * solo esta factura; sin proveedor (sueldos, gastos sin documento), abre su fila en Facturas por vencimiento.
+ */
+function IrAPagar({ gasto: g }: { gasto: Gasto }) {
+  const puede = useCan('finanzas.cobros_pagos:editar');
+  const conCuenta = useBaseTiene(281);
+  if (!puede) return null;
+  const soloEsta = `/analisis/cobros-pagos?ver=pagar&facturas=1&gasto=${g.id}`;
+  if (!g.proveedorId || !conCuenta)
+    return (
+      <Link href={soloEsta} className={cn(BOTON_PRIMARIO, 'mt-3')}>
+        Pagar en Por pagar →
+      </Link>
+    );
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <Link href={`/analisis/cobros-pagos?ver=pagar&proveedor=${g.proveedorId}&moneda=${g.moneda}&pagar=1`} className={BOTON_PRIMARIO}>
+        Pagar en Por pagar →
+      </Link>
+      <span className="text-sm text-tinta-suave">
+        Cancela primero las facturas más viejas del proveedor.{' '}
+        <Link href={soloEsta} className="font-medium text-marca hover:underline">
+          Pagar solo esta factura
+        </Link>
+      </span>
+    </div>
+  );
+}
+
+/** Registrar un pago del gasto desde un banco o caja (en Por pagar, «Pagar solo esta factura», y en Gastos fijos). */
 export function PagarGasto({ gastoId, moneda, saldo, onListo }: { gastoId: number; moneda: string; saldo: number; onListo?: () => void }) {
   const { zonaHoraria } = useSesion();
   const puede = useCan('finanzas.cobros_pagos:editar');
@@ -410,7 +442,7 @@ export function PagarGasto({ gastoId, moneda, saldo, onListo }: { gastoId: numbe
       <p className="mt-3 text-sm text-tinta-suave">
         Para registrar pagos, primero cargá un banco o caja en{' '}
         <Link href="/conciliacion" className="font-medium text-marca underline">
-          Bancos y cajas
+          Bancos
         </Link>
         .
       </p>

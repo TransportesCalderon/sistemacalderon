@@ -74,6 +74,19 @@ export function OpcionesCuentas({ cuentas }: { cuentas: CuentaContable[] }) {
   );
 }
 
+/**
+ * 20/11/2026 (plan de simplificación, cambio 2): un detalle que queda plegado, sin total, para que la pantalla tenga
+ * un solo número arriba. Se abre solo si se llega con un enlace que lo pide.
+ */
+export function SeccionPlegada({ titulo, abierta = false, children }: { titulo: string; abierta?: boolean; children: ReactNode }) {
+  return (
+    <details open={abierta} className={cn(TARJETA, 'p-5')}>
+      <summary className="cursor-pointer font-medium text-tinta">{titulo}</summary>
+      <div className="mt-4 space-y-4">{children}</div>
+    </details>
+  );
+}
+
 /** Aviso amarillo con un enlace. */
 export function Aviso({ children }: { children: ReactNode }) {
   return <div className="rounded-lg border border-alerta/30 bg-alerta-suave p-3 text-sm text-alerta">{children}</div>;

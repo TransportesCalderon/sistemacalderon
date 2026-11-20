@@ -1,14 +1,12 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeftRight, LoaderCircle, Plus, X } from "lucide-react";
-import { Panel, TD, TH, useEnvio } from "@/modules/catalogos/components/comun";
+import { ArrowLeftRight, LoaderCircle } from "lucide-react";
+import { TD, TH, useEnvio } from "@/modules/catalogos/components/comun";
 import {
-  AccionConMotivo,
   Cargando,
-  Chip,
   Encabezado,
   ErrorBase,
   ErrorLectura,
@@ -19,33 +17,16 @@ import { useCan } from "@/modules/core/permissions/can";
 import { useSesion } from "@/modules/core/session/session-provider";
 import { cn } from "@/shared/lib/cn";
 import { hoyEnZona } from "@/shared/lib/fechas";
-import {
-  BOTON_PRIMARIO,
-  BOTON_SECUNDARIO,
-  CONTROL_FILTRO,
-  TARJETA,
-} from "@/shared/ui/clases";
+import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from "@/shared/ui/clases";
 import { Campo } from "@/shared/ui/campo";
+import { dinero, type PorCobrar, type PorPagar } from "../domain/finanzas.types";
 import {
-  cuentasParaMovimiento,
-  dinero,
-  ETIQUETA_MOVIMIENTO,
-  type CuentaDinero,
-  type PorCobrar,
-  type PorPagar,
-} from "../domain/finanzas.types";
-import {
-  useAnularMovimiento,
-  useCambiarFechaCobro,
   useCuentasDinero,
-  useMovimientos,
-  usePlanCuentas,
   usePorCobrar,
   usePorPagar,
   useRegistrarMovimiento,
 } from "../queries/hooks";
-import { fecha, OpcionesCuentas } from "./comun";
-import { CambiarFechaCobro } from "@/modules/ventas/components/cambiar-fecha-cobro";
+import { fecha, SeccionPlegada } from "./comun";
 import { PagarGasto } from "./gasto-ficha";
 import { CuentaEstaciones } from "./cuenta-estaciones";
 // Migración 281: cuenta corriente de proveedores y orden de pago
@@ -58,13 +39,15 @@ import { ReciboForm, Recibos } from "./recibos";
 import { CuentaCorrienteVista } from "@/modules/ventas/components/cuenta-corriente";
 import { useAbrirFicha } from "@/modules/core/fichas/contexto";
 
-type Vista = "cobrar" | "cuenta" | "pagar" | "movimientos" | "recibos";
+// 20/11/2026 (plan de simplificación, cambio 4): «Entradas y salidas» pasó a Bancos › Movimientos (?ver=movimientos redirige)
+const VISTAS = ["cobrar", "cuenta", "pagar", "recibos"] as const;
+type Vista = (typeof VISTAS)[number];
 
-/** Finanzas › Cobros y pagos: lo por cobrar, lo por pagar y todo lo que entró y salió. */
+/** Finanzas › Cobros y pagos: lo por cobrar y lo por pagar. */
 export function CobrosPagosPantalla() {
   const params = useSearchParams();
   const [vista, setVista] = useState<Vista>(
-    (params.get("ver") as Vista) || "cobrar",
+    VISTAS.find((v) => v === params.get("ver")) ?? "cobrar",
   );
   // Migración 275: recibos de cobranza
   const hayRecibos = useBaseTiene(275);
@@ -82,7 +65,6 @@ export function CobrosPagosPantalla() {
             ["cobrar", "Por cobrar"],
             ["cuenta", "Cuenta corriente"],
             ["pagar", "Por pagar"],
-            ["movimientos", "Entradas y salidas"],
             ["recibos", "Recibos"],
           ] as const
         )
@@ -103,6 +85,12 @@ export function CobrosPagosPantalla() {
             {t}
           </button>
         ))}
+        <Link
+          href="/conciliacion?vista=movimientos"
+          className="ml-auto self-center px-3 text-xs text-tinta-suave hover:text-marca hover:underline"
+        >
+          Entradas y salidas: Bancos › Movimientos →
+        </Link>
       </nav>
       {vista === "cobrar" ? (
         <NosDeben />
@@ -113,7 +101,7 @@ export function CobrosPagosPantalla() {
       ) : vista === "recibos" && hayRecibos ? (
         <Recibos />
       ) : (
-        <Movimientos />
+        <NosDeben />
       )}
     </div>
   );
@@ -479,7 +467,7 @@ function SinCuentas() {
         href="/conciliacion"
         className="font-medium text-marca underline"
       >
-        Bancos y cajas
+        Bancos
       </Link>
       .
     </p>
@@ -487,34 +475,60 @@ function SinCuentas() {
 }
 
 // Migración 274: arriba, la cuenta corriente con las estaciones (cargas sin factura y facturas sin pagar)
+// 20/11/2026 (plan de simplificación, cambios 2 y 3): un solo total arriba, la cuenta de cada proveedor con su «Pagar»
+// (orden de pago). «Facturas por vencimiento» y «Detalle por estación» quedan plegados y sin total; se abren con
+// ?facturas=1 (y ?gasto=N abre el pago de ese gasto) o ?estaciones=1. Sin la migración 281 se ven abiertos, como antes.
 function Debemos() {
+  const params = useSearchParams();
+  const conCuenta = useBaseTiene(281);
+  const gasto = Number(params.get("gasto")) || null;
   return (
     <div className="space-y-5">
       <CuentaProveedores />
-      <CuentaEstaciones />
-      <GastosPorPagar />
+      <GastosPorPagar
+        plegado={conCuenta}
+        abierta={params.get("facturas") === "1" || gasto !== null}
+        gastoUrl={gasto}
+      />
+      <CuentaEstaciones
+        plegado={conCuenta}
+        abierta={params.get("estaciones") === "1"}
+      />
     </div>
   );
 }
 
-function GastosPorPagar() {
+/** Facturas por vencimiento (antes «Gastos por pagar»): cada gasto sin pagar, por proveedor, del que vence primero al último. */
+function GastosPorPagar({
+  plegado,
+  abierta,
+  gastoUrl,
+}: {
+  plegado: boolean;
+  abierta: boolean;
+  gastoUrl: number | null;
+}) {
   const { data, isLoading, isError, error, refetch } = usePorPagar();
   const puede = useCan("finanzas.cobros_pagos:editar");
-  const [abierta, setAbierta] = useState<number | null>(null);
-  if (isLoading) return <Cargando texto="Buscando gastos por pagar…" />;
+  // Mientras no se toque nada, queda abierto el pago del gasto de la dirección (la ficha del gasto lleva acá)
+  const [abiertaElegida, setAbierta] = useState<number | null | undefined>(
+    undefined,
+  );
+  const abiertaId = abiertaElegida !== undefined ? abiertaElegida : gastoUrl;
+  if (isLoading) return <Cargando texto="Buscando las facturas por pagar…" />;
   if (isError || !data)
     return (
       <ErrorLectura
-        texto="No se pudieron leer los gastos."
+        texto="No se pudieron leer las facturas por pagar."
         onReintentar={() => void refetch()}
         error={error}
       />
     );
   if (data.length === 0)
-    return (
+    return plegado ? null : (
       <Vacio
         icono={<ArrowLeftRight className="size-6" />}
-        texto="No hay gastos por pagar."
+        texto="No hay facturas por pagar."
       />
     );
   const total = data.reduce((s, g) => s + g.saldoClp, 0);
@@ -526,51 +540,71 @@ function GastosPorPagar() {
     vencido: (g) => g.diasVencido > 0,
     orden: (a, b) => a.vence.localeCompare(b.vence),
   });
+  const tabla = (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[760px] text-sm">
+        <thead className="border-y border-borde bg-fondo">
+          <tr>
+            <th className={TH}>Vence</th>
+            <th className={TH}>Proveedor y detalle</th>
+            <th className={cn(TH, "text-right")}>Total</th>
+            <th className={cn(TH, "text-right")}>Falta pagar</th>
+            <th className={TH} />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-borde">
+          {grupos.map((p) => (
+            <Fragment key={p.nombre}>
+              <tr className="bg-fondo">
+                <td colSpan={2} className={cn(TD, "font-semibold text-tinta")}>
+                  {p.nombre}
+                  <span className="block text-xs font-normal text-tinta-suave">
+                    {p.items.length} {p.items.length === 1 ? "gasto" : "gastos"}
+                  </span>
+                </td>
+                <td colSpan={3} className={cn(TD, "text-right text-xs")}>
+                  <SaldosLinea saldos={p.saldos} />
+                </td>
+              </tr>
+              {p.items.map((g) => (
+                <FilaPagar
+                  key={g.id}
+                  g={g}
+                  puede={puede}
+                  soloEsta={plegado}
+                  abierta={abiertaId === g.id}
+                  enfocar={abiertaElegida === undefined && gastoUrl === g.id}
+                  onAbrir={() => setAbierta(abiertaId === g.id ? null : g.id)}
+                  onListo={() => setAbierta(null)}
+                />
+              ))}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+  if (plegado)
+    return (
+      <SeccionPlegada
+        titulo={`Facturas por vencimiento · ${data.length}`}
+        abierta={abierta}
+      >
+        <p className="text-sm text-tinta-suave">
+          Cada factura sin pagar, de la que vence primero a la última. Para
+          pagarle a un proveedor usá «Pagar» en su cuenta, arriba: cancela sus
+          facturas más viejas. «Pagar solo esta factura» registra el pago de una
+          sola.
+        </p>
+        {tabla}
+      </SeccionPlegada>
+    );
   return (
     <Seccion
-      titulo={`Gastos por pagar · ${data.length} de ${grupos.length} ${grupos.length === 1 ? "proveedor" : "proveedores"} · ≈ ${dinero(total)}`}
+      titulo={`Facturas por vencimiento · ${data.length} de ${grupos.length} ${grupos.length === 1 ? "proveedor" : "proveedores"} · ≈ ${dinero(total)}`}
     >
       <SaldosResumen totales={totales} />
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-sm">
-          <thead className="border-y border-borde bg-fondo">
-            <tr>
-              <th className={TH}>Vence</th>
-              <th className={TH}>Proveedor y detalle</th>
-              <th className={cn(TH, "text-right")}>Total</th>
-              <th className={cn(TH, "text-right")}>Falta pagar</th>
-              <th className={TH} />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-borde">
-            {grupos.map((p) => (
-              <Fragment key={p.nombre}>
-                <tr className="bg-fondo">
-                  <td colSpan={2} className={cn(TD, "font-semibold text-tinta")}>
-                    {p.nombre}
-                    <span className="block text-xs font-normal text-tinta-suave">
-                      {p.items.length} {p.items.length === 1 ? "gasto" : "gastos"}
-                    </span>
-                  </td>
-                  <td colSpan={3} className={cn(TD, "text-right text-xs")}>
-                    <SaldosLinea saldos={p.saldos} />
-                  </td>
-                </tr>
-                {p.items.map((g) => (
-                  <FilaPagar
-                    key={g.id}
-                    g={g}
-                    puede={puede}
-                    abierta={abierta === g.id}
-                    onAbrir={() => setAbierta(abierta === g.id ? null : g.id)}
-                    onListo={() => setAbierta(null)}
-                  />
-                ))}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {tabla}
     </Seccion>
   );
 }
@@ -578,19 +612,28 @@ function GastosPorPagar() {
 function FilaPagar({
   g,
   puede,
+  soloEsta,
   abierta,
+  enfocar,
   onAbrir,
   onListo,
 }: {
   g: PorPagar;
   puede: boolean;
+  soloEsta: boolean;
   abierta: boolean;
+  enfocar: boolean;
   onAbrir: () => void;
   onListo: () => void;
 }) {
+  const fila = useRef<HTMLTableRowElement>(null);
+  // Si se llegó desde la ficha del gasto, la fila queda a la vista con su pago abierto
+  useEffect(() => {
+    if (enfocar) fila.current?.scrollIntoView({ block: "center" });
+  }, [enfocar]);
   return (
     <>
-      <tr>
+      <tr ref={fila}>
         <td
           className={cn(TD, "tabular-nums", g.diasVencido > 0 && "text-error")}
         >
@@ -626,7 +669,7 @@ function FilaPagar({
               className={BOTON_SECUNDARIO}
               onClick={onAbrir}
             >
-              {abierta ? "Cerrar" : "Pagar"}
+              {abierta ? "Cerrar" : soloEsta ? "Pagar solo esta factura" : "Pagar"}
             </button>
           )}
         </td>
@@ -644,326 +687,5 @@ function FilaPagar({
         </tr>
       )}
     </>
-  );
-}
-
-function Movimientos() {
-  const puede = useCan("finanzas.cobros_pagos:editar");
-  const puedeAnular = useCan("finanzas.cobros_pagos:transicionar");
-  const { data: cuentas } = useCuentasDinero();
-  const [cuenta, setCuenta] = useState<number | null>(null);
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
-  const [nuevo, setNuevo] = useState(false);
-  const { data, isLoading, isError, error, refetch } = useMovimientos(
-    cuenta,
-    desde || null,
-    hasta || null,
-  );
-  const anular = useAnularMovimiento();
-  // Migración 273: un cobro cargado con la fecha equivocada se corrige sin anularlo
-  const cambiarFecha = useCambiarFechaCobro();
-  const envio = useEnvio();
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-2">
-        <select
-          className={CONTROL_FILTRO}
-          value={cuenta ?? ""}
-          onChange={(e) =>
-            setCuenta(e.target.value ? Number(e.target.value) : null)
-          }
-          aria-label="Cuenta"
-        >
-          <option value="">Todas las cuentas</option>
-          {(cuentas ?? []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre}
-            </option>
-          ))}
-        </select>
-        <label className="flex items-center gap-1 text-sm text-tinta-suave">
-          Desde{" "}
-          <input
-            type="date"
-            className={CONTROL_FILTRO}
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-          />
-        </label>
-        <label className="flex items-center gap-1 text-sm text-tinta-suave">
-          Hasta{" "}
-          <input
-            type="date"
-            className={CONTROL_FILTRO}
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-          />
-        </label>
-        {puede && !nuevo && (
-          <button
-            type="button"
-            className={cn(BOTON_PRIMARIO, "ml-auto")}
-            onClick={() => setNuevo(true)}
-          >
-            <Plus className="size-4" /> Otro ingreso, egreso o transferencia
-          </button>
-        )}
-      </div>
-      {nuevo && (
-        <NuevoMovimiento
-          cuentas={(cuentas ?? []).filter((c) => c.activa)}
-          onCerrar={() => setNuevo(false)}
-        />
-      )}
-      <ErrorBase error={envio.error} />
-      {isLoading ? (
-        <Cargando texto="Buscando movimientos…" />
-      ) : isError || !data ? (
-        <ErrorLectura
-          texto="No se pudieron leer los movimientos."
-          onReintentar={() => void refetch()}
-          error={error}
-        />
-      ) : data.length === 0 ? (
-        <Vacio
-          icono={<ArrowLeftRight className="size-6" />}
-          texto="No hay movimientos en ese período."
-        />
-      ) : (
-        <div className={cn(TARJETA, "overflow-x-auto")}>
-          <table className="w-full min-w-[820px] text-sm">
-            <thead className="border-b border-borde bg-fondo">
-              <tr>
-                <th className={TH}>Fecha</th>
-                <th className={TH}>Qué</th>
-                <th className={TH}>Cuenta</th>
-                <th className={cn(TH, "text-right")}>Monto</th>
-                <th className={TH}>Banco</th>
-                <th className={TH} />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-borde">
-              {data.map((m) => (
-                <tr
-                  key={m.id}
-                  className={cn(m.estado === "anulado" && "text-tinta-suave")}
-                >
-                  <td className={cn(TD, "tabular-nums")}>
-                    {fecha(m.fecha)}
-                    <span className="block text-xs text-tinta-suave">
-                      {m.numero}
-                    </span>
-                  </td>
-                  <td className={TD}>
-                    <span className="text-xs text-tinta-suave">
-                      {ETIQUETA_MOVIMIENTO[m.tipo]}
-                    </span>
-                    <span
-                      className={cn(
-                        "block",
-                        m.estado === "anulado" && "line-through",
-                      )}
-                    >
-                      {m.detalle}
-                    </span>
-                    {m.estado === "anulado" && (
-                      <span className="block text-xs">Anulado: {m.motivo}</span>
-                    )}
-                  </td>
-                  <td className={TD}>{m.cuenta}</td>
-                  <td
-                    className={cn(
-                      TD,
-                      "text-right font-medium tabular-nums",
-                      m.monto < 0 ? "text-tinta" : "text-exito",
-                    )}
-                  >
-                    {dinero(m.monto, m.moneda)}
-                  </td>
-                  <td className={TD}>
-                    {m.conciliado ? (
-                      <Chip tono="exito">Conciliado</Chip>
-                    ) : m.estado === "vigente" ? (
-                      <Chip tono="neutro">Sin conciliar</Chip>
-                    ) : null}
-                  </td>
-                  <td className={cn(TD, "space-y-2 text-right")}>
-                    {puedeAnular && m.estado === "vigente" && m.tipo === "cobro" && !m.conciliado && (
-                      <CambiarFechaCobro
-                        fechaActual={m.fecha.slice(0, 10)}
-                        ocupado={cambiarFecha.isPending}
-                        onGuardar={async (f, motivo) => {
-                          const r = await cambiarFecha.mutateAsync({ id: m.id, fecha: f, motivo });
-                          return r.ok ? null : r.error;
-                        }}
-                      />
-                    )}
-                    {puedeAnular && m.estado === "vigente" && (
-                      <AccionConMotivo
-                        etiqueta="Anular"
-                        icono={<X className="size-4" />}
-                        titulo={`Anular ${m.numero}`}
-                        explicacion="Se borra su asiento. Si era un cobro, la factura vuelve a quedar por cobrar; si era un pago, el gasto vuelve a quedar por pagar."
-                        ocupado={anular.isPending}
-                        error={envio.error}
-                        onConfirmar={async (motivo) => {
-                          const r = await anular.mutateAsync({
-                            id: m.id,
-                            motivo,
-                          });
-                          if (!r.ok) envio.setError(r.error);
-                          return r.ok;
-                        }}
-                      />
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function NuevoMovimiento({
-  cuentas,
-  onCerrar,
-}: {
-  cuentas: CuentaDinero[];
-  onCerrar: () => void;
-}) {
-  const { zonaHoraria } = useSesion();
-  const { data: plan } = usePlanCuentas();
-  const registrar = useRegistrarMovimiento();
-  const envio = useEnvio();
-  const [tipo, setTipo] = useState<"ingreso" | "egreso" | "transferencia">(
-    "egreso",
-  );
-  const [cuenta, setCuenta] = useState<number | null>(cuentas[0]?.id ?? null);
-  const [destino, setDestino] = useState<number | null>(null);
-  const [cuentaId, setCuentaId] = useState<number | null>(null);
-  const [f, setF] = useState(hoyEnZona(zonaHoraria) as string);
-  const [monto, setMonto] = useState("");
-  const [montoDestino, setMontoDestino] = useState("");
-  const [desc, setDesc] = useState("");
-  if (cuentas.length === 0) return <SinCuentas />;
-  const cOrigen = cuentas.find((c) => c.id === cuenta);
-  const cDestino = cuentas.find((c) => c.id === destino);
-  const otraMoneda =
-    tipo === "transferencia" &&
-    cOrigen &&
-    cDestino &&
-    cOrigen.moneda !== cDestino.moneda;
-  return (
-    <Panel
-      titulo="Otro ingreso, egreso o transferencia"
-      explicacion="Para cobrar una factura o pagar un gasto usá las otras pestañas. Acá van: aportes o retiros de socios, préstamos, comisiones, impuestos, pasar plata entre cuentas…"
-      error={envio.error}
-      ocupado={registrar.isPending}
-      textoBoton="Registrar"
-      onCerrar={onCerrar}
-      onConfirmar={() =>
-        void envio.enviar(
-          registrar.mutateAsync({
-            tipo,
-            fecha: f,
-            cuentaDineroId: cuenta ?? 0,
-            monto,
-            facturaId: null,
-            gastoId: null,
-            cuentaId: tipo === "transferencia" ? null : cuentaId,
-            destinoId: tipo === "transferencia" ? destino : null,
-            montoDestino: otraMoneda ? montoDestino : null,
-            montoDocumento: null,
-            descripcion: desc,
-          }),
-          onCerrar,
-        )
-      }
-    >
-      <Campo label="Qué es">
-        <select
-          value={tipo}
-          onChange={(e) => setTipo(e.target.value as typeof tipo)}
-        >
-          <option value="egreso">Salió plata (otro egreso)</option>
-          <option value="ingreso">Entró plata (otro ingreso)</option>
-          <option value="transferencia">Transferencia entre mis cuentas</option>
-        </select>
-      </Campo>
-      <Campo label={tipo === "transferencia" ? "Desde" : "Banco o caja"}>
-        <select
-          value={cuenta ?? ""}
-          onChange={(e) => setCuenta(Number(e.target.value))}
-        >
-          {cuentas.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre} ({c.moneda})
-            </option>
-          ))}
-        </select>
-      </Campo>
-      {tipo === "transferencia" ? (
-        <Campo label="Hacia">
-          <select
-            value={destino ?? ""}
-            onChange={(e) =>
-              setDestino(e.target.value ? Number(e.target.value) : null)
-            }
-          >
-            <option value="">Elegí…</option>
-            {cuentas
-              .filter((c) => c.id !== cuenta)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre} ({c.moneda})
-                </option>
-              ))}
-          </select>
-        </Campo>
-      ) : (
-        <Campo label="Cuenta contable (de qué es)">
-          <select
-            value={cuentaId ?? ""}
-            onChange={(e) =>
-              setCuentaId(e.target.value ? Number(e.target.value) : null)
-            }
-          >
-            <option value="">Elegí…</option>
-            <OpcionesCuentas cuentas={cuentasParaMovimiento(plan ?? [])} />
-          </select>
-        </Campo>
-      )}
-      <Campo label="Fecha">
-        <input type="date" value={f} onChange={(e) => setF(e.target.value)} />
-      </Campo>
-      <Campo label={`Monto${cOrigen ? ` (${cOrigen.moneda})` : ""}`}>
-        <input
-          inputMode="decimal"
-          value={monto}
-          onChange={(e) => setMonto(e.target.value)}
-        />
-      </Campo>
-      {otraMoneda && (
-        <Campo label={`Llegó (${cDestino!.moneda})`}>
-          <input
-            inputMode="decimal"
-            value={montoDestino}
-            onChange={(e) => setMontoDestino(e.target.value)}
-          />
-        </Campo>
-      )}
-      <Campo label="Descripción">
-        <input
-          value={desc}
-          maxLength={200}
-          placeholder="Ej.: comisión de mantención"
-          onChange={(e) => setDesc(e.target.value)}
-        />
-      </Campo>
-    </Panel>
   );
 }

@@ -20,8 +20,8 @@ const tasa = (v: number | null) => (v === null ? '—' : v >= 1 ? formatearNumer
 const mesDe = (m: string) => new Date(`${m}T12:00:00`).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
 
 /**
- * Migración 123 · Conciliación › Cambios de moneda. Una vez por mes se suben los resúmenes de cada
- * banco, aplicación o billetera (Bancos y cajas › Cartola); acá el sistema propone cada cambio
+ * Migración 123 · Bancos (antes Conciliación) › Cambios de moneda. Una vez por mes se suben los resúmenes de cada
+ * banco, aplicación o billetera (Bancos › Cuentas › cartola); acá el sistema propone cada cambio
  * (lo que salió de una cuenta y lo que llegó a otra), se confirman de una vez y se ve cuánto costó
  * cambiar la plata. Lo calcula todo la base.
  */
@@ -63,11 +63,11 @@ export function CambiosPantalla() {
 
   return (
     <div className="space-y-5">
-      <Encabezado titulo="Cambios de moneda" subtitulo="Conciliación" />
+      <Encabezado titulo="Cambios de moneda" subtitulo="Bancos" />
       <p className="max-w-3xl text-sm text-tinta-suave">
         Una vez por mes, subí el resumen de cada banco, aplicación o billetera en{' '}
         <Link href="/conciliacion" className="text-marca hover:underline">
-          Bancos y cajas
+          Bancos › Cuentas
         </Link>{' '}
         (cada aplicación es una cuenta, una por moneda). El sistema busca lo que salió de una cuenta y llegó a otra y arma el cambio con los dos montos
         reales. La diferencia con el tipo de cambio oficial es lo que costó cambiar la plata.

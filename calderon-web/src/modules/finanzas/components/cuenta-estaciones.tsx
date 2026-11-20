@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { ChevronDown, ChevronRight, Fuel } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { Cargando, ErrorLectura, Seccion } from '@/modules/combustible/components/comun/ui';
 import { cn } from '@/shared/lib/cn';
@@ -9,20 +9,22 @@ import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { dinero, type CuentaEstacion } from '../domain/finanzas.types';
 import { useCargasPorFacturar, useCuentaEstaciones } from '../queries/hooks';
-import { fecha } from './comun';
+import { fecha, SeccionPlegada } from './comun';
 
 /**
  * Migración 274 · Debemos › Cuenta corriente con estaciones: por proveedor de combustible (y moneda), las cargas en
  * cuenta corriente o con tarjeta que todavía no tienen factura y las facturas que todavía no se pagaron.
+ * 20/11/2026 (plan de simplificación, cambio 2): con la cuenta de proveedores arriba (migración 281), esto queda como
+ * «Detalle por estación», plegado y sin total (plegado); se abre solo si se llega con ?estaciones=1 (abierta).
  */
-export function CuentaEstaciones() {
+export function CuentaEstaciones({ plegado = false, abierta = false }: { plegado?: boolean; abierta?: boolean }) {
   // Llega con la migración 274: antes de aplicarla en la base, no se muestra (en vez de un error)
   const hay = useBaseTiene(274);
   if (!hay) return null;
-  return <CuentaEstacionesLista />;
+  return <CuentaEstacionesLista plegado={plegado} abierta={abierta} />;
 }
 
-function CuentaEstacionesLista() {
+function CuentaEstacionesLista({ plegado, abierta }: { plegado: boolean; abierta: boolean }) {
   const { data, isLoading, isError, error, refetch } = useCuentaEstaciones();
   const [abierto, setAbierto] = useState<string | null>(null);
   if (isLoading) return <Cargando texto="Buscando lo que se debe a las estaciones…" />;
@@ -31,40 +33,53 @@ function CuentaEstacionesLista() {
   const totales = Object.entries(
     data.reduce<Record<string, number>>((t, x) => ({ ...t, [x.moneda]: (t[x.moneda] ?? 0) + x.total }), {}),
   ).map(([m, v]) => dinero(v, m));
+  const explicacion = (
+    <p className="mb-3 text-sm text-tinta-suave">
+      Cargas en cuenta corriente o con tarjeta que todavía no tienen factura, y facturas de cada proveedor que todavía no se pagaron.
+    </p>
+  );
+  const tabla = (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[760px] text-sm">
+        <thead className="border-y border-borde bg-fondo">
+          <tr>
+            <th className={TH}>Proveedor y estaciones</th>
+            <th className={cn(TH, 'text-right')}>Cargas sin factura</th>
+            <th className={cn(TH, 'text-right')}>Facturas sin pagar</th>
+            <th className={cn(TH, 'text-right')}>Cargas + facturas</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-borde">
+          {data.map((x) => {
+            const clave = `${x.proveedorId}-${x.moneda}`;
+            return (
+              <Fragment key={clave}>
+                <FilaEstacion x={x} abierta={abierto === clave} onAbrir={() => setAbierto(abierto === clave ? null : clave)} />
+                {abierto === clave && (
+                  <tr>
+                    <td colSpan={4} className="bg-fondo px-3 py-2">
+                      <CargasSinFactura proveedorId={x.proveedorId} moneda={x.moneda} />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+  if (plegado)
+    return (
+      <SeccionPlegada titulo="Detalle por estación" abierta={abierta}>
+        {explicacion}
+        {tabla}
+      </SeccionPlegada>
+    );
   return (
     <Seccion titulo={`Cuenta corriente con estaciones · ${totales.join(' · ')}`}>
-      <p className="mb-3 text-sm text-tinta-suave">
-        Cargas en cuenta corriente o con tarjeta que todavía no tienen factura, y facturas de cada proveedor que todavía no se pagaron.
-      </p>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-sm">
-          <thead className="border-y border-borde bg-fondo">
-            <tr>
-              <th className={TH}>Proveedor y estaciones</th>
-              <th className={cn(TH, 'text-right')}>Cargas sin factura</th>
-              <th className={cn(TH, 'text-right')}>Facturas sin pagar</th>
-              <th className={cn(TH, 'text-right')}>Total que se debe</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-borde">
-            {data.map((x) => {
-              const clave = `${x.proveedorId}-${x.moneda}`;
-              return (
-                <Fragment key={clave}>
-                  <FilaEstacion x={x} abierta={abierto === clave} onAbrir={() => setAbierto(abierto === clave ? null : clave)} />
-                  {abierto === clave && (
-                    <tr>
-                      <td colSpan={4} className="bg-fondo px-3 py-2">
-                        <CargasSinFactura proveedorId={x.proveedorId} moneda={x.moneda} />
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {explicacion}
+      {tabla}
     </Seccion>
   );
 }

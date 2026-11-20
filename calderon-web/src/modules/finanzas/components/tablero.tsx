@@ -29,7 +29,7 @@ export function TableroFinanzas() {
         <Aviso>
           Para empezar: cargá tus cuentas en{' '}
           <Link href="/conciliacion" className="font-medium underline">
-            Bancos y cajas
+            Bancos
           </Link>{' '}
           (con el saldo de hoy), los gastos que se repiten en{' '}
           <Link href="/finanzas/gastos-fijos" className="font-medium underline">
@@ -94,11 +94,12 @@ export function TableroFinanzas() {
           detalle="ya son ingreso; falta emitir la factura"
           href="/finanzas/informes"
         />
+        {/* 20/11/2026 (plan de simplificación, cambio 1): el detalle está en Por pagar › Detalle por estación */}
         <Indicador
           titulo="Combustible sin factura del proveedor"
           valor={dinero(t.combustiblePorFacturarClp)}
           detalle="cargas en cuenta corriente o tarjeta"
-          href="/finanzas/combustible"
+          href="/analisis/cobros-pagos?ver=pagar&estaciones=1"
         />
         <Indicador titulo="Fondos de choferes por rendir" valor={dinero(t.fondosChoferesClp)} detalle="plata entregada que falta rendir" href="/liquidaciones/fondos" />
         <Indicador titulo="Sueldos y leyes sociales por pagar" valor={dinero(t.sueldosPorPagarClp)} detalle="liquidaciones aprobadas sin pagar" href="/liquidaciones" />
@@ -189,16 +190,17 @@ export function IndicadoresFinanzas({ t }: { t: Tablero }) {
         tono={t.facturasVencidas > 0 ? 'error' : 'normal'}
         href="/analisis/cobros-pagos"
       />
+      {/* 20/11/2026 (plan de simplificación, cambio 2): son las facturas; el total de lo que se debe es la cuenta de proveedores */}
       <Indicador
-        titulo="Por pagar (proveedores)"
+        titulo="Facturas por pagar"
         valor={dinero(t.porPagarClp)}
         detalle={
           t.gastosVencidos > 0
-            ? `${dinero(t.porPagarVencidoClp)} vencido en ${t.gastosVencidos} gastos`
+            ? `${dinero(t.porPagarVencidoClp)} vencido en ${t.gastosVencidos === 1 ? 'una factura' : `${t.gastosVencidos} facturas`}`
             : `${dinero(t.porPagar7DiasClp)} vence en los próximos 7 días`
         }
         tono={t.gastosVencidos > 0 ? 'error' : 'normal'}
-        href="/analisis/cobros-pagos?ver=pagar"
+        href="/analisis/cobros-pagos?ver=pagar&facturas=1"
       />
       <Indicador
         titulo={`Resultado de ${t.meses[n] ? mesCorto(t.meses[n]) : 'este mes'}`}

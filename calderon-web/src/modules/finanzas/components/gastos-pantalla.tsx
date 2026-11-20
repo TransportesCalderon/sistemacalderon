@@ -15,10 +15,14 @@ import { agrupar } from '../domain/gastos-agrupar';
 import { useGastos, usePlanCuentas } from '../queries/hooks';
 import { ChipSituacion, fecha } from './comun';
 
-/** Finanzas › Gastos: facturas de proveedores, boletas y gastos sin documento. */
+/**
+ * Finanzas › Gastos: facturas de proveedores, boletas y gastos sin documento.
+ * 20/11/2026 (plan de simplificación, cambio 1): Gastos es para cargar y buscar; abre en «Todos». Lo que se le debe a cada
+ * proveedor, y pagarle, está en un solo lugar: Cobros y pagos › Por pagar.
+ */
 export function GastosPantalla() {
   const puede = useCan('finanzas.gastos:editar');
-  const [estado, setEstado] = useState<string>('pendiente');
+  const [estado, setEstado] = useState<string>('');
   const [texto, setTexto] = useState('');
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
@@ -45,6 +49,12 @@ export function GastosPantalla() {
         )}
       </div>
       <Pestanas items={PESTANAS_GASTOS} />
+      <p className="text-sm text-tinta-suave">
+        Acá se cargan y se buscan los gastos. Lo que se le debe a cada proveedor, y pagarle, está en{' '}
+        <Link href="/analisis/cobros-pagos?ver=pagar" className="font-medium text-marca hover:underline">
+          Cobros y pagos › Por pagar →
+        </Link>
+      </p>
 
       <div className="flex flex-wrap items-end gap-2">
         <select className={CONTROL_FILTRO} value={estado} onChange={(e) => setEstado(e.target.value)} aria-label="Estado">

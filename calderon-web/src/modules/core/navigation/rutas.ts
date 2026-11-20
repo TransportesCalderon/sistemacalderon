@@ -51,8 +51,8 @@ const PAGINAS: readonly Ruta[] = [
   { prefijo: '/liquidaciones', pantalla: 'liquidacion.liquidaciones', titulo: 'Liquidaciones' },
   { prefijo: '/liquidaciones/resumen', pantalla: 'liquidacion.liquidaciones', titulo: 'Resumen para liquidar' },
   { prefijo: '/liquidaciones/fondos', pantalla: 'rrhh.fondos', titulo: 'Fondos de choferes' },
-  // Sprint 7: Bancos y cajas pasa a Conciliación
-  { prefijo: '/conciliacion', pantalla: 'finanzas.bancos', titulo: 'Conciliación' },
+  // Sprint 7: Bancos y cajas pasa a Conciliación. 20/11/2026 (plan de simplificación, cambio 4): se llama «Bancos»
+  { prefijo: '/conciliacion', pantalla: 'finanzas.bancos', titulo: 'Bancos' },
   // Viajes
   { prefijo: '/operacion/tractores', pantalla: 'operacion.tramos', titulo: 'Tractores y viajes' },
   { prefijo: '/operacion/por-cerrar', pantalla: 'operacion.tramos', titulo: 'Cierres por hacer' },
@@ -98,7 +98,7 @@ const PAGINAS: readonly Ruta[] = [
   { prefijo: '/finanzas', pantalla: 'finanzas.resumen', titulo: 'Resumen' },
   { prefijo: '/finanzas/gastos', pantalla: 'finanzas.gastos', titulo: 'Gastos' },
   { prefijo: '/finanzas/cobros-pagos', pantalla: 'finanzas.cobros_pagos', titulo: 'Cobros y pagos' },
-  { prefijo: '/finanzas/bancos', pantalla: 'finanzas.bancos', titulo: 'Bancos y cajas' },
+  { prefijo: '/finanzas/bancos', pantalla: 'finanzas.bancos', titulo: 'Bancos' },
   { prefijo: '/finanzas/informes', pantalla: 'finanzas.informes', titulo: 'Informes' },
   { prefijo: '/finanzas/plan-cuentas', pantalla: 'finanzas.plan_cuentas', titulo: 'Plan de cuentas' },
   { prefijo: '/finanzas/gastos-fijos', pantalla: 'finanzas.gastos', titulo: 'Gastos fijos' },

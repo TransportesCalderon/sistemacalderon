@@ -27,7 +27,11 @@ interface Form {
   activa: boolean;
 }
 
-/** Finanzas › Bancos y cajas: cada cuenta con su saldo según el sistema y según la última cartola. */
+/**
+ * Bancos › Cuentas: cada cuenta con su saldo según el sistema y según la última cartola.
+ * 20/11/2026 (plan de simplificación, cambios 4 y 5): primero las que tienen líneas por conciliar; un banco lleva a su
+ * cartola y una caja, a sus movimientos (Bancos › Movimientos).
+ */
 export function BancosPantalla() {
   const { zonaHoraria } = useSesion();
   const puede = useCan('finanzas.bancos:editar');
@@ -55,7 +59,7 @@ export function BancosPantalla() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Encabezado titulo="Conciliación" subtitulo="Bancos y cajas" />
+        <Encabezado titulo="Bancos" subtitulo="Finanzas" />
         {puede && !form && (
           <button
             type="button"
@@ -123,50 +127,53 @@ export function BancosPantalla() {
         <Vacio icono={<Landmark className="size-6" />} texto="Todavía no hay cuentas. Cargá cada cuenta bancaria y la caja, con el saldo de hoy." />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {data.map((c) => {
-            const dif = c.cartolaSaldo === null ? null : c.saldo - c.cartolaSaldo;
-            return (
-              <div key={c.id} className={cn(TARJETA, 'space-y-3 p-4', !c.activa && 'opacity-60')}>
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <Link href={`/conciliacion/${c.id}`} className="font-medium text-marca hover:underline">
-                      {c.nombre}
-                    </Link>
-                    <p className="text-xs text-tinta-suave">
-                      {c.tipo === 'caja' ? 'Caja' : [c.banco, c.numero].filter(Boolean).join(' · ') || 'Banco'} · {c.moneda}
-                      {!c.activa && ' · inactiva'}
-                    </p>
-                  </div>
-                  {puede && (
-                    <button type="button" className={BOTON_ICONO} aria-label={`Cambiar ${c.nombre}`} onClick={() => setForm(editar(c))}>
-                      <Pencil className="size-4" />
-                    </button>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs text-tinta-suave">Saldo según el sistema</p>
-                  <p className={cn('text-2xl font-semibold tabular-nums', c.saldo < 0 ? 'text-error' : 'text-tinta')}>{dinero(c.saldo, c.moneda)}</p>
-                  {c.moneda !== 'CLP' && c.saldoClp !== null && <p className="text-xs text-tinta-suave">≈ {dinero(c.saldoClp)}</p>}
-                </div>
-                {c.tipo === 'banco' && (
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    {c.cartolaSaldo === null ? (
-                      <span className="text-tinta-suave">Sin cartola importada</span>
-                    ) : (
-                      <span className="text-tinta-suave">
-                        Cartola al {fecha(c.cartolaFecha)}: <span className="font-medium text-tinta tabular-nums">{dinero(c.cartolaSaldo, c.moneda)}</span>
-                      </span>
+          {[...data]
+            .sort((a, b) => Number(b.porConciliar > 0) - Number(a.porConciliar > 0))
+            .map((c) => {
+              const dif = c.cartolaSaldo === null ? null : c.saldo - c.cartolaSaldo;
+              const destino = c.tipo === 'banco' ? `/conciliacion/${c.id}` : `/conciliacion?vista=movimientos&cuenta=${c.id}`;
+              return (
+                <div key={c.id} className={cn(TARJETA, 'space-y-3 p-4', !c.activa && 'opacity-60')}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <Link href={destino} className="font-medium text-marca hover:underline">
+                        {c.nombre}
+                      </Link>
+                      <p className="text-xs text-tinta-suave">
+                        {c.tipo === 'caja' ? 'Caja' : [c.banco, c.numero].filter(Boolean).join(' · ') || 'Banco'} · {c.moneda}
+                        {!c.activa && ' · inactiva'}
+                      </p>
+                    </div>
+                    {puede && (
+                      <button type="button" className={BOTON_ICONO} aria-label={`Cambiar ${c.nombre}`} onClick={() => setForm(editar(c))}>
+                        <Pencil className="size-4" />
+                      </button>
                     )}
-                    {dif !== null && Math.abs(dif) >= 1 && <Chip tono="alerta">Diferencia {dinero(dif, c.moneda)}</Chip>}
-                    {c.porConciliar > 0 && <Chip tono="marca">{c.porConciliar} por conciliar</Chip>}
                   </div>
-                )}
-                <Link href={`/conciliacion/${c.id}`} className="inline-block text-sm font-medium text-marca hover:underline">
-                  {c.tipo === 'banco' ? 'Importar cartola y conciliar →' : 'Ver movimientos →'}
-                </Link>
-              </div>
-            );
-          })}
+                  <div>
+                    <p className="text-xs text-tinta-suave">Saldo según el sistema</p>
+                    <p className={cn('text-2xl font-semibold tabular-nums', c.saldo < 0 ? 'text-error' : 'text-tinta')}>{dinero(c.saldo, c.moneda)}</p>
+                    {c.moneda !== 'CLP' && c.saldoClp !== null && <p className="text-xs text-tinta-suave">≈ {dinero(c.saldoClp)}</p>}
+                  </div>
+                  {c.tipo === 'banco' && (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {c.cartolaSaldo === null ? (
+                        <span className="text-tinta-suave">Sin cartola importada</span>
+                      ) : (
+                        <span className="text-tinta-suave">
+                          Cartola al {fecha(c.cartolaFecha)}: <span className="font-medium text-tinta tabular-nums">{dinero(c.cartolaSaldo, c.moneda)}</span>
+                        </span>
+                      )}
+                      {dif !== null && Math.abs(dif) >= 1 && <Chip tono="alerta">Diferencia {dinero(dif, c.moneda)}</Chip>}
+                      {c.porConciliar > 0 && <Chip tono="marca">{c.porConciliar} por conciliar</Chip>}
+                    </div>
+                  )}
+                  <Link href={destino} className="inline-block text-sm font-medium text-marca hover:underline">
+                    {c.tipo === 'banco' ? 'Importar cartola y conciliar →' : 'Ver movimientos →'}
+                  </Link>
+                </div>
+              );
+            })}
         </div>
       )}
     </div>

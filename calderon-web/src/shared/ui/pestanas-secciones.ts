@@ -111,8 +111,13 @@ export const PESTANAS_GASTOS = [
   { href: '/analisis/gastos?vista=compras', etiqueta: 'Compras' },
 ] as const;
 
-/** Migración 123 · Conciliación: los bancos y cajas con su cartola, y los cambios de moneda armados desde ellas. */
+/**
+ * Migración 123 · Bancos (antes Conciliación): las cuentas con su cartola, y los cambios de moneda armados desde ellas.
+ * 20/11/2026 (plan de simplificación, cambio 4): Movimientos (antes Cobros y pagos › Entradas y salidas) es una vista de
+ * la misma página.
+ */
 export const PESTANAS_CONCILIACION = [
-  { href: '/conciliacion', etiqueta: 'Bancos y cajas' },
+  { href: '/conciliacion', etiqueta: 'Cuentas' },
+  { href: '/conciliacion?vista=movimientos', etiqueta: 'Movimientos' },
   { href: '/conciliacion/cambios', etiqueta: 'Cambios de moneda' },
 ] as const;
