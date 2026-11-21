@@ -2187,6 +2187,11 @@ export type Database = {
       fn_fuera_horario: { Args: Record<string, never>; Returns: Json };
       fn_habilitar_fuera_horario: { Args: { p_camion: number; p_motivo: string }; Returns: Json };
       fn_anular_habilitacion_horario: { Args: { p_id: number; p_motivo: string | null }; Returns: undefined };
+      // Migración 297: la foto del tablero solo a pedido de Telemetría (Mercedes y Scania)
+      fn_pedir_tablero: { Args: { p_viaje: number; p_motivo?: string | null }; Returns: Json };
+      fn_anular_pedido_tablero: { Args: { p_id: number }; Returns: undefined };
+      fn_pedidos_tablero: { Args: Record<string, never>; Returns: Json };
+      fn_mis_pedidos_tablero: { Args: Record<string, never>; Returns: Json };
       fn_trackerway_buscar: { Args: Record<string, never>; Returns: Json };
       fn_trackerway_enlazar: { Args: { p_imei: string; p_camion: number | null }; Returns: undefined };
       fn_trackerway_importar: { Args: { p_imei: string; p_importar: boolean }; Returns: undefined };

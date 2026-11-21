@@ -11,7 +11,7 @@ import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { deDondeADonde, lugaresUnicos, observacionParaChofer, type CargaAsignada } from '../domain/chofer.types';
 import { useMisCargas } from '../queries/hooks';
 import { AvisoCargaChofer } from '@/modules/telemetria/components/aviso-carga-chofer';
-import { AvisoTableroInicio } from '@/modules/telemetria/components/aviso-tablero-inicio';
+import { AvisoPedidoTablero } from '@/modules/telemetria/components/aviso-pedido-tablero';
 import { CompartirUbicacion } from './compartir-ubicacion';
 import { ListaDocumentos, SubirDocumento } from './documentos';
 import { RutaDelChofer } from './ruta-chofer';
@@ -43,7 +43,8 @@ export function MiCarga() {
       </header>
 
       <AvisoCargaChofer />
-      <AvisoTableroInicio />
+      {/* Migración 297: la foto del tablero solo cuando la pide Telemetría (antes, en cada llenado de corte) */}
+      <AvisoPedidoTablero />
 
       <CompartirUbicacion habilitado={data.compartirUbicacion} intervaloS={data.intervaloS} viaje={data.cargas.map((c) => c.servicioId).join(',')} />
 

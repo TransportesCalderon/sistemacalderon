@@ -9,7 +9,7 @@ import { TONO_LIQ } from '@/modules/liquidacion/components/liquidaciones-pantall
 import { ETIQUETA_ESTADO_LIQ } from '@/modules/liquidacion/domain/liquidacion.types';
 import { useMisLiquidaciones } from '@/modules/liquidacion/queries/hooks';
 import { AvisoCargaChofer } from '@/modules/telemetria/components/aviso-carga-chofer';
-import { AvisoTableroInicio } from '@/modules/telemetria/components/aviso-tablero-inicio';
+import { AvisoPedidoTablero } from '@/modules/telemetria/components/aviso-pedido-tablero';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { FotoChofer, useFotosChofer } from '@/modules/flota/components/choferes/foto-chofer';
 import { cn } from '@/shared/lib/cn';
@@ -58,7 +58,8 @@ export function MiViaje() {
       {/* Migración 234: la orden de carga con su QR */}
       <OrdenCargaChofer />
       <AvisoCargaChofer />
-      <AvisoTableroInicio />
+      {/* Migración 297: la foto del tablero solo cuando la pide Telemetría (antes, en cada llenado de corte) */}
+      <AvisoPedidoTablero />
 
       {/* 1 · Lo de ahora: la ruta que le cargó Telemetría (solo la en curso; si no hay, nada) */}
       {ruta && <RutaDelChofer ruta={ruta} />}

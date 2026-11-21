@@ -1,13 +1,14 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { Check, ChevronDown, ChevronRight, Fuel, History, LoaderCircle, Radar } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Fuel, Gauge, History, LoaderCircle, Radar } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora, horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { BOTON_PRIMARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
 
 const TH = 'px-3 py-2.5 whitespace-nowrap';
@@ -19,11 +20,14 @@ import {
   type Resultado,
   type ViajeEnCurso,
 } from '../domain/seguimiento.types';
+import { pedidoDelCamion, VERSION_PEDIDO_TABLERO, type PedidosTablero } from '../domain/pedido-tablero';
 import { useControlesViaje, useRegistrarSeguimiento, useRegistrarSeguimientoFoto, useSeguimientoDesde, useViajesEnCurso } from '../queries/hooks';
+import { usePedidosTablero } from '../queries/pedido-tablero.hooks';
 import { SubirFotoComputadora, VerFotoControl, type FotoLeida } from './foto-computadora';
 import { BotonCopiar } from './boton-copiar';
 import { PedidoCarga } from './pedido-carga';
 import { FueraDeHorario } from './fuera-horario';
+import { EstadoPedidoTablero, PedirFotoTablero } from './pedir-tablero';
 
 const TONO_RESULTADO: Record<Resultado, Tono> = { bien: 'exito', a_mejorar: 'alerta', mal: 'error', sin_datos: 'neutro' };
 const COLOR_ESTADO: Record<NonNullable<Estado>, string> = { verde: 'text-exito', naranja: 'text-alerta', rojo: 'text-error' };
@@ -43,6 +47,9 @@ export function SeguimientoViajes() {
   const { rolesApp, zonaHoraria } = useSesion();
   const registra = rolesApp.includes('analista_control') || rolesApp.includes('ti');
   const { data, isPending, isError, error, refetch, isFetching } = useViajesEnCurso(true);
+  // Migración 297: la foto del tablero, solo a pedido de Telemetría (Mercedes y Scania)
+  const hayPedidoTablero = useBaseTiene(VERSION_PEDIDO_TABLERO);
+  const pedidosTablero = usePedidosTablero(hayPedidoTablero).data;
   // Lista de los tractores en viaje (A → Z); al tocar uno se despliega su seguimiento debajo, como en la Pizarra
   const [abierto, setAbierto] = useState<number | null>(null);
   const [filtro, setFiltro] = useState('');
@@ -148,12 +155,13 @@ export function SeguimientoViajes() {
                                   : 'Carga rechazada'}
                             </span>
                           )}
+                          <EstadoPedidoTablero pedido={pedidoDelCamion(pedidosTablero, v.camionId)} />
                         </td>
                       </tr>
                       {ab && (
                         <tr className="border-b border-borde bg-[#f5f9fd]">
                           <td colSpan={12} className="p-3">
-                            <TarjetaViaje v={v} registra={registra} />
+                            <TarjetaViaje v={v} registra={registra} tablero={pedidosTablero} />
                           </td>
                         </tr>
                       )}
@@ -176,7 +184,7 @@ export function SeguimientoViajes() {
   );
 }
 
-function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
+function TarjetaViaje({ v, registra, tablero }: { v: ViajeEnCurso; registra: boolean; tablero?: PedidosTablero }) {
   const { zonaHoraria } = useSesion();
   const registrar = useRegistrarSeguimiento();
   const registrarFoto = useRegistrarSeguimientoFoto();
@@ -192,6 +200,9 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
   const [historial, setHistorial] = useState(false);
   // Migración 195: pedido de carga de combustible para Gerencia (259: solicitud con el formulario de la orden)
   const [pedido, setPedido] = useState(false);
+  // Migración 297: pedirle al chofer la foto del tablero (solo a los camiones sin la API del fabricante: Mercedes y Scania)
+  const [fotoTablero, setFotoTablero] = useState(false);
+  const pideFoto = registra && !!tablero?.porFoto.includes(v.camionId);
   // Migración 197: desde qué momento se mide (salida, último control u otro momento)
   const [modo, setModo] = useState<Desde>('salida');
   const [otro, setOtro] = useState(() => isoAHoraLocal(v.salidaTs, zonaHoraria));
@@ -406,7 +417,12 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
             : 'Sin controles todavía'}
           {v.controlesHoy > 0 && ` · ${v.controlesHoy} hoy`}
         </span>
-        <span className="flex items-center gap-3">
+        <span className="flex flex-wrap items-center gap-3">
+          {pideFoto && (
+            <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setFotoTablero(!fotoTablero)}>
+              <Gauge className="size-3.5" /> {fotoTablero ? 'Cerrar la foto del tablero' : 'Pedir foto del tablero'}
+            </button>
+          )}
           <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setPedido(!pedido)}>
             <Fuel className="size-3.5" /> {pedido ? 'Cerrar la solicitud de carga' : 'Solicitar carga'}
           </button>
@@ -415,6 +431,9 @@ function TarjetaViaje({ v, registra }: { v: ViajeEnCurso; registra: boolean }) {
           </button>
         </span>
       </div>
+      {fotoTablero && pideFoto && tablero && (
+        <PedirFotoTablero viajeId={v.viajeId} pedido={pedidoDelCamion(tablero, v.camionId)} dias={tablero.dias} onCerrar={() => setFotoTablero(false)} />
+      )}
       {pedido && <PedidoCarga viajeId={v.viajeId} camionId={v.camionId} registra={registra} onCerrar={() => setPedido(false)} />}
       {historial && <Historial viajeId={v.viajeId} />}
     </div>

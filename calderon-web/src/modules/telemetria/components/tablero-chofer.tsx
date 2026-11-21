@@ -9,11 +9,14 @@ import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { anularTableroChofer } from '../actions/tablero.actions';
+import { VERSION_PEDIDO_TABLERO } from '../domain/pedido-tablero';
 import { horasATexto, type Tablero } from '../domain/tablero.types';
 import { tableroRepository } from '../repositories/tablero.repository';
+import { AvisoPedidoTablero } from './aviso-pedido-tablero';
 import { SubirTablero } from './subir-tablero';
 import { invalidar } from '@/shared/query/invalidar';
 
@@ -24,6 +27,8 @@ export function TableroChofer() {
   const ctx = useQuery({ queryKey: ['tablero', 'contexto'], queryFn: () => tableroRepository(browserDb()).contexto() });
   const lista = useQuery({ queryKey: ['tablero', 'mios'], queryFn: () => tableroRepository(browserDb()).lista(null, 30) });
   const [elegido, setElegido] = useState<number | null>(null);
+  // Migración 297: la foto, solo cuando la pide Telemetría y solo a los Mercedes y los Scania
+  const aPedido = useBaseTiene(VERSION_PEDIDO_TABLERO);
 
   if (ctx.isLoading) return <Cargando texto="Buscando tu camión…" />;
   if (ctx.isError || !ctx.data) return <ErrorLectura texto="No se pudo leer tu camión." onReintentar={() => void ctx.refetch()} />;
@@ -38,8 +43,13 @@ export function TableroChofer() {
       </Link>
       <header>
         <h1 className="text-2xl font-semibold text-tinta">Tablero del camión</h1>
-        <p className="text-sm text-tinta-suave">En cada llenado de corte: sacá las fotos, revisá los números, guardá y después tocá «Restablecer» en el camión.</p>
+        <p className="text-sm text-tinta-suave">
+          {aPedido
+            ? 'Solo para Mercedes y Scania, cuando Telemetría te la pide: sacá las fotos, revisá los números y guardá. Al salir de viaje, tocá «Restablecer» en el camión.'
+            : 'En cada llenado de corte: sacá las fotos, revisá los números, guardá y después tocá «Restablecer» en el camión.'}
+        </p>
       </header>
+      <AvisoPedidoTablero conEnlace={false} />
 
       {camiones.length === 0 ? (
         <p className={cn(TARJETA, 'p-4 text-sm text-tinta-suave')}>No tenés un camión asignado ni un viaje abierto. Pedile a Operaciones que te asigne el tractor.</p>
