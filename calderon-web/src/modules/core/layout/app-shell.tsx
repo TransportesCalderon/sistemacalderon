@@ -7,6 +7,7 @@ import { guardarLocal, leerLocal, Sidebar } from './sidebar';
 import { BarraSuperior } from './topbar';
 import { BotonAsistente } from '@/modules/ia/asistente/asistente-boton';
 import { MarcaDeAguaIronTrack } from '@/shared/ui/marca/marca';
+import { AvisoNavegadorViejo } from './aviso-navegador-viejo';
 
 const CLAVE_PLEGADO = 'tc.sidebar.plegado';
 
@@ -40,6 +41,7 @@ export function AppShell({ menu, aviso, children }: { menu: GrupoMenu[]; aviso?:
       <div className={cn('relative flex min-h-dvh flex-col transition-[padding] duration-200', plegado ? 'lg:pl-16' : 'lg:pl-64')}>
         <BarraSuperior onAbrirMenu={abrirMovil} />
         {aviso}
+        <AvisoNavegadorViejo />
         {/* pb-24: que el botón flotante de Iris no tape lo último de la pantalla */}
         <main className="relative z-[1] flex-1 px-4 pb-24 pt-6 sm:px-6 lg:px-8">{children}</main>
       </div>

@@ -66,8 +66,11 @@ export function Sidebar({ menu, plegado, onAlternarPlegado, abiertoMovil, onCerr
         className={cn(
           'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-borde bg-panel transition-[width,transform] duration-200',
           plegado ? 'lg:w-16' : 'lg:w-64',
-          'w-72 lg:translate-x-0',
-          abiertoMovil ? 'translate-x-0' : '-translate-x-full',
+          'w-72',
+          // 23/11/2026: con «transform» y no con las clases translate-x (usan la propiedad «translate»). El Chrome viejo
+          // de las radios TYT IP-78 (Android 9) no entiende «translate»: el menú quedaba abierto y la X no lo cerraba.
+          abiertoMovil ? '[transform:none]' : '[transform:translateX(-100%)]',
+          'lg:[transform:none]',
         )}
         aria-label="Menú principal"
       >
