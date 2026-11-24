@@ -79,7 +79,8 @@ export function CuentaDestino({
             onClick={async () => {
               setOcupado(true);
               setError(null);
-              const r = await guardarCuentaTransferenciaChofer({ choferId, moneda, ...v });
+              // Migración 303: se cambia esa cuenta (o se agrega, si no había)
+              const r = await guardarCuentaTransferenciaChofer({ choferId, moneda, ...v, id: cuenta?.id ?? null, nueva: !cuenta });
               setOcupado(false);
               if (!r.ok) return setError(r.error.mensaje);
               setEditando(false);

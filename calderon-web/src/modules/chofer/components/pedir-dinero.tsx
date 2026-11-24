@@ -15,6 +15,7 @@ import { anularMiPedidoFondo, pedirFondoChofer } from '../actions/pedido-fondo.a
 import { guardarMiCuentaTransferencia } from '../actions/cuenta-transferencia.actions';
 import { aTexto, parsearCuentaTransferencia, type CuentaTransferenciaTexto } from '../domain/cuenta-transferencia';
 import { CamposCuenta, cuentaCompleta } from './cuenta-transferencia';
+import { ElegirCuenta } from './cuentas-varias';
 import { parsearTrabas } from '../domain/trabas-pedido';
 import { dinero } from '../domain/chofer.types';
 import { ESTADO_PEDIDO, parsearMisPedidos, type MiPedido } from '../domain/pedido-fondo';
@@ -41,7 +42,10 @@ export function PedirDinero() {
   const [abierto, setAbierto] = useState(false);
   const [moneda, setMoneda] = useState('ARS');
   // Migración 284: a qué cuenta se le transfiere (una por moneda; queda guardada para la próxima)
-  const hayCuenta = useBaseTiene(284);
+  const varias = useBaseTiene(303);
+  const hayCuenta = useBaseTiene(284) && !varias;
+  // Migración 303: el chofer elige a cuál de sus cuentas (null = la principal)
+  const [cuentaId, setCuentaId] = useState<number | null>(null);
   const qCuenta = useQuery({
     queryKey: ['chofer', 'fondo', 'mi-cuenta', moneda],
     enabled: hay && hayCuenta && abierto,
@@ -118,19 +122,27 @@ export function PedirDinero() {
               setCuentaEscrita(null);
               await qCuenta.refetch();
             }
-            const r = await pedirFondoChofer({ moneda, importe: aNumero(importe), detalle });
+            const r = await pedirFondoChofer({ moneda, importe: aNumero(importe), detalle, ...(varias ? { cuentaId } : {}) });
             setOcupado(false);
             if (!r.ok) return setError(r.error.mensaje);
             setHecho(r.data.numero);
             setAbierto(false);
             setImporte('');
             setDetalle('');
+            setCuentaId(null);
             await invalidar(qc, 'fondo');
           }}
         >
           <div className="grid grid-cols-[1fr_2fr] gap-3">
             <Campo label="Moneda">
-              <select className={campo} value={moneda} onChange={(e) => setMoneda(e.target.value)}>
+              <select
+                className={campo}
+                value={moneda}
+                onChange={(e) => {
+                  setMoneda(e.target.value);
+                  setCuentaId(null);
+                }}
+              >
                 <option value="ARS">ARS</option>
                 <option value="CLP">CLP</option>
                 <option value="USD">USD</option>
@@ -149,6 +161,12 @@ export function PedirDinero() {
               onChange={(e) => setDetalle(e.target.value)}
             />
           </Campo>
+          {varias && (
+            <div className="space-y-2 rounded-md border border-borde p-3">
+              <p className="text-sm font-medium text-tinta">A qué cuenta te transferimos</p>
+              <ElegirCuenta choferId={null} moneda={moneda} valor={cuentaId} onElegir={setCuentaId} grande />
+            </div>
+          )}
           {hayCuenta && (
             <div className="space-y-2 rounded-md border border-borde p-3">
               <p className="text-sm font-medium text-tinta">A qué cuenta te transferimos</p>

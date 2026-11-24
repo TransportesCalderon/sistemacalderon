@@ -1904,6 +1904,11 @@ export type Database = {
       fn_pedidos_fondo: { Args: { p_todos?: boolean }; Returns: Json };
       // Migración 278: el chofer pide, Operaciones revisa, Gerencia autoriza y deja pagado
       fn_pedir_fondo_chofer: { Args: { p_moneda: string; p_importe: number; p_detalle: string }; Returns: Json };
+      // Migración 303: varias cuentas por chofer
+      fn_pedir_fondo_chofer_a_cuenta: { Args: { p_moneda: string; p_importe: number; p_detalle: string; p_cuenta: number }; Returns: Json };
+      fn_pedir_fondo_a_cuenta: { Args: { p_chofer: number; p_moneda: string; p_importe: number; p_detalle: string; p_cuenta: number }; Returns: Json };
+      fn_quitar_cuenta_transferencia: { Args: { p_cuenta: number }; Returns: Json };
+      fn_elegir_cuenta_pedido: { Args: { p_pedido: number; p_cuenta: number }; Returns: Json };
       fn_mis_pedidos_fondo: { Args: Record<string, never>; Returns: Json };
       fn_mi_cuenta_transferencia: { Args: { p_moneda: string }; Returns: Json };
       fn_guardar_cuenta_transferencia: { Args: { p_chofer: number | null; p_moneda: string; p_datos: Json }; Returns: Json };

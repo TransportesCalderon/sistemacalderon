@@ -16,11 +16,15 @@ export const pedirFondo = createAction({
     moneda: z.string().trim().length(3, 'Elegí la moneda.'),
     importe: z.number({ message: 'Escribí el importe.' }).positive('El importe tiene que ser mayor que cero.'),
     detalle: z.string().trim().max(500, 'Máximo 500 caracteres.'),
+    /** Migración 303: a qué cuenta del chofer (sin elegir, la principal). */
+    cuentaId: z.number().int().positive().nullable().optional(),
   }),
   handler: async (d, { db }) => {
-    const { data, error } = await db
-      .schema('fin')
-      .rpc('fn_pedir_fondo', { p_chofer: d.choferId, p_moneda: d.moneda, p_importe: d.importe, p_detalle: d.detalle });
+    const { data, error } = d.cuentaId
+      ? await db
+          .schema('fin')
+          .rpc('fn_pedir_fondo_a_cuenta', { p_chofer: d.choferId, p_moneda: d.moneda, p_importe: d.importe, p_detalle: d.detalle, p_cuenta: d.cuentaId })
+      : await db.schema('fin').rpc('fn_pedir_fondo', { p_chofer: d.choferId, p_moneda: d.moneda, p_importe: d.importe, p_detalle: d.detalle });
     if (error) throw error;
     const r = data as { numero?: string; cierres?: unknown[] } | null;
     return { numero: String(r?.numero ?? ''), cierresPendientes: Array.isArray(r?.cierres) ? r.cierres.length : 0 };
@@ -82,9 +86,15 @@ export const pedirFondoChofer = createAction({
     moneda: z.string().trim().length(3, 'Elegí la moneda.'),
     importe: z.number({ message: 'Escribí el importe.' }).positive('El importe tiene que ser mayor que cero.'),
     detalle: z.string().trim().max(500, 'Máximo 500 caracteres.'),
+    /** Migración 303: a qué cuenta suya (sin elegir, la principal). */
+    cuentaId: z.number().int().positive().nullable().optional(),
   }),
   handler: async (d, { db }) => {
-    const { data, error } = await db.schema('fin').rpc('fn_pedir_fondo_chofer', { p_moneda: d.moneda, p_importe: d.importe, p_detalle: d.detalle });
+    const { data, error } = d.cuentaId
+      ? await db
+          .schema('fin')
+          .rpc('fn_pedir_fondo_chofer_a_cuenta', { p_moneda: d.moneda, p_importe: d.importe, p_detalle: d.detalle, p_cuenta: d.cuentaId })
+      : await db.schema('fin').rpc('fn_pedir_fondo_chofer', { p_moneda: d.moneda, p_importe: d.importe, p_detalle: d.detalle });
     if (error) throw error;
     return { numero: String((data as { numero?: string } | null)?.numero ?? '') };
   },

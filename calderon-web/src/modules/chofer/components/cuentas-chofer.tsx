@@ -1,40 +1,43 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Check, Landmark, LoaderCircle, Pencil, Plus } from 'lucide-react';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { invalidar } from '@/shared/query/invalidar';
-import { browserDb } from '@/shared/supabase/browser';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { guardarMiCuentaTransferencia } from '../actions/cuenta-transferencia.actions';
-import { aTexto, MONEDAS_CUENTA, parsearCuentas, type CuentaTransferencia, type CuentaTransferenciaTexto } from '../domain/cuenta-transferencia';
+import { aTexto, MONEDAS_CUENTA, type CuentaTransferencia, type CuentaTransferenciaTexto } from '../domain/cuenta-transferencia';
 import { CamposCuenta, CuentaDestino } from './cuenta-transferencia';
+import { ListaCuentas } from './cuentas-varias';
+import { useCuentasTransferencia } from './use-cuentas';
 
 /**
  * Migración 288 · La cuenta a la que se le transfiere el fondo fijo al chofer (una por moneda).
  * La carga el chofer en Mi perfil, o la oficina en Fondos; al entregar dinero, Fondos la muestra sola.
  */
-export function useCuentasTransferencia(choferId: number | null, activo = true) {
-  const hay = useBaseTiene(288);
-  return useQuery({
-    queryKey: ['chofer', 'cuentas-transferencia', choferId ?? 'mias'] as const,
-    enabled: hay && activo,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await browserDb().schema('fin').rpc('fn_cuentas_transferencia', { p_chofer: choferId });
-      if (error) throw error;
-      return parsearCuentas(data);
-    },
-  });
-}
+export { useCuentasTransferencia } from './use-cuentas';
 
 /** Mi perfil (chofer): sus cuentas, para que le transfieran el dinero del viaje. */
 export function MisCuentasTransferencia() {
   const hay = useBaseTiene(288);
-  const q = useCuentasTransferencia(null);
+  const varias = useBaseTiene(303);
+  const q = useCuentasTransferencia(null, !varias);
   if (!hay) return null;
+  // Migración 303: varias cuentas (Global66, Mercado Pago, un banco…), una principal por moneda
+  if (varias)
+    return (
+      <section className={cn(TARJETA, 'space-y-3 p-6')}>
+        <h2 className="flex items-center gap-2 font-medium text-tinta">
+          <Landmark className="size-4 text-marca" /> Mis cuentas para recibir el fondo fijo
+        </h2>
+        <p className="text-sm text-tinta-suave">
+          Cargá todas las que uses. Cuando pidas dinero elegís a cuál te lo transfieren; la principal es la que aparece marcada.
+        </p>
+        <ListaCuentas choferId={null} puedeEditar grande />
+      </section>
+    );
   const cuentas = q.data ?? [];
   return (
     <section className={cn(TARJETA, 'space-y-3 p-6')}>
@@ -121,10 +124,18 @@ function MiCuenta({ moneda, cuenta }: { moneda: string; cuenta: CuentaTransferen
 /** Fondos (oficina): las cuentas del chofer, con «Copiar» y «Cambiar». */
 export function CuentasChoferOficina({ choferId, puedeEditar }: { choferId: number; puedeEditar: boolean }) {
   const hay = useBaseTiene(288);
+  const varias = useBaseTiene(303);
   const qc = useQueryClient();
-  const q = useCuentasTransferencia(choferId);
+  const q = useCuentasTransferencia(choferId, !varias);
   const [otra, setOtra] = useState<string | null>(null);
   if (!hay) return null;
+  if (varias)
+    return (
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-tinta">Cuentas para transferirle</p>
+        <ListaCuentas choferId={choferId} puedeEditar={puedeEditar} />
+      </div>
+    );
   if (q.isPending) return <p className="text-sm text-tinta-suave">Buscando las cuentas del chofer…</p>;
   if (q.isError) return <p className="text-sm text-error">{q.error.message}</p>;
   const cuentas = q.data;
@@ -155,9 +166,20 @@ export function CuentasChoferOficina({ choferId, puedeEditar }: { choferId: numb
 /** Al entregar dinero: la cuenta de esa moneda, sola. */
 export function CuentaParaEntrega({ choferId, moneda, puedeEditar }: { choferId: number; moneda: string; puedeEditar: boolean }) {
   const hay = useBaseTiene(288);
+  const varias = useBaseTiene(303);
   const qc = useQueryClient();
   const q = useCuentasTransferencia(choferId);
   if (!hay || !moneda || q.isPending || q.isError) return null;
+  // Migración 303: todas las cuentas de esa moneda (la principal primero), cada una con «Copiar»
+  const deLaMoneda = q.data.filter((c) => c.moneda === moneda);
+  if (varias && deLaMoneda.length > 1)
+    return (
+      <div className="space-y-2">
+        {deLaMoneda.map((c) => (
+          <CuentaDestino key={c.id ?? c.numero} cuenta={c} choferId={choferId} moneda={moneda} puedeEditar={puedeEditar} onCambio={() => invalidar(qc, 'fondo')} />
+        ))}
+      </div>
+    );
   return (
     <CuentaDestino
       key={moneda}

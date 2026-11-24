@@ -2,6 +2,10 @@ import { z } from 'zod';
 
 /** Migración 284 · A qué cuenta se le transfiere el dinero del viaje al chofer (una por moneda). */
 export interface CuentaTransferencia {
+  /** Migración 303: varias cuentas por chofer y moneda (null en pedidos viejos). */
+  id: number | null;
+  /** Migración 303: la que se propone sola en esa moneda. */
+  principal: boolean;
   moneda: string;
   banco: string;
   tipoCuenta: string | null;
@@ -29,7 +33,8 @@ export function parsearCuentaTransferencia(v: unknown): CuentaTransferencia | nu
   const numero = texto(o.numero);
   const titular = texto(o.titular);
   if (!banco || !numero || !titular) return null;
-  return { moneda: texto(o.moneda) ?? '', banco, tipoCuenta: texto(o.tipo_cuenta), numero, titular, titularDocumento: texto(o.titular_documento) };
+  const id = typeof o.id === 'number' ? o.id : typeof o.id === 'string' && /^\d+$/.test(o.id) ? Number(o.id) : null;
+  return { id, principal: o.principal !== false, moneda: texto(o.moneda) ?? '', banco, tipoCuenta: texto(o.tipo_cuenta), numero, titular, titularDocumento: texto(o.titular_documento) };
 }
 
 /** Migración 288 · Las monedas en que se le puede transferir al chofer. */
@@ -68,5 +73,12 @@ const datos = {
   titular: z.string().trim().max(120, 'Máximo 120 caracteres.'),
   titularDocumento: z.string().trim().max(30, 'Máximo 30 caracteres.'),
 };
-export const miCuentaTransferenciaSchema = z.object(datos);
-export const cuentaTransferenciaChoferSchema = z.object({ ...datos, choferId: z.number().int().positive() });
+/** Migración 303: con id cambia esa cuenta; con nueva agrega otra; principal = la que se propone sola. */
+const extra = { id: z.number().int().positive().nullable().optional(), nueva: z.boolean().optional(), principal: z.boolean().optional() };
+export const miCuentaTransferenciaSchema = z.object({ ...datos, ...extra });
+export const cuentaTransferenciaChoferSchema = z.object({ ...datos, ...extra, choferId: z.number().int().positive() });
+export const quitarCuentaSchema = z.object({ cuentaId: z.number().int().positive() });
+export const elegirCuentaPedidoSchema = z.object({ pedidoId: z.number().int().positive(), cuentaId: z.number().int().positive() });
+
+/** Migración 303: lo que se muestra de una cuenta en una línea. */
+export const cuentaEnUnaLinea = (c: CuentaTransferencia): string => `${c.banco} · ${c.numero} · ${c.titular}`;

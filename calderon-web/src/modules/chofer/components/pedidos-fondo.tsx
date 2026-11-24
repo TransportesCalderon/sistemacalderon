@@ -25,6 +25,7 @@ import {
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { parsearCuentasDePedidos, type CuentaTransferencia } from '../domain/cuenta-transferencia';
 import { CuentaDestino } from './cuenta-transferencia';
+import { CambiarCuentaPedido, ElegirCuenta } from './cuentas-varias';
 import { parsearTrabasDePedidos, type TrabaPedido } from '../domain/trabas-pedido';
 import { dinero } from '../domain/chofer.types';
 import { abrirArchivo, borrarArchivo, subirArchivo } from './archivos';
@@ -205,6 +206,9 @@ function NuevoPedido({ onCerrar }: { onCerrar: () => void }) {
   const [moneda, setMoneda] = useState('ARS');
   const [importe, setImporte] = useState('');
   const [detalle, setDetalle] = useState('');
+  // Migración 303: a cuál de las cuentas del chofer (null = la principal)
+  const varias = useBaseTiene(303);
+  const [cuentaId, setCuentaId] = useState<number | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<ErrorAccion | null>(null);
   const [hecho, setHecho] = useState<{ numero: string; cierresPendientes: number } | null>(null);
@@ -235,7 +239,7 @@ function NuevoPedido({ onCerrar }: { onCerrar: () => void }) {
         e.preventDefault();
         setOcupado(true);
         setError(null);
-        const r = await pedirFondo({ choferId: Number(chofer) || 0, moneda, importe: aNumero(importe), detalle });
+        const r = await pedirFondo({ choferId: Number(chofer) || 0, moneda, importe: aNumero(importe), detalle, ...(varias ? { cuentaId } : {}) });
         setOcupado(false);
         if (!r.ok) return setError(r.error);
         await invalidar(qc, 'fondo');
@@ -250,7 +254,14 @@ function NuevoPedido({ onCerrar }: { onCerrar: () => void }) {
       </div>
       <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
         <Campo label="Chofer *">
-          <select className={campo} value={chofer} onChange={(e) => setChofer(e.target.value)}>
+          <select
+            className={campo}
+            value={chofer}
+            onChange={(e) => {
+              setChofer(e.target.value);
+              setCuentaId(null);
+            }}
+          >
             <option value="">Elegí…</option>
             {choferes.data?.map((c) => (
               <option key={c.id} value={c.id}>
@@ -260,7 +271,14 @@ function NuevoPedido({ onCerrar }: { onCerrar: () => void }) {
           </select>
         </Campo>
         <Campo label="Moneda *">
-          <select className={campo} value={moneda} onChange={(e) => setMoneda(e.target.value)}>
+          <select
+            className={campo}
+            value={moneda}
+            onChange={(e) => {
+              setMoneda(e.target.value);
+              setCuentaId(null);
+            }}
+          >
             {(monedas.data ?? [{ codigo: 'ARS', nombre: 'Peso argentino' }]).map((m) => (
               <option key={m.codigo} value={m.codigo}>
                 {m.codigo}
@@ -281,6 +299,12 @@ function NuevoPedido({ onCerrar }: { onCerrar: () => void }) {
           onChange={(e) => setDetalle(e.target.value)}
         />
       </Campo>
+      {varias && Number(chofer) > 0 && (
+        <div className="space-y-2 rounded-md border border-borde p-3">
+          <p className="text-sm font-medium text-tinta">A qué cuenta del chofer se transfiere</p>
+          <ElegirCuenta choferId={Number(chofer)} moneda={moneda} valor={cuentaId} onElegir={setCuentaId} />
+        </div>
+      )}
       {error && (
         <p className="flex items-start gap-2 text-sm text-error">
           <CircleAlert className="mt-0.5 size-4 shrink-0" /> {error.mensaje}
@@ -310,6 +334,7 @@ function FilaPedido({
 }) {
   const { zonaHoraria } = useSesion();
   const nuevo = useBaseTiene(278);
+  const varias = useBaseTiene(303);
   const qc = useQueryClient();
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<ErrorAccion | null>(null);
@@ -362,6 +387,10 @@ function FilaPedido({
           puedeEditar={puede.pedir || puede.aprobar || puede.depositar}
           onCambio={recargar}
         />
+      )}
+      {/* Migración 303: pasar el pedido a otra cuenta del chofer */}
+      {varias && destino !== undefined && (puede.pedir || puede.aprobar || puede.depositar) && (p.estado === 'solicitado' || p.estado === 'pendiente' || p.estado === 'aprobado') && (
+        <CambiarCuentaPedido pedidoId={p.id} choferId={p.chofer_id} moneda={p.moneda} actual={destino?.id ?? null} onCambio={recargar} />
       )}
       {p.nota_revision && <p className="text-sm text-tinta-suave">Operaciones ({p.elevado_por ?? '—'}): {p.nota_revision}</p>}
       {p.estado === 'depositado' && p.medio_pago && (

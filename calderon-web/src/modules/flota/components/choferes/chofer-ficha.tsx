@@ -20,6 +20,8 @@ import { DocumentoChofer } from './documento-chofer';
 import { FotoChoferFicha } from './foto-chofer';
 import { EstadoChoferChip, LicenciaChip } from './estado-chofer';
 import { PendientesChofer } from './pendientes-chofer';
+import { ListaCuentas } from '@/modules/chofer/components/cuentas-varias';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { SoloEnPagina, useFicha, useNombreFicha } from '@/modules/core/fichas/contexto';
 
 /** Pestañas de la ficha según la especificación (P-MAE-03). Solo Datos está disponible en esta etapa. */
@@ -44,6 +46,7 @@ export function ChoferFicha({ id }: { id: ChoferId }) {
   const { data: catalogos } = useCatalogosFlota();
   const { data: bases } = useBases();
   useNombreFicha(chofer ? nombreCompleto(chofer) : null);
+  const cuentasVarias = useBaseTiene(303);
 
   if (isPending) {
     return (
@@ -177,6 +180,14 @@ export function ChoferFicha({ id }: { id: ChoferId }) {
           <Dato etiqueta="Fecha de egreso">{chofer.fechaEgreso ? formatearFechaDia(chofer.fechaEgreso) : null}</Dato>
         </Seccion>
         {!eliminado && <PendientesChofer id={chofer.id} estado={chofer.estado} />}
+
+        {/* Migración 303: sus cuentas bancarias para transferirle el fondo fijo (varias; una principal por moneda) */}
+        {!eliminado && cuentasVarias && (
+          <section className={cn(TARJETA, 'p-5')}>
+            <h2 className="mb-3 text-sm font-semibold text-tinta">Cuentas bancarias (para transferirle el fondo fijo)</h2>
+            <ListaCuentas choferId={Number(chofer.id)} puedeEditar ocultarSinPermiso />
+          </section>
+        )}
 
         <Seccion titulo="Registro">
           <Dato etiqueta="Creado">{formatearFechaHora(chofer.creadoEn, sesion.zonaHoraria)}</Dato>
