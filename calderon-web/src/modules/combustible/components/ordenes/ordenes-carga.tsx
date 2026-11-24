@@ -30,6 +30,7 @@ import {
   compararLitros,
 } from '../../domain/orden-carga.types';
 import { useCamionesCombustible, useChoferesCombustible, useEstaciones } from '../../queries/hooks';
+import { TicketPorElChofer } from './ticket-por-el-chofer';
 import {
   useAnularOrdenCarga,
   useAprobarSolicitudCarga,
@@ -136,6 +137,9 @@ function FilaOrden({ o, zona, puede }: { o: OrdenCarga; zona: string; puede: boo
   // S4: la diferencia la marcan revisada Gerencia, Telemetría o TI (lo exige la base)
   const puedeRevisar = usePuedeEnBase('revisarOrdenCarga');
   const abierta = o.estado === 'emitida' || o.estado === 'autorizada' || o.estado === 'bloqueada';
+  // El chofer no pudo subir el ticket: lo sube la oficina en su nombre (la base deja a Gerencia, Adm. de combustible y TI)
+  const puedeTicket = useCan('combustible.cargas:editar') && o.estado === 'autorizada';
+  const [subiendoTicket, setSubiendoTicket] = useState(false);
   return (
     <>
       <tr>
@@ -183,6 +187,11 @@ function FilaOrden({ o, zona, puede }: { o: OrdenCarga; zona: string; puede: boo
           {o.tickets.length > 0 && <span className="block text-xs text-tinta-suave">{o.tickets.length} ticket(s)</span>}
         </td>
         <td className={cn(TD, 'text-right')}>
+          {puedeTicket && !subiendoTicket && (
+            <button type="button" className="mb-1 block w-full text-right text-xs text-marca hover:underline" onClick={() => setSubiendoTicket(true)}>
+              Subir el ticket por el chofer
+            </button>
+          )}
           {puede && abierta && !anulando && (
             <button type="button" className="text-xs text-error hover:underline" onClick={() => setAnulando(true)}>
               Anular
@@ -190,6 +199,13 @@ function FilaOrden({ o, zona, puede }: { o: OrdenCarga; zona: string; puede: boo
           )}
         </td>
       </tr>
+      {subiendoTicket && (
+        <tr>
+          <td colSpan={7} className="px-3 pb-3">
+            <TicketPorElChofer ordenId={o.id} numero={o.numero} chofer={o.chofer} onCerrar={() => setSubiendoTicket(false)} />
+          </td>
+        </tr>
+      )}
       {o.alerta && (
         <tr>
           <td colSpan={7} className="px-3 pb-3">

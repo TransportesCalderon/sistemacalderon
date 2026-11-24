@@ -135,6 +135,18 @@ export const terminarOrdenCarga = createAction({
   handler: (d, { db }) => ordenCargaRepository(db).terminar(d.id, d.fotos, d.lecturas, d.litros, d.horometro ?? null),
 });
 
+/** El ticket lo sube la oficina en nombre del chofer (no pudo subirlo). La base deja a Gerencia, Adm. de combustible y TI. */
+export const terminarOrdenCargaOficina = createAction({
+  permiso: 'combustible.cargas:editar',
+  schema: z.object({
+    id,
+    fotos: z.array(z.object({ ruta: z.string().min(1).max(300), hash: z.string().max(100) })).min(1).max(5),
+    lecturas: z.array(id).max(5),
+    litros: z.number().finite().positive().nullable(),
+  }),
+  handler: (d, { db }) => ordenCargaRepository(db).terminar(d.id, d.fotos, d.lecturas, d.litros, null),
+});
+
 export const leerTicketChofer = createAction({
   permiso: 'chofer.mi_carga:editar',
   schema: z.object({
