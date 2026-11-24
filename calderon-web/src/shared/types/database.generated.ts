@@ -1242,6 +1242,14 @@ export type Database = {
       fn_ven_empresas: { Args: { p_texto?: string | null; p_solo?: string | null }; Returns: Json };
       fn_ven_empresa: { Args: { p_id: number }; Returns: Json };
       fn_ven_tarifario: { Args: Record<string, never>; Returns: Json };
+      // Migración 305: cotizador simple
+      fn_ven_cotizar: {
+        Args: { p_origen: number; p_destino: number; p_linea?: number | null; p_vuelta_vacia?: boolean; p_regreso?: number | null; p_margen?: number | null; p_empresa?: number | null };
+        Returns: Json;
+      };
+      fn_ven_costo_km_contable: { Args: { p_meses?: number | null; p_hasta_hoy?: boolean | null }; Returns: Json };
+      fn_ven_cotizar_guardar: { Args: { p_datos: Json }; Returns: number };
+      fn_ven_guardar_base_costo: { Args: { p_meses: number; p_hasta_hoy: boolean; p_cuentas_fuera?: string[] | null; p_combustible_de_cargas?: boolean | null }; Returns: Json };
       fn_ven_sugerir: {
         Args: { p_linea: number; p_empresa: number; p_unidad?: string; p_contenedor?: string | null; p_vuelta_vacia?: boolean };
         Returns: Json;

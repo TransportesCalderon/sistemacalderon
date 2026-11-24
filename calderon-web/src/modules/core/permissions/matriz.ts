@@ -148,7 +148,7 @@ export const PANTALLAS = {
   // Migración 67: Ventas (seguimiento de clientes, cotizaciones, tarifas y facturación).
   'ventas.tablero':          { etiqueta: 'Tablero de ventas', fila: ['L', '—', '—', '—', '—', '—', '—', 'L', 'E A', 'L', 'E A', '—', '—'] },
   'ventas.empresas':         { etiqueta: 'Clientes y prospectos', fila: ['L', '—', '—', '—', '—', '—', '—', 'L', 'E A', 'L', 'E A', '—', '—'] },
-  'ventas.cotizaciones':     { etiqueta: 'Cotizaciones', fila: ['L', '—', '—', '—', '—', '—', '—', 'L', 'E A', 'L', 'E A', '—', '—'] },
+  'ventas.cotizaciones':     { etiqueta: 'Cotizaciones', fila: ['E A', '—', '—', '—', '—', '—', '—', 'L', 'E A', 'L', 'E A', '—', '—'] },
   'ventas.tarifas':          { etiqueta: 'Tarifas y costos', fila: ['L', '—', '—', '—', '—', '—', '—', 'L', 'E A', 'L', 'E A', '—', '—'] },
   'ventas.facturacion':      { etiqueta: 'Facturación y cobranzas', fila: ['L', '—', '—', '—', '—', '—', '—', 'E A', 'E A', 'L', 'L', '—', '—'] },
   // Migración 198 · Mantenimiento (M1): vencimientos de revisiones técnicas y matafuegos. Cargan Operaciones,

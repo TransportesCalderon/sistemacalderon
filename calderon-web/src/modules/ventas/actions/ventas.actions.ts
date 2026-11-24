@@ -27,6 +27,7 @@ import {
   versionSchema,
 } from '../domain/ventas.schemas';
 import { comprobanteCobroSchema, rearmarDetalleSchema } from '../domain/detalle';
+import { baseCostoSchema, cotizarGuardarSchema } from '../domain/cotizador';
 import { clienteSiiSchema, emitirSiiSchema, glosaSiiSchema, notaCreditoSiiSchema, ocSiiSchema, resolverDteSchema } from '../domain/sii';
 import { ventasRepository } from '../repositories/ventas.repository';
 
@@ -66,6 +67,15 @@ export const guardarParametros = createAction({ permiso: 'ventas.tarifas:editar'
 export const recalcularCostoKm = createAction({ permiso: 'ventas.tarifas:editar', schema: versionSchema.pick({}), handler: (_d, { db }) => repo(db).recalcularCostoKm(), invalida: rutas });
 
 // Cotizaciones
+/** Migración 305 · Cotizador simple: guarda el viaje cotizado como cotización (crea la ruta y el prospecto si hace falta). */
+export const cotizarGuardar = createAction({ permiso: 'ventas.cotizaciones:editar', schema: cotizarGuardarSchema, handler: (d, { db }) => repo(db).cotizarGuardar(d), invalida: rutas });
+/** Migración 305 · La base del costo por km (meses, mes en curso, combustible de las cargas). */
+export const guardarBaseCosto = createAction({
+  permiso: 'ventas.cotizaciones:editar',
+  schema: baseCostoSchema,
+  handler: (d, { db }) => repo(db).guardarBaseCosto(d.meses, d.hastaHoy, d.combustibleDeCargas),
+  invalida: rutas,
+});
 export const guardarCotizacion = createAction({ permiso: 'ventas.cotizaciones:editar', schema: cotizacionSchema, handler: (d, { db }) => repo(db).guardarCotizacion(d), invalida: rutas });
 export const enviarCotizacion = createAction({
   permiso: 'ventas.cotizaciones:transicionar',

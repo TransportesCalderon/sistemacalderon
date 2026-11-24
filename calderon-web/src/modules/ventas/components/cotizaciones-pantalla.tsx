@@ -12,6 +12,8 @@ import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
 import { ETIQUETA_ESTADO_COT, usd, type EstadoCotizacion } from '../domain/ventas.types';
 import { useCotizaciones } from '../queries/hooks';
 import { ChipCotizacion } from './comun';
+import { CotizadorRapido } from './cotizador-rapido';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 
 const FILTROS: (EstadoCotizacion | null)[] = [null, 'borrador', 'enviada', 'vencida', 'aceptada', 'rechazada'];
@@ -22,6 +24,7 @@ export function CotizacionesPantalla() {
   const [estado, setEstado] = useState<EstadoCotizacion | null>(null);
   const [texto, setTexto] = useState('');
   const { data, isLoading, isError, error, refetch } = useCotizaciones(estado, texto.trim() || null);
+  const cotizador = useBaseTiene(305);
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -32,6 +35,8 @@ export function CotizacionesPantalla() {
           </Link>
         )}
       </div>
+      {/* Migración 305: cotizar un viaje en un paso (origen, destino y si vuelve vacío) */}
+      {cotizador && <CotizadorRapido />}
       <div className="flex flex-wrap items-center gap-2">
         {FILTROS.map((f) => (
           <button
