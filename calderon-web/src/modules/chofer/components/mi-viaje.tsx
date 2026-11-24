@@ -11,6 +11,7 @@ import { useMisLiquidaciones } from '@/modules/liquidacion/queries/hooks';
 import { AvisoCargaChofer } from '@/modules/telemetria/components/aviso-carga-chofer';
 import { AvisoPedidoTablero } from '@/modules/telemetria/components/aviso-pedido-tablero';
 import { useSesion } from '@/modules/core/session/session-provider';
+import { NotificacionesSinRevisar } from '@/modules/core/push/campana-notificaciones';
 import { FotoChofer, useFotosChofer } from '@/modules/flota/components/choferes/foto-chofer';
 import { cn } from '@/shared/lib/cn';
 import { TARJETA } from '@/shared/ui/clases';
@@ -55,6 +56,8 @@ export function MiViaje() {
         </div>
       </header>
 
+      {/* Migración 306: las notificaciones del teléfono que todavía no abrió */}
+      <NotificacionesSinRevisar />
       {/* Migración 234: la orden de carga con su QR */}
       <OrdenCargaChofer />
       <AvisoCargaChofer />

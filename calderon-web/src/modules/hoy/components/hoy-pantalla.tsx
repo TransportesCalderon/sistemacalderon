@@ -8,6 +8,7 @@ import { useAbrirFicha, useFichaDeLaDireccion } from '@/modules/core/fichas/cont
 import { can } from '@/modules/core/permissions/resolver';
 import type { Permiso } from '@/modules/core/permissions/types';
 import { useSesion } from '@/modules/core/session/session-provider';
+import { NotificacionesSinRevisar } from '@/modules/core/push/campana-notificaciones';
 import { PendientesPantalla } from '@/modules/pendientes/components/pendientes-pantalla';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
@@ -49,6 +50,7 @@ export function HoyPantalla() {
   if (!activo) {
     return (
       <div className="space-y-5">
+        <NotificacionesSinRevisar />
         <Franja />
         <Tarjetas />
         <PendientesPantalla />
@@ -60,6 +62,8 @@ export function HoyPantalla() {
   return (
     <div className="space-y-5">
       <Encabezado titulo="Hoy" subtitulo="Lo que te toca, en una sola lista" />
+      {/* Migración 306: las notificaciones del teléfono que todavía no abrió */}
+      <NotificacionesSinRevisar />
       <AvisoOperacionesIncompletas />
       <Franja />
       <Tarjetas />

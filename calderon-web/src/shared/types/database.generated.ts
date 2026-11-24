@@ -1509,6 +1509,10 @@ export type Database = {
       fn_push_suscribir: { Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_dispositivo?: string | null }; Returns: Json };
       fn_push_desuscribir: { Args: { p_endpoint: string }; Returns: undefined };
       fn_push_probar: { Args: Record<string, never>; Returns: undefined };
+      // Migración 306: notificaciones del teléfono sin abrir
+      fn_mis_notificaciones: { Args: { p_limite?: number }; Returns: Json };
+      fn_notificacion_vista: { Args: { p_id: number }; Returns: number };
+      fn_notificaciones_vistas: { Args: Record<string, never>; Returns: number };
       // Migración 243: la orden de carga del chofer
       fn_mis_ordenes_carga: { Args: Record<string, never>; Returns: Json };
       fn_terminar_orden_carga: { Args: { p_id: number; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null; p_horometro?: number | null }; Returns: Json };

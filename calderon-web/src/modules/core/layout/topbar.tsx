@@ -11,6 +11,7 @@ import { ETIQUETA_ROL } from '@/modules/core/permissions/roles';
 import { cambiarZonaHoraria, cerrarSesion } from '@/modules/core/auth/actions';
 import { ZONAS_HORARIAS } from '@/modules/core/auth/zonas';
 import { Buscador } from '@/modules/core/buscador/buscador';
+import { CampanaNotificaciones } from '@/modules/core/push/campana-notificaciones';
 import { contarPendientes } from '@/modules/hoy/hoy';
 import { useHoy } from '@/modules/hoy/use-hoy';
 
@@ -18,6 +19,7 @@ import { useHoy } from '@/modules/hoy/use-hoy';
  * Barra superior (Sprint 2, Plan de migración UX ítems 6 a 8): Pizarra a mano, el buscador
  * en el centro y el menú del usuario, que ahora también tiene la zona horaria y la moneda base.
  * Sprint 3: «Hoy» con el contador de lo que espera una acción tuya. El chofer no tiene buscador.
+ * Migración 306: la campana con el número rojo de las notificaciones del teléfono sin revisar.
  */
 export function BarraSuperior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
   const { rolesApp } = useSesion();
@@ -68,6 +70,7 @@ export function BarraSuperior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
           </Suspense>
         )}
       </div>
+      <CampanaNotificaciones />
       <MenuUsuario />
     </header>
   );

@@ -100,6 +100,8 @@ export const OBJETOS = {
   fondo: [['chofer']],
   /** Usuarios del sistema. */
   usuario: [['usuarios']],
+  /** Migración 306: abrió una notificación del teléfono (la campana y «Notificaciones sin revisar» del inicio). */
+  notificacion: [['usuarios', 'notificaciones']],
   /** Aprobar cierres o completar operaciones de un viaje: toca casi todo. */
   cierre: TODO,
 } as const satisfies Record<string, readonly Prefijo[] | typeof TODO>;

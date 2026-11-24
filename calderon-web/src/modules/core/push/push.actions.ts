@@ -60,3 +60,15 @@ export async function probarPush(): Promise<ActionResult<null>> {
     return null;
   });
 }
+
+/** Migración 306: la persona abrió una notificación en el sistema. Devuelve cuántas le quedan sin abrir. */
+export async function marcarNotificacionVista(id: number): Promise<ActionResult<number>> {
+  const n = Number(id);
+  if (!Number.isSafeInteger(n) || n <= 0) return fallo('validacion', 'Falta la notificación.');
+  return conSesion(async (db) => Number(sinError(await db.schema('ops').rpc('fn_notificacion_vista', { p_id: n })) ?? 0));
+}
+
+/** Migración 306: «Marcar todas como vistas». Devuelve cuántas quedan (0). */
+export async function marcarNotificacionesVistas(): Promise<ActionResult<number>> {
+  return conSesion(async (db) => Number(sinError(await db.schema('ops').rpc('fn_notificaciones_vistas')) ?? 0));
+}
