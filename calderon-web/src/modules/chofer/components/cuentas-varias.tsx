@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, Copy, Landmark, LoaderCircle, Pencil, Plus, Star, Trash2 } from 'lucide-react';
+import { Check, Copy, Landmark, LoaderCircle, Pencil, Plus, Sparkles, Star, Trash2 } from 'lucide-react';
 import { invalidar } from '@/shared/query/invalidar';
 import { cn } from '@/shared/lib/cn';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
@@ -130,6 +130,12 @@ function FilaCuenta({
               <Star className="size-3" /> principal
             </span>
           )}
+          {/* Migración 304: la que más se usa */}
+          {c.recomendada && c.veces > 0 && (
+            <span className="ml-2 inline-flex items-center gap-1 rounded bg-exito/10 px-1.5 py-0.5 text-xs text-exito" title={c.motivoRecomendada ?? undefined}>
+              <Sparkles className="size-3" /> la más usada
+            </span>
+          )}
         </span>
         <span className="flex flex-wrap items-center gap-3 text-xs text-tinta-suave">
           <button
@@ -174,6 +180,7 @@ function FilaCuenta({
       <p className="text-tinta-suave">
         {c.titular}
         {c.titularDocumento && ` · ${c.titularDocumento}`}
+        {c.veces > 0 && ` · se le transfirió ${c.veces} ${c.veces === 1 ? 'vez' : 'veces'} en los últimos pagos`}
       </p>
       {quitando && c.id && (
         <p className="flex flex-wrap items-center gap-2 text-tinta">
@@ -282,8 +289,9 @@ export function ElegirCuenta({
   if (q.isPending) return <p className="text-sm text-tinta-suave">Buscando las cuentas…</p>;
   if (q.isError) return <p className="text-sm text-error">{q.error.message}</p>;
   const deLaMoneda = q.data.filter((c) => c.moneda === moneda && c.id !== null);
-  const principal = deLaMoneda.find((c) => c.principal) ?? deLaMoneda[0] ?? null;
-  const elegida = valor ?? principal?.id ?? null;
+  // Migración 304: se propone la recomendada (la más usada con este chofer); si no viene, la principal
+  const propuesta = deLaMoneda.find((c) => c.recomendada) ?? deLaMoneda.find((c) => c.principal) ?? deLaMoneda[0] ?? null;
+  const elegida = valor ?? propuesta?.id ?? null;
   const listo = async (id: number | null) => {
     setAgregando(false);
     await invalidar(qc, 'fondo');
@@ -305,10 +313,12 @@ export function ElegirCuenta({
                 <span>
                   <span className="font-medium text-tinta">{c.banco}</span> · <span className="font-mono">{c.numero}</span>
                   {c.principal && <span className="ml-1 text-xs text-marca">(principal)</span>}
+                  {c.recomendada && c.veces > 0 && <span className="ml-1 text-xs text-exito">· recomendada</span>}
                   <span className="block text-tinta-suave">
                     {c.titular}
                     {c.titularDocumento && ` · ${c.titularDocumento}`}
                   </span>
+                  {c.recomendada && c.motivoRecomendada && c.veces > 0 && <span className="block text-xs text-exito">{c.motivoRecomendada}</span>}
                 </span>
               </label>
             </li>
@@ -355,6 +365,7 @@ export function CambiarCuentaPedido({ pedidoId, choferId, moneda, actual, onCamb
         {otras.map((c) => (
           <option key={c.id} value={c.id!}>
             {c.banco} · {c.numero}
+            {c.recomendada && c.veces > 0 ? ' (la más usada)' : ''}
           </option>
         ))}
       </select>

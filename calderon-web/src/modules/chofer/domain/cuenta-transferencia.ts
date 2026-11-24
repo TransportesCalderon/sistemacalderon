@@ -6,6 +6,12 @@ export interface CuentaTransferencia {
   id: number | null;
   /** Migración 303: la que se propone sola en esa moneda. */
   principal: boolean;
+  /** Migración 304: cuántas veces se le transfirió a esta cuenta en los últimos pagos y la última fecha. */
+  veces: number;
+  ultima: string | null;
+  /** Migración 304: la que el sistema recomienda (la más usada; sin historial, la principal), con el motivo. */
+  recomendada: boolean;
+  motivoRecomendada: string | null;
   moneda: string;
   banco: string;
   tipoCuenta: string | null;
@@ -34,7 +40,14 @@ export function parsearCuentaTransferencia(v: unknown): CuentaTransferencia | nu
   const titular = texto(o.titular);
   if (!banco || !numero || !titular) return null;
   const id = typeof o.id === 'number' ? o.id : typeof o.id === 'string' && /^\d+$/.test(o.id) ? Number(o.id) : null;
-  return { id, principal: o.principal !== false, moneda: texto(o.moneda) ?? '', banco, tipoCuenta: texto(o.tipo_cuenta), numero, titular, titularDocumento: texto(o.titular_documento) };
+  return {
+    id,
+    principal: o.principal !== false,
+    veces: typeof o.veces === 'number' ? o.veces : 0,
+    ultima: texto(o.ultima),
+    recomendada: o.recomendada === true,
+    motivoRecomendada: texto(o.motivo_recomendada),
+    moneda: texto(o.moneda) ?? '', banco, tipoCuenta: texto(o.tipo_cuenta), numero, titular, titularDocumento: texto(o.titular_documento) };
 }
 
 /** Migración 288 · Las monedas en que se le puede transferir al chofer. */
