@@ -147,6 +147,24 @@ export const terminarOrdenCargaOficina = createAction({
   handler: (d, { db }) => ordenCargaRepository(db).terminar(d.id, d.fotos, d.lecturas, d.litros, null),
 });
 
+/**
+ * Migración 304: en Chile (tarjeta de flota, sin estación que autorice) el chofer avisa la carga y sube el ticket. La base
+ * cierra la orden de tarjeta abierta del camión en esa estación o crea una ya cargada, y valida todo (estación, lleno,
+ * fotos, litros): por eso acá van vacíos si faltan, para que el mensaje sea el de la base.
+ */
+export const informarCargaTarjeta = createAction({
+  permiso: 'chofer.mi_carga:editar',
+  schema: z.object({
+    camionId: id.nullable(),
+    estacionId: id.nullable(),
+    lleno: z.boolean().nullable(),
+    fotos: z.array(z.object({ ruta: z.string().min(1).max(300), hash: z.string().max(100) })).max(5),
+    lecturas: z.array(id).max(5),
+    litros: z.number().finite().positive().nullable(),
+  }),
+  handler: (d, { db }) => ordenCargaRepository(db).informarCargaTarjeta(d),
+});
+
 export const leerTicketChofer = createAction({
   permiso: 'chofer.mi_carga:editar',
   schema: z.object({

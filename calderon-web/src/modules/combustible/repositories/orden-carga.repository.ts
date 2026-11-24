@@ -14,6 +14,10 @@ import {
   parsearOrdenes,
   parsearPreparado,
   parsearSolicitudes,
+  parsearOpcionesCargaTarjeta,
+  parsearCargaTarjetaInformada,
+  type OpcionesCargaTarjeta,
+  type CargaTarjetaInformada,
   type SolicitudCarga,
   type CreadaOrden,
   type DetalleOrden,
@@ -110,6 +114,29 @@ export const ordenCargaRepository = (db: Db) => {
           p_litros: litros,
           ...(horometro !== null ? { p_horometro: horometro } : {}),
         }),
+      ),
+    // Migración 304: Chile, la carga con tarjeta de flota que avisa el chofer (va por «ops», como las del chofer)
+    opcionesCargaTarjeta: async (): Promise<OpcionesCargaTarjeta> =>
+      parsearOpcionesCargaTarjeta(ok(await db.schema('ops').rpc('fn_opciones_carga_tarjeta'))),
+    informarCargaTarjeta: async (d: {
+      camionId: number | null;
+      estacionId: number | null;
+      lleno: boolean | null;
+      fotos: { ruta: string; hash: string }[];
+      lecturas: number[];
+      litros: number | null;
+    }): Promise<CargaTarjetaInformada> =>
+      parsearCargaTarjetaInformada(
+        ok(
+          await db.schema('ops').rpc('fn_informar_carga_tarjeta', {
+            p_camion: d.camionId as number,
+            p_estacion: d.estacionId as number,
+            p_lleno: d.lleno as boolean,
+            p_fotos: d.fotos as unknown as Json,
+            p_lecturas: d.lecturas,
+            p_litros: d.litros,
+          }),
+        ),
       ),
     // Migración 236: la cuenta de mail (Hotmail con permiso de Microsoft)
     estadoMail: async (): Promise<EstadoMail> => parsearEstadoMail(ok(await db.schema('ops').rpc('fn_estado_mail'))),

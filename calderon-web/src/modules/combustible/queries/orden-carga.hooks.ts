@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { browserDb } from '@/shared/supabase/browser';
 import { invalidar } from '@/shared/query/invalidar';
-import { anularOrdenCarga, aprobarSolicitudCarga, crearOrdenCarga, rechazarSolicitudCarga, crearOrdenGenset, registrarCargaOrden, guardarCorreoEstacion, revisarOrdenCarga, terminarOrdenCarga, terminarOrdenCargaOficina } from '../actions/orden-carga.actions';
+import { anularOrdenCarga, aprobarSolicitudCarga, crearOrdenCarga, rechazarSolicitudCarga, crearOrdenGenset, registrarCargaOrden, guardarCorreoEstacion, revisarOrdenCarga, terminarOrdenCarga, terminarOrdenCargaOficina, informarCargaTarjeta } from '../actions/orden-carga.actions';
 import { ordenCargaRepository } from '../repositories/orden-carga.repository';
 
 /** Migración 234 · Órdenes de carga de combustible. */
@@ -53,6 +53,10 @@ export const useRevisarOrdenCarga = () => useAccion(revisarOrdenCarga, 'combusti
 export const useCorreoEstacion = () => useAccion(guardarCorreoEstacion, 'catalogo');
 export const useTerminarOrdenCarga = () => useAccion(terminarOrdenCarga, 'chofer_portal');
 export const useTerminarOrdenCargaOficina = () => useAccion(terminarOrdenCargaOficina, 'combustible');
+// Migración 304: Chile, la carga con tarjeta de flota que avisa el chofer
+export const useOpcionesCargaTarjeta = (activo: boolean) =>
+  useQuery({ queryKey: ['chofer', 'carga-tarjeta'] as const, queryFn: () => repo().opcionesCargaTarjeta(), enabled: activo, staleTime: 60_000 });
+export const useInformarCargaTarjeta = () => useAccion(informarCargaTarjeta, 'chofer_portal');
 // Migración 259: solicitudes de carga pedidas desde Seguimiento de viaje
 export const useSolicitudesCarga = (activo: boolean) =>
   useQuery({ queryKey: ['combustible', 'ordenes', 'solicitudes'] as const, queryFn: () => repo().solicitudes(), enabled: activo, refetchInterval: activo ? 30_000 : false });

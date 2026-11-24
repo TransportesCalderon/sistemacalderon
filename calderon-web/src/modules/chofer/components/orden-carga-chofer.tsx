@@ -4,11 +4,19 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { CheckCircle2, CreditCard, Fuel, LoaderCircle, QrCode, Receipt, Trash2, X } from 'lucide-react';
 import { leerTicketChofer } from '@/modules/combustible/actions/orden-carga.actions';
-import { urlQr, type MiOrden } from '@/modules/combustible/domain/orden-carga.types';
-import { useMisOrdenesCarga, useTerminarOrdenCarga } from '@/modules/combustible/queries/orden-carga.hooks';
+import {
+  urlQr,
+  VERSION_CARGA_TARJETA_CHOFER,
+  type CargaTarjetaInformada,
+  type MiOrden,
+  type OpcionesCargaTarjeta,
+} from '@/modules/combustible/domain/orden-carga.types';
+import { useInformarCargaTarjeta, useMisOrdenesCarga, useOpcionesCargaTarjeta, useTerminarOrdenCarga } from '@/modules/combustible/queries/orden-carga.hooks';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { iaRepository } from '@/modules/ia/ia.repository';
+import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { idAleatorio, prepararArchivo, sha256Hex } from '@/shared/lib/archivo';
+import { cn } from '@/shared/lib/cn';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
@@ -21,19 +29,29 @@ async function aBase64(blob: Blob): Promise<string> {
   for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
   return btoa(bin);
 }
+/** Los litros escritos a mano: el punto separa los miles y la coma los decimales (null si no hay un número válido). */
+const aLitros = (s: string): number | null => {
+  const v = s.trim() === '' ? null : Number(s.replace(/\./g, '').replace(',', '.'));
+  return v !== null && Number.isFinite(v) && v > 0 ? v : null;
+};
 
 /**
  * Migración 234 · La orden de carga del chofer: «Estás autorizado a cargar combustible» → un QR, sin otros datos.
  * Cuando la estación confirma, «Terminé mi carga» → las fotos de los tickets.
  * Migración 284: en Chile se paga con la tarjeta de flota: no hay QR; la orden ya llega autorizada con lo que se puede cargar.
+ * Migración 304: en Chile el chofer avisa la carga con la tarjeta aunque no tenga orden (o se le haya vencido).
  */
 export function OrdenCargaChofer() {
   const { data } = useMisOrdenesCarga(true);
+  const conTarjeta = useBaseTiene(VERSION_CARGA_TARJETA_CHOFER);
+  if (!data) return null;
+  // Si tiene una orden de tarjeta abierta, la termina desde la orden («Terminé mi carga»)
+  const ordenTarjeta = data.some((o) => o.tarjeta && !o.genset && !o.transferencia);
   // Migración 252: puede haber una del camión y otra del genset al mismo tiempo
-  if (!data || data.length === 0) return null;
   return (
     <>
       {data.map((o) => (o.estado === 'emitida' ? <Autorizado key={o.id} o={o} /> : <Terminar key={o.id} o={o} />))}
+      {conTarjeta && !ordenTarjeta && <CargaConTarjeta />}
     </>
   );
 }
@@ -75,16 +93,10 @@ function Autorizado({ o }: { o: MiOrden }) {
 
 type Ticket = { clave: string; vista: string; estado: 'subiendo' | 'leyendo' | 'listo' | 'error'; ruta?: string; hash?: string; lectura?: number; litros?: number | null; error?: string };
 
-function Terminar({ o }: { o: MiOrden }) {
+/** Las fotos de los tickets: se suben, Iris lee los litros de cada una y se suman (Terminé mi carga y la carga con tarjeta). */
+function useTickets() {
   const { choferId } = useSesion();
-  const [abierto, setAbierto] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [litros, setLitros] = useState('');
-  // Migración 252: en la orden de un genset se anota el horómetro
-  const [horometro, setHorometro] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [hecho, setHecho] = useState<{ litros: number | null } | null>(null);
-  const terminar = useTerminarOrdenCarga();
   const ocupado = tickets.some((t) => t.estado === 'subiendo' || t.estado === 'leyendo');
   const cambiar = (clave: string, c: Partial<Ticket>) => setTickets((ts) => ts.map((t) => (t.clave === clave ? { ...t, ...c } : t)));
 
@@ -137,6 +149,65 @@ function Terminar({ o }: { o: MiOrden }) {
 
   const leidos = tickets.filter((t) => t.litros != null).reduce((s, t) => s + (t.litros ?? 0), 0);
   const faltaLeer = tickets.some((t) => t.estado === 'listo' && t.litros == null);
+  return {
+    tickets,
+    ocupado,
+    agregar,
+    quitar: (clave: string) => setTickets((ts) => ts.filter((x) => x.clave !== clave)),
+    leidos,
+    faltaLeer,
+    /** Iris no leyó algún ticket (o ninguno): hay que escribir el total de litros. */
+    pedirLitros: tickets.length > 0 && !ocupado && (faltaLeer || leidos === 0),
+    fotos: () => tickets.flatMap((t) => (t.ruta ? [{ ruta: t.ruta, hash: t.hash ?? '' }] : [])),
+    lecturas: () => tickets.flatMap((t) => (t.lectura ? [t.lectura] : [])),
+  };
+}
+type Tickets = ReturnType<typeof useTickets>;
+
+/** «Agregar foto de ticket», las fotos con lo que leyó Iris y el total. */
+function FotosTickets({ tk }: { tk: Tickets }) {
+  return (
+    <>
+      <label className={`${BOTON_SECUNDARIO} w-full cursor-pointer justify-center`}>
+        <Receipt className="size-4" /> Agregar foto de ticket
+        <input type="file" accept="image/*" capture="environment" multiple className="sr-only" onChange={(e) => tk.agregar(e.target.files)} disabled={tk.tickets.length >= 5} />
+      </label>
+      {tk.tickets.length > 0 && (
+        <ul className="grid grid-cols-3 gap-2">
+          {tk.tickets.map((t) => (
+            <li key={t.clave} className="relative overflow-hidden rounded-md border border-borde bg-panel">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={t.vista} alt="Ticket" className="aspect-[3/4] w-full object-cover" />
+              <span className="absolute inset-x-0 bottom-0 bg-black/60 px-1 py-0.5 text-center text-[11px] text-white" title={t.error}>
+                {t.estado === 'subiendo' ? 'Subiendo…' : t.estado === 'leyendo' ? 'Iris está leyendo…' : t.estado === 'error' ? 'Error' : t.litros != null ? `${formatearNumero(t.litros, 2)} L` : 'Subido'}
+              </span>
+              {!tk.ocupado && (
+                <button type="button" aria-label="Quitar" className="absolute right-1 top-1 rounded bg-black/50 p-1 text-white" onClick={() => tk.quitar(t.clave)}>
+                  <Trash2 className="size-3" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {tk.tickets.length > 0 && !tk.ocupado && (
+        <p className="text-sm text-tinta">
+          {tk.leidos > 0 ? `Iris leyó ${formatearNumero(tk.leidos, 2)} L en total.` : 'Iris no leyó los litros.'} {tk.faltaLeer && 'Si falta algún ticket, escribí el total:'}
+        </p>
+      )}
+    </>
+  );
+}
+
+function Terminar({ o }: { o: MiOrden }) {
+  const [abierto, setAbierto] = useState(false);
+  const tk = useTickets();
+  const [litros, setLitros] = useState('');
+  // Migración 252: en la orden de un genset se anota el horómetro
+  const [horometro, setHorometro] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [hecho, setHecho] = useState<{ litros: number | null } | null>(null);
+  const terminar = useTerminarOrdenCarga();
 
   if (hecho)
     return (
@@ -172,39 +243,8 @@ function Terminar({ o }: { o: MiOrden }) {
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-tinta">Sacale una foto a cada ticket que te dio la estación (suelen ser 2 o 3).</p>
-          <label className={`${BOTON_SECUNDARIO} w-full cursor-pointer justify-center`}>
-            <Receipt className="size-4" /> Agregar foto de ticket
-            <input type="file" accept="image/*" capture="environment" multiple className="sr-only" onChange={(e) => agregar(e.target.files)} disabled={tickets.length >= 5} />
-          </label>
-          {tickets.length > 0 && (
-            <ul className="grid grid-cols-3 gap-2">
-              {tickets.map((t) => (
-                <li key={t.clave} className="relative overflow-hidden rounded-md border border-borde bg-panel">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={t.vista} alt="Ticket" className="aspect-[3/4] w-full object-cover" />
-                  <span className="absolute inset-x-0 bottom-0 bg-black/60 px-1 py-0.5 text-center text-[11px] text-white" title={t.error}>
-                    {t.estado === 'subiendo' ? 'Subiendo…' : t.estado === 'leyendo' ? 'Iris está leyendo…' : t.estado === 'error' ? 'Error' : t.litros != null ? `${formatearNumero(t.litros, 2)} L` : 'Subido'}
-                  </span>
-                  {!ocupado && (
-                    <button
-                      type="button"
-                      aria-label="Quitar"
-                      className="absolute right-1 top-1 rounded bg-black/50 p-1 text-white"
-                      onClick={() => setTickets((ts) => ts.filter((x) => x.clave !== t.clave))}
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-          {tickets.length > 0 && !ocupado && (
-            <p className="text-sm text-tinta">
-              {leidos > 0 ? `Iris leyó ${formatearNumero(leidos, 2)} L en total.` : 'Iris no leyó los litros.'} {faltaLeer && 'Si falta algún ticket, escribí el total:'}
-            </p>
-          )}
-          {tickets.length > 0 && !ocupado && (faltaLeer || leidos === 0) && (
+          <FotosTickets tk={tk} />
+          {tk.pedirLitros && (
             <input
               inputMode="decimal"
               className="h-10 w-full rounded-md border border-borde bg-panel px-3 text-sm"
@@ -229,24 +269,157 @@ function Terminar({ o }: { o: MiOrden }) {
           <button
             type="button"
             className={`${BOTON_PRIMARIO} w-full justify-center`}
-            disabled={ocupado || terminar.isPending || (o.genset && horometro.trim() === '')}
+            disabled={tk.ocupado || terminar.isPending || (o.genset && horometro.trim() === '')}
             onClick={async () => {
               setError(null);
-              const manual = litros.trim() === '' ? null : Number(litros.replace(/\./g, '').replace(',', '.'));
               const r = await terminar.mutateAsync({
                 id: o.id,
-                fotos: tickets.flatMap((t) => (t.ruta ? [{ ruta: t.ruta, hash: t.hash ?? '' }] : [])),
-                lecturas: tickets.flatMap((t) => (t.lectura ? [t.lectura] : [])),
-                litros: manual !== null && Number.isFinite(manual) && manual > 0 ? manual : null,
+                fotos: tk.fotos(),
+                lecturas: tk.lecturas(),
+                litros: aLitros(litros),
                 ...(o.genset ? { horometro: Number(horometro.replace(/\./g, '').replace(',', '.')) } : {}),
               });
               if (!r.ok) setError(r.error.mensaje);
               else setHecho({ litros: (r.data as { litros?: number | null }).litros ?? null });
             }}
           >
-            {ocupado ? <LoaderCircle className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Enviar los tickets
+            {tk.ocupado ? <LoaderCircle className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Enviar los tickets
           </button>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Migración 304 · Chile: se paga con la tarjeta de flota y la estación no autoriza nada (no hay QR). Al terminar de
+ * cargar, el chofer elige la estación, dice si llenó el tanque y saca la foto del ticket. La base cierra la orden de
+ * tarjeta abierta del camión en esa estación (aunque haya vencido) o crea una ya cargada; la oficina la registra.
+ */
+function CargaConTarjeta() {
+  const { data } = useOpcionesCargaTarjeta(true);
+  const [abierto, setAbierto] = useState(false);
+  if (!data || data.estaciones.length === 0) return null;
+  // Si el camión está parado en una estación de Chile, el botón la nombra
+  const cerca = data.estaciones.find((e) => e.id === data.cerca) ?? null;
+  if (!abierto)
+    return (
+      <button
+        type="button"
+        className={cn(cerca ? BOTON_PRIMARIO : BOTON_SECUNDARIO, 'h-auto min-h-12 w-full justify-center py-2 text-center')}
+        onClick={() => setAbierto(true)}
+      >
+        <CreditCard className="size-5 shrink-0" /> {cerca ? `Cargué en ${cerca.nombre} con la tarjeta` : 'Cargué en Chile con la tarjeta de flota'}
+      </button>
+    );
+  return <FormCargaTarjeta op={data} onCerrar={() => setAbierto(false)} />;
+}
+
+function FormCargaTarjeta({ op, onCerrar }: { op: OpcionesCargaTarjeta; onCerrar: () => void }) {
+  const [camionId, setCamionId] = useState<number | null>(op.camionId);
+  const [estacionId, setEstacionId] = useState<number | null>(op.cerca);
+  const [lleno, setLleno] = useState<boolean | null>(null);
+  const tk = useTickets();
+  const [litros, setLitros] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [hecho, setHecho] = useState<CargaTarjetaInformada | null>(null);
+  const informar = useInformarCargaTarjeta();
+  const campo = 'h-12 w-full rounded-md border border-borde bg-panel px-3 text-base';
+
+  if (hecho)
+    return (
+      <div className="flex items-center gap-3 rounded-xl border-2 border-exito bg-exito/10 p-4 text-tinta">
+        <CheckCircle2 className="size-6 text-exito" />
+        <p className="text-sm">
+          Listo{hecho.litros !== null ? `: ${formatearNumero(hecho.litros, 2)} L` : ''}. La oficina registra tu carga ({hecho.numero}). ¡Gracias!
+        </p>
+      </div>
+    );
+
+  return (
+    <div className="space-y-3 rounded-xl border-2 border-marca bg-panel p-4">
+      <div className="flex items-start justify-between gap-2">
+        <p className="flex items-center gap-2 text-lg font-semibold text-tinta">
+          <CreditCard className="size-6 text-marca" /> Carga con la tarjeta de flota
+        </p>
+        <button type="button" aria-label="Cerrar" className="rounded-md p-1 text-tinta-suave hover:bg-hover" onClick={onCerrar}>
+          <X className="size-5" />
+        </button>
+      </div>
+      {op.camiones.length === 0 ? (
+        <p className="text-sm text-tinta">No tenés un camión a tu nombre en la Pizarra: avisá a la oficina.</p>
+      ) : (
+        <>
+          {op.camiones.length > 1 && (
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-tinta">Camión</span>
+              <select className={campo} value={camionId ?? ''} onChange={(e) => setCamionId(e.target.value ? Number(e.target.value) : null)}>
+                <option value="">Elegí el camión</option>
+                {op.camiones.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.patente}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-tinta">¿Dónde cargaste?</span>
+            <select className={campo} value={estacionId ?? ''} onChange={(e) => setEstacionId(e.target.value ? Number(e.target.value) : null)}>
+              <option value="">Elegí la estación</option>
+              {op.estaciones.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nombre}
+                  {e.km !== null ? ` · a ${formatearNumero(e.km, 1)} km` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-tinta">¿Llenaste el tanque?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {([true, false] as const).map((v) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  aria-pressed={lleno === v}
+                  onClick={() => setLleno(v)}
+                  className={cn(
+                    'min-h-12 rounded-lg border-2 px-3 text-base font-semibold',
+                    lleno === v ? 'border-marca bg-marca-suave text-marca' : 'border-borde bg-panel text-tinta hover:bg-hover',
+                  )}
+                >
+                  {v ? 'Sí, lleno' : 'No'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-sm text-tinta">Sacale una foto a cada ticket.</p>
+          <FotosTickets tk={tk} />
+          {tk.pedirLitros && (
+            <input
+              inputMode="decimal"
+              className="h-10 w-full rounded-md border border-borde bg-panel px-3 text-sm"
+              placeholder="Total de litros, con los decimales del ticket"
+              value={litros}
+              onChange={(e) => setLitros(e.target.value)}
+            />
+          )}
+          {error && <p className="text-sm text-error">{error}</p>}
+          <button
+            type="button"
+            className={`${BOTON_PRIMARIO} w-full justify-center`}
+            disabled={tk.ocupado || informar.isPending}
+            onClick={async () => {
+              setError(null);
+              const r = await informar.mutateAsync({ camionId, estacionId, lleno, fotos: tk.fotos(), lecturas: tk.lecturas(), litros: aLitros(litros) });
+              if (!r.ok) setError(r.error.mensaje);
+              else setHecho(r.data);
+            }}
+          >
+            {tk.ocupado || informar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Enviar el ticket
+          </button>
+        </>
       )}
     </div>
   );

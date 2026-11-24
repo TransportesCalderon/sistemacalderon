@@ -414,3 +414,34 @@ export const parsearOrdenPublica = (d: unknown): OrdenPublica => {
 
 /** Dirección del QR: la página pública donde el playero confirma la carga. */
 export const urlQr = (origen: string, token: string) => `${origen.replace(/\/$/, '')}/qr/${token}`;
+
+/** Migración 304 · Chile (tarjeta de flota): el chofer avisa la carga y sube el ticket, con orden o sin ella. */
+export const VERSION_CARGA_TARJETA_CHOFER = 304;
+export interface OpcionesCargaTarjeta {
+  camiones: { id: number; patente: string }[];
+  /** El camión de ahora (el del viaje abierto). */
+  camionId: number | null;
+  /** Estaciones de Chile, la más cercana primero (km desde el GPS del camión, si hay). */
+  estaciones: { id: number; nombre: string; km: number | null }[];
+  /** La estación donde está el camión (a 3 km o menos): queda elegida. */
+  cerca: number | null;
+}
+export const parsearOpcionesCargaTarjeta = (d: unknown): OpcionesCargaTarjeta => {
+  const x = o(d);
+  return {
+    camiones: a(x.camiones).map((c) => ({ id: Number(c.id), patente: t(c.patente) ?? '' })),
+    camionId: n(x.camion_id),
+    estaciones: a(x.estaciones).map((e) => ({ id: Number(e.id), nombre: t(e.nombre) ?? '', km: n(e.km) })),
+    cerca: n(x.cerca),
+  };
+};
+/** Lo que devuelve la base: la orden (nueva, o la de tarjeta que estaba abierta) y los litros. */
+export interface CargaTarjetaInformada {
+  numero: string;
+  litros: number | null;
+  nueva: boolean;
+}
+export const parsearCargaTarjetaInformada = (d: unknown): CargaTarjetaInformada => {
+  const x = o(d);
+  return { numero: t(x.numero) ?? '', litros: n(x.litros), nueva: x.nueva === true };
+};

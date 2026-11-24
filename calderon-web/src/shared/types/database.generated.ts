@@ -1504,6 +1504,12 @@ export type Database = {
       // Migración 243: la orden de carga del chofer
       fn_mis_ordenes_carga: { Args: Record<string, never>; Returns: Json };
       fn_terminar_orden_carga: { Args: { p_id: number; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null; p_horometro?: number | null }; Returns: Json };
+      // Migración 304: Chile, la carga con tarjeta de flota que avisa el chofer
+      fn_opciones_carga_tarjeta: { Args: Record<string, never>; Returns: Json };
+      fn_informar_carga_tarjeta: {
+        Args: { p_camion: number; p_estacion: number; p_lleno: boolean; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null };
+        Returns: Json;
+      };
       fn_fotos_chofer: { Args: { p_ids: number[] }; Returns: Json };
       fn_marcar_conforme: { Args: { p_servicio: number; p_llego: boolean; p_motivo?: string | null }; Returns: Json };
       // Migración 174: pasa a un fletero en ruta (trasbordo)
