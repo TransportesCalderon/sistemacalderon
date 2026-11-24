@@ -15,6 +15,7 @@ import { formatearFechaDia, formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, CONTROL_FILTRO } from '@/shared/ui/clases';
 import { useInventarioTelemetria, useTarjetasSinEnlace } from '../queries/hooks';
+import { ZonasVelocidad } from './zonas-velocidad';
 
 /**
  * Configuración > Datos de los camiones (migración 49): qué datos manda realmente cada marca
@@ -28,6 +29,8 @@ export function DatosCamionesPantalla() {
       <Encabezado titulo="Datos de los camiones" subtitulo="Configuración" />
       <TarjetasSinEnlace />
       {verReglas && <Umbrales />}
+      {/* Migración 307: velocidades máximas por tramo de montaña */}
+      {verReglas && <ZonasVelocidad />}
       <Inventario />
     </div>
   );

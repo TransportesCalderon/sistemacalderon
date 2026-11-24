@@ -2106,6 +2106,10 @@ export type Database = {
       }>;
     };
     Functions: {
+      // Migración 307: velocidades por tramo de montaña
+      fn_zonas_velocidad: { Args: Record<string, never>; Returns: Json };
+      fn_guardar_zona_velocidad: { Args: { p_id: number | null; p_datos: Json }; Returns: Json };
+      fn_estado_zona_velocidad: { Args: { p_id: number; p_estado: string }; Returns: undefined };
       // Ubicación del celular del chofer (60)
       fn_registrar_posicion_celular: {
         Args: {

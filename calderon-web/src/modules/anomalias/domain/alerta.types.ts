@@ -35,7 +35,7 @@ export interface FiltrosAlertas {
   severidad: Severidad | null;
 }
 
-const UNIDAD: Record<string, string> = { l: 'L', km: 'km', min: 'min', l_100km: 'L/100 km', pct: '%' };
+const UNIDAD: Record<string, string> = { l: 'L', km: 'km', min: 'min', l_100km: 'L/100 km', pct: '%', km_h: 'km/h' };
 export const etiquetaUnidad = (u: string | null) => (u ? (UNIDAD[u] ?? u) : '');
 
 export interface Alerta {
