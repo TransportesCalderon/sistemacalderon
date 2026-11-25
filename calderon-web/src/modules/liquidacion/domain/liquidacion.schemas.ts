@@ -136,4 +136,14 @@ export const bonoColaboradoresSchema = z.object({
   pdfRuta: z.string().max(300).nullable(),
 });
 export type BonoColaboradoresEntrada = z.infer<typeof bonoColaboradoresSchema>;
+/** Liquidación por tramo: liquidar null = vuelve a lo del viaje; false = no se liquida acá; true = bono/km ajustados */
+export const tramoLiquidacionSchema = z.object({
+  itemId: id,
+  liquidar: z.boolean().nullable(),
+  canon: numeroOpc,
+  moneda: z.string().trim().max(3).nullish().transform((v) => (v ? v.toUpperCase() : null)),
+  km: numeroOpc,
+  motivo: texto(300),
+});
+export type TramoLiquidacionEntrada = z.infer<typeof tramoLiquidacionSchema>;
 export const motivoSchema = z.object({ id, motivo });

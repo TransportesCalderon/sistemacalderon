@@ -9,6 +9,7 @@ import {
   guardarDiaTrabajado,
   guardarDiaTrabajadoFlota,
   quitarBonoColaboradores,
+  guardarTramoLiquidacion,
   adjuntarFirmada,
   agregarRenglon,
   guardarEmpresa,
@@ -108,3 +109,4 @@ export const useGuardarDiaTrabajado = (desdeFlota = false) => useEscritura(desde
 export const useGuardarBonoDesempeno = () => useEscritura(guardarBonoDesempeno);
 export const useGuardarBonoColaboradores = () => useEscritura(guardarBonoColaboradores);
 export const useQuitarBonoColaboradores = () => useEscritura(quitarBonoColaboradores);
+export const useGuardarTramo = () => useEscritura(guardarTramoLiquidacion);

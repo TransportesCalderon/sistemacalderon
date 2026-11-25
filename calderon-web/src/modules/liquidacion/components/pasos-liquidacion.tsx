@@ -17,8 +17,24 @@ import { browserDb } from '@/shared/supabase/browser';
 import { BOTON_ICONO, BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { clp } from '../domain/legal.types';
-import { moverPeriodo, type BonoDesempeno, type DiaTrabajado, type Liquidacion, type Renglon } from '../domain/liquidacion.types';
-import { useDiasTrabajados, useGuardarBonoColaboradores, useGuardarBonoDesempeno, useGuardarDiaTrabajado, useQuitarBonoColaboradores } from '../queries/hooks';
+import {
+  ETIQUETA_ESTADO_TRAMO,
+  moverPeriodo,
+  type BonoDesempeno,
+  type DiaTrabajado,
+  type Liquidacion,
+  type Renglon,
+  type TramoLiquidacion,
+} from '../domain/liquidacion.types';
+import {
+  useDiasTrabajados,
+  useGuardarBonoColaboradores,
+  useGuardarBonoDesempeno,
+  useGuardarDiaTrabajado,
+  useGuardarTramo,
+  useQuitarBonoColaboradores,
+} from '../queries/hooks';
+import { FilaDesplegable, useFilaAbierta } from '@/shared/ui/fila-desplegable';
 
 const BUCKET = 'documentos-rrhh';
 
@@ -72,7 +88,7 @@ function Fila({ t, v, fuerte = false, rojo = false }: { t: React.ReactNode; v: s
 // ─── Paso 1 ────────────────────────────────────────────────────────────────
 const NOMBRE_NOVEDAD: Record<string, string> = {
   SUELDO_FIJO: 'Básico',
-  CANON: 'Bono por viaje',
+  CANON: 'Bono por tramo',
   KM: 'Adicional por km',
   VIATICO: 'Viáticos',
   BONO_DESEMPENO: 'Bono por desempeño',
@@ -110,7 +126,7 @@ function PasoNovedades({ l }: { l: Liquidacion }) {
           <Fila t="Total no imponible" v={clp(totalNoImp)} fuerte />
         </div>
       </div>
-      <ViajesDelPeriodo l={l} />
+      <TramosDelPeriodo l={l} />
       <details className="rounded-lg bg-fondo/40 p-3" open={l.estado === 'borrador'}>
         <summary className="cursor-pointer text-sm font-medium text-tinta">
           Días trabajados: {l.diasTrabajados.filter((d) => d.trabajado).length} de {l.diasTrabajados.length} · viático {clp(l.viaticoDia)} por día
@@ -124,54 +140,143 @@ function PasoNovedades({ l }: { l: Liquidacion }) {
   );
 }
 
-/** Resumen de los viajes cerrados del período: de acá salen el bono por viaje y los km del adicional. */
-function ViajesDelPeriodo({ l }: { l: Liquidacion }) {
-  const viajes = l.planilla.viajes;
-  const km = viajes.reduce((a, v) => a + (v.km ?? 0), 0);
-  const bono = viajes.reduce((a, v) => a + (v.canon ?? 0), 0);
+/**
+ * Liquidación por tramo: cada tramo de los viajes del chofer se liquida una vez. Tocar un tramo abre debajo
+ * qué hacer con él: dejarlo, ajustar bono y km para esta liquidación, o «no se liquida acá».
+ */
+function TramosDelPeriodo({ l }: { l: Liquidacion }) {
+  const puede = useCan('liquidacion.liquidaciones:editar') && l.estado === 'borrador';
+  const fila = useFilaAbierta<number>();
+  const incluidos = l.tramos.filter((t) => t.estado === 'incluido');
+  const km = incluidos.reduce((a, t) => a + (t.km ?? 0), 0);
+  const bono = incluidos.reduce((a, t) => a + (t.canonBase ?? 0), 0);
   return (
     <details className="rounded-lg bg-fondo/40 p-3" open>
       <summary className="cursor-pointer text-sm font-medium text-tinta">
-        Viajes del período: {viajes.length} · {clp(km)} km · bono por viaje {clp(bono)}
+        Tramos: {incluidos.length} se liquidan · {clp(km)} km · bono por tramo {clp(bono)}
+        {l.bajaChofer && <span className="text-alerta"> · baja del chofer {formatearFechaDia(l.bajaChofer)}</span>}
       </summary>
-      {viajes.length === 0 ? (
-        <p className="mt-2 text-sm text-tinta-suave">No hay viajes cerrados con llegada en el período.</p>
+      {l.tramos.length === 0 ? (
+        <p className="mt-2 text-sm text-tinta-suave">No hay tramos de viajes cerrados en el período.</p>
       ) : (
         <div className="mt-2 overflow-x-auto">
-          <table className="w-full min-w-[560px] text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-borde text-left text-xs text-tinta-suave uppercase">
                 <th className="py-1 pr-3 font-semibold">Viaje</th>
-                <th className="py-1 pr-3 font-semibold">Salida</th>
-                <th className="py-1 pr-3 font-semibold">Llegada</th>
-                <th className="py-1 pr-3 font-semibold">Recorrido</th>
+                <th className="py-1 pr-3 font-semibold">Tramo</th>
+                <th className="py-1 pr-3 font-semibold">Salida · llegada del viaje</th>
                 <th className="py-1 pr-3 text-right font-semibold">Km</th>
-                <th className="py-1 text-right font-semibold">Bono por viaje</th>
+                <th className="py-1 pr-3 text-right font-semibold">Bono</th>
+                <th className="py-1 font-semibold">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-borde">
-              {viajes.map((v) => (
-                <tr key={v.numero}>
-                  <td className="py-1.5 pr-3 font-medium text-tinta">{v.numero}</td>
-                  <td className="py-1.5 pr-3 tabular-nums">{v.salida ? formatearFechaDia(v.salida.slice(0, 10)) : '—'}</td>
-                  <td className="py-1.5 pr-3 tabular-nums">{v.llegada ? formatearFechaDia(v.llegada.slice(0, 10)) : '—'}</td>
-                  <td className="py-1.5 pr-3">{v.recorrido ?? '—'}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{v.km === null ? '—' : clp(v.km)}</td>
-                  <td className="py-1.5 text-right tabular-nums">{clp(v.canon)}</td>
-                </tr>
+              {l.tramos.map((t) => (
+                <FilaDesplegable
+                  key={t.itemId}
+                  abierta={fila.es(t.itemId)}
+                  onAlternar={() => fila.alternar(t.itemId)}
+                  columnas={6}
+                  className={cn(t.estado !== 'incluido' && 'text-tinta-suave opacity-70')}
+                  detalle={<DecidirTramo t={t} puede={puede} onListo={fila.cerrar} />}
+                >
+                  <td className="py-1.5 pr-3 font-medium">{t.viaje}</td>
+                  <td className="py-1.5 pr-3">
+                    {t.recorrido ?? '—'}
+                    {t.linea && <span className="block text-xs text-tinta-suave">{t.linea}</span>}
+                  </td>
+                  <td className="py-1.5 pr-3 tabular-nums">
+                    {t.salida ? formatearFechaDia(t.salida) : '—'} · {t.llegada ? formatearFechaDia(t.llegada) : '—'}
+                  </td>
+                  <td className="py-1.5 pr-3 text-right tabular-nums">{t.km === null ? '—' : clp(t.km)}</td>
+                  <td className="py-1.5 pr-3 text-right tabular-nums">{clp(t.canonBase)}</td>
+                  <td className="py-1.5">
+                    <span className={cn('text-xs font-semibold', t.estado === 'incluido' ? (t.detalle ? 'text-alerta' : 'text-exito') : 'text-tinta-suave')}>
+                      {t.ajustado ? 'Ajustado' : ETIQUETA_ESTADO_TRAMO[t.estado]}
+                    </span>
+                    {t.detalle && <span className="block text-xs text-tinta-suave">{t.detalle}</span>}
+                  </td>
+                </FilaDesplegable>
               ))}
               <tr className="font-semibold text-tinta">
-                <td className="py-1.5 pr-3" colSpan={4}>
-                  Total
+                <td className="py-1.5 pr-3" colSpan={3}>
+                  Total que se liquida
                 </td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{clp(km)}</td>
-                <td className="py-1.5 text-right tabular-nums">{clp(bono)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">{clp(bono)}</td>
+                <td />
               </tr>
             </tbody>
           </table>
         </div>
       )}
     </details>
+  );
+}
+
+function DecidirTramo({ t, puede, onListo }: { t: TramoLiquidacion; puede: boolean; onListo: () => void }) {
+  const guardar = useGuardarTramo();
+  const envio = useEnvio();
+  const [v, setV] = useState({
+    canon: t.canon === null ? '' : String(t.canon),
+    moneda: t.canonMoneda ?? 'CLP',
+    km: t.km === null ? '' : String(t.km),
+    motivo: t.motivo ?? '',
+  });
+  if (!puede) return <p className="text-sm text-tinta-suave">{t.detalle ?? 'Se liquida con el bono y los km del viaje.'}</p>;
+  if (t.estado === 'en_otra' || t.estado === 'despues_baja') return <p className="text-sm text-tinta-suave">{t.detalle}</p>;
+  const enviar = (liquidar: boolean | null, conAjuste = false) =>
+    void envio.enviar(
+      guardar.mutateAsync({
+        itemId: t.itemId,
+        liquidar,
+        canon: conAjuste ? v.canon : null,
+        moneda: conAjuste ? v.moneda : null,
+        km: conAjuste ? v.km : null,
+        motivo: v.motivo,
+      }),
+      onListo,
+    );
+  return (
+    <div className="space-y-3 text-sm">
+      <p className="text-tinta-suave">
+        Si el chofer hizo solo una parte (por ejemplo, San Antonio → Mendoza de un San Antonio → Buenos Aires), ajustá el bono y los km. Si ya se pagó
+        por fuera del sistema o no lo hizo él, marcalo como «No se liquida acá». No cambia el viaje ni la operación.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Campo label="Bono del tramo">
+          <input inputMode="decimal" value={v.canon} onChange={(e) => setV({ ...v, canon: e.target.value })} />
+        </Campo>
+        <Campo label="Moneda">
+          <select value={v.moneda} onChange={(e) => setV({ ...v, moneda: e.target.value })}>
+            {['CLP', 'ARS', 'USD'].map((m) => (
+              <option key={m}>{m}</option>
+            ))}
+          </select>
+        </Campo>
+        <Campo label="Km">
+          <input inputMode="decimal" value={v.km} onChange={(e) => setV({ ...v, km: e.target.value })} />
+        </Campo>
+        <Campo label="Por qué">
+          <input value={v.motivo} maxLength={300} placeholder="Ej.: liquidado en octubre" onChange={(e) => setV({ ...v, motivo: e.target.value })} />
+        </Campo>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className={BOTON_PRIMARIO} disabled={guardar.isPending} onClick={() => enviar(true, true)}>
+          {guardar.isPending && <LoaderCircle className="size-4 animate-spin" />} Liquidar con estos números
+        </button>
+        <button type="button" className={BOTON_SECUNDARIO} disabled={guardar.isPending} onClick={() => enviar(false)}>
+          No se liquida acá
+        </button>
+        {(t.estado === 'no_se_liquida' || t.ajustado) && (
+          <button type="button" className={BOTON_SECUNDARIO} disabled={guardar.isPending} onClick={() => enviar(null)}>
+            Volver a lo del viaje
+          </button>
+        )}
+      </div>
+      <ErrorBase error={envio.error} />
+    </div>
   );
 }
 

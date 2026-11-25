@@ -6,6 +6,7 @@ import {
   bonoColaboradoresSchema,
   bonoDesempenoSchema,
   diaTrabajadoSchema,
+  tramoLiquidacionSchema,
   conceptoSchema,
   empresaSchema,
   fichaSchema,
@@ -149,6 +150,12 @@ export const guardarBonoColaboradores = createAction({
   permiso: 'liquidacion.liquidaciones:editar',
   schema: bonoColaboradoresSchema,
   handler: (d, { db }) => liquidacionRepository(db).guardarBonoColaboradores(d),
+  invalida: rutas,
+});
+export const guardarTramoLiquidacion = createAction({
+  permiso: 'liquidacion.liquidaciones:editar',
+  schema: tramoLiquidacionSchema,
+  handler: (d, { db }) => liquidacionRepository(db).guardarTramo(d),
   invalida: rutas,
 });
 export const quitarBonoColaboradores = createAction({

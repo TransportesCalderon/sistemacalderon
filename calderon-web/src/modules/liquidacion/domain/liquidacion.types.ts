@@ -84,7 +84,54 @@ export interface Liquidacion {
   diasTrabajados: DiaTrabajado[];
   bonoDesempeno: BonoDesempeno | null;
   colaboradores: BonoColaboradores | null;
+  /** Liquidación por tramo: cada tramo de los viajes del chofer y qué pasa con él */
+  tramos: TramoLiquidacion[];
+  bajaChofer: string | null;
 }
+
+export type EstadoTramo = 'incluido' | 'no_se_liquida' | 'en_otra' | 'despues_baja';
+export const ETIQUETA_ESTADO_TRAMO: Record<EstadoTramo, string> = {
+  incluido: 'Se liquida',
+  no_se_liquida: 'No se liquida acá',
+  en_otra: 'En otra liquidación',
+  despues_baja: 'Después de la baja',
+};
+export interface TramoLiquidacion {
+  itemId: number;
+  viaje: string;
+  salida: string | null;
+  llegada: string | null;
+  linea: string | null;
+  recorrido: string | null;
+  km: number | null;
+  canon: number | null;
+  canonMoneda: string | null;
+  canonBase: number | null;
+  estado: EstadoTramo;
+  detalle: string | null;
+  ajustado: boolean;
+  motivo: string | null;
+}
+export const parsearTramos = (v: unknown): TramoLiquidacion[] =>
+  arr(v).map((t) => {
+    const y = o(t);
+    return {
+      itemId: Number(y.item_id),
+      viaje: s(y.viaje) ?? '',
+      salida: s(y.salida),
+      llegada: s(y.llegada),
+      linea: s(y.linea),
+      recorrido: s(y.recorrido),
+      km: n(y.km),
+      canon: n(y.canon),
+      canonMoneda: s(y.canon_moneda),
+      canonBase: n(y.canon_base),
+      estado: (s(y.estado) ?? 'incluido') as EstadoTramo,
+      detalle: s(y.detalle),
+      ajustado: y.ajustado === true,
+      motivo: s(y.motivo),
+    };
+  });
 
 export type FuenteDia = 'viaje' | 'operacion' | 'gps';
 export interface DiaTrabajado {
@@ -223,6 +270,8 @@ export const parsearLiquidacion = (v: Json | unknown): Liquidacion => {
     diasTrabajados: parsearDias(x.dias_trabajados),
     bonoDesempeno: parsearBono(x.bono_desempeno),
     colaboradores: parsearColaboradores(x.colaboradores),
+    tramos: parsearTramos(x.tramos),
+    bajaChofer: s(x.baja_chofer),
     renglones: arr(x.renglones).map((r) => {
       const y = o(r);
       return {

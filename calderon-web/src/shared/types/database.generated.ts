@@ -2015,6 +2015,10 @@ export type Database = {
       fn_guardar_bono_colaboradores: { Args: { p_liq: number; p_datos: Json }; Returns: Json };
       fn_quitar_bono_colaboradores: { Args: { p_liq: number }; Returns: undefined };
       fn_novedades_periodo: { Args: { p_periodo: string }; Returns: Json };
+      fn_guardar_tramo_liquidacion: {
+        Args: { p_item: number; p_liquidar: boolean; p_canon: number; p_moneda: string; p_km: number; p_motivo: string };
+        Returns: undefined;
+      };
       fn_agregar_renglon: {
         Args: { p_liq: number; p_tipo: string | null; p_descripcion: string | null; p_importe: number; p_concepto?: number | null; p_cantidad?: number | null };
         Returns: number;

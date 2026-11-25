@@ -5,6 +5,7 @@ import type {
   BonoDesempenoEntrada,
   ConceptoEntrada,
   DiaTrabajadoEntrada,
+  TramoLiquidacionEntrada,
   EmpresaEntrada,
   FichaEntrada,
   IndicadoresEntrada,
@@ -199,6 +200,18 @@ export const liquidacionRepository = (db: Db) => {
             aporte_empleador: b.aporteEmpleador,
             pdf_ruta: b.pdfRuta,
           },
+        }),
+      );
+    },
+    async guardarTramo(t: TramoLiquidacionEntrada) {
+      await leer(
+        fin().rpc('fn_guardar_tramo_liquidacion', {
+          p_item: t.itemId,
+          p_liquidar: t.liquidar as boolean,
+          p_canon: t.canon as number,
+          p_moneda: t.moneda as string,
+          p_km: t.km as number,
+          p_motivo: t.motivo as string,
         }),
       );
     },

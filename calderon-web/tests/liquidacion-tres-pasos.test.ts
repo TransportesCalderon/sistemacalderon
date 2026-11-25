@@ -53,6 +53,21 @@ describe('liquidación en 3 pasos', () => {
     expect(parsearLegal({ faltan: [] })!.fuente).toBe('sistema');
   });
 
+  it('lee los tramos con su estado y la baja del chofer', () => {
+    const l = parsearLiquidacion({
+      id: 1,
+      baja_chofer: '2026-11-10',
+      tramos: [
+        { item_id: 87, viaje: 'VC-000009', linea: 'SAI-MZA', km: 477, canon: 80000, canon_moneda: 'CLP', canon_base: 80000, estado: 'no_se_liquida', detalle: 'Liquidado en octubre' },
+        { item_id: 89, viaje: 'VC-000039', linea: 'SAI-BSAS', km: 477, canon: 80000, canon_moneda: 'CLP', canon_base: 80000, estado: 'incluido', ajustado: true },
+      ],
+    });
+    expect(l.bajaChofer).toBe('2026-11-10');
+    expect(l.tramos).toHaveLength(2);
+    expect(l.tramos[0]!.estado).toBe('no_se_liquida');
+    expect(l.tramos[1]!.ajustado).toBe(true);
+  });
+
   it('la lista dice si ya tiene el bono y cuánto se transfiere', () => {
     const p = parsearPeriodo({ liquidaciones: [{ id: 1, estado: 'aprobada', con_bono: true, a_pagar: 350000 }, { id: 2, estado: 'borrador' }] });
     expect(p.liquidaciones[0]!.aPagar).toBe(350000);
