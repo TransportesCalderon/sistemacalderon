@@ -117,9 +117,13 @@ const aFilaReservados = (r: ReservadosChofer) => ({
  * La búsqueda exige que cada palabra aparezca en alguna columna: "juan perez" encuentra
  * nombre = Juan y apellido = Pérez. Nunca busca en el documento.
  */
-export function filtrosChoferPostgrest(f: ChoferFiltros): { eq: [string, string | number][]; or: string[] } {
+export function filtrosChoferPostgrest(f: ChoferFiltros): { eq: [string, string | number][]; or: string[]; neq: [string, string][] } {
   const eq: [string, string | number][] = [];
-  if (f.estado) eq.push(['estado', f.estado]);
+  const neq: [string, string][] = [];
+  // Pestañas: los de baja van aparte (solo consulta); la lista de siempre muestra los que trabajan
+  if (f.vista === 'bajas') eq.push(['estado', 'baja']);
+  else if (f.estado) eq.push(['estado', f.estado]);
+  else neq.push(['estado', 'baja']);
   if (f.pais) eq.push(['pais_residencia', f.pais]);
   if (f.baseId !== undefined) eq.push(['base_ubicacion_id', f.baseId]);
 
@@ -128,7 +132,7 @@ export function filtrosChoferPostgrest(f: ChoferFiltros): { eq: [string, string 
   const or = palabras.map((p) =>
     ['legajo', 'nombre', 'apellido', 'id_conductor_optifleet'].map((c) => `${c}.ilike.*${p}*`).join(','),
   );
-  return { eq, or };
+  return { eq, or, neq };
 }
 
 export interface ChoferRepository {
@@ -150,8 +154,9 @@ export const choferRepository = (db: Db): ChoferRepository => ({
     let q = db.schema('mae').from('chofer').select(COLS_RESUMEN, { count: 'exact' });
     if (!p.incluirEliminados) q = q.is('eliminado_en', null);
 
-    const { eq, or } = filtrosChoferPostgrest(p);
+    const { eq, or, neq } = filtrosChoferPostgrest(p);
     for (const [col, valor] of eq) q = q.eq(col as 'estado', valor as string);
+    for (const [col, valor] of neq) q = q.neq(col as 'estado', valor);
     for (const condicion of or) q = q.or(condicion);
 
     q = q.order(p.orden, { ascending: p.dir === 'asc', nullsFirst: false });

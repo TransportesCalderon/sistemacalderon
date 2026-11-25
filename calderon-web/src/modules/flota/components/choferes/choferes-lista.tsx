@@ -81,22 +81,53 @@ export function ChoferesLista() {
         )}
       </header>
 
+      {/* Pestañas: los que trabajan primero; los de baja aparte, a modo de consulta */}
+      <nav aria-label="Vistas" className="-mb-2 flex flex-wrap gap-1 border-b border-borde">
+        {(
+          [
+            [undefined, 'Activos'],
+            ['bajas', 'De baja'],
+          ] as const
+        ).map(([v, etiqueta]) => {
+          const activa = params.vista === v;
+          return (
+            <button
+              key={etiqueta}
+              type="button"
+              aria-current={activa ? 'page' : undefined}
+              onClick={() => actualizar({ vista: v, estado: undefined })}
+              className={cn(
+                '-mb-px border-b-2 px-3 py-2 text-sm',
+                activa ? 'border-marca font-medium text-marca' : 'border-transparent text-tinta-suave hover:text-tinta',
+              )}
+            >
+              {etiqueta}
+            </button>
+          );
+        })}
+      </nav>
+      {params.vista === 'bajas' && (
+        <p className="text-sm text-tinta-suave">Choferes dados de baja, solo para consultar. No aparecen en las listas para asignar.</p>
+      )}
+
       {/* Filtros */}
       <section className={cn(TARJETA, 'flex flex-wrap items-center gap-2 p-3')} aria-label="Filtros">
         <BuscadorTexto valor={params.texto ?? ''} onCambiar={(texto) => actualizar({ texto })} />
-        <select
-          aria-label="Estado"
-          className={CONTROL_FILTRO}
-          value={params.estado ?? ''}
-          onChange={(e) => actualizar({ estado: (e.target.value || undefined) as ChoferListaParams['estado'] })}
-        >
-          <option value="">Todos los estados</option>
-          {ESTADOS_CHOFER.map((e) => (
-            <option key={e} value={e}>
-              {ETIQUETA_ESTADO_CHOFER[e]}
-            </option>
-          ))}
-        </select>
+        {params.vista !== 'bajas' && (
+          <select
+            aria-label="Estado"
+            className={CONTROL_FILTRO}
+            value={params.estado ?? ''}
+            onChange={(e) => actualizar({ estado: (e.target.value || undefined) as ChoferListaParams['estado'] })}
+          >
+            <option value="">Activos y con licencia</option>
+            {ESTADOS_CHOFER.filter((e) => e !== 'baja').map((e) => (
+              <option key={e} value={e}>
+                {ETIQUETA_ESTADO_CHOFER[e]}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           aria-label="País de residencia"
           className={CONTROL_FILTRO}
@@ -135,7 +166,7 @@ export function ChoferesLista() {
         {hayFiltros && (
           <button
             type="button"
-            onClick={() => iniciar(() => router.replace(pathname, { scroll: false }))}
+            onClick={() => iniciar(() => router.replace(params.vista ? `${pathname}?vista=${params.vista}` : pathname, { scroll: false }))}
             className="flex h-9 items-center gap-1 rounded-md px-2 text-sm text-marca hover:bg-marca-suave"
           >
             <X className="size-4" />

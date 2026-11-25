@@ -96,6 +96,10 @@ describe('servicio del chofer: permisos que dependen del dato', () => {
 
 describe('lista de choferes', () => {
   it('búsqueda por palabras, nunca por documento', () => {
+    // Pestañas: por defecto solo los que trabajan; «De baja» aparte
+    expect(filtrosChoferPostgrest({}).neq).toEqual([['estado', 'baja']]);
+    expect(filtrosChoferPostgrest({ vista: 'bajas', estado: 'activo' }).eq).toEqual([['estado', 'baja']]);
+    expect(parsearListaChoferes(new URLSearchParams('vista=bajas')).vista).toBe('bajas');
     const f = filtrosChoferPostgrest({ texto: 'juan pérez', estado: 'licencia', baseId: 2 });
     expect(f.eq).toEqual([
       ['estado', 'licencia'],
