@@ -347,7 +347,7 @@ function DecidirTramo({ t, puede, onListo }: { t: TramoLiquidacion; puede: boole
         </button>
         {(t.estado === 'no_se_liquida' || t.ajustado) && (
           <button type="button" className={BOTON_SECUNDARIO} disabled={guardar.isPending} onClick={() => enviar(null)}>
-            Volver a lo del viaje
+            Volver a lo de Operaciones
           </button>
         )}
       </div>
