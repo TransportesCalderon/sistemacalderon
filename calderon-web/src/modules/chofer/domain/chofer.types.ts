@@ -516,3 +516,15 @@ export function observacionParaChofer(texto: string | null): string | null {
     .trim();
   return limpio || null;
 }
+
+/** El anterior al período de hoy si tiene movimientos sin cerrar; si no, el de hoy. */
+export function periodoACerrar(actual: string, ultimoCierre: string | null, movimientos: { periodo: string }[]): string {
+  const anterior = mesAnterior(actual);
+  const pendiente = movimientos.some((m) => m.periodo <= anterior && (!ultimoCierre || m.periodo > ultimoCierre));
+  return pendiente ? anterior : actual;
+}
+
+function mesAnterior(periodo: string): string {
+  const [a, m] = periodo.split('-').map(Number) as [number, number];
+  return new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
+}

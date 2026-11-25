@@ -13,7 +13,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { dinero, ETIQUETA_ESTADO, ETIQUETA_MOVIMIENTO, nombrePeriodo, type FondoDeChofer, type GastoPorRevisar, type Saldo } from '../domain/chofer.types';
+import { dinero, ETIQUETA_ESTADO, ETIQUETA_MOVIMIENTO, nombrePeriodo, periodoACerrar, type FondoDeChofer, type GastoPorRevisar, type Saldo } from '../domain/chofer.types';
 import {
   useAnularMovimiento,
   useCargarGastoOficina,
@@ -51,11 +51,6 @@ const Saldos = ({ saldos }: { saldos: Saldo[] }) =>
   );
 
 /** El período anterior a uno dado («2026-10-01» → «2026-09-01»). */
-function mesAnterior(periodo: string): string {
-  const [a, m] = periodo.split('-').map(Number) as [number, number];
-  return new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
-}
-
 /** Administración › Fondos de choferes: gastos por revisar, saldo de cada chofer y su cuenta. */
 export function FondosPantalla() {
   const fondos = useFondos();
@@ -312,9 +307,13 @@ function CuentaChofer({ f, onCerrar }: { f: FondoDeChofer; onCerrar: () => void 
   const cuenta = useCuentaChofer(f.choferId);
   const [panel, setPanel] = useState<'entrega' | 'devolucion' | 'gasto' | null>(null);
   const hoy = hoyEnZona(zonaHoraria) as string;
-  // El período que se cierra es el último terminado: el anterior al de hoy (lo calcula la base)
+  // El período que se cierra: el anterior al de hoy si quedó sin cerrar con movimientos; si no (por ejemplo, octubre 2026,
+  // que se liquidó por fuera y no tiene nada en el sistema), el de hoy. Lo calcula la base (período de hoy y su corte).
   const actual = usePeriodoDe(hoy);
-  const periodo = useMemo(() => (actual.data ? mesAnterior(actual.data) : null), [actual.data]);
+  const periodo = useMemo(
+    () => (actual.data ? periodoACerrar(actual.data, cuenta.data?.ultimoCierre ?? f.ultimoCierre, cuenta.data?.movimientos ?? []) : null),
+    [actual.data, cuenta.data, f.ultimoCierre],
+  );
   const cerrar = useCerrarFondo();
   const reabrir = useReabrirFondo();
   const anular = useAnularMovimiento();
