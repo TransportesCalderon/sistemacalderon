@@ -17,7 +17,7 @@ import { BOTON_ICONO, BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared
 import { Campo } from '@/shared/ui/campo';
 import { FilaDesplegable } from '@/shared/ui/fila-desplegable';
 import { clp } from '../domain/legal.types';
-import { ETIQUETA_ESTADO_LIQ, ETIQUETA_TIPO, moverPeriodo, TIPOS_RENGLON, type EstadoLiquidacion, type FilaLiquidacion, type TipoRenglon } from '../domain/liquidacion.types';
+import { ETIQUETA_ESTADO_LIQ, ETIQUETA_TIPO, moverPeriodo, periodoInicial, TIPOS_RENGLON, type EstadoLiquidacion, type FilaLiquidacion, type TipoRenglon } from '../domain/liquidacion.types';
 import { csvNovedades } from '../domain/novedades';
 import {
   useAgregarRenglon,
@@ -57,7 +57,13 @@ export function LiquidacionesPantalla() {
   const puedeEditar = useCan('liquidacion.liquidaciones:editar');
   const actual = usePeriodoDe(hoyEnZona(zonaHoraria));
   const [elegido, setElegido] = useState<string | null>(null);
-  const periodo = elegido ?? (actual.data ? moverPeriodo(actual.data, -1) : null);
+  // Se abre en el período anterior solo si le quedan liquidaciones por terminar (borrador o por transferir);
+  // si no (octubre 2026, liquidado por fuera), en el de hoy.
+  const anterior = actual.data ? moverPeriodo(actual.data, -1) : null;
+  const previo = usePeriodoLiquidaciones(elegido ? null : anterior);
+  const periodo =
+    elegido ??
+    (actual.data && (previo.data || previo.isError) ? periodoInicial(actual.data, previo.data?.liquidaciones ?? []) : null);
   const { data, isLoading, isError, refetch } = usePeriodoLiquidaciones(periodo);
   const [abierta, setAbierta] = useState<number | null>(null);
   const [avance, setAvance] = useState<{ hechas: number; total: number } | null>(null);

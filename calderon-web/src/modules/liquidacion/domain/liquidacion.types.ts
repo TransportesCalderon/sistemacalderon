@@ -399,3 +399,7 @@ export const moverPeriodo = (periodo: string, meses: number) => {
   const [a, m] = periodo.split('-').map(Number) as [number, number];
   return new Date(Date.UTC(a, m - 1 + meses, 1)).toISOString().slice(0, 10);
 };
+
+/** Período con el que abre la pantalla: el anterior si le quedan liquidaciones por terminar; si no, el de hoy. */
+export const periodoInicial = (actual: string, anteriores: { estado: EstadoLiquidacion }[]): string =>
+  anteriores.some((l) => l.estado === 'borrador' || l.estado === 'aprobada') ? moverPeriodo(actual, -1) : actual;
