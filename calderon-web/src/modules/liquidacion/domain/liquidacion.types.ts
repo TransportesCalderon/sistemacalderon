@@ -89,12 +89,15 @@ export interface Liquidacion {
   bajaChofer: string | null;
 }
 
-export type EstadoTramo = 'incluido' | 'no_se_liquida' | 'en_otra' | 'despues_baja';
+/** Migración 20261125200000: los tramos salen de los movimientos que registra Operaciones (historial del chofer). */
+export type EstadoTramo = 'incluido' | 'no_se_liquida' | 'en_otra' | 'despues_baja' | 'vacio' | 'sin_linea';
 export const ETIQUETA_ESTADO_TRAMO: Record<EstadoTramo, string> = {
   incluido: 'Se liquida',
   no_se_liquida: 'No se liquida acá',
   en_otra: 'En otra liquidación',
   despues_baja: 'Después de la baja',
+  vacio: 'Vacío',
+  sin_linea: 'Sin línea: ajustalo',
 };
 export interface TramoLiquidacion {
   itemId: number;

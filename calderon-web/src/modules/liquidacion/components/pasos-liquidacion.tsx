@@ -152,7 +152,7 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
   const [marcados, setMarcados] = useState<number[]>([]);
   const [motivo, setMotivo] = useState('Liquidado en octubre por fuera del sistema');
   const [avance, setAvance] = useState<string | null>(null);
-  const elegibles = l.tramos.filter((t) => t.estado === 'incluido' || t.estado === 'no_se_liquida');
+  const elegibles = l.tramos.filter((t) => t.estado !== 'en_otra' && t.estado !== 'despues_baja');
   const marcar = (id: number) => setMarcados((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
   /** Varios tramos a la vez: «no se liquida acá» (liquidar = false) o volver a lo del viaje (null). */
   const aplicar = async (liquidar: boolean | null) => {
@@ -179,7 +179,7 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
         {l.bajaChofer && <span className="text-alerta"> · baja del chofer {formatearFechaDia(l.bajaChofer)}</span>}
       </summary>
       {l.tramos.length === 0 ? (
-        <p className="mt-2 text-sm text-tinta-suave">No hay tramos de viajes cerrados en el período.</p>
+        <p className="mt-2 text-sm text-tinta-suave">Operaciones no registró movimientos terminados de este chofer en el período.</p>
       ) : (
         <div className="mt-2 space-y-2 overflow-x-auto">
           {puede && (
@@ -219,7 +219,7 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
                     />
                   </th>
                 )}
-                <th className="py-1 pr-3 font-semibold">Viaje</th>
+                <th className="py-1 pr-3 font-semibold">Operación</th>
                 <th className="py-1 pr-3 font-semibold">Tramo</th>
                 <th className="py-1 pr-3 font-semibold">Salida · llegada del tramo</th>
                 <th className="py-1 pr-3 text-right font-semibold">Km</th>
@@ -263,7 +263,12 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
                   <td className="py-1.5 pr-3 text-right tabular-nums">{t.km === null ? '—' : clp(t.km)}</td>
                   <td className="py-1.5 pr-3 text-right tabular-nums">{clp(t.canonBase)}</td>
                   <td className="py-1.5">
-                    <span className={cn('text-xs font-semibold', t.estado === 'incluido' ? (t.detalle ? 'text-alerta' : 'text-exito') : 'text-tinta-suave')}>
+                    <span
+                      className={cn(
+                        'text-xs font-semibold',
+                        t.estado === 'incluido' ? (t.detalle ? 'text-alerta' : 'text-exito') : t.estado === 'sin_linea' ? 'text-alerta' : 'text-tinta-suave',
+                      )}
+                    >
                       {t.ajustado ? 'Ajustado' : ETIQUETA_ESTADO_TRAMO[t.estado]}
                     </span>
                     {t.detalle && <span className="block text-xs text-tinta-suave">{t.detalle}</span>}
@@ -312,8 +317,8 @@ function DecidirTramo({ t, puede, onListo }: { t: TramoLiquidacion; puede: boole
   return (
     <div className="space-y-3 text-sm">
       <p className="text-tinta-suave">
-        Si el chofer hizo solo una parte (por ejemplo, San Antonio → Mendoza de un San Antonio → Buenos Aires), ajustá el bono y los km. Si ya se pagó
-        por fuera del sistema o no lo hizo él, marcalo como «No se liquida acá». No cambia el viaje ni la operación.
+        Si no hay una línea con este recorrido o el bono no es el de la línea, poné el bono y los km. Si ya se pagó por fuera del sistema o no
+        corresponde pagarlo, marcalo como «No se liquida acá». No cambia lo que registró Operaciones.
       </p>
       <div className="grid gap-3 sm:grid-cols-4">
         <Campo label="Bono del tramo">
