@@ -18,7 +18,7 @@ import { Campo } from '@/shared/ui/campo';
 import { FilaDesplegable } from '@/shared/ui/fila-desplegable';
 import { clp } from '../domain/legal.types';
 import { ETIQUETA_ESTADO_LIQ, ETIQUETA_TIPO, moverPeriodo, periodoInicial, TIPOS_RENGLON, type EstadoLiquidacion, type FilaLiquidacion, type TipoRenglon } from '../domain/liquidacion.types';
-import { csvNovedades } from '../domain/novedades';
+import { xlsxNovedades } from '../domain/novedades';
 import {
   useAgregarRenglon,
   useAnularLiquidacion,
@@ -42,8 +42,8 @@ export const TONO_LIQ: Record<EstadoLiquidacion, Tono> = { borrador: 'alerta', a
 const pasoDe = (l: FilaLiquidacion): string =>
   l.estado === 'borrador' ? (l.conBono ? 'Para revisar' : 'Falta el bono') : l.estado === 'pagada' ? 'Transferida' : ETIQUETA_ESTADO_LIQ[l.estado];
 
-const descargar = (texto: string, nombre: string) => {
-  const url = URL.createObjectURL(new Blob([texto], { type: 'text/csv;charset=utf-8' }));
+const descargar = (datos: Uint8Array, nombre: string) => {
+  const url = URL.createObjectURL(new Blob([datos as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
   const a = document.createElement('a');
   a.href = url;
   a.download = nombre;
@@ -122,7 +122,7 @@ export function LiquidacionesPantalla() {
               envio.setError(null);
               try {
                 const n = await novedades.mutateAsync(periodo);
-                descargar(csvNovedades(n, nombrePeriodo(periodo)), `novedades-${periodo.slice(0, 7)}.csv`);
+                descargar(xlsxNovedades(n, nombrePeriodo(periodo)), `NOVEDADES ${nombrePeriodo(periodo).toLocaleUpperCase('es')}.xlsx`);
               } catch (e) {
                 envio.setError({ codigo: 'desconocido', mensaje: e instanceof Error ? e.message : 'No se pudieron leer las novedades.' });
               }

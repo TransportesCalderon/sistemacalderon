@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { csvNovedades, filasNovedades, type NovedadChofer } from '@/modules/liquidacion/domain/novedades';
+import { hojaNovedades, nombreModelo, xlsxNovedades, type NovedadChofer } from '@/modules/liquidacion/domain/novedades';
 import { parsearLiquidacion, parsearPeriodo } from '@/modules/liquidacion/domain/liquidacion.types';
 import { parsearLegal } from '@/modules/liquidacion/domain/legal.types';
 import { bonoColaboradoresSchema } from '@/modules/liquidacion/domain/liquidacion.schemas';
@@ -21,17 +21,22 @@ const nov: NovedadChofer = {
 };
 
 describe('liquidación en 3 pasos', () => {
-  it('arma las novedades con el formato del modelo de RRHH', () => {
-    const f = filasNovedades([nov], 'Noviembre 2026');
-    expect(f[1]![0]).toBe('NOVEDADES NOVIEMBRE 2026');
-    expect(f.find((x) => x[0] === 'BONO POR VIAJE')![1]).toBe('160000');
-    expect(f.find((x) => x[0] === 'TOTAL IMPONIBLE')![1]).toBe('344665');
-    expect(f.find((x) => x[0] === 'VIATICOS (12 DIAS)')![1]).toBe('120000');
-    expect(f.find((x) => x[0] === 'TOTAL NO IMPONIBLE')![1]).toBe('120000');
-    expect(f.some((x) => x[0] === 'BONO POR DESEMPEÑO')).toBe(false);
-    const csv = csvNovedades([{ ...nov, bonoDesempeno: 200000 }], 'Diciembre 2026');
-    expect(csv.startsWith('\uFEFF')).toBe(true);
-    expect(csv).toContain('BONO POR DESEMPEÑO;200000');
+  it('arma las novedades exactamente como el modelo de RRHH para Colaboradores', () => {
+    const h = hojaNovedades([nov, { ...nov, chofer: 'Argomedo, Kevin' }], 'Noviembre 2026');
+    const en = (f: number, c: number) => h.celdas.find((x) => x.fila === f && x.col === c)?.valor;
+    expect(en(1, 1)).toBe('CHOFER');
+    expect(en(2, 1)).toBe('CHOFER UNO');
+    expect(en(3, 1)).toBe('NOVEDADES NOVIEMBRE 2026');
+    expect([en(4, 1), en(4, 2)]).toEqual(['BONO POR VIAJE', 160000]);
+    expect([en(5, 1), en(5, 2)]).toEqual(['BASICO', 184665]);
+    expect([en(6, 1), en(6, 2)]).toEqual(['TOTAL IMPONIBLE', 344665]);
+    expect([en(7, 1), en(7, 2)]).toEqual(['', '']);
+    expect([en(8, 1), en(8, 2)]).toEqual(['TOTAL NO IMPONIBLE', 120000]);
+    expect(en(10, 1)).toBe('ARGOMEDO KEVIN');
+    expect(h.combinadas).toEqual(['A3:B3', 'A11:B11']);
+    expect(nombreModelo('Agüero, Ezequiel')).toBe('AGÜERO EZEQUIEL');
+    const x = xlsxNovedades([nov], 'Noviembre 2026');
+    expect([x[0], x[1]]).toEqual([0x50, 0x4b]);
   });
 
   it('lee días trabajados, bono por desempeño y el bono de Colaboradores', () => {
