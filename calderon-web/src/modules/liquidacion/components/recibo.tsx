@@ -60,6 +60,12 @@ export function Recibo({ l, compacto = false }: { l: Liquidacion; compacto?: boo
             <span>Neto de la planilla</span>
             <span className="tabular-nums">{pesos(l.neto, l.moneda)}</span>
           </div>
+          {legal.gratificacion > 0 && (
+            <div className="flex items-center justify-between px-4 text-sm">
+              <span>Gratificación (bono de sueldo)</span>
+              <span className="tabular-nums">+ {pesos(legal.gratificacion)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between px-4 text-sm text-error">
             <span>Descuentos legales (AFP, salud, cesantía, impuesto)</span>
             <span className="tabular-nums">− {pesos(legal.totalDescuentos)}</span>

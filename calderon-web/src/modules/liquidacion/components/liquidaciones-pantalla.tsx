@@ -4,7 +4,7 @@ import { ElegirCuentaDinero } from '@/modules/finanzas/components/elegir-cuenta'
 import { TrazaContable } from '@/modules/finanzas/components/traza';
 import { useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, Calculator, Check, ChevronLeft, ChevronRight, LoaderCircle, Printer, RefreshCw, Trash2, Undo2, X } from 'lucide-react';
+import { AlertTriangle, Calculator, Check, ChevronLeft, ChevronRight, Download, LoaderCircle, Printer, RefreshCw, Trash2, Undo2, X } from 'lucide-react';
 import { TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { AccionConMotivo, Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { nombrePeriodo } from '@/modules/chofer/domain/chofer.types';
@@ -15,13 +15,16 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_ICONO, BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { ETIQUETA_ESTADO_LIQ, ETIQUETA_TIPO, moverPeriodo, pesos, TIPOS_RENGLON, type EstadoLiquidacion, type TipoRenglon } from '../domain/liquidacion.types';
+import { clp } from '../domain/legal.types';
+import { ETIQUETA_ESTADO_LIQ, ETIQUETA_TIPO, moverPeriodo, TIPOS_RENGLON, type EstadoLiquidacion, type FilaLiquidacion, type TipoRenglon } from '../domain/liquidacion.types';
+import { csvNovedades } from '../domain/novedades';
 import {
   useAgregarRenglon,
   useAnularLiquidacion,
   useAprobarLiquidacion,
   useConceptos,
   useLiquidacion,
+  useNovedades,
   usePagarLiquidacion,
   usePeriodoLiquidaciones,
   usePrepararLiquidacion,
@@ -30,10 +33,22 @@ import {
   useReabrirLiquidacion,
 } from '../queries/hooks';
 import { CopiaFirmada } from './copia-firmada';
-import { Recibo } from './recibo';
-import { SueldoLegal } from './sueldo-legal';
+import { PasosLiquidacion } from './pasos-liquidacion';
 
 export const TONO_LIQ: Record<EstadoLiquidacion, Tono> = { borrador: 'alerta', aprobada: 'marca', pagada: 'exito', anulada: 'neutro' };
+
+/** En qué paso está: sin bono de Colaboradores, para revisar, por transferir o transferida. */
+const pasoDe = (l: FilaLiquidacion): string =>
+  l.estado === 'borrador' ? (l.conBono ? 'Para revisar' : 'Falta el bono') : l.estado === 'pagada' ? 'Transferida' : ETIQUETA_ESTADO_LIQ[l.estado];
+
+const descargar = (texto: string, nombre: string) => {
+  const url = URL.createObjectURL(new Blob([texto], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
 
 /** Administración › Liquidaciones: las del período, prepararlas, revisarlas, aprobarlas y registrar el pago. */
 export function LiquidacionesPantalla() {
@@ -44,9 +59,12 @@ export function LiquidacionesPantalla() {
   const periodo = elegido ?? (actual.data ? moverPeriodo(actual.data, -1) : null);
   const { data, isLoading, isError, refetch } = usePeriodoLiquidaciones(periodo);
   const [abierta, setAbierta] = useState<number | null>(null);
-  const todas = usePrepararLiquidaciones();
+  const [avance, setAvance] = useState<{ hechas: number; total: number } | null>(null);
+  const todas = usePrepararLiquidaciones((hechas, total) => setAvance({ hechas, total }));
   const envio = useEnvio();
   const [resultado, setResultado] = useState<string | null>(null);
+  const novedades = useNovedades();
+  const porTransferir = (data?.liquidaciones ?? []).filter((l) => l.estado === 'aprobada');
 
   return (
     <div className="space-y-4">
@@ -74,7 +92,9 @@ export function LiquidacionesPantalla() {
             onClick={async () => {
               setResultado(null);
               envio.setError(null);
+              setAvance(null);
               const r = await todas.mutateAsync({ periodo });
+              setAvance(null);
               if (!r.ok) return envio.setError(r.error);
               setResultado(
                 `${r.data.preparadas} preparada(s).` +
@@ -82,14 +102,39 @@ export function LiquidacionesPantalla() {
               );
             }}
           >
-            {todas.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Calculator className="size-4" />} Preparar todas
+            {todas.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Calculator className="size-4" />}{' '}
+            {todas.isPending && avance && avance.total > 0 ? `Preparando ${avance.hechas} de ${avance.total}…` : 'Preparar todas'}
+          </button>
+        )}
+        {periodo && data && data.liquidaciones.length > 0 && (
+          <button
+            type="button"
+            className={cn(BOTON_SECUNDARIO, !puedeEditar && 'ml-auto')}
+            disabled={novedades.isPending}
+            onClick={async () => {
+              envio.setError(null);
+              try {
+                const n = await novedades.mutateAsync(periodo);
+                descargar(csvNovedades(n, nombrePeriodo(periodo)), `novedades-${periodo.slice(0, 7)}.csv`);
+              } catch (e) {
+                envio.setError({ codigo: 'desconocido', mensaje: e instanceof Error ? e.message : 'No se pudieron leer las novedades.' });
+              }
+            }}
+          >
+            {novedades.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Download className="size-4" />} Novedades para Colaboradores
           </button>
         )}
       </div>
       <p className="text-sm text-tinta-suave">
-        «Preparar» arma cada borrador con el sueldo fijo, el canon y los km de línea de los viajes cerrados, los conceptos automáticos y los descuentos
-        de combustible, ralentí y fondo. Se puede volver a preparar las veces que haga falta mientras sea borrador; lo que se agrega a mano queda.
+        1) «Preparar» arma las novedades (básico, bono por viaje, viáticos por día trabajado, adicional por km y bono por desempeño) y los descuentos.
+        Descargá las novedades y mandáselas a Colaboradores. 2) Cuando vuelve el bono de sueldo, cargalo en cada chofer con el PDF. 3) Cerrá la
+        liquidación: queda «Por transferir» hasta que se registra la transferencia.
       </p>
+      {porTransferir.length > 0 && (
+        <p className="rounded-lg bg-marca-suave px-4 py-2 text-sm font-medium text-marca">
+          {porTransferir.length} por transferir · {clp(porTransferir.reduce((a, l) => a + (l.aPagar ?? 0), 0))} {data?.moneda}
+        </p>
+      )}
       <ErrorBase error={envio.error} />
       {resultado && <p className="text-sm text-tinta">{resultado}</p>}
 
@@ -105,11 +150,11 @@ export function LiquidacionesPantalla() {
             <thead>
               <tr className="border-b border-borde">
                 <th className={TH}>Chofer</th>
-                <th className={TH}>Estado</th>
-                <th className={cn(TH, 'text-right')}>Remunerativo</th>
-                <th className={cn(TH, 'text-right')}>No remunerativo</th>
+                <th className={TH}>Paso</th>
+                <th className={cn(TH, 'text-right')}>Imponible</th>
+                <th className={cn(TH, 'text-right')}>No imponible</th>
                 <th className={cn(TH, 'text-right')}>Descuentos</th>
-                <th className={cn(TH, 'text-right')}>Neto ({data.moneda})</th>
+                <th className={cn(TH, 'text-right')}>A transferir ({data.moneda})</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-borde">
@@ -120,17 +165,17 @@ export function LiquidacionesPantalla() {
                     <span className="block text-xs text-tinta-suave">{l.numero}</span>
                   </td>
                   <td className={TD}>
-                    <Chip tono={TONO_LIQ[l.estado]}>{ETIQUETA_ESTADO_LIQ[l.estado]}</Chip>
+                    <Chip tono={TONO_LIQ[l.estado]}>{pasoDe(l)}</Chip>
                     {l.avisos > 0 && l.estado === 'borrador' && (
                       <span className="ml-1 inline-flex items-center text-alerta" title="Tiene avisos">
                         <AlertTriangle className="size-4" />
                       </span>
                     )}
                   </td>
-                  <td className={cn(TD, 'text-right tabular-nums')}>{pesos(l.remunerativo)}</td>
-                  <td className={cn(TD, 'text-right tabular-nums')}>{pesos(l.noRemunerativo)}</td>
-                  <td className={cn(TD, 'text-right tabular-nums')}>{pesos(l.descuentos)}</td>
-                  <td className={cn(TD, 'text-right font-semibold tabular-nums')}>{pesos(l.neto)}</td>
+                  <td className={cn(TD, 'text-right tabular-nums')}>{clp(l.remunerativo)}</td>
+                  <td className={cn(TD, 'text-right tabular-nums')}>{clp(l.noRemunerativo)}</td>
+                  <td className={cn(TD, 'text-right tabular-nums')}>{clp(l.descuentos)}</td>
+                  <td className={cn(TD, 'text-right font-semibold tabular-nums')}>{l.aPagar === null ? '—' : clp(l.aPagar)}</td>
                 </tr>
               ))}
             </tbody>
@@ -158,7 +203,7 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
   const quitar = useQuitarRenglon();
   const envio = useEnvio();
   const [agregar, setAgregar] = useState(false);
-  const [pago, setPago] = useState({ fecha: hoyEnZona(zonaHoraria) as string, forma: '', banco: '', numero: '', cuentaId: null as number | null });
+  const [pago, setPago] = useState({ fecha: hoyEnZona(zonaHoraria) as string, forma: 'Transferencia', banco: '', numero: '', cuentaId: null as number | null });
 
   if (isLoading || !l) return <Cargando texto="Abriendo la liquidación…" />;
   const borrador = l.estado === 'borrador';
@@ -168,7 +213,7 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-tinta">
-            {l.chofer} · {l.numero} <Chip tono={TONO_LIQ[l.estado]}>{ETIQUETA_ESTADO_LIQ[l.estado]}</Chip>
+            {l.chofer} · {l.numero} <Chip tono={TONO_LIQ[l.estado]}>{l.estado === 'pagada' ? 'Transferida' : ETIQUETA_ESTADO_LIQ[l.estado]}</Chip>
           </h2>
           {l.motivo && <p className="text-xs text-tinta-suave">Último motivo: {l.motivo}</p>}
         </div>
@@ -194,8 +239,8 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
         </ul>
       )}
 
+      <PasosLiquidacion l={l} />
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
-        <Recibo l={l} compacto />
         {borrador && puedeEditar && (
           <div className="space-y-2 lg:w-64">
             <p className="text-xs font-semibold text-tinta-suave uppercase">Agregados a mano</p>
@@ -220,7 +265,6 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
         )}
       </div>
 
-      <SueldoLegal l={l} />
       <CopiaFirmada l={l} />
 
       {agregar && <FormRenglon liquidacionId={l.id} onListo={() => setAgregar(false)} />}
@@ -249,12 +293,12 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
             disabled={aprobar.isPending}
             onClick={() => void envio.enviar(aprobar.mutateAsync({ id: l.id, version: l.version }), () => undefined)}
           >
-            {aprobar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Aprobar
+            {aprobar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Cerrar y dejar por transferir
           </button>
         )}
         {l.estado === 'aprobada' && puedeEstado && (
           <div className="flex flex-wrap items-end gap-2">
-            <Campo label="Fecha del pago">
+            <Campo label="Fecha de la transferencia">
               <input type="date" value={pago.fecha} onChange={(e) => setPago({ ...pago, fecha: e.target.value })} />
             </Campo>
             <Campo label="Forma (opcional)">
@@ -273,7 +317,7 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
               disabled={pagar.isPending}
               onClick={() => void envio.enviar(pagar.mutateAsync({ id: l.id, fecha: pago.fecha, forma: pago.forma, banco: pago.banco, numero: pago.numero, cuentaId: pago.cuentaId }), () => undefined)}
             >
-              Registrar el pago (numera el comprobante de egreso)
+              Registrar la transferencia (numera el comprobante de egreso)
             </button>
           </div>
         )}

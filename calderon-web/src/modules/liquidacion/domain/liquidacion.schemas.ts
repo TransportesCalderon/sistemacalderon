@@ -100,4 +100,40 @@ export const legalSchema = z.object({
 });
 export type LegalEntrada = z.infer<typeof legalSchema>;
 export const firmadaSchema = z.object({ id, ruta: z.string().min(5).max(300) });
+
+/** Liquidación en 3 pasos */
+export const diaTrabajadoSchema = z.object({
+  choferId: id,
+  fecha,
+  trabajado: z.boolean().nullable(),
+  motivo: texto(300),
+});
+export type DiaTrabajadoEntrada = z.infer<typeof diaTrabajadoSchema>;
+export const bonoDesempenoSchema = z.object({
+  id,
+  cuidado: z.boolean().nullable(),
+  limpieza: z.boolean().nullable(),
+  otorgar: z.boolean(),
+  motivo: texto(300),
+});
+export type BonoDesempenoEntrada = z.infer<typeof bonoDesempenoSchema>;
+const pesosEnteros = z
+  .union([z.number(), z.string(), z.null()])
+  .optional()
+  .transform((v) => (v === null || v === undefined ? '' : String(v).replace(/[^\d]/g, '')));
+export const bonoColaboradoresSchema = z.object({
+  id,
+  imponible: pesosEnteros,
+  noImponible: pesosEnteros,
+  gratificacion: pesosEnteros,
+  afp: pesosEnteros,
+  salud: pesosEnteros,
+  cesantia: pesosEnteros,
+  impuesto: pesosEnteros,
+  otrosDescuentos: pesosEnteros,
+  liquido: pesosEnteros,
+  aporteEmpleador: pesosEnteros,
+  pdfRuta: z.string().max(300).nullable(),
+});
+export type BonoColaboradoresEntrada = z.infer<typeof bonoColaboradoresSchema>;
 export const motivoSchema = z.object({ id, motivo });

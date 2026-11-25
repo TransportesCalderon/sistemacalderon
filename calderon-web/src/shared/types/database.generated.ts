@@ -2008,6 +2008,13 @@ export type Database = {
       };
       fn_preparar_liquidacion: { Args: { p_chofer: number; p_periodo: string }; Returns: number };
       fn_preparar_liquidaciones: { Args: { p_periodo: string }; Returns: Json };
+      fn_choferes_a_preparar: { Args: { p_periodo: string }; Returns: Json };
+      fn_dias_trabajados: { Args: { p_chofer: number; p_desde: string; p_hasta?: string | null }; Returns: Json };
+      fn_guardar_dia_trabajado: { Args: { p_chofer: number; p_fecha: string; p_trabajado: boolean; p_motivo: string }; Returns: Json };
+      fn_guardar_bono_desempeno: { Args: { p_liq: number; p_cuidado: boolean; p_limpieza: boolean; p_otorgar: boolean; p_motivo: string }; Returns: Json };
+      fn_guardar_bono_colaboradores: { Args: { p_liq: number; p_datos: Json }; Returns: Json };
+      fn_quitar_bono_colaboradores: { Args: { p_liq: number }; Returns: undefined };
+      fn_novedades_periodo: { Args: { p_periodo: string }; Returns: Json };
       fn_agregar_renglon: {
         Args: { p_liq: number; p_tipo: string | null; p_descripcion: string | null; p_importe: number; p_concepto?: number | null; p_cantidad?: number | null };
         Returns: number;
