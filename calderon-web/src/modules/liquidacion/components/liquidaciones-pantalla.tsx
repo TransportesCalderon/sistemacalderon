@@ -15,6 +15,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_ICONO, BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
+import { FilaDesplegable } from '@/shared/ui/fila-desplegable';
 import { clp } from '../domain/legal.types';
 import { ETIQUETA_ESTADO_LIQ, ETIQUETA_TIPO, moverPeriodo, TIPOS_RENGLON, type EstadoLiquidacion, type FilaLiquidacion, type TipoRenglon } from '../domain/liquidacion.types';
 import { csvNovedades } from '../domain/novedades';
@@ -159,7 +160,13 @@ export function LiquidacionesPantalla() {
             </thead>
             <tbody className="divide-y divide-borde">
               {data.liquidaciones.map((l) => (
-                <tr key={l.id} className={cn('cursor-pointer hover:bg-hover', abierta === l.id && 'bg-marca-suave/40')} onClick={() => setAbierta(abierta === l.id ? null : l.id)}>
+                <FilaDesplegable
+                  key={l.id}
+                  abierta={abierta === l.id}
+                  onAlternar={() => setAbierta(abierta === l.id ? null : l.id)}
+                  columnas={6}
+                  detalle={<FichaLiquidacion id={l.id} periodo={periodo} onCerrar={() => setAbierta(null)} />}
+                >
                   <td className={TD}>
                     <span className="font-medium text-tinta">{l.chofer}</span>
                     <span className="block text-xs text-tinta-suave">{l.numero}</span>
@@ -176,13 +183,12 @@ export function LiquidacionesPantalla() {
                   <td className={cn(TD, 'text-right tabular-nums')}>{clp(l.noRemunerativo)}</td>
                   <td className={cn(TD, 'text-right tabular-nums')}>{clp(l.descuentos)}</td>
                   <td className={cn(TD, 'text-right font-semibold tabular-nums')}>{l.aPagar === null ? '—' : clp(l.aPagar)}</td>
-                </tr>
+                </FilaDesplegable>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      {abierta && periodo && <FichaLiquidacion id={abierta} periodo={periodo} onCerrar={() => setAbierta(null)} />}
     </div>
   );
 }

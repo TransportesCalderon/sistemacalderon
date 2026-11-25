@@ -35,6 +35,7 @@ import { ComprobanteCobro } from './comprobante-cobro';
 import { CambiarFechaCobro } from './cambiar-fecha-cobro';
 import { ConformeDescarga } from '@/modules/logistica/components/conforme-descarga';
 import type { FechaISO } from '@/shared/types/dominio';
+import { FilaDesplegable } from '@/shared/ui/fila-desplegable';
 
 /** Migración 101: «por cobrar» = emitidas sin cobrar (con las vencidas). */
 type FiltroFactura = EstadoFactura | 'por_cobrar' | null;
@@ -362,7 +363,8 @@ function FacturasVista({
   const { data, isLoading, isError, error, refetch } = useFacturas(estado);
   return (
     <div className="space-y-4">
-      {abierta && <FichaFactura id={abierta} onCerrar={() => onAbrir(null)} />}
+      {/* Abierta desde otro lado (por ejemplo, la cuenta corriente) y fuera de este filtro: arriba de la lista */}
+      {abierta && data && !data.some((f) => f.id === abierta) && <FichaFactura id={abierta} onCerrar={() => onAbrir(null)} />}
       <div className="flex flex-wrap gap-2">
         {FILTROS.map((f) => (
           <button
@@ -398,7 +400,13 @@ function FacturasVista({
             </thead>
             <tbody className="divide-y divide-borde">
               {data.map((f) => (
-                <tr key={f.id} className={cn('cursor-pointer hover:bg-hover', abierta === f.id && 'bg-marca-suave/40')} onClick={() => onAbrir(f.id)}>
+                <FilaDesplegable
+                  key={f.id}
+                  abierta={abierta === f.id}
+                  onAlternar={() => onAbrir(abierta === f.id ? null : f.id)}
+                  columnas={5}
+                  detalle={<FichaFactura id={f.id} onCerrar={() => onAbrir(null)} />}
+                >
                   <td className={TD}>
                     <span className="font-medium text-marca">{f.numeroFiscal ?? f.numero}</span>
                     {f.numeroFiscal && <span className="block text-xs text-tinta-suave">{f.numero}</span>}
@@ -415,7 +423,7 @@ function FacturasVista({
                     <ChipFactura estado={f.estado} />
                   </td>
                   <td className={cn(TD, 'text-right font-medium tabular-nums')}>{usd(f.total)}</td>
-                </tr>
+                </FilaDesplegable>
               ))}
             </tbody>
           </table>

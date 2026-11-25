@@ -33,6 +33,7 @@ import { IntentosRepetidos } from './intentos-repetidos';
 import { CuentaParaEntrega, CuentasChoferOficina } from './cuentas-chofer';
 import { CargosChofer } from './cargos-chofer';
 import { TONO_ESTADO } from './mis-gastos';
+import { FilaDesplegable } from '@/shared/ui/fila-desplegable';
 
 const Saldos = ({ saldos }: { saldos: Saldo[] }) =>
   saldos.filter((s) => s.saldo !== 0).length === 0 ? (
@@ -59,7 +60,6 @@ function mesAnterior(periodo: string): string {
 export function FondosPantalla() {
   const fondos = useFondos();
   const [elegido, setElegido] = useState<number | null>(null);
-  const fila = fondos.data?.find((f) => f.choferId === elegido) ?? null;
 
   return (
     <div className="space-y-6">
@@ -89,10 +89,12 @@ export function FondosPantalla() {
             </thead>
             <tbody className="divide-y divide-borde">
               {(fondos.data ?? []).map((f) => (
-                <tr
+                <FilaDesplegable
                   key={f.choferId}
-                  className={cn('cursor-pointer hover:bg-hover', elegido === f.choferId && 'bg-marca-suave/40')}
-                  onClick={() => setElegido(elegido === f.choferId ? null : f.choferId)}
+                  abierta={elegido === f.choferId}
+                  onAlternar={() => setElegido(elegido === f.choferId ? null : f.choferId)}
+                  columnas={5}
+                  detalle={<CuentaChofer f={f} onCerrar={() => setElegido(null)} />}
                 >
                   <td className={cn(TD, 'font-medium text-tinta')}>{f.chofer}</td>
                   <td className={TD}>
@@ -101,13 +103,12 @@ export function FondosPantalla() {
                   <td className={TD}>{f.porRevisar > 0 ? <Chip tono="alerta">{f.porRevisar}</Chip> : '—'}</td>
                   <td className={TD}>{f.ultimoMovimiento ? formatearFechaDia(f.ultimoMovimiento) : '—'}</td>
                   <td className={TD}>{f.ultimoCierre ? nombrePeriodo(f.ultimoCierre) : '—'}</td>
-                </tr>
+                </FilaDesplegable>
               ))}
             </tbody>
           </table>
         )}
       </section>
-      {fila && <CuentaChofer f={fila} onCerrar={() => setElegido(null)} />}
     </div>
   );
 }
