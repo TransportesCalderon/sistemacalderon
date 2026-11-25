@@ -99,8 +99,12 @@ export const ETIQUETA_ESTADO_TRAMO: Record<EstadoTramo, string> = {
 export interface TramoLiquidacion {
   itemId: number;
   viaje: string;
+  /** Fechas del tramo (no del viaje). «estimada» = repartida por km entre fechas conocidas del viaje */
   salida: string | null;
   llegada: string | null;
+  fuenteFecha: 'operacion' | 'estimada' | null;
+  viajeSalida: string | null;
+  viajeLlegada: string | null;
   linea: string | null;
   recorrido: string | null;
   km: number | null;
@@ -120,6 +124,9 @@ export const parsearTramos = (v: unknown): TramoLiquidacion[] =>
       viaje: s(y.viaje) ?? '',
       salida: s(y.salida),
       llegada: s(y.llegada),
+      fuenteFecha: (s(y.fuente_fecha) as TramoLiquidacion['fuenteFecha']) ?? null,
+      viajeSalida: s(y.viaje_salida),
+      viajeLlegada: s(y.viaje_llegada),
       linea: s(y.linea),
       recorrido: s(y.recorrido),
       km: n(y.km),

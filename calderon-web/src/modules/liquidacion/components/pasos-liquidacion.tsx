@@ -147,6 +147,28 @@ function PasoNovedades({ l }: { l: Liquidacion }) {
 function TramosDelPeriodo({ l }: { l: Liquidacion }) {
   const puede = useCan('liquidacion.liquidaciones:editar') && l.estado === 'borrador';
   const fila = useFilaAbierta<number>();
+  const guardar = useGuardarTramo();
+  const envio = useEnvio();
+  const [marcados, setMarcados] = useState<number[]>([]);
+  const [motivo, setMotivo] = useState('Liquidado en octubre por fuera del sistema');
+  const [avance, setAvance] = useState<string | null>(null);
+  const elegibles = l.tramos.filter((t) => t.estado === 'incluido' || t.estado === 'no_se_liquida');
+  const marcar = (id: number) => setMarcados((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
+  /** Varios tramos a la vez: «no se liquida acá» (liquidar = false) o volver a lo del viaje (null). */
+  const aplicar = async (liquidar: boolean | null) => {
+    envio.setError(null);
+    for (const [i, id] of marcados.entries()) {
+      setAvance(`${i + 1} de ${marcados.length}…`);
+      const res = await guardar.mutateAsync({ itemId: id, liquidar, canon: null, moneda: null, km: null, motivo });
+      if (!res.ok) {
+        envio.setError(res.error);
+        setAvance(null);
+        return;
+      }
+    }
+    setAvance(null);
+    setMarcados([]);
+  };
   const incluidos = l.tramos.filter((t) => t.estado === 'incluido');
   const km = incluidos.reduce((a, t) => a + (t.km ?? 0), 0);
   const bono = incluidos.reduce((a, t) => a + (t.canonBase ?? 0), 0);
@@ -159,13 +181,47 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
       {l.tramos.length === 0 ? (
         <p className="mt-2 text-sm text-tinta-suave">No hay tramos de viajes cerrados en el período.</p>
       ) : (
-        <div className="mt-2 overflow-x-auto">
+        <div className="mt-2 space-y-2 overflow-x-auto">
+          {puede && (
+            <div className="flex flex-wrap items-end gap-2 rounded-lg border border-borde bg-panel p-2 text-sm">
+              <span className="self-center text-tinta-suave">
+                {marcados.length === 0 ? 'Tildá los tramos que ya se pagaron (por ejemplo, en octubre) para sacarlos de un saque.' : `${marcados.length} tramo(s) tildado(s)`}
+              </span>
+              {marcados.length > 0 && (
+                <>
+                  <Campo label="Por qué">
+                    <input value={motivo} maxLength={300} onChange={(e) => setMotivo(e.target.value)} />
+                  </Campo>
+                  <button type="button" className={BOTON_PRIMARIO} disabled={guardar.isPending} onClick={() => void aplicar(false)}>
+                    {guardar.isPending && <LoaderCircle className="size-4 animate-spin" />} {avance ?? 'No se liquidan acá'}
+                  </button>
+                  <button type="button" className={BOTON_SECUNDARIO} disabled={guardar.isPending} onClick={() => void aplicar(null)}>
+                    Volver a liquidarlos
+                  </button>
+                  <button type="button" className="text-tinta-suave hover:underline" onClick={() => setMarcados([])}>
+                    Destildar
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+          <ErrorBase error={envio.error} />
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-borde text-left text-xs text-tinta-suave uppercase">
+                {puede && (
+                  <th className="w-8 py-1">
+                    <input
+                      type="checkbox"
+                      aria-label="Tildar todos"
+                      checked={elegibles.length > 0 && marcados.length === elegibles.length}
+                      onChange={(e) => setMarcados(e.target.checked ? elegibles.map((t) => t.itemId) : [])}
+                    />
+                  </th>
+                )}
                 <th className="py-1 pr-3 font-semibold">Viaje</th>
                 <th className="py-1 pr-3 font-semibold">Tramo</th>
-                <th className="py-1 pr-3 font-semibold">Salida · llegada del viaje</th>
+                <th className="py-1 pr-3 font-semibold">Salida · llegada del tramo</th>
                 <th className="py-1 pr-3 text-right font-semibold">Km</th>
                 <th className="py-1 pr-3 text-right font-semibold">Bono</th>
                 <th className="py-1 font-semibold">Estado</th>
@@ -177,17 +233,32 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
                   key={t.itemId}
                   abierta={fila.es(t.itemId)}
                   onAlternar={() => fila.alternar(t.itemId)}
-                  columnas={6}
+                  columnas={puede ? 7 : 6}
                   className={cn(t.estado !== 'incluido' && 'text-tinta-suave opacity-70')}
                   detalle={<DecidirTramo t={t} puede={puede} onListo={fila.cerrar} />}
                 >
+                  {puede && (
+                    <td className="py-1.5" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Tildar ${t.viaje} ${t.linea ?? ''}`}
+                        disabled={t.estado === 'en_otra' || t.estado === 'despues_baja'}
+                        checked={marcados.includes(t.itemId)}
+                        onChange={() => marcar(t.itemId)}
+                      />
+                    </td>
+                  )}
                   <td className="py-1.5 pr-3 font-medium">{t.viaje}</td>
                   <td className="py-1.5 pr-3">
                     {t.recorrido ?? '—'}
                     {t.linea && <span className="block text-xs text-tinta-suave">{t.linea}</span>}
                   </td>
-                  <td className="py-1.5 pr-3 tabular-nums">
+                  <td
+                    className="py-1.5 pr-3 tabular-nums"
+                    title={`Viaje: ${t.viajeSalida ? formatearFechaDia(t.viajeSalida) : '—'} · ${t.viajeLlegada ? formatearFechaDia(t.viajeLlegada) : '—'}`}
+                  >
                     {t.salida ? formatearFechaDia(t.salida) : '—'} · {t.llegada ? formatearFechaDia(t.llegada) : '—'}
+                    {t.fuenteFecha === 'estimada' && <span className="block text-xs text-tinta-suave">estimada por km (sin fechas en la operación)</span>}
                   </td>
                   <td className="py-1.5 pr-3 text-right tabular-nums">{t.km === null ? '—' : clp(t.km)}</td>
                   <td className="py-1.5 pr-3 text-right tabular-nums">{clp(t.canonBase)}</td>
@@ -200,7 +271,7 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
                 </FilaDesplegable>
               ))}
               <tr className="font-semibold text-tinta">
-                <td className="py-1.5 pr-3" colSpan={3}>
+                <td className="py-1.5 pr-3" colSpan={puede ? 4 : 3}>
                   Total que se liquida
                 </td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{clp(km)}</td>
