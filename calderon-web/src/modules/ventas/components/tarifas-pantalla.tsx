@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calculator, LoaderCircle, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura } from '@/modules/combustible/components/comun/ui';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { cn } from '@/shared/lib/cn';
-import { formatearFechaDia, formatearFechaHora, hoyEnZona } from '@/shared/lib/fechas';
+import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { SelectTipoCarga } from '@/modules/catalogos/components/tipos-carga';
@@ -18,11 +18,10 @@ import {
   useGuardarParametros,
   useGuardarTarifa,
   useQuitarTarifa,
-  useRecalcularCostoKm,
   useTarifario,
 } from '../queries/hooks';
 
-/** Ventas › Cotizaciones › Tarifas a clientes (antes «Tarifas y costos»; 20/11/2026): el costo por km, el tarifario por ruta y los adicionales. */
+/** Ventas › Cotizaciones › Tarifas a clientes (antes «Tarifas y costos»; 20/11/2026): cómo sugiere el precio, el tarifario por ruta y los adicionales. */
 export function TarifasVentasPantalla() {
   const { data, isLoading, isError, error, refetch } = useTarifario();
   if (isLoading) return <Cargando texto="Leyendo las tarifas…" />;
@@ -39,10 +38,8 @@ export function TarifasVentasPantalla() {
 
 function Costos({ t }: { t: Tarifario }) {
   const puede = useCan('ventas.tarifas:editar');
-  const recalcular = useRecalcularCostoKm();
   const guardar = useGuardarParametros();
   const envio = useEnvio();
-  const k = t.costoKm;
   const [v, setV] = useState({ margen: '', validez: '', condiciones: '', manual: '' });
   const [ok, setOk] = useState(false);
   useEffect(() => {
@@ -56,43 +53,16 @@ function Costos({ t }: { t: Tarifario }) {
   return (
     <section className={cn(TARJETA, 'space-y-3 p-4')}>
       <div>
-        <h2 className="font-semibold text-tinta">Costo por km y cómo sugiere el precio</h2>
+        <h2 className="font-semibold text-tinta">Cómo sugiere el precio</h2>
         <p className="text-sm text-tinta-suave">
-          Costo de un viaje = km de la ruta × costo por km + canon del chofer de la línea. El costo por km sale de los viajes reales (combustible, costo fijo
-          por km y gastos, sin el canon). Si una ruta no tiene tarifa, el cotizador sugiere el costo más el margen objetivo.
+          El costo de un viaje sale del cotizador (Cotizaciones › Cotizar un viaje): gasoil, días de camión y chofer, peajes, neumáticos, el canon del chofer
+          que pase del normal y los vacíos hasta el origen y de vuelta a la base. Si una ruta no tiene tarifa, se sugiere el precio que deja el margen
+          objetivo sobre el precio: precio = costo ÷ (1 − margen).
         </p>
-      </div>
-      <div className="flex flex-wrap items-end gap-4">
-        <div>
-          <p className="text-xs text-tinta-suave uppercase">Costo por km que se usa</p>
-          <p className="text-2xl font-semibold tabular-nums text-tinta">
-            {k?.costoKmUsd !== null && k?.costoKmUsd !== undefined ? `USD ${k.costoKmUsd.toLocaleString('es-AR', { maximumFractionDigits: 3 })}` : 'Sin calcular'}
-          </p>
-          <p className="text-xs text-tinta-suave">
-            {k?.fuente === 'manual'
-              ? 'Fijado a mano'
-              : k?.fuente === 'viajes'
-                ? `${k.viajes} viajes · ${k.km?.toLocaleString('es-AR')} km · del ${formatearFechaDia(k.desde)} al ${formatearFechaDia(k.hasta)}${k.calculadoEn ? ` · calculado ${formatearFechaHora(k.calculadoEn, 'America/Argentina/Mendoza')}` : ''}`
-                : 'Tocá «Recalcular» o fijalo a mano'}
-          </p>
-        </div>
-        {puede && (
-          <button
-            type="button"
-            className={BOTON_SECUNDARIO}
-            disabled={recalcular.isPending}
-            onClick={() => void envio.enviar(recalcular.mutateAsync({}), () => undefined)}
-          >
-            {recalcular.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Calculator className="size-4" />} Recalcular con los viajes reales
-          </button>
-        )}
       </div>
       {puede && (
         <div className="grid gap-3 sm:grid-cols-3">
-          <Campo label="Costo por km a mano (USD; vacío = el calculado)">
-            <input inputMode="decimal" value={v.manual} onChange={(e) => setV({ ...v, manual: e.target.value })} />
-          </Campo>
-          <Campo label="Margen objetivo (%)">
+          <Campo label="Margen objetivo (% sobre el precio)">
             <input inputMode="decimal" value={v.margen} onChange={(e) => setV({ ...v, margen: e.target.value })} />
           </Campo>
           <Campo label="Validez de una cotización (días)">

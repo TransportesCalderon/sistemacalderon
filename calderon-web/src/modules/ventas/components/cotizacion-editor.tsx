@@ -466,7 +466,7 @@ function Totales({ c }: { c: Cotizacion }) {
         <p className={cn('text-2xl font-semibold tabular-nums', malo ? 'text-error' : 'text-exito')}>{usd(c.margenUsd)}</p>
       </div>
       <div>
-        <p className="text-xs text-tinta-suave uppercase">Margen sobre el costo</p>
+        <p className="text-xs text-tinta-suave uppercase">Margen sobre el precio</p>
         <p className={cn('text-2xl font-semibold tabular-nums', malo ? 'text-error' : 'text-exito')}>
           {c.margenPct === null ? '—' : `${c.margenPct.toLocaleString('es-AR')} %`}
         </p>

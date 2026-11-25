@@ -41,26 +41,29 @@ import {
   notaCreditoSii,
   resolverDte,
   cotizarGuardar,
-  guardarBaseCosto,
+  guardarBaseCotizador,
+  guardarTramoEstandar,
 } from '../actions/ventas.actions';
 import { ventasRepository } from '../repositories/ventas.repository';
+import type { OpcionesCotizador } from '../domain/cotizador';
 import { invalidar } from '@/shared/query/invalidar';
 
 const CLAVE = ['ventas'] as const;
 const repo = () => ventasRepository(browserDb());
 
-/** Migración 305 · Cotizador simple. */
-export const useCotizador = (p: { origenId: number | null; destinoId: number | null; lineaId: number | null; vueltaVacia: boolean; regresoId: number | null; margen: number | null; empresaId: number | null }) =>
+/** Migración 308 · Cotizador como las presentaciones. */
+export const useCotizador = (p: Omit<OpcionesCotizador, 'origenId' | 'destinoId'> & { origenId: number | null; destinoId: number | null }) =>
   useQuery({
     queryKey: [...CLAVE, 'cotizador', p],
-    queryFn: () => repo().cotizar({ ...p, origenId: p.origenId!, destinoId: p.destinoId! }),
+    queryFn: () => repo().cotizarViaje({ ...p, origenId: p.origenId!, destinoId: p.destinoId! }),
     enabled: !!p.origenId && !!p.destinoId && p.origenId !== p.destinoId,
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
-export const useBaseCosto = (activo: boolean) => useQuery({ queryKey: [...CLAVE, 'base-costo'], queryFn: () => repo().baseCosto(), enabled: activo, staleTime: 60_000 });
+export const useBaseCotizador = () => useQuery({ queryKey: [...CLAVE, 'base-cotizador'], queryFn: () => repo().baseCotizador(), staleTime: 60_000 });
 export const useCotizarGuardar = () => useEscritura(cotizarGuardar);
-export const useGuardarBaseCosto = () => useEscritura(guardarBaseCosto);
+export const useGuardarBaseCotizador = () => useEscritura(guardarBaseCotizador);
+export const useGuardarTramoEstandar = () => useEscritura(guardarTramoEstandar);
 export const useTablero = () => useQuery({ queryKey: [...CLAVE, 'tablero'], queryFn: () => repo().tablero(), refetchInterval: 120_000 });
 export const useEmpresas = (texto: string | null, solo: string | null) =>
   useQuery({ queryKey: [...CLAVE, 'empresas', texto, solo], queryFn: () => repo().empresas(texto, solo), placeholderData: keepPreviousData });

@@ -28,7 +28,15 @@ import type {
   TarifaEntrada,
 } from '../domain/ventas.schemas';
 import { parsearDetalleCliente } from '../domain/detalle';
-import { parsearBaseCosto, parsearCotizador, type CotizarGuardarEntrada } from '../domain/cotizador';
+import {
+  opcionesParaLaBase,
+  parsearBaseCotizador,
+  parsearCotizador,
+  type BaseCotizadorEntrada,
+  type CotizarGuardarEntrada,
+  type OpcionesCotizador,
+  type TramoEstandarEntrada,
+} from '../domain/cotizador';
 import { parsearEstadoSii, parsearResultadoSii, parsearSiiFactura, parsearVistaPrevia, type ClienteSiiEntrada, parsearDatosSiiCliente, type DatosSiiCliente } from '../domain/sii';
 
 /** Ventas (migraciones 67 y 68). Todo pasa por funciones de la base; su mensaje se muestra tal cual. */
@@ -41,47 +49,54 @@ export const ventasRepository = (db: Db) => {
     return data as T;
   };
   return {
-    // Migración 305 · Cotizador simple
-    async cotizar(p: { origenId: number; destinoId: number; lineaId: number | null; vueltaVacia: boolean; regresoId: number | null; margen: number | null; empresaId: number | null }) {
+    // Migración 308 · Cotizador como las presentaciones (costo por tramos: gasoil, días, peajes, neumáticos y vacíos)
+    async cotizarViaje(p: OpcionesCotizador) {
       return parsearCotizador(
-        await leer(
-          ven().rpc('fn_ven_cotizar', {
-            p_origen: p.origenId,
-            p_destino: p.destinoId,
-            p_linea: p.lineaId,
-            p_vuelta_vacia: p.vueltaVacia,
-            p_regreso: p.regresoId,
-            p_margen: p.margen,
-            p_empresa: p.empresaId,
-          }),
-        ),
+        await leer(ven().rpc('fn_ven_cotizar_viaje', { p_origen: p.origenId, p_destino: p.destinoId, p_opciones: opcionesParaLaBase(p) })),
       );
     },
-    async baseCosto(meses: number | null = null, hastaHoy: boolean | null = null) {
-      return parsearBaseCosto(await leer(ven().rpc('fn_ven_costo_km_contable', { p_meses: meses, p_hasta_hoy: hastaHoy })));
+    async baseCotizador() {
+      return parsearBaseCotizador(await leer(ven().rpc('fn_ven_base_cotizador')));
     },
     async cotizarGuardar(d: CotizarGuardarEntrada): Promise<number> {
       return Number(
         await leer(
           ven().rpc('fn_ven_cotizar_guardar', {
             p_datos: {
+              ...opcionesParaLaBase({ lineaId: d.lineaId, vacioDesde: d.vacioDesde, vacioHasta: d.vacioHasta, ajustes: d.ajustes, margen: null, empresaId: null }),
               empresa_id: d.empresaId,
               empresa_nombre: d.empresaNombre,
               origen_id: d.origenId,
               destino_id: d.destinoId,
-              linea_id: d.lineaId,
-              vuelta_vacia: d.vueltaVacia,
               precio_usd: d.precioUsd,
               viajes: d.viajes,
-              observacion: d.observacion,
             },
           }),
         ),
       );
     },
-    async guardarBaseCosto(meses: number, hastaHoy: boolean, combustibleDeCargas: boolean) {
-      return parsearBaseCosto(
-        await leer(ven().rpc('fn_ven_guardar_base_costo', { p_meses: meses, p_hasta_hoy: hastaHoy, p_cuentas_fuera: null, p_combustible_de_cargas: combustibleDeCargas })),
+    async guardarBaseCotizador(d: BaseCotizadorEntrada) {
+      return parsearBaseCotizador(
+        await leer(ven().rpc('fn_ven_guardar_base_cotizador', { p_datos: { ...d.valores, ...(d.bases !== null ? { bases: d.bases } : {}) } })),
+      );
+    },
+    async guardarTramoEstandar(d: TramoEstandarEntrada) {
+      return parsearBaseCotizador(
+        await leer(
+          ven().rpc('fn_ven_guardar_tramo_estandar', {
+            p_datos: {
+              desde_id: d.desdeId,
+              hasta_id: d.hastaId,
+              linea_id: d.lineaId,
+              km: d.km,
+              dias: d.dias,
+              ...(d.consumoL100 !== undefined ? { consumo_l100: d.consumoL100 } : {}),
+              ...(d.peajesUsd !== undefined ? { peajes_usd: d.peajesUsd } : {}),
+              ...(d.nota !== undefined ? { nota: d.nota } : {}),
+              quitar: d.quitar,
+            },
+          }),
+        ),
       );
     },
     // Lecturas

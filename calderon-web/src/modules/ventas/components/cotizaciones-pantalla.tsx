@@ -24,7 +24,7 @@ export function CotizacionesPantalla() {
   const [estado, setEstado] = useState<EstadoCotizacion | null>(null);
   const [texto, setTexto] = useState('');
   const { data, isLoading, isError, error, refetch } = useCotizaciones(estado, texto.trim() || null);
-  const cotizador = useBaseTiene(305);
+  const cotizador = useBaseTiene(308);
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -35,7 +35,7 @@ export function CotizacionesPantalla() {
           </Link>
         )}
       </div>
-      {/* Migración 305: cotizar un viaje en un paso (origen, destino y si vuelve vacío) */}
+      {/* Migración 308: cotizar un viaje como en las presentaciones (tramos con vacíos, días y gasoil) */}
       {cotizador && <CotizadorRapido />}
       <div className="flex flex-wrap items-center gap-2">
         {FILTROS.map((f) => (
