@@ -1713,6 +1713,7 @@ export type Database = {
       fn_marcar_recibe_escalamiento: { Args: { p_usuario: number; p_recibe: boolean }; Returns: undefined };
       // Migración 192: contraseña provisoria puesta por TI
       fn_restablecer_clave: { Args: { p_usuario: number; p_clave: string }; Returns: undefined };
+      fn_eliminar_usuario: { Args: { p_usuario: number; p_motivo: string }; Returns: undefined };
       fn_debo_cambiar_clave: { Args: Record<string, never>; Returns: boolean };
       fn_clave_cambiada: { Args: Record<string, never>; Returns: undefined };
       fn_guardar_usuario: { Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean; p_chofer?: number | null }; Returns: number };

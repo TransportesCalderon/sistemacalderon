@@ -112,6 +112,11 @@ export const usuariosRepository = (db: Db) => ({
     if (error) throw new RepoError(error);
   },
   /** Migración 192: TI le pone una contraseña provisoria (al entrar, el usuario elige la suya). */
+  /** Migración 20261126090000: borra la cuenta de acceso y saca al usuario de la lista (queda en el historial). */
+  async eliminar(usuario: number, motivo: string): Promise<void> {
+    const { error } = await db.schema('seg').rpc('fn_eliminar_usuario', { p_usuario: usuario, p_motivo: motivo });
+    if (error) throw new RepoError(error);
+  },
   async restablecerClave(usuario: number, clave: string): Promise<void> {
     const { error } = await db.schema('seg').rpc('fn_restablecer_clave', { p_usuario: usuario, p_clave: clave });
     if (error) throw new RepoError(error);
