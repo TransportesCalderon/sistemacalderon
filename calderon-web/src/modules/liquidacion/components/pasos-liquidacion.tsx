@@ -110,6 +110,7 @@ function PasoNovedades({ l }: { l: Liquidacion }) {
           <Fila t="Total no imponible" v={clp(totalNoImp)} fuerte />
         </div>
       </div>
+      <ViajesDelPeriodo l={l} />
       <details className="rounded-lg bg-fondo/40 p-3" open={l.estado === 'borrador'}>
         <summary className="cursor-pointer text-sm font-medium text-tinta">
           Días trabajados: {l.diasTrabajados.filter((d) => d.trabajado).length} de {l.diasTrabajados.length} · viático {clp(l.viaticoDia)} por día
@@ -120,6 +121,57 @@ function PasoNovedades({ l }: { l: Liquidacion }) {
       </details>
       {l.bonoDesempeno?.aplica && <BonoDesempenoTarjeta l={l} b={l.bonoDesempeno} />}
     </Paso>
+  );
+}
+
+/** Resumen de los viajes cerrados del período: de acá salen el bono por viaje y los km del adicional. */
+function ViajesDelPeriodo({ l }: { l: Liquidacion }) {
+  const viajes = l.planilla.viajes;
+  const km = viajes.reduce((a, v) => a + (v.km ?? 0), 0);
+  const bono = viajes.reduce((a, v) => a + (v.canon ?? 0), 0);
+  return (
+    <details className="rounded-lg bg-fondo/40 p-3" open>
+      <summary className="cursor-pointer text-sm font-medium text-tinta">
+        Viajes del período: {viajes.length} · {clp(km)} km · bono por viaje {clp(bono)}
+      </summary>
+      {viajes.length === 0 ? (
+        <p className="mt-2 text-sm text-tinta-suave">No hay viajes cerrados con llegada en el período.</p>
+      ) : (
+        <div className="mt-2 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead>
+              <tr className="border-b border-borde text-left text-xs text-tinta-suave uppercase">
+                <th className="py-1 pr-3 font-semibold">Viaje</th>
+                <th className="py-1 pr-3 font-semibold">Salida</th>
+                <th className="py-1 pr-3 font-semibold">Llegada</th>
+                <th className="py-1 pr-3 font-semibold">Recorrido</th>
+                <th className="py-1 pr-3 text-right font-semibold">Km</th>
+                <th className="py-1 text-right font-semibold">Bono por viaje</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-borde">
+              {viajes.map((v) => (
+                <tr key={v.numero}>
+                  <td className="py-1.5 pr-3 font-medium text-tinta">{v.numero}</td>
+                  <td className="py-1.5 pr-3 tabular-nums">{v.salida ? formatearFechaDia(v.salida.slice(0, 10)) : '—'}</td>
+                  <td className="py-1.5 pr-3 tabular-nums">{v.llegada ? formatearFechaDia(v.llegada.slice(0, 10)) : '—'}</td>
+                  <td className="py-1.5 pr-3">{v.recorrido ?? '—'}</td>
+                  <td className="py-1.5 pr-3 text-right tabular-nums">{v.km === null ? '—' : clp(v.km)}</td>
+                  <td className="py-1.5 text-right tabular-nums">{clp(v.canon)}</td>
+                </tr>
+              ))}
+              <tr className="font-semibold text-tinta">
+                <td className="py-1.5 pr-3" colSpan={4}>
+                  Total
+                </td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">{clp(km)}</td>
+                <td className="py-1.5 text-right tabular-nums">{clp(bono)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </details>
   );
 }
 
