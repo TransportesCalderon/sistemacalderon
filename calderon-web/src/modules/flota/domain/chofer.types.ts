@@ -109,6 +109,8 @@ export interface ChoferFiltros {
   pais?: string;
   baseId?: number;
   incluirEliminados?: boolean;
+  /** Pestaña: sin valor = los que trabajan (activos y con licencia); 'bajas' = los de baja, a modo de consulta. */
+  vista?: 'bajas';
 }
 
 export const ORDENES_CHOFER = ['apellido', 'legajo', 'fecha_ingreso', 'estado'] as const;

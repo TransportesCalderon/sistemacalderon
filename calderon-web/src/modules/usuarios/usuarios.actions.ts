@@ -89,6 +89,13 @@ export const restablecerClave = createAction({
   handler: (d, { db }) => usuariosRepository(db).restablecerClave(d.usuario, d.clave),
 });
 
+/** Migración 20261126090000: eliminar un usuario (borra su cuenta de acceso; queda en el historial). Solo TI. */
+export const eliminarUsuario = createAction({
+  permiso: 'configuracion.usuarios:editar',
+  schema: z.object({ usuario: z.number().int().positive(), motivo: z.string().trim().min(3, 'Escribí por qué se elimina.').max(300) }),
+  handler: (d, { db }) => usuariosRepository(db).eliminar(d.usuario, d.motivo),
+});
+
 /** Migración 247: marcar quién autoriza cargas (órdenes de carga). Solo TI. */
 export const marcarAutorizaCargas = createAction({
   permiso: 'configuracion.usuarios:editar',

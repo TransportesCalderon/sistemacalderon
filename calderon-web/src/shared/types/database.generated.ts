@@ -1711,6 +1711,7 @@ export type Database = {
       fn_marcar_recibe_escalamiento: { Args: { p_usuario: number; p_recibe: boolean }; Returns: undefined };
       // Migración 192: contraseña provisoria puesta por TI
       fn_restablecer_clave: { Args: { p_usuario: number; p_clave: string }; Returns: undefined };
+      fn_eliminar_usuario: { Args: { p_usuario: number; p_motivo: string }; Returns: undefined };
       fn_debo_cambiar_clave: { Args: Record<string, never>; Returns: boolean };
       fn_clave_cambiada: { Args: Record<string, never>; Returns: undefined };
       fn_guardar_usuario: { Args: { p_email: string; p_nombre: string; p_roles: string[]; p_activo?: boolean; p_chofer?: number | null }; Returns: number };
@@ -2006,6 +2007,17 @@ export type Database = {
       };
       fn_preparar_liquidacion: { Args: { p_chofer: number; p_periodo: string }; Returns: number };
       fn_preparar_liquidaciones: { Args: { p_periodo: string }; Returns: Json };
+      fn_choferes_a_preparar: { Args: { p_periodo: string }; Returns: Json };
+      fn_dias_trabajados: { Args: { p_chofer: number; p_desde: string; p_hasta?: string | null }; Returns: Json };
+      fn_guardar_dia_trabajado: { Args: { p_chofer: number; p_fecha: string; p_trabajado: boolean; p_motivo: string }; Returns: Json };
+      fn_guardar_bono_desempeno: { Args: { p_liq: number; p_cuidado: boolean; p_limpieza: boolean; p_otorgar: boolean; p_motivo: string }; Returns: Json };
+      fn_guardar_bono_colaboradores: { Args: { p_liq: number; p_datos: Json }; Returns: Json };
+      fn_quitar_bono_colaboradores: { Args: { p_liq: number }; Returns: undefined };
+      fn_novedades_periodo: { Args: { p_periodo: string }; Returns: Json };
+      fn_guardar_tramo_liquidacion: {
+        Args: { p_item: number; p_liquidar: boolean; p_canon: number; p_moneda: string; p_km: number; p_motivo: string };
+        Returns: undefined;
+      };
       fn_agregar_renglon: {
         Args: { p_liq: number; p_tipo: string | null; p_descripcion: string | null; p_importe: number; p_concepto?: number | null; p_cantidad?: number | null };
         Returns: number;

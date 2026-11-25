@@ -3,6 +3,10 @@
 import { createAction } from '@/server/actions/create-action';
 import {
   aprobarSchema,
+  bonoColaboradoresSchema,
+  bonoDesempenoSchema,
+  diaTrabajadoSchema,
+  tramoLiquidacionSchema,
   conceptoSchema,
   empresaSchema,
   fichaSchema,
@@ -48,6 +52,11 @@ export const prepararLiquidacion = createAction({
   schema: prepararSchema,
   handler: (d, { db }) => liquidacionRepository(db).preparar(d.choferId, d.periodo),
   invalida: rutas,
+});
+export const choferesAPreparar = createAction({
+  permiso: 'liquidacion.liquidaciones:editar',
+  schema: prepararTodasSchema,
+  handler: (d, { db }) => liquidacionRepository(db).choferesAPreparar(d.periodo),
 });
 export const prepararLiquidaciones = createAction({
   permiso: 'liquidacion.liquidaciones:editar',
@@ -115,6 +124,44 @@ export const guardarLegal = createAction({
   permiso: 'liquidacion.liquidaciones:editar',
   schema: legalSchema,
   handler: (d, { db }) => liquidacionRepository(db).guardarLegal(d),
+  invalida: rutas,
+});
+// Liquidación en 3 pasos
+export const guardarDiaTrabajado = createAction({
+  permiso: 'liquidacion.liquidaciones:editar',
+  schema: diaTrabajadoSchema,
+  handler: (d, { db }) => liquidacionRepository(db).guardarDiaTrabajado(d),
+  invalida: rutas,
+});
+/** Operaciones corrige los días desde la ficha del chofer (Flota). La base exige RRHH, Operaciones o TI. */
+export const guardarDiaTrabajadoFlota = createAction({
+  permiso: 'flota.choferes:editar',
+  schema: diaTrabajadoSchema,
+  handler: (d, { db }) => liquidacionRepository(db).guardarDiaTrabajado(d),
+  invalida: rutas,
+});
+export const guardarBonoDesempeno = createAction({
+  permiso: 'liquidacion.liquidaciones:editar',
+  schema: bonoDesempenoSchema,
+  handler: (d, { db }) => liquidacionRepository(db).guardarBonoDesempeno(d),
+  invalida: rutas,
+});
+export const guardarBonoColaboradores = createAction({
+  permiso: 'liquidacion.liquidaciones:editar',
+  schema: bonoColaboradoresSchema,
+  handler: (d, { db }) => liquidacionRepository(db).guardarBonoColaboradores(d),
+  invalida: rutas,
+});
+export const guardarTramoLiquidacion = createAction({
+  permiso: 'liquidacion.liquidaciones:editar',
+  schema: tramoLiquidacionSchema,
+  handler: (d, { db }) => liquidacionRepository(db).guardarTramo(d),
+  invalida: rutas,
+});
+export const quitarBonoColaboradores = createAction({
+  permiso: 'liquidacion.liquidaciones:editar',
+  schema: idSchema,
+  handler: (d, { db }) => liquidacionRepository(db).quitarBonoColaboradores(d.id),
   invalida: rutas,
 });
 export const adjuntarFirmada = createAction({

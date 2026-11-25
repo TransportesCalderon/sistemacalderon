@@ -13,7 +13,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaDia, hoyEnZona } from '@/shared/lib/fechas';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { dinero, ETIQUETA_ESTADO, ETIQUETA_MOVIMIENTO, nombrePeriodo, type FondoDeChofer, type GastoPorRevisar, type Saldo } from '../domain/chofer.types';
+import { dinero, ETIQUETA_ESTADO, ETIQUETA_MOVIMIENTO, nombrePeriodo, periodoACerrar, type FondoDeChofer, type GastoPorRevisar, type Saldo } from '../domain/chofer.types';
 import {
   useAnularMovimiento,
   useCargarGastoOficina,
@@ -33,6 +33,7 @@ import { IntentosRepetidos } from './intentos-repetidos';
 import { CuentaParaEntrega, CuentasChoferOficina } from './cuentas-chofer';
 import { CargosChofer } from './cargos-chofer';
 import { TONO_ESTADO } from './mis-gastos';
+import { FilaDesplegable } from '@/shared/ui/fila-desplegable';
 
 const Saldos = ({ saldos }: { saldos: Saldo[] }) =>
   saldos.filter((s) => s.saldo !== 0).length === 0 ? (
@@ -50,16 +51,10 @@ const Saldos = ({ saldos }: { saldos: Saldo[] }) =>
   );
 
 /** El período anterior a uno dado («2026-10-01» → «2026-09-01»). */
-function mesAnterior(periodo: string): string {
-  const [a, m] = periodo.split('-').map(Number) as [number, number];
-  return new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
-}
-
 /** Administración › Fondos de choferes: gastos por revisar, saldo de cada chofer y su cuenta. */
 export function FondosPantalla() {
   const fondos = useFondos();
   const [elegido, setElegido] = useState<number | null>(null);
-  const fila = fondos.data?.find((f) => f.choferId === elegido) ?? null;
 
   return (
     <div className="space-y-6">
@@ -89,10 +84,12 @@ export function FondosPantalla() {
             </thead>
             <tbody className="divide-y divide-borde">
               {(fondos.data ?? []).map((f) => (
-                <tr
+                <FilaDesplegable
                   key={f.choferId}
-                  className={cn('cursor-pointer hover:bg-hover', elegido === f.choferId && 'bg-marca-suave/40')}
-                  onClick={() => setElegido(elegido === f.choferId ? null : f.choferId)}
+                  abierta={elegido === f.choferId}
+                  onAlternar={() => setElegido(elegido === f.choferId ? null : f.choferId)}
+                  columnas={5}
+                  detalle={<CuentaChofer f={f} onCerrar={() => setElegido(null)} />}
                 >
                   <td className={cn(TD, 'font-medium text-tinta')}>{f.chofer}</td>
                   <td className={TD}>
@@ -101,13 +98,12 @@ export function FondosPantalla() {
                   <td className={TD}>{f.porRevisar > 0 ? <Chip tono="alerta">{f.porRevisar}</Chip> : '—'}</td>
                   <td className={TD}>{f.ultimoMovimiento ? formatearFechaDia(f.ultimoMovimiento) : '—'}</td>
                   <td className={TD}>{f.ultimoCierre ? nombrePeriodo(f.ultimoCierre) : '—'}</td>
-                </tr>
+                </FilaDesplegable>
               ))}
             </tbody>
           </table>
         )}
       </section>
-      {fila && <CuentaChofer f={fila} onCerrar={() => setElegido(null)} />}
     </div>
   );
 }
@@ -311,9 +307,13 @@ function CuentaChofer({ f, onCerrar }: { f: FondoDeChofer; onCerrar: () => void 
   const cuenta = useCuentaChofer(f.choferId);
   const [panel, setPanel] = useState<'entrega' | 'devolucion' | 'gasto' | null>(null);
   const hoy = hoyEnZona(zonaHoraria) as string;
-  // El período que se cierra es el último terminado: el anterior al de hoy (lo calcula la base)
+  // El período que se cierra: el anterior al de hoy si quedó sin cerrar con movimientos; si no (por ejemplo, octubre 2026,
+  // que se liquidó por fuera y no tiene nada en el sistema), el de hoy. Lo calcula la base (período de hoy y su corte).
   const actual = usePeriodoDe(hoy);
-  const periodo = useMemo(() => (actual.data ? mesAnterior(actual.data) : null), [actual.data]);
+  const periodo = useMemo(
+    () => (actual.data ? periodoACerrar(actual.data, cuenta.data?.ultimoCierre ?? f.ultimoCierre, cuenta.data?.movimientos ?? []) : null),
+    [actual.data, cuenta.data, f.ultimoCierre],
+  );
   const cerrar = useCerrarFondo();
   const reabrir = useReabrirFondo();
   const anular = useAnularMovimiento();

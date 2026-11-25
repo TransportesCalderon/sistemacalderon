@@ -21,6 +21,7 @@ import { FotoChoferFicha } from './foto-chofer';
 import { EstadoChoferChip, LicenciaChip } from './estado-chofer';
 import { PendientesChofer } from './pendientes-chofer';
 import { ListaCuentas } from '@/modules/chofer/components/cuentas-varias';
+import { DiasTrabajadosChofer } from '@/modules/liquidacion/components/pasos-liquidacion';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { SoloEnPagina, useFicha, useNombreFicha } from '@/modules/core/fichas/contexto';
 
@@ -186,6 +187,14 @@ export function ChoferFicha({ id }: { id: ChoferId }) {
           <section className={cn(TARJETA, 'p-5')}>
             <h2 className="mb-3 text-sm font-semibold text-tinta">Cuentas bancarias (para transferirle el fondo fijo)</h2>
             <ListaCuentas choferId={Number(chofer.id)} puedeEditar ocultarSinPermiso />
+          </section>
+        )}
+
+        {/* Liquidación en 3 pasos: días trabajados (viáticos). Operaciones corrige los días que el sistema no ve. */}
+        {!eliminado && (
+          <section className={cn(TARJETA, 'p-5')}>
+            <h2 className="mb-3 text-sm font-semibold text-tinta">Días trabajados (viáticos)</h2>
+            <DiasTrabajadosChofer choferId={Number(chofer.id)} puedeEditar={alcanceEditar === 'todo'} />
           </section>
         )}
 

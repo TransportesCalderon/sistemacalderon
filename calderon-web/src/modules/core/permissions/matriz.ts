@@ -116,7 +116,7 @@ export const PANTALLAS = {
   'comercial.ubicaciones':   { etiqueta: 'Ubicaciones y geocercas', fila: ['L', 'E', 'L', '—', 'L', 'L', '—', '—', 'E A', 'L', 'L', '—', '—'] },
   'comercial.proveedores':   { etiqueta: 'Proveedores y estaciones', fila: ['—', 'L', 'L', '—', 'E', 'L', '—', 'E', 'E A', 'L', '—', '—', '—'] },
   'liquidacion.tramos':      { etiqueta: 'Tramos liquidables', fila: ['—', 'L', '—', '—', '—', '—', 'E A', 'L', 'E A', 'L', '—', '—', '—'] },
-  'liquidacion.liquidaciones': { etiqueta: 'Liquidaciones', fila: ['L', '—', '—', '—', '—', '—', 'E A', 'L A', 'E A', 'L', '—', '—', '—'] },
+  'liquidacion.liquidaciones': { etiqueta: 'Liquidaciones', fila: ['L A', '—', '—', '—', '—', '—', 'E A', 'L A', 'E A', 'L', '—', '—', '—'] },
   'liquidacion.reglas':      { etiqueta: 'Reglas de liquidación', fila: ['—', '—', '—', '—', '—', '—', 'E', 'L', 'E A', 'L', '—', '—', '—'] },
   'finanzas.ingresos':       { etiqueta: 'Ingresos', fila: ['L', 'E', '—', '—', '—', '—', '—', 'E A', 'E A', 'L', '—', '—', '—'] },
   'finanzas.costos_directos': { etiqueta: 'Costos directos', fila: ['L', 'E', '—', '—', 'E', '—', '—', 'E A', 'E A', 'L', '—', '—', '—'] },

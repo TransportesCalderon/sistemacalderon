@@ -98,6 +98,16 @@ export interface Legal {
   otrosDescuentos: number;
   aPagar: number;
   aPagarLetras: string;
+  /** Liquidación en 3 pasos: «colaboradores» = manda el bono de sueldo cargado por RRHH */
+  fuente: 'sistema' | 'colaboradores';
+  bonoPendiente: boolean;
+  avisos: string[];
+  gratificacion: number;
+  otrosLegales: number;
+  aporteEmpleador: number | null;
+  novedadesImponible: number | null;
+  novedadesNoImponible: number | null;
+  reintegro: number;
 }
 export const parsearLegal = (v: unknown): Legal | null => {
   if (!v || typeof v !== 'object') return null;
@@ -140,6 +150,15 @@ export const parsearLegal = (v: unknown): Legal | null => {
     otrosDescuentos: n0(x.otros_descuentos),
     aPagar: n0(x.a_pagar),
     aPagarLetras: s(x.a_pagar_letras) ?? '',
+    fuente: s(x.fuente) === 'colaboradores' ? 'colaboradores' : 'sistema',
+    bonoPendiente: x.bono_pendiente === true,
+    avisos: arr(x.avisos).map(String),
+    gratificacion: n0(x.gratificacion),
+    otrosLegales: n0(x.otros_legales),
+    aporteEmpleador: n(x.aporte_empleador),
+    novedadesImponible: n(x.novedades_imponible),
+    novedadesNoImponible: n(x.novedades_no_imponible),
+    reintegro: n0(x.reintegro),
   };
 };
 

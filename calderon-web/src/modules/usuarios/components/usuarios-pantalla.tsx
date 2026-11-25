@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Pencil, UserPlus, Users } from 'lucide-react';
+import { KeyRound, Pencil, Trash2, UserPlus, Users } from 'lucide-react';
 import { Panel, TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorLectura, Seccion, Vacio } from '@/modules/combustible/components/comun/ui';
 import { ETIQUETA_ROL, ROLES_APP, type RolApp } from '@/modules/core/permissions/roles';
@@ -25,6 +25,7 @@ import {
   marcarApruebaFondos,
   marcarRecibeEscalamiento,
   restablecerClave,
+  eliminarUsuario,
 } from '../usuarios.actions';
 import { BOTON_PRIMARIO } from '@/shared/ui/clases';
 import { usuariosRepository, type Usuario, type UsuarioDeCliente } from '../usuarios.repository';
@@ -317,6 +318,15 @@ export function UsuariosPantalla() {
                             <KeyRound className="size-3.5" /> Contraseña
                           </button>
                         )}
+                        {u.id !== usuarioId && (
+                          <button
+                            type="button"
+                            className="ml-3 inline-flex items-center gap-1 text-xs text-error hover:underline"
+                            onClick={() => setAbierto(`e:${u.id}`)}
+                          >
+                            <Trash2 className="size-3.5" /> Eliminar
+                          </button>
+                        )}
                       </td>
                     </tr>
                     {abierto === `u:${u.id}` && u.email && (
@@ -330,6 +340,13 @@ export function UsuariosPantalla() {
                       <tr>
                         <td colSpan={columnas} className="px-3 pb-3">
                           <FormClave usuario={u} onCerrar={() => setAbierto(null)} />
+                        </td>
+                      </tr>
+                    )}
+                    {abierto === `e:${u.id}` && (
+                      <tr>
+                        <td colSpan={columnas} className="px-3 pb-3">
+                          <FormEliminar usuario={u} onCerrar={() => setAbierto(null)} />
                         </td>
                       </tr>
                     )}
@@ -527,6 +544,32 @@ function claveAlAzar(): string {
   const v = new Uint32Array(12);
   crypto.getRandomValues(v);
   return Array.from(v, (n) => letras[n % letras.length]).join('');
+}
+
+/** Migración 20261126090000: eliminar un usuario. Se borra su cuenta de acceso; su nombre queda en el historial. */
+function FormEliminar({ usuario, onCerrar }: { usuario: Usuario; onCerrar: () => void }) {
+  const qc = useQueryClient();
+  const envio = useEnvio();
+  const [motivo, setMotivo] = useState('');
+  const eliminar = useMutation({
+    mutationFn: eliminarUsuario,
+    onSuccess: (r) => (r.ok ? invalidar(qc, 'usuario') : undefined),
+  });
+  return (
+    <Panel
+      titulo={`Eliminar a ${usuario.nombre}`}
+      explicacion="Se borra su cuenta de acceso (no va a poder entrar más) y se le sacan los roles. Lo que cargó, aprobó o pagó sigue mostrando su nombre. El email queda libre para crear otro usuario. No se puede deshacer."
+      error={envio.error}
+      ocupado={eliminar.isPending}
+      textoBoton="Eliminar"
+      onConfirmar={() => void envio.enviar(eliminar.mutateAsync({ usuario: usuario.id, motivo }), onCerrar)}
+      onCerrar={onCerrar}
+    >
+      <Campo label="Por qué se elimina" error={envio.campo('motivo')}>
+        <input value={motivo} maxLength={300} placeholder="Ej.: renunció el 10/11" onChange={(e) => setMotivo(e.target.value)} />
+      </Campo>
+    </Panel>
+  );
 }
 
 /** Migración 192: TI restablece la contraseña con una provisoria; el usuario elige la suya al entrar. */

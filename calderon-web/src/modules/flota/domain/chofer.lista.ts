@@ -31,6 +31,8 @@ export function parsearListaChoferes(e: Entrada): ChoferListaParams {
 
   if (leer(e, 'eliminados') === '1') p.incluirEliminados = true;
 
+  if (leer(e, 'vista') === 'bajas') p.vista = 'bajas';
+
   const orden = leer(e, 'orden');
   if (orden && (ORDENES_CHOFER as readonly string[]).includes(orden)) p.orden = orden as CampoOrdenChofer;
 
@@ -49,6 +51,7 @@ export function serializarListaChoferes(p: ChoferListaParams): string {
   if (p.pais) u.set('pais', p.pais);
   if (p.baseId !== undefined) u.set('base', String(p.baseId));
   if (p.incluirEliminados) u.set('eliminados', '1');
+  if (p.vista) u.set('vista', p.vista);
   if (p.orden !== LISTA_CHOFERES_DEFECTO.orden) u.set('orden', p.orden);
   if (p.dir !== LISTA_CHOFERES_DEFECTO.dir) u.set('dir', p.dir);
   if (p.pagina > 1) u.set('pagina', String(p.pagina));

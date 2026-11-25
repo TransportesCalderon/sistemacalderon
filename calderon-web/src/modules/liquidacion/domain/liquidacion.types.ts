@@ -22,7 +22,7 @@ export const TITULO_TIPO: Record<TipoRenglon, string> = {
 };
 export const ETIQUETA_ESTADO_LIQ: Record<EstadoLiquidacion, string> = {
   borrador: 'Borrador',
-  aprobada: 'Aprobada',
+  aprobada: 'Por transferir',
   pagada: 'Pagada',
   anulada: 'Anulada',
 };
@@ -79,7 +79,168 @@ export interface Liquidacion {
   pagoNumero: string | null;
   firmadaRuta: string | null;
   firmadaEn: string | null;
+  /** Liquidación en 3 pasos: días trabajados (viáticos), bono por desempeño y bono de sueldo de Colaboradores */
+  viaticoDia: number;
+  diasTrabajados: DiaTrabajado[];
+  bonoDesempeno: BonoDesempeno | null;
+  colaboradores: BonoColaboradores | null;
+  /** Liquidación por tramo: cada tramo de los viajes del chofer y qué pasa con él */
+  tramos: TramoLiquidacion[];
+  bajaChofer: string | null;
 }
+
+/** Migración 20261125200000: los tramos salen de los movimientos que registra Operaciones (historial del chofer). */
+export type EstadoTramo = 'incluido' | 'no_se_liquida' | 'en_otra' | 'despues_baja' | 'vacio' | 'sin_linea';
+export const ETIQUETA_ESTADO_TRAMO: Record<EstadoTramo, string> = {
+  incluido: 'Se liquida',
+  no_se_liquida: 'No se liquida acá',
+  en_otra: 'En otra liquidación',
+  despues_baja: 'Después de la baja',
+  vacio: 'Vacío',
+  sin_linea: 'Sin línea: ajustalo',
+};
+export interface TramoLiquidacion {
+  itemId: number;
+  viaje: string;
+  /** Fechas del tramo (no del viaje). «estimada» = repartida por km entre fechas conocidas del viaje */
+  salida: string | null;
+  llegada: string | null;
+  fuenteFecha: 'operacion' | 'estimada' | null;
+  viajeSalida: string | null;
+  viajeLlegada: string | null;
+  linea: string | null;
+  recorrido: string | null;
+  km: number | null;
+  canon: number | null;
+  canonMoneda: string | null;
+  canonBase: number | null;
+  estado: EstadoTramo;
+  detalle: string | null;
+  ajustado: boolean;
+  motivo: string | null;
+}
+export const parsearTramos = (v: unknown): TramoLiquidacion[] =>
+  arr(v).map((t) => {
+    const y = o(t);
+    return {
+      itemId: Number(y.item_id),
+      viaje: s(y.viaje) ?? '',
+      salida: s(y.salida),
+      llegada: s(y.llegada),
+      fuenteFecha: (s(y.fuente_fecha) as TramoLiquidacion['fuenteFecha']) ?? null,
+      viajeSalida: s(y.viaje_salida),
+      viajeLlegada: s(y.viaje_llegada),
+      linea: s(y.linea),
+      recorrido: s(y.recorrido),
+      km: n(y.km),
+      canon: n(y.canon),
+      canonMoneda: s(y.canon_moneda),
+      canonBase: n(y.canon_base),
+      estado: (s(y.estado) ?? 'incluido') as EstadoTramo,
+      detalle: s(y.detalle),
+      ajustado: y.ajustado === true,
+      motivo: s(y.motivo),
+    };
+  });
+
+export type FuenteDia = 'viaje' | 'operacion' | 'gps';
+export interface DiaTrabajado {
+  fecha: string;
+  trabajado: boolean;
+  propuesto: boolean;
+  fuente: FuenteDia | null;
+  detalle: string | null;
+  /** Corregido a mano: el motivo (null = lo que propone el sistema) */
+  motivo: string | null;
+}
+export const parsearDias = (v: unknown): DiaTrabajado[] =>
+  arr(v).map((d) => {
+    const y = o(d);
+    return {
+      fecha: s(y.fecha) ?? '',
+      trabajado: y.trabajado === true,
+      propuesto: y.propuesto === true,
+      fuente: (s(y.fuente) as FuenteDia | null) ?? null,
+      detalle: s(y.detalle),
+      motivo: s(y.motivo),
+    };
+  });
+
+export interface BonoDesempeno {
+  aplica: boolean;
+  desde: string | null;
+  importe: number;
+  consumoMax: number | null;
+  consumo: number | null;
+  km: number | null;
+  cierres: number;
+  cierresPendientes: number;
+  cumpleConsumo: boolean | null;
+  faltanteL: number;
+  sinFaltantes: boolean | null;
+  cuidadoUnidad: boolean | null;
+  limpieza: boolean | null;
+  otorgar: boolean;
+  motivo: string | null;
+  confirmado: boolean;
+}
+const b3 = (v: unknown): boolean | null => (v === true ? true : v === false ? false : null);
+export const parsearBono = (v: unknown): BonoDesempeno | null => {
+  if (!v || typeof v !== 'object') return null;
+  const x = o(v);
+  return {
+    aplica: x.aplica === true,
+    desde: s(x.desde),
+    importe: n(x.importe) ?? 0,
+    consumoMax: n(x.consumo_max),
+    consumo: n(x.consumo),
+    km: n(x.km),
+    cierres: n(x.cierres) ?? 0,
+    cierresPendientes: n(x.cierres_pendientes) ?? 0,
+    cumpleConsumo: b3(x.cumple_consumo),
+    faltanteL: n(x.faltante_l) ?? 0,
+    sinFaltantes: b3(x.sin_faltantes),
+    cuidadoUnidad: b3(x.cuidado_unidad),
+    limpieza: b3(x.limpieza),
+    otorgar: x.otorgar === true,
+    motivo: s(x.motivo),
+    confirmado: x.confirmado === true,
+  };
+};
+
+/** Paso 2: los totales del bono de sueldo que arma Colaboradores, tal como los cargó RRHH. */
+export interface BonoColaboradores {
+  imponible: number;
+  noImponible: number;
+  gratificacion: number;
+  afp: number;
+  salud: number;
+  cesantia: number;
+  impuesto: number;
+  otrosDescuentos: number;
+  liquido: number;
+  aporteEmpleador: number;
+  pdfRuta: string | null;
+  cargadoEn: string | null;
+}
+export const parsearColaboradores = (v: unknown): BonoColaboradores | null => {
+  if (!v || typeof v !== 'object') return null;
+  const x = o(v);
+  return {
+    imponible: n(x.imponible) ?? 0,
+    noImponible: n(x.no_imponible) ?? 0,
+    gratificacion: n(x.gratificacion) ?? 0,
+    afp: n(x.afp) ?? 0,
+    salud: n(x.salud) ?? 0,
+    cesantia: n(x.cesantia) ?? 0,
+    impuesto: n(x.impuesto) ?? 0,
+    otrosDescuentos: n(x.otros_descuentos) ?? 0,
+    liquido: n(x.liquido) ?? 0,
+    aporteEmpleador: n(x.aporte_empleador) ?? 0,
+    pdfRuta: s(x.pdf_ruta),
+    cargadoEn: s(x.cargado_en),
+  };
+};
 
 export const parsearLiquidacion = (v: Json | unknown): Liquidacion => {
   const x = o(v);
@@ -115,6 +276,12 @@ export const parsearLiquidacion = (v: Json | unknown): Liquidacion => {
     pagoNumero: s(x.pago_numero),
     firmadaRuta: s(x.firmada_ruta),
     firmadaEn: s(x.firmada_en),
+    viaticoDia: n(x.viatico_dia) ?? 0,
+    diasTrabajados: parsearDias(x.dias_trabajados),
+    bonoDesempeno: parsearBono(x.bono_desempeno),
+    colaboradores: parsearColaboradores(x.colaboradores),
+    tramos: parsearTramos(x.tramos),
+    bajaChofer: s(x.baja_chofer),
     renglones: arr(x.renglones).map((r) => {
       const y = o(r);
       return {
@@ -143,6 +310,10 @@ export interface FilaLiquidacion {
   neto: number;
   avisos: number;
   pagadaEn: string | null;
+  /** Ya tiene el bono de sueldo de Colaboradores (paso 2) */
+  conBono: boolean;
+  /** Lo que se le transfiere (null hasta cargar el bono) */
+  aPagar: number | null;
 }
 export interface Periodo {
   periodo: string;
@@ -172,6 +343,8 @@ export const parsearPeriodo = (v: Json | unknown): Periodo => {
         neto: n(y.neto) ?? 0,
         avisos: n(y.avisos) ?? 0,
         pagadaEn: s(y.pagada_en),
+        conBono: y.con_bono === true,
+        aPagar: n(y.a_pagar),
       };
     }),
   };
@@ -236,3 +409,7 @@ export const moverPeriodo = (periodo: string, meses: number) => {
   const [a, m] = periodo.split('-').map(Number) as [number, number];
   return new Date(Date.UTC(a, m - 1 + meses, 1)).toISOString().slice(0, 10);
 };
+
+/** Período con el que abre la pantalla: el anterior si le quedan liquidaciones por terminar; si no, el de hoy. */
+export const periodoInicial = (actual: string, anteriores: { estado: EstadoLiquidacion }[]): string =>
+  anteriores.some((l) => l.estado === 'borrador' || l.estado === 'aprobada') ? moverPeriodo(actual, -1) : actual;

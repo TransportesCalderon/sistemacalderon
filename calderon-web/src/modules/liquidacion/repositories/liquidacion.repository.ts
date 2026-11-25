@@ -1,6 +1,19 @@
 import { RepoError, type Db } from '@/shared/repository/types';
-import { parsearConceptos, parsearLiquidacion, parsearPeriodo, parsearTarifas } from '../domain/liquidacion.types';
-import type { ConceptoEntrada, EmpresaEntrada, FichaEntrada, IndicadoresEntrada, LegalEntrada, RenglonEntrada, TarifaEntrada } from '../domain/liquidacion.schemas';
+import { parsearConceptos, parsearDias, parsearLiquidacion, parsearPeriodo, parsearTarifas, type DiaTrabajado } from '../domain/liquidacion.types';
+import type {
+  BonoColaboradoresEntrada,
+  BonoDesempenoEntrada,
+  ConceptoEntrada,
+  DiaTrabajadoEntrada,
+  TramoLiquidacionEntrada,
+  EmpresaEntrada,
+  FichaEntrada,
+  IndicadoresEntrada,
+  LegalEntrada,
+  RenglonEntrada,
+  TarifaEntrada,
+} from '../domain/liquidacion.schemas';
+import type { NovedadChofer } from '../domain/novedades';
 import { parsearDatosLegales } from '../domain/legal.types';
 
 /** Liquidaciones (migración 62). Todo pasa por funciones de la base; su mensaje se muestra tal cual. */
@@ -61,6 +74,11 @@ export const liquidacionRepository = (db: Db) => {
     },
     async preparar(choferId: number, periodo: string): Promise<number> {
       return leer(fin().rpc('fn_preparar_liquidacion', { p_chofer: choferId, p_periodo: periodo }));
+    },
+    /** Choferes a preparar en el período (la pantalla los prepara de a uno). */
+    async choferesAPreparar(periodo: string): Promise<{ id: number; nombre: string }[]> {
+      const r = (await leer(fin().rpc('fn_choferes_a_preparar', { p_periodo: periodo }))) as { id: number; nombre: string }[] | null;
+      return r ?? [];
     },
     async prepararTodas(periodo: string) {
       const r = (await leer(fin().rpc('fn_preparar_liquidaciones', { p_periodo: periodo }))) as {
@@ -135,6 +153,88 @@ export const liquidacionRepository = (db: Db) => {
           p_haberes: g.haberes.filter((h) => h.importe !== null).map((h) => ({ codigo: h.codigo, importe: h.importe })),
         }),
       );
+    },
+    // Liquidación en 3 pasos
+    /** Días del período de liquidación (periodo = primer día del mes). */
+    async diasTrabajados(
+      choferId: number,
+      periodo: string,
+    ): Promise<{ desde: string; hasta: string; viaticoDia: number; dias: DiaTrabajado[]; bloqueado: boolean }> {
+      const v = (await leer(fin().rpc('fn_dias_trabajados', { p_chofer: choferId, p_desde: periodo }))) as Record<string, unknown> | null;
+      return {
+        desde: String(v?.desde ?? ''),
+        hasta: String(v?.hasta ?? ''),
+        viaticoDia: Number(v?.viatico_dia ?? 0),
+        dias: parsearDias(v?.dias),
+        bloqueado: v?.bloqueado === true,
+      };
+    },
+    async guardarDiaTrabajado(d: DiaTrabajadoEntrada) {
+      await leer(fin().rpc('fn_guardar_dia_trabajado', { p_chofer: d.choferId, p_fecha: d.fecha, p_trabajado: d.trabajado as boolean, p_motivo: d.motivo as string }));
+    },
+    async guardarBonoDesempeno(b: BonoDesempenoEntrada) {
+      await leer(
+        fin().rpc('fn_guardar_bono_desempeno', {
+          p_liq: b.id,
+          p_cuidado: b.cuidado as boolean,
+          p_limpieza: b.limpieza as boolean,
+          p_otorgar: b.otorgar,
+          p_motivo: b.motivo as string,
+        }),
+      );
+    },
+    async guardarBonoColaboradores(b: BonoColaboradoresEntrada) {
+      await leer(
+        fin().rpc('fn_guardar_bono_colaboradores', {
+          p_liq: b.id,
+          p_datos: {
+            imponible: b.imponible,
+            no_imponible: b.noImponible,
+            gratificacion: b.gratificacion,
+            afp: b.afp,
+            salud: b.salud,
+            cesantia: b.cesantia,
+            impuesto: b.impuesto,
+            otros_descuentos: b.otrosDescuentos,
+            liquido: b.liquido,
+            aporte_empleador: b.aporteEmpleador,
+            pdf_ruta: b.pdfRuta,
+          },
+        }),
+      );
+    },
+    async guardarTramo(t: TramoLiquidacionEntrada) {
+      await leer(
+        fin().rpc('fn_guardar_tramo_liquidacion', {
+          p_item: t.itemId,
+          p_liquidar: t.liquidar as boolean,
+          p_canon: t.canon as number,
+          p_moneda: t.moneda as string,
+          p_km: t.km as number,
+          p_motivo: t.motivo as string,
+        }),
+      );
+    },
+    async quitarBonoColaboradores(id: number) {
+      await leer(fin().rpc('fn_quitar_bono_colaboradores', { p_liq: id }));
+    },
+    async novedades(periodo: string): Promise<NovedadChofer[]> {
+      const v = await leer(fin().rpc('fn_novedades_periodo', { p_periodo: periodo }));
+      return (Array.isArray(v) ? (v as Record<string, unknown>[]) : []).map((x) => ({
+        chofer: String(x.chofer ?? ''),
+        rut: typeof x.rut === 'string' ? x.rut : null,
+        estado: String(x.estado ?? ''),
+        basico: Number(x.basico ?? 0),
+        bonoViaje: Number(x.bono_viaje ?? 0),
+        otrosImponibles: Number(x.otros_imponibles ?? 0),
+        viaticos: Number(x.viaticos ?? 0),
+        dias: Number(x.dias ?? 0),
+        adicionalKm: Number(x.adicional_km ?? 0),
+        bonoDesempeno: Number(x.bono_desempeno ?? 0),
+        otrosNoImponibles: Number(x.otros_no_imponibles ?? 0),
+        totalImponible: Number(x.total_imponible ?? 0),
+        totalNoImponible: Number(x.total_no_imponible ?? 0),
+      }));
     },
     async adjuntarFirmada(id: number, ruta: string) {
       await leer(fin().rpc('fn_adjuntar_firmada', { p_liq: id, p_ruta: ruta }));
