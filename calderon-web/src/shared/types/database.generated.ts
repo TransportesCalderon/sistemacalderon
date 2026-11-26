@@ -1862,16 +1862,13 @@ export type Database = {
       fn_vincular_cargas: { Args: { p_gasto: number; p_cargas: number[] }; Returns: number };
       // Migración 365: factura de la estación por remitos
       fn_cruzar_remitos: { Args: { p_gasto: number; p_remitos: Json }; Returns: Json };
-<<<<<<< Updated upstream
       // Migración 366: estimado de los choferes del mes
       fn_estimado_choferes_mes: { Args: { p_recalcular?: boolean }; Returns: Json };
-=======
       // Migración 367 · Planificador de caja: el plan por semana, la fecha esperada de cada partida y lo que se carga a mano
       fn_plan_caja: { Args: { p_opciones?: Json }; Returns: Json };
       fn_plan_caja_ajustar: { Args: { p_origen: string; p_id: number; p_datos: Json }; Returns: Json };
       fn_guardar_partida_caja: { Args: { p_id: number; p_datos: Json }; Returns: Json };
       fn_cerrar_partida_caja: { Args: { p_id: number; p_accion: string; p_fecha?: string }; Returns: string };
->>>>>>> Stashed changes
       // Fondo fijo del chofer, gastos y resumen para liquidar (61)
       fn_mi_fondo: { Args: Record<string, never>; Returns: Json };
       /** Migración 257: el chofer sube el gasto con la lectura de la IA; si el comprobante ya está cargado, devuelve repetido. */
