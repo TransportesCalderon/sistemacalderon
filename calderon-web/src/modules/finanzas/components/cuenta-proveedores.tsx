@@ -13,7 +13,7 @@ import { hoyEnZona } from '@/shared/lib/fechas';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { BOTON_SECUNDARIO } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
-import { dinero } from '../domain/finanzas.types';
+import { dinero, tarjetaDelProveedor } from '../domain/finanzas.types';
 import { ETIQUETA_MOVIMIENTO_PROVEEDOR, type SaldoProveedor } from '../domain/orden-pago';
 import { useCuentasDinero } from '../queries/hooks';
 import { useAnularOrdenPago, useAplicarPagosACuenta, useCuentaProveedor, useRegistrarOrdenPago, useSaldosProveedores } from '../queries/orden-pago.hooks';
@@ -284,11 +284,16 @@ function OrdenPagoForm({ proveedorId, moneda, onCerrar }: { proveedorId: number 
   const [obs, setObs] = useState('');
   const cOrigen = activas.find((c) => c.id === cuenta);
   const otraMoneda = cOrigen !== undefined && cOrigen.moneda !== mon;
+  const tarjeta = tarjetaDelProveedor(activas, prov);
   return (
     <div className="mb-4">
       <Panel
         titulo="Pagar a un proveedor"
-        explicacion="Queda como orden de pago. Cancela sus facturas sin pagar, de la más vieja a la más nueva; si sobra o todavía no hay factura, queda a cuenta y se descuenta del saldo."
+        explicacion={
+          tarjeta
+            ? `Este proveedor es con tarjeta prepaga: el pago queda como recarga de «${tarjeta.nombre}». Sus facturas se pagan solas con la tarjeta.`
+            : 'Queda como orden de pago. Cancela sus facturas sin pagar, de la más vieja a la más nueva; si sobra o todavía no hay factura, queda a cuenta y se descuenta del saldo.'
+        }
         error={envio.error}
         ocupado={registrar.isPending}
         textoBoton="Registrar el pago"

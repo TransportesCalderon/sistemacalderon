@@ -113,7 +113,28 @@ export interface CuentaDinero {
   cartolaSaldo: number | null;
   cartolaFecha: string | null;
   porConciliar: number;
+  /** Migración 376 · tarjeta de flota prepaga del proveedor (Enex): cuánto queda cargado en el proveedor. */
+  tarjeta: TarjetaPrepaga | null;
 }
+
+export interface TarjetaPrepaga {
+  proveedorId: number;
+  proveedor: string;
+  /** Lo cargado con la tarjeta que el proveedor todavía no facturó. */
+  sinFacturar: number;
+  /** Saldo de la tarjeta menos lo cargado sin facturar: lo que queda en el proveedor. */
+  disponible: number;
+}
+
+const parsearTarjetaPrepaga = (raw: unknown): TarjetaPrepaga | null => {
+  if (!raw || typeof raw !== 'object') return null;
+  const t = raw as Record<string, unknown>;
+  return { proveedorId: num(t.proveedor_id), proveedor: String(t.proveedor ?? ''), sinFacturar: num(t.sin_facturar), disponible: num(t.disponible) };
+};
+
+/** ¿El proveedor tiene tarjeta prepaga? Devuelve la cuenta de la tarjeta. */
+export const tarjetaDelProveedor = (cuentas: CuentaDinero[], proveedorId: number | null) =>
+  proveedorId === null ? undefined : cuentas.find((c) => c.tarjeta?.proveedorId === proveedorId);
 export const parsearCuentasDinero = (raw: unknown): CuentaDinero[] =>
   arr(raw).map((c) => ({
     id: num(c.id),
@@ -130,6 +151,7 @@ export const parsearCuentasDinero = (raw: unknown): CuentaDinero[] =>
     cartolaSaldo: numN(c.cartola_saldo),
     cartolaFecha: txt(c.cartola_fecha),
     porConciliar: num(c.por_conciliar),
+    tarjeta: parsearTarjetaPrepaga(c.tarjeta),
   }));
 
 // ---------------------------------------------------------------------------

@@ -140,7 +140,8 @@ export function BancosPantalla() {
                         {c.nombre}
                       </Link>
                       <p className="text-xs text-tinta-suave">
-                        {c.tipo === 'caja' ? 'Caja' : [c.banco, c.numero].filter(Boolean).join(' · ') || 'Banco'} · {c.moneda}
+                        {c.tarjeta ? `Tarjeta prepaga de ${c.tarjeta.proveedor}` : c.tipo === 'caja' ? 'Caja' : [c.banco, c.numero].filter(Boolean).join(' · ') || 'Banco'} ·{' '}
+                        {c.moneda}
                         {!c.activa && ' · inactiva'}
                       </p>
                     </div>
@@ -155,6 +156,20 @@ export function BancosPantalla() {
                     <p className={cn('text-2xl font-semibold tabular-nums', c.saldo < 0 ? 'text-error' : 'text-tinta')}>{dinero(c.saldo, c.moneda)}</p>
                     {c.moneda !== 'CLP' && c.saldoClp !== null && <p className="text-xs text-tinta-suave">≈ {dinero(c.saldoClp)}</p>}
                   </div>
+                  {c.tarjeta && (
+                    <div className="space-y-1 text-xs">
+                      <p className="text-tinta-suave">
+                        Queda en {c.tarjeta.proveedor}:{' '}
+                        <span className={cn('font-medium tabular-nums', c.tarjeta.disponible < 0 ? 'text-error' : 'text-tinta')}>
+                          {dinero(c.tarjeta.disponible, c.moneda)}
+                        </span>
+                      </p>
+                      {c.tarjeta.sinFacturar !== 0 && (
+                        <p className="text-tinta-suave">Ya cargado y todavía sin factura: {dinero(c.tarjeta.sinFacturar, c.moneda)}</p>
+                      )}
+                      <p className="text-tinta-suave">Se recarga con una transferencia desde el banco. La factura del mes se paga sola con la tarjeta.</p>
+                    </div>
+                  )}
                   {c.tipo === 'banco' && (
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {c.cartolaSaldo === null ? (
