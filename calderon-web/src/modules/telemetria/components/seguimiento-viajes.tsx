@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { Check, ChevronDown, ChevronRight, Fuel, Gauge, History, LoaderCircle, Radar } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Fuel, Gauge, History, LoaderCircle, MapPinned, Radar } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Vacio, type Tono } from '@/modules/combustible/components/comun/ui';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -21,11 +21,13 @@ import {
   type ViajeEnCurso,
 } from '../domain/seguimiento.types';
 import { pedidoDelCamion, VERSION_PEDIDO_TABLERO, type PedidosTablero } from '../domain/pedido-tablero';
+import { VERSION_CUANTO_CARGAR } from '../domain/cuanto-cargar';
 import { useControlesViaje, useRegistrarSeguimiento, useRegistrarSeguimientoFoto, useSeguimientoDesde, useViajesEnCurso } from '../queries/hooks';
 import { usePedidosTablero } from '../queries/pedido-tablero.hooks';
 import { SubirFotoComputadora, VerFotoControl, type FotoLeida } from './foto-computadora';
 import { BotonCopiar } from './boton-copiar';
 import { PedidoCarga } from './pedido-carga';
+import { CuantoCargar } from './cuanto-cargar';
 import { FueraDeHorario } from './fuera-horario';
 import { EstadoPedidoTablero, PedirFotoTablero } from './pedir-tablero';
 
@@ -202,6 +204,9 @@ function TarjetaViaje({ v, registra, tablero }: { v: ViajeEnCurso; registra: boo
   const [pedido, setPedido] = useState(false);
   // Migración 297: pedirle al chofer la foto del tablero (solo a los camiones sin la API del fabricante: Mercedes y Scania)
   const [fotoTablero, setFotoTablero] = useState(false);
+  // Migración 309: cuánto cargar para llegar (desde donde está, pasando por paradas)
+  const conCuanto = useBaseTiene(VERSION_CUANTO_CARGAR);
+  const [cuanto, setCuanto] = useState(false);
   const pideFoto = registra && !!tablero?.porFoto.includes(v.camionId);
   // Migración 197: desde qué momento se mide (salida, último control u otro momento)
   const [modo, setModo] = useState<Desde>('salida');
@@ -423,6 +428,11 @@ function TarjetaViaje({ v, registra, tablero }: { v: ViajeEnCurso; registra: boo
               <Gauge className="size-3.5" /> {fotoTablero ? 'Cerrar la foto del tablero' : 'Pedir foto del tablero'}
             </button>
           )}
+          {conCuanto && (
+            <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setCuanto(!cuanto)}>
+              <MapPinned className="size-3.5" /> {cuanto ? 'Cerrar «¿Cuánto cargar?»' : '¿Cuánto cargar para llegar?'}
+            </button>
+          )}
           <button type="button" className="inline-flex items-center gap-1 text-marca hover:underline" onClick={() => setPedido(!pedido)}>
             <Fuel className="size-3.5" /> {pedido ? 'Cerrar la solicitud de carga' : 'Solicitar carga'}
           </button>
@@ -434,6 +444,7 @@ function TarjetaViaje({ v, registra, tablero }: { v: ViajeEnCurso; registra: boo
       {fotoTablero && pideFoto && tablero && (
         <PedirFotoTablero viajeId={v.viajeId} pedido={pedidoDelCamion(tablero, v.camionId)} dias={tablero.dias} onCerrar={() => setFotoTablero(false)} />
       )}
+      {cuanto && conCuanto && <CuantoCargar camionId={v.camionId} patente={v.patente} onCerrar={() => setCuanto(false)} />}
       {pedido && <PedidoCarga viajeId={v.viajeId} camionId={v.camionId} registra={registra} onCerrar={() => setPedido(false)} />}
       {historial && <Historial viajeId={v.viajeId} />}
     </div>

@@ -13,6 +13,7 @@ import { trackerwayRepository } from '../repositories/trackerway.repository';
 import { seguimientoRepository } from '../repositories/seguimiento.repository';
 import { pedirCarga, registrarSeguimiento, registrarSeguimientoFoto } from '../actions/seguimiento.actions';
 import { telemetriaQueries as q } from './keys';
+import type { DatosCuantoCargar } from '../domain/cuanto-cargar';
 import { invalidar } from '@/shared/query/invalidar';
 
 export const useFlotaEnVivo = () => useQuery({ ...q.enVivo(browserDb()), staleTime: REFRESCO.mapa, refetchInterval: REFRESCO.mapa });
@@ -121,6 +122,15 @@ export const useDatosPedidoCarga = (viajeId: number, estacionId: number | null) 
     queryKey: ['telemetria', 'pedido-carga', viajeId, estacionId] as const,
     queryFn: () => seguimientoRepository(browserDb()).datosPedido(viajeId, estacionId),
     placeholderData: keepPreviousData,
+  });
+/** Migración 309: cuánto cargar para llegar (se calcula cuando todas las paradas tienen lugar). */
+export const useCuantoCargar = (camionId: number, datos: DatosCuantoCargar | null) =>
+  useQuery({
+    queryKey: ['telemetria', 'cuanto-cargar', camionId, datos] as const,
+    queryFn: () => seguimientoRepository(browserDb()).cuantoCargar(camionId, datos!),
+    enabled: datos !== null,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
   });
 export const usePedidosCarga = (viajeId: number | null) =>
   useQuery({

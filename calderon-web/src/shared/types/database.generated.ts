@@ -2179,6 +2179,8 @@ export type Database = {
       fn_tramo_telemetria: { Args: { p_camion: number; p_desde: string; p_hasta: string }; Returns: Json };
       // Migración 195: pedido de carga de combustible
       fn_preparar_pedido_carga: { Args: { p_viaje: number; p_estacion?: number | null }; Returns: Json };
+      // Migración 309: cuánto cargar para llegar (recorrido con paradas)
+      fn_cuanto_cargar: { Args: { p_camion: number; p_datos?: Json }; Returns: Json };
       fn_pedir_carga: {
         Args: {
           p_viaje: number;

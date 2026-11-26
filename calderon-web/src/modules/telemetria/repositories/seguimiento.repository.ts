@@ -17,6 +17,7 @@ import {
   type TramoSeguimiento,
   type ViajeEnCurso,
 } from '../domain/seguimiento.types';
+import { parsearCuantoCargar, type CuantoCargar, type DatosCuantoCargar } from '../domain/cuanto-cargar';
 
 /** Migración 194: seguimiento de los viajes en curso. Todo lo decide la base; su mensaje se muestra tal cual. */
 export const seguimientoRepository = (db: Db) => ({
@@ -75,6 +76,12 @@ export const seguimientoRepository = (db: Db) => ({
     const { data, error } = await db.schema('tel').rpc('fn_preparar_pedido_carga', { p_viaje: viajeId, p_estacion: estacionId });
     if (error) throw new RepoError(error);
     return parsearDatosPedido(data);
+  },
+  /** Migración 309: cuánto cargar para llegar (desde donde está o desde un lugar, con paradas). */
+  async cuantoCargar(camionId: number, datos: DatosCuantoCargar): Promise<CuantoCargar> {
+    const { data, error } = await db.schema('tel').rpc('fn_cuanto_cargar', { p_camion: camionId, p_datos: datos as unknown as Json });
+    if (error) throw new RepoError(error);
+    return parsearCuantoCargar(data);
   },
   async pedirCarga(d: PedirCargaDatos): Promise<{ mensaje: string; pendiente: boolean }> {
     const { data, error } = await db.schema('tel').rpc('fn_pedir_carga', {
