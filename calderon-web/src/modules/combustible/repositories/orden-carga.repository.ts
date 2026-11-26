@@ -92,7 +92,15 @@ export const ordenCargaRepository = (db: Db) => {
     gensets: async (): Promise<GensetOpcion[]> => parsearGensetsOrden(ok(await fue().rpc('fn_gensets_para_orden'))),
     prepararGenset: async (gensetId: number, estacionId: number | null): Promise<PreparadoGenset> =>
       parsearPreparadoGenset(ok(await fue().rpc('fn_preparar_orden_genset', { p_genset: gensetId, p_estacion: estacionId }))),
-    crearGenset: async (d: { gensetId: number; estacionId: number | null; modo: 'lleno' | 'litros'; litros: number | null; choferId: number | null; observacion: string | null }) =>
+    crearGenset: async (d: {
+      gensetId: number;
+      estacionId: number | null;
+      modo: 'lleno' | 'litros';
+      litros: number | null;
+      choferId: number | null;
+      observacion: string | null;
+      medioPago?: 'tarjeta' | 'transferencia' | null;
+    }) =>
       parsearCreada(
         ok(
           await fue().rpc('fn_crear_orden_genset', {
@@ -102,6 +110,8 @@ export const ordenCargaRepository = (db: Db) => {
             p_litros: d.litros,
             p_chofer: d.choferId,
             p_observacion: d.observacion,
+            // Migración 357: solo se manda en Chile (con una base anterior la función no lo conoce)
+            ...(d.medioPago ? { p_medio_pago: d.medioPago } : {}),
           }),
         ),
       ),

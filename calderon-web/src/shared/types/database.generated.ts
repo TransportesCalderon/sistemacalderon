@@ -2373,7 +2373,15 @@ export type Database = {
       fn_gensets_para_orden: { Args: Record<string, never>; Returns: Json };
       fn_preparar_orden_genset: { Args: { p_genset: number; p_estacion?: number | null }; Returns: Json };
       fn_crear_orden_genset: {
-        Args: { p_genset: number; p_estacion: number; p_modo: string; p_litros?: number | null; p_chofer?: number | null; p_observacion?: string | null };
+        Args: {
+          p_genset: number;
+          p_estacion: number;
+          p_modo: string;
+          p_litros?: number | null;
+          p_chofer?: number | null;
+          p_observacion?: string | null;
+          p_medio_pago?: string | null;
+        };
         Returns: Json;
       };
       fn_ordenes_carga: { Args: { p_dias?: number }; Returns: Json };
