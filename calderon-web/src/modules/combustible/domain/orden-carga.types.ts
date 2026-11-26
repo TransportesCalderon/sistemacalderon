@@ -122,6 +122,8 @@ export interface OrdenCarga {
   /** Migración 284: orden con tarjeta de flota (Chile) y los litros que informó Enex. */
   tarjeta: boolean;
   enexLitros: number | null;
+  /** Cambio 360: orden de un genset (la vencida sin ticket del genset no se resuelve desde la lista). */
+  gensetId?: number | null;
 }
 
 export interface CreadaOrden {
@@ -150,6 +152,8 @@ export interface MiOrden {
   autorizado: string | null;
   /** Migración 290: en Chile, si la paga la oficina por transferencia (el chofer no usa la tarjeta). */
   transferencia: boolean;
+  /** Cambio 360: orden de Chile que venció sin ticket: el chofer sube el ticket o avisa que no cargó. */
+  vencida: boolean;
 }
 
 /** Migración 252 · Órdenes de carga para gensets. */
@@ -372,6 +376,7 @@ export const parsearOrdenes = (d: unknown): OrdenCarga[] =>
     mailError: t(x.mail_error),
     tarjeta: x.tarjeta === true,
     enexLitros: n(x.enex_litros),
+    gensetId: n(x.genset_id),
   }));
 
 export const parsearCreada = (d: unknown): CreadaOrden => {
@@ -388,7 +393,7 @@ export const parsearCreada = (d: unknown): CreadaOrden => {
   };
 };
 
-export const parsearMisOrdenes = (d: unknown): MiOrden[] =>
+export const parsearMisOrdenes = (d: unknown, ahora: number = Date.now()): MiOrden[] =>
   a(d).map((x) => ({
     id: Number(x.id),
     numero: t(x.numero) ?? '',
@@ -400,6 +405,8 @@ export const parsearMisOrdenes = (d: unknown): MiOrden[] =>
     tarjeta: x.tarjeta === true,
     autorizado: t(x.autorizado),
     transferencia: x.medio_pago === 'transferencia',
+    // Cambio 360: la base la sigue mostrando 7 días después de vencida, si falta el ticket
+    vencida: x.estado === 'autorizada' && x.tarjeta === true && x.genset !== true && typeof x.vence_en === 'string' && Date.parse(x.vence_en) <= ahora,
   }));
 
 export const parsearOrdenPublica = (d: unknown): OrdenPublica => {
@@ -448,3 +455,51 @@ export const parsearCargaTarjetaInformada = (d: unknown): CargaTarjetaInformada 
   const x = o(d);
   return { numero: t(x.numero) ?? '', litros: n(x.litros), nueva: x.nueva === true };
 };
+
+/**
+ * Cambio 360 · Órdenes de Chile del tractor que vencieron sin ticket. Si el chofer cargó, la carga no está registrada y
+ * el combustible del camión da de menos. La oficina sube el ticket por el chofer (después aparece para registrar) o la
+ * anula si no cargó. La base dice qué puede hacer quien mira.
+ */
+export interface VencidaSinTicket {
+  id: number;
+  numero: string;
+  patente: string;
+  chofer: string | null;
+  estacion: string;
+  /** Se pagaba por transferencia a la estación (no con la tarjeta de flota). */
+  transferencia: boolean;
+  autorizado: string | null;
+  autorizadaEn: FechaISO | null;
+  venceEn: FechaISO | null;
+  creadaPor: string | null;
+  /** El chofer todavía la ve en Mi viaje (7 días) y no puede pedir dinero hasta resolverla. */
+  choferLaVe: boolean;
+}
+export interface VencidasSinTicket {
+  puedeTicket: boolean;
+  puedeAnular: boolean;
+  ordenes: VencidaSinTicket[];
+}
+export const parsearVencidasSinTicket = (d: unknown): VencidasSinTicket => {
+  const x = o(d);
+  return {
+    puedeTicket: x.puede_ticket === true,
+    puedeAnular: x.puede_anular === true,
+    ordenes: a(x.ordenes).map((v) => ({
+      id: Number(v.id),
+      numero: t(v.numero) ?? '',
+      patente: t(v.patente) ?? '',
+      chofer: t(v.chofer),
+      estacion: t(v.estacion) ?? '',
+      transferencia: v.medio_pago === 'transferencia',
+      autorizado: t(v.autorizado),
+      autorizadaEn: t(v.autorizada_en) as FechaISO | null,
+      venceEn: t(v.vence_en) as FechaISO | null,
+      creadaPor: t(v.creada_por),
+      choferLaVe: v.chofer_la_ve === true,
+    })),
+  };
+};
+/** Motivo que se propone al anular desde la oficina una orden vencida sin ticket. */
+export const MOTIVO_NO_CARGO = 'No cargó: la orden venció sin ticket';

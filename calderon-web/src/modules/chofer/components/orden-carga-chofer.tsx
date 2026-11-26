@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { CheckCircle2, CreditCard, Fuel, LoaderCircle, QrCode, Receipt, Trash2, X } from 'lucide-react';
+import { CheckCircle2, CreditCard, Fuel, LoaderCircle, QrCode, Receipt, Trash2, TriangleAlert, X } from 'lucide-react';
 import { leerTicketChofer } from '@/modules/combustible/actions/orden-carga.actions';
 import {
   urlQr,
@@ -11,7 +11,7 @@ import {
   type MiOrden,
   type OpcionesCargaTarjeta,
 } from '@/modules/combustible/domain/orden-carga.types';
-import { useInformarCargaTarjeta, useMisOrdenesCarga, useOpcionesCargaTarjeta, useTerminarOrdenCarga } from '@/modules/combustible/queries/orden-carga.hooks';
+import { useInformarCargaTarjeta, useMisOrdenesCarga, useNoCargueOrden, useOpcionesCargaTarjeta, useTerminarOrdenCarga } from '@/modules/combustible/queries/orden-carga.hooks';
 import { useSesion } from '@/modules/core/session/session-provider';
 import { iaRepository } from '@/modules/ia/ia.repository';
 import { useBaseTiene } from '@/shared/hooks/use-version-base';
@@ -40,6 +40,7 @@ const aLitros = (s: string): number | null => {
  * Cuando la estación confirma, «Terminé mi carga» → las fotos de los tickets.
  * Migración 284: en Chile se paga con la tarjeta de flota: no hay QR; la orden ya llega autorizada con lo que se puede cargar.
  * Migración 304: en Chile el chofer avisa la carga con la tarjeta aunque no tenga orden (o se le haya vencido).
+ * Cambio 360: la orden de Chile que venció sin ticket se sigue viendo 7 días: «Terminé mi carga» o «No cargué».
  */
 export function OrdenCargaChofer() {
   const { data } = useMisOrdenesCarga(true);
@@ -208,6 +209,10 @@ function Terminar({ o }: { o: MiOrden }) {
   const [error, setError] = useState<string | null>(null);
   const [hecho, setHecho] = useState<{ litros: number | null } | null>(null);
   const terminar = useTerminarOrdenCarga();
+  // Cambio 360: la orden de Chile vencida sin ticket: el chofer avisa que no cargó
+  const [noCargue, setNoCargue] = useState<'no' | 'confirmar' | 'hecho'>('no');
+  const [errorNoCargue, setErrorNoCargue] = useState<string | null>(null);
+  const avisarNoCargue = useNoCargueOrden();
 
   if (hecho)
     return (
@@ -218,10 +223,27 @@ function Terminar({ o }: { o: MiOrden }) {
         </p>
       </div>
     );
+  if (noCargue === 'hecho')
+    return (
+      <div className="flex items-center gap-3 rounded-xl border-2 border-borde bg-panel p-4 text-tinta">
+        <CheckCircle2 className="size-6 text-tinta-suave" />
+        <p className="text-sm">Listo: avisaste que no cargaste con la orden {o.numero}. Quedó anulada.</p>
+      </div>
+    );
 
   return (
-    <div className="space-y-3 rounded-xl border-2 border-exito bg-exito/10 p-4">
-      {o.tarjeta ? (
+    <div className={cn('space-y-3 rounded-xl border-2 p-4', o.vencida ? 'border-alerta bg-alerta-suave' : 'border-exito bg-exito/10')}>
+      {o.vencida ? (
+        <div className="space-y-1">
+          <p className="flex items-center gap-2 text-lg font-semibold text-tinta">
+            <TriangleAlert className="size-6 shrink-0 text-alerta" /> Falta el ticket de la carga {o.numero} ({o.patente})
+          </p>
+          <p className="text-sm text-tinta">
+            La orden de <strong>{o.estacion}</strong> ({o.autorizado ?? 'lo autorizado'}) venció. Si cargaste, tocá «Terminé mi carga» y sacale foto al
+            ticket. Si no cargaste, tocá «No cargué». Hasta que no lo hagas, no podés pedir dinero.
+          </p>
+        </div>
+      ) : o.tarjeta ? (
         <div className="space-y-1">
           <p className="flex items-center gap-2 text-lg font-semibold text-tinta">
             <CreditCard className="size-6 text-exito" /> Estás autorizado a cargar ({o.patente})
@@ -237,9 +259,40 @@ function Terminar({ o }: { o: MiOrden }) {
         </p>
       )}
       {!abierto ? (
-        <button type="button" className={`${BOTON_PRIMARIO} w-full justify-center`} onClick={() => setAbierto(true)}>
-          <Receipt className="size-5" /> Terminé mi carga
-        </button>
+        <>
+          <button type="button" className={`${BOTON_PRIMARIO} w-full justify-center`} onClick={() => setAbierto(true)}>
+            <Receipt className="size-5" /> Terminé mi carga
+          </button>
+          {o.vencida &&
+            (noCargue === 'confirmar' ? (
+              <div className="space-y-2 rounded-lg border border-borde bg-panel p-3">
+                <p className="text-sm text-tinta">¿Seguro que no cargaste con la orden {o.numero}? La orden se anula.</p>
+                {errorNoCargue && <p className="text-sm text-error">{errorNoCargue}</p>}
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className={`${BOTON_SECUNDARIO} justify-center`} onClick={() => setNoCargue('no')}>
+                    Volver
+                  </button>
+                  <button
+                    type="button"
+                    className={`${BOTON_PRIMARIO} justify-center`}
+                    disabled={avisarNoCargue.isPending}
+                    onClick={async () => {
+                      setErrorNoCargue(null);
+                      const r = await avisarNoCargue.mutateAsync({ id: o.id });
+                      if (!r.ok) setErrorNoCargue(r.error.mensaje);
+                      else setNoCargue('hecho');
+                    }}
+                  >
+                    {avisarNoCargue.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <X className="size-4" />} No cargué
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className={`${BOTON_SECUNDARIO} w-full justify-center`} onClick={() => setNoCargue('confirmar')}>
+                No cargué
+              </button>
+            ))}
+        </>
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-tinta">Sacale una foto a cada ticket que te dio la estación (suelen ser 2 o 3).</p>

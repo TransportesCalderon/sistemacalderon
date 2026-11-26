@@ -167,6 +167,13 @@ export const informarCargaTarjeta = createAction({
   handler: (d, { db }) => ordenCargaRepository(db).informarCargaTarjeta(d),
 });
 
+/** Cambio 360: el chofer avisa que no cargó con una orden de Chile que venció sin ticket (la base la anula y controla todo). */
+export const noCargueOrden = createAction({
+  permiso: 'chofer.mi_carga:editar',
+  schema: z.object({ id }),
+  handler: (d, { db }) => ordenCargaRepository(db).noCargue(d.id),
+});
+
 export const leerTicketChofer = createAction({
   permiso: 'chofer.mi_carga:editar',
   schema: z.object({

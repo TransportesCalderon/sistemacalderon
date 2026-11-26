@@ -136,9 +136,11 @@ function FilaOrden({ o, zona, puede }: { o: OrdenCarga; zona: string; puede: boo
   const revisar = useRevisarOrdenCarga();
   // S4: la diferencia la marcan revisada Gerencia, Telemetría o TI (lo exige la base)
   const puedeRevisar = usePuedeEnBase('revisarOrdenCarga');
-  const abierta = o.estado === 'emitida' || o.estado === 'autorizada' || o.estado === 'bloqueada';
+  // Cambio 360: la de Chile que venció sin ticket sigue abierta para la oficina (subir el ticket o anularla)
+  const vencidaChile = o.estado === 'vencida' && o.tarjeta && !o.gensetId && o.tickets.length === 0;
+  const abierta = o.estado === 'emitida' || o.estado === 'autorizada' || o.estado === 'bloqueada' || vencidaChile;
   // El chofer no pudo subir el ticket: lo sube la oficina en su nombre (la base deja a Gerencia, Adm. de combustible y TI)
-  const puedeTicket = useCan('combustible.cargas:editar') && o.estado === 'autorizada';
+  const puedeTicket = useCan('combustible.cargas:editar') && (o.estado === 'autorizada' || vencidaChile);
   const [subiendoTicket, setSubiendoTicket] = useState(false);
   return (
     <>

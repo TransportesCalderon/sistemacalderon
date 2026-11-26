@@ -1520,6 +1520,8 @@ export type Database = {
         Args: { p_camion: number; p_estacion: number; p_lleno: boolean; p_fotos: Json; p_lecturas?: number[]; p_litros?: number | null };
         Returns: Json;
       };
+      // Cambio 360: «No cargué» de una orden de Chile vencida sin ticket
+      fn_no_cargue_orden: { Args: { p_id: number }; Returns: Json };
       fn_fotos_chofer: { Args: { p_ids: number[] }; Returns: Json };
       fn_marcar_conforme: { Args: { p_servicio: number; p_llego: boolean; p_motivo?: string | null }; Returns: Json };
       // Migración 174: pasa a un fletero en ruta (trasbordo)
@@ -2366,6 +2368,8 @@ export type Database = {
       fn_rechazar_solicitud_carga: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       // Migración 253: carga de la orden, para dar el OK
       fn_ordenes_por_registrar: { Args: Record<string, never>; Returns: Json };
+      // Cambio 360: órdenes de Chile vencidas sin ticket
+      fn_ordenes_vencidas_sin_ticket: { Args: Record<string, never>; Returns: Json };
       fn_registrar_carga_orden: { Args: { p_orden: number; p_inicia_viaje: boolean; p_ajustes?: Json }; Returns: Json };
       // Migración 252: órdenes de carga para gensets
       fn_gensets_para_orden: { Args: Record<string, never>; Returns: Json };

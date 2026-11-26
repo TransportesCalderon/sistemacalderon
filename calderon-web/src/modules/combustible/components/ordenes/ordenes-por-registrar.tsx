@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, ExternalLink, Fuel, LoaderCircle } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Fuel, LoaderCircle, Receipt, TriangleAlert } from 'lucide-react';
 import { BUCKET_OPERACION } from '@/modules/chofer/domain/chofer.types';
 import { useCan } from '@/modules/core/permissions/can';
 import { useSesion } from '@/modules/core/session/session-provider';
@@ -9,9 +9,10 @@ import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora, horaLocalAIso, isoAHoraLocal } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { browserDb } from '@/shared/supabase/browser';
-import { BOTON_PRIMARIO, TARJETA } from '@/shared/ui/clases';
-import type { PorRegistrar } from '../../domain/orden-carga.types';
-import { usePorRegistrar, useRegistrarCargaOrden } from '../../queries/orden-carga.hooks';
+import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
+import { MOTIVO_NO_CARGO, type PorRegistrar, type VencidaSinTicket } from '../../domain/orden-carga.types';
+import { useAnularOrdenCarga, usePorRegistrar, useRegistrarCargaOrden, useVencidasSinTicket } from '../../queries/orden-carga.hooks';
+import { TicketPorElChofer } from './ticket-por-el-chofer';
 
 const aNumero = (s: string) => (s.trim() === '' ? null : Number(s.replace(/\./g, '').replace(',', '.')));
 const aTexto = (n: number | null, d = 0) => (n === null ? '' : formatearNumero(n, d));
@@ -23,17 +24,118 @@ const aTexto = (n: number | null, d = 0) => (n === null ? '' : formatearNumero(n
 export function OrdenesPorRegistrar() {
   const puede = useCan('combustible.cargas:editar');
   const { data } = usePorRegistrar(puede);
-  if (!puede || !data || data.length === 0) return null;
+  if (!puede) return null;
   return (
-    <section className="mb-4 space-y-3 rounded-xl border-2 border-marca/40 bg-marca-suave/40 p-4">
+    <>
+      {data && data.length > 0 && (
+        <section className="mb-4 space-y-3 rounded-xl border-2 border-marca/40 bg-marca-suave/40 p-4">
+          <p className="flex items-center gap-2 font-semibold text-tinta">
+            <Fuel className="size-5 text-marca" /> Cargas de órdenes para registrar ({data.length})
+          </p>
+          <p className="text-sm text-tinta-suave">El chofer ya terminó la carga y subió el ticket. Revisá los datos, decí si inicia viaje y registrala.</p>
+          {data.map((p) => (
+            <Fila key={p.ordenId} p={p} />
+          ))}
+        </section>
+      )}
+      <VencidasSinTicket />
+    </>
+  );
+}
+
+/**
+ * Cambio 360 · Órdenes de Chile que vencieron sin ticket. Antes desaparecían: si el chofer había cargado, la carga no
+ * se registraba y el combustible del camión daba de menos (caso OC-000036). Quedan acá hasta que alguien sube el ticket
+ * por el chofer (pasa a «para registrar») o la anula porque no cargó. La base dice qué puede hacer quien mira.
+ */
+function VencidasSinTicket() {
+  const { data } = useVencidasSinTicket(true);
+  if (!data || data.ordenes.length === 0) return null;
+  return (
+    <section className="mb-4 space-y-3 rounded-xl border-2 border-alerta/40 bg-alerta-suave p-4">
       <p className="flex items-center gap-2 font-semibold text-tinta">
-        <Fuel className="size-5 text-marca" /> Cargas de órdenes para registrar ({data.length})
+        <TriangleAlert className="size-5 text-alerta" /> Órdenes de Chile que vencieron sin ticket ({data.ordenes.length})
       </p>
-      <p className="text-sm text-tinta-suave">El chofer ya terminó la carga y subió el ticket. Revisá los datos, decí si inicia viaje y registrala.</p>
-      {data.map((p) => (
-        <Fila key={p.ordenId} p={p} />
+      <p className="text-sm text-tinta-suave">
+        Si el chofer cargó, esa carga no está registrada y el combustible del camión da de menos. Subí el ticket por el chofer (después aparece arriba
+        para registrar) o, si no cargó, anulá la orden.
+      </p>
+      {data.ordenes.map((v) => (
+        <FilaVencida key={v.id} v={v} puedeTicket={data.puedeTicket} puedeAnular={data.puedeAnular} />
       ))}
     </section>
+  );
+}
+
+function FilaVencida({ v, puedeTicket, puedeAnular }: { v: VencidaSinTicket; puedeTicket: boolean; puedeAnular: boolean }) {
+  const { zonaHoraria } = useSesion();
+  const anular = useAnularOrdenCarga();
+  const [subiendo, setSubiendo] = useState(false);
+  const [anulando, setAnulando] = useState(false);
+  const [motivo, setMotivo] = useState(MOTIVO_NO_CARGO);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className={cn(TARJETA, 'space-y-2 p-3')}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-semibold text-tinta">
+          {v.numero} · <span className="font-mono">{v.patente}</span>
+        </p>
+        <p className="text-xs text-tinta-suave">{v.venceEn ? `Venció ${formatearFechaHora(v.venceEn, zonaHoraria)}` : 'Vencida'}</p>
+      </div>
+      <p className="text-xs text-tinta-suave">
+        {v.chofer ?? 'Sin chofer'} · {v.estacion} · {v.transferencia ? 'Transferencia' : 'Tarjeta de flota'}
+        {v.autorizado ? ` · ${v.autorizado}` : ''}
+        {v.autorizadaEn ? ` · autorizada ${formatearFechaHora(v.autorizadaEn, zonaHoraria)}` : ''}
+        {v.creadaPor ? ` por ${v.creadaPor}` : ''}
+      </p>
+      <p className="text-xs text-tinta-suave">
+        {v.choferLaVe
+          ? 'El chofer la ve en Mi viaje: no puede pedir dinero hasta subir el ticket o avisar que no cargó.'
+          : 'El chofer ya no la ve en Mi viaje: hay que resolverla desde acá.'}
+      </p>
+      {error && <p className="text-sm text-error">{error}</p>}
+      {subiendo ? (
+        <TicketPorElChofer ordenId={v.id} numero={v.numero} chofer={v.chofer} onCerrar={() => setSubiendo(false)} />
+      ) : anulando ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            className="h-10 min-w-56 flex-1 rounded-md border border-borde bg-panel px-3 text-sm"
+            aria-label="Motivo de la anulación"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+          />
+          <button
+            type="button"
+            className="h-10 rounded-md bg-error px-3 text-sm font-medium text-white disabled:opacity-60"
+            disabled={anular.isPending}
+            onClick={async () => {
+              setError(null);
+              const r = await anular.mutateAsync({ id: v.id, motivo });
+              if (!r.ok) setError(r.error.mensaje);
+            }}
+          >
+            {anular.isPending && <LoaderCircle className="mr-1 inline size-4 animate-spin" />}Anular la orden
+          </button>
+          <button type="button" className={BOTON_SECUNDARIO} onClick={() => setAnulando(false)}>
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {puedeTicket && (
+            <button type="button" className={BOTON_PRIMARIO} onClick={() => setSubiendo(true)}>
+              <Receipt className="size-4" /> Subir el ticket por el chofer
+            </button>
+          )}
+          {puedeAnular && (
+            <button type="button" className={BOTON_SECUNDARIO} onClick={() => setAnulando(true)}>
+              No cargó
+            </button>
+          )}
+          {!puedeTicket && !puedeAnular && <p className="text-sm text-tinta-suave">La resuelve Adm. de combustible: subiendo el ticket o anulándola.</p>}
+        </div>
+      )}
+    </div>
   );
 }
 

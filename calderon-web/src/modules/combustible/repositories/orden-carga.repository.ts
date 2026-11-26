@@ -16,6 +16,8 @@ import {
   parsearSolicitudes,
   parsearOpcionesCargaTarjeta,
   parsearCargaTarjetaInformada,
+  parsearVencidasSinTicket,
+  type VencidasSinTicket,
   type OpcionesCargaTarjeta,
   type CargaTarjetaInformada,
   type SolicitudCarga,
@@ -33,6 +35,9 @@ const ok = <T>(r: { data: T; error: unknown }): T => {
   if (r.error) throw new RepoError(r.error as never);
   return r.data;
 };
+
+/** Códigos con los que PostgREST o Postgres dicen que la función todavía no existe (base sin el cambio 360). */
+const FUNCION_INEXISTENTE = new Set(['PGRST202', '42883']);
 
 /** Migración 234 · Órdenes de carga de combustible. */
 export const ordenCargaRepository = (db: Db) => {
@@ -86,6 +91,12 @@ export const ordenCargaRepository = (db: Db) => {
     rechazarSolicitud: async (id: number, motivo: string) => void ok(await fue().rpc('fn_rechazar_solicitud_carga', { p_id: id, p_motivo: motivo })),
     // Migración 253: cargas de órdenes terminadas, para dar el OK
     porRegistrar: async (): Promise<PorRegistrar[]> => parsearPorRegistrar(ok(await fue().rpc('fn_ordenes_por_registrar'))),
+    // Cambio 360: órdenes de Chile vencidas sin ticket (null si la base todavía no tiene el cambio)
+    vencidasSinTicket: async (): Promise<VencidasSinTicket | null> => {
+      const r = await fue().rpc('fn_ordenes_vencidas_sin_ticket');
+      if (r.error && FUNCION_INEXISTENTE.has(r.error.code)) return null;
+      return parsearVencidasSinTicket(ok(r));
+    },
     registrarCarga: async (ordenId: number, iniciaViaje: boolean, ajustes: Record<string, unknown>) =>
       ok(await fue().rpc('fn_registrar_carga_orden', { p_orden: ordenId, p_inicia_viaje: iniciaViaje, p_ajustes: ajustes as Json })) as { carga_id: number },
     // Migración 252: órdenes para gensets
@@ -125,6 +136,8 @@ export const ordenCargaRepository = (db: Db) => {
           ...(horometro !== null ? { p_horometro: horometro } : {}),
         }),
       ),
+    // Cambio 360: el chofer avisa que no cargó con una orden de Chile vencida sin ticket (va por «ops»)
+    noCargue: async (id: number) => ok(await db.schema('ops').rpc('fn_no_cargue_orden', { p_id: id })) as { numero: string },
     // Migración 304: Chile, la carga con tarjeta de flota que avisa el chofer (va por «ops», como las del chofer)
     opcionesCargaTarjeta: async (): Promise<OpcionesCargaTarjeta> =>
       parsearOpcionesCargaTarjeta(ok(await db.schema('ops').rpc('fn_opciones_carga_tarjeta'))),
