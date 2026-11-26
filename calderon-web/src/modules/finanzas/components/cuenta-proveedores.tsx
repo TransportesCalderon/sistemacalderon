@@ -25,6 +25,8 @@ import { fecha, MONEDAS } from './comun';
  * 20/11/2026 (plan de simplificación, cambios 2 y 3): es el total de Por pagar y su «Pagar» es el botón de pago del
  * sistema. El formulario se abre debajo de la fila del proveedor; la ficha de un gasto llega con
  * ?proveedor=&moneda=&pagar=1 y abre ese proveedor con el pago listo.
+ * 26/11/2026 (migración 370): los movimientos de un proveedor salen por vencimiento, de lo más viejo a lo más nuevo
+ * (el orden y el saldo acumulado los manda la base); el vencimiento tiene su columna.
  */
 export function CuentaProveedores() {
   // Llega con la migración 281: antes de aplicarla en la base, no se muestra (en vez de un error)
@@ -169,6 +171,7 @@ function Fila({
 }
 
 function Movimientos({ proveedorId, moneda, puede }: { proveedorId: number; moneda: string; puede: boolean }) {
+  const { zonaHoraria } = useSesion();
   const { data, isLoading, isError, error, refetch } = useCuentaProveedor(proveedorId, moneda);
   const anular = useAnularOrdenPago();
   const aplicar = useAplicarPagosACuenta();
@@ -177,6 +180,7 @@ function Movimientos({ proveedorId, moneda, puede }: { proveedorId: number; mone
   if (isLoading) return <Cargando texto="Buscando los movimientos…" />;
   if (isError || !data) return <ErrorLectura texto="No se pudieron leer los movimientos." onReintentar={() => void refetch()} error={error} />;
   const hayFacturaImpaga = data.movimientos.some((m) => m.tipo === 'factura' && (m.pendiente ?? 0) > 0);
+  const hoy = hoyEnZona(zonaHoraria) as string;
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -195,9 +199,15 @@ function Movimientos({ proveedorId, moneda, puede }: { proveedorId: number; mone
           </button>
         )}
       </div>
+      {data.porVencimiento && data.movimientos.length > 1 && (
+        <p className="text-xs text-tinta-suave">
+          Ordenado por vencimiento, de lo más viejo a lo más nuevo: es el orden en que «Pagar» cancela las facturas. Los pagos van por su fecha.
+        </p>
+      )}
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs text-tinta-suave">
+            <th className="py-1 pr-3 font-medium">Vence</th>
             <th className="py-1 pr-3 font-medium">Fecha</th>
             <th className="py-1 pr-3 font-medium">Qué es</th>
             <th className="py-1 pr-3 font-medium">Detalle</th>
@@ -210,7 +220,11 @@ function Movimientos({ proveedorId, moneda, puede }: { proveedorId: number; mone
         <tbody className="divide-y divide-borde">
           {data.movimientos.map((m) => (
             <tr key={`${m.tipo}-${m.id}`}>
-              <td className="py-1.5 pr-3 whitespace-nowrap">{fecha(m.fecha)}</td>
+              {/* En rojo: vencida y todavía falta pagarla */}
+              <td className={cn('py-1.5 pr-3 whitespace-nowrap', m.tipo === 'factura' && (m.pendiente ?? 0) > 0 && m.vence !== null && m.vence < hoy && 'font-medium text-error')}>
+                {m.vence ? fecha(m.vence) : ''}
+              </td>
+              <td className={cn('py-1.5 pr-3 whitespace-nowrap', m.vence && 'text-tinta-suave')}>{fecha(m.fecha)}</td>
               <td className="py-1.5 pr-3 whitespace-nowrap">
                 {ETIQUETA_MOVIMIENTO_PROVEEDOR[m.tipo]} <span className="text-tinta-suave">{m.numero}</span>
               </td>
@@ -218,16 +232,16 @@ function Movimientos({ proveedorId, moneda, puede }: { proveedorId: number; mone
                 {m.detalle}
                 {m.cuenta && <span className="text-tinta-suave"> · {m.cuenta}</span>}
                 {m.tipo === 'factura' && (m.pendiente ?? 0) > 0 && (
-                  <span className="text-tinta-suave">
+                  <>
                     {' '}
-                    · falta pagar {dinero(m.pendiente, data.moneda)} · vence {fecha(m.vence)}
-                  </span>
+                    <span className="whitespace-nowrap text-tinta-suave">· falta pagar {dinero(m.pendiente, data.moneda)}</span>
+                  </>
                 )}
                 {m.tipo === 'orden_pago' && (m.pendiente ?? 0) > 0 && <span className="text-tinta-suave"> · a cuenta {dinero(m.pendiente, data.moneda)}</span>}
               </td>
-              <td className="py-1.5 pr-3 text-right tabular-nums">{m.debe > 0 ? dinero(m.debe, data.moneda) : ''}</td>
-              <td className="py-1.5 pr-3 text-right tabular-nums">{m.haber > 0 ? dinero(m.haber, data.moneda) : ''}</td>
-              <td className="py-1.5 pr-3 text-right tabular-nums">{dinero(m.saldo, data.moneda)}</td>
+              <td className="py-1.5 pr-3 text-right whitespace-nowrap tabular-nums">{m.debe > 0 ? dinero(m.debe, data.moneda) : ''}</td>
+              <td className="py-1.5 pr-3 text-right whitespace-nowrap tabular-nums">{m.haber > 0 ? dinero(m.haber, data.moneda) : ''}</td>
+              <td className="py-1.5 pr-3 text-right whitespace-nowrap tabular-nums">{dinero(m.saldo, data.moneda)}</td>
               <td className="py-1.5 text-right">
                 {puedeAnular && m.tipo === 'orden_pago' && m.ordenPagoId !== null && (
                   <AccionConMotivo
