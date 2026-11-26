@@ -87,6 +87,8 @@ export interface Liquidacion {
   /** Liquidación por tramo: cada tramo de los viajes del chofer y qué pasa con él */
   tramos: TramoLiquidacion[];
   bajaChofer: string | null;
+  /** Migración 363: chofer de baja con cierres de viaje pendientes: por qué todavía no se le puede transferir. */
+  pagoFrenado: string | null;
 }
 
 /** Migración 20261125200000: los tramos salen de los movimientos que registra Operaciones (historial del chofer). */
@@ -282,6 +284,7 @@ export const parsearLiquidacion = (v: Json | unknown): Liquidacion => {
     colaboradores: parsearColaboradores(x.colaboradores),
     tramos: parsearTramos(x.tramos),
     bajaChofer: s(x.baja_chofer),
+    pagoFrenado: s(x.pago_frenado),
     renglones: arr(x.renglones).map((r) => {
       const y = o(r);
       return {

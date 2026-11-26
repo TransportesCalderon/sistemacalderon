@@ -282,6 +282,13 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
       {agregar && <FormRenglon liquidacionId={l.id} onListo={() => setAgregar(false)} />}
       <ErrorBase error={envio.error} />
 
+      {/* Migración 363: al chofer de baja no se le transfiere mientras le falten cierres (lo decide la base) */}
+      {l.pagoFrenado && (borrador || l.estado === 'aprobada') && (
+        <p className="flex items-start gap-2 rounded-lg bg-alerta-suave p-3 text-sm text-alerta">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {l.pagoFrenado}
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center gap-2 border-t border-borde pt-3">
         {borrador && puedeEditar && (
           <>
@@ -308,7 +315,7 @@ function FichaLiquidacion({ id, periodo, onCerrar }: { id: number; periodo: stri
             {aprobar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Cerrar y dejar por transferir
           </button>
         )}
-        {l.estado === 'aprobada' && puedeEstado && (
+        {l.estado === 'aprobada' && puedeEstado && !l.pagoFrenado && (
           <div className="flex flex-wrap items-end gap-2">
             <Campo label="Fecha de la transferencia">
               <input type="date" value={pago.fecha} onChange={(e) => setPago({ ...pago, fecha: e.target.value })} />

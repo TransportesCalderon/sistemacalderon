@@ -150,9 +150,25 @@ export const VERSION_CHOFER_PENDIENTES = 265;
 export interface PendientesChofer {
   hay: boolean;
   texto: string | null;
+  /**
+   * Migración 363: si la baja se frena y por qué. Los cierres de viaje pendientes ya no frenan la baja: frenan la
+   * transferencia de la liquidación. `null` = la base todavía no lo dice (antes de la 363 frenaba todo lo abierto).
+   */
+  frenaBaja: boolean | null;
+  textoBaja: string | null;
+  /** Migración 363: los cierres que le faltan (viajes de chofer abiertos y cierres de combustible sin aprobar). */
+  cierres: string | null;
 }
 
 export function parsearPendientesChofer(d: unknown): PendientesChofer {
   const o = (d && typeof d === 'object' ? d : {}) as Record<string, unknown>;
-  return { hay: o.hay === true, texto: typeof o.texto === 'string' && o.texto !== '' ? o.texto : null };
+  const texto = (v: unknown) => (typeof v === 'string' && v !== '' ? v : null);
+  const c = (o.cierres && typeof o.cierres === 'object' ? o.cierres : {}) as Record<string, unknown>;
+  return {
+    hay: o.hay === true,
+    texto: texto(o.texto),
+    frenaBaja: typeof o.frena_baja === 'boolean' ? o.frena_baja : null,
+    textoBaja: texto(o.texto_baja),
+    cierres: c.hay === true ? texto(c.texto) : null,
+  };
 }
