@@ -34,6 +34,7 @@ import {
 } from '../domain/plan-caja';
 import { useAjustarPlanCaja, useCerrarPartidaCaja, useGuardarPartidaCaja, usePlanCaja } from '../queries/plan-caja.hooks';
 import { Aviso, Indicador, SeccionPlegada } from './comun';
+import { RepartoCaja } from './reparto-caja';
 
 const diaMes = (d: string | null) => (d ? formatearFechaDia(d).slice(0, 5) : '—');
 const MONEDAS_PARTIDA = ['CLP', 'USD', 'ARS'] as const;
@@ -191,6 +192,9 @@ export function PlanCaja({ onVerPorCobrar, onVerPorPagar }: { onVerPorCobrar?: (
           </table>
         </section>
       )}
+
+      {/* Migración 368: la propuesta de qué pagar y qué guardar con la plata que hay o que entra */}
+      <RepartoCaja onVerPorPagar={onVerPorPagar} />
 
       {(r.sinFechaCobrar.cantidad > 0 || r.sinFechaPagar.cantidad > 0) && (
         <div className="grid gap-3 lg:grid-cols-2">

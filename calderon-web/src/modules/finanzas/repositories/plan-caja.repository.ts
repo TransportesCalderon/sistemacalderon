@@ -1,6 +1,7 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/database.generated';
 import { parsearPlanCaja, type AjustePlanEntrada, type CerrarPartidaEntrada, type OpcionesPlan, type PartidaCajaEntrada, type PlanCaja } from '../domain/plan-caja';
+import { parsearRepartoCaja, type MoraCajaEntrada, type OpcionesReparto, type ReglasRepartoEntrada, type RepartoCaja } from '../domain/reparto-caja';
 
 /** La base todavía no tiene la migración 367 (la función no existe). */
 const FUNCION_INEXISTENTE = new Set(['PGRST202', '42883']);
@@ -50,6 +51,37 @@ export function planCajaRepository(db: Db) {
       if (error) throw new RepoError(error);
       const ids = (data as { ids?: unknown } | null)?.ids;
       return Array.isArray(ids) ? ids.map(Number) : [];
+    },
+    /**
+     * Migración 368 · «¿Qué hacemos con la plata?»: la propuesta de reparto; null si la base todavía no la tiene.
+     * Con «prueba» se arma con otras reglas sin guardarlas.
+     */
+    async reparto(o: OpcionesReparto): Promise<RepartoCaja | null> {
+      const { data, error } = await fin().rpc('fn_plan_caja_reparto', {
+        p_opciones: {
+          entra: o.entra,
+          entra_moneda: o.entraMoneda,
+          usar_caja: o.usarCaja,
+          ...(o.prueba ? { orden: o.prueba.orden, espalda: o.prueba.espalda, reserva_sueldos_dias: o.prueba.reservaSueldosDias, cuotas_dias: o.prueba.cuotasDias } : {}),
+        },
+      });
+      if (error) {
+        if (FUNCION_INEXISTENTE.has((error as { code?: string }).code ?? '')) return null;
+        throw new RepoError(error);
+      }
+      return parsearRepartoCaja(data);
+    },
+    /** Las reglas del reparto: el orden de los pasos, la espalda y los días de sueldos y de cuotas. */
+    async guardarReglas(d: ReglasRepartoEntrada): Promise<void> {
+      const { error } = await fin().rpc('fn_plan_caja_reglas_guardar', {
+        p_datos: { orden: d.orden, espalda: d.espalda, reserva_sueldos_dias: d.reservaSueldosDias, cuotas_dias: d.cuotasDias } as Json,
+      });
+      if (error) throw new RepoError(error);
+    },
+    /** Cuánto cobra de interés por mes un contrato, un proveedor o una deuda a mano si se paga tarde. Vacío = sacarlo. */
+    async guardarMora(d: MoraCajaEntrada): Promise<void> {
+      const { error } = await fin().rpc('fn_plan_caja_mora_guardar', { p_tipo: d.tipo, p_id: d.id, p_datos: { tasa_mensual: d.tasaMensual, nota: d.nota } as Json });
+      if (error) throw new RepoError(error);
     },
     /** Ya se cumplió (entró o se pagó), no va más, o volver a abrirla. */
     async cerrarPartida(d: CerrarPartidaEntrada): Promise<void> {

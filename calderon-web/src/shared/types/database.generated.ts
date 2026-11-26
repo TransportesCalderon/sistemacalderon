@@ -1866,6 +1866,10 @@ export type Database = {
       fn_estimado_choferes_mes: { Args: { p_recalcular?: boolean }; Returns: Json };
       // Migración 367 · Planificador de caja: el plan por semana, la fecha esperada de cada partida y lo que se carga a mano
       fn_plan_caja: { Args: { p_opciones?: Json }; Returns: Json };
+      // Migración 368: qué hacer con la plata (propuesta), las reglas del reparto y el interés de cada deuda
+      fn_plan_caja_reparto: { Args: { p_opciones?: Json }; Returns: Json };
+      fn_plan_caja_reglas_guardar: { Args: { p_datos: Json }; Returns: Json };
+      fn_plan_caja_mora_guardar: { Args: { p_tipo: string; p_id: number; p_datos: Json }; Returns: Json };
       fn_plan_caja_ajustar: { Args: { p_origen: string; p_id: number; p_datos: Json }; Returns: Json };
       fn_guardar_partida_caja: { Args: { p_id: number; p_datos: Json }; Returns: Json };
       fn_cerrar_partida_caja: { Args: { p_id: number; p_accion: string; p_fecha?: string }; Returns: string };

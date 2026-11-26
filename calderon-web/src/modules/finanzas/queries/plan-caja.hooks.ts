@@ -4,8 +4,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { ActionResult } from '@/server/actions/result';
 import { browserDb } from '@/shared/supabase/browser';
 import { invalidar } from '@/shared/query/invalidar';
-import { ajustarPlanCaja, cerrarPartidaCaja, guardarPartidaCaja } from '../actions/plan-caja.actions';
+import { ajustarPlanCaja, cerrarPartidaCaja, guardarMoraCaja, guardarPartidaCaja, guardarReglasReparto } from '../actions/plan-caja.actions';
 import type { OpcionesPlan } from '../domain/plan-caja';
+import type { OpcionesReparto } from '../domain/reparto-caja';
 import { planCajaRepository } from '../repositories/plan-caja.repository';
 
 /**
@@ -27,3 +28,13 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
 export const useAjustarPlanCaja = () => useEscritura(ajustarPlanCaja);
 export const useGuardarPartidaCaja = () => useEscritura(guardarPartidaCaja);
 export const useCerrarPartidaCaja = () => useEscritura(cerrarPartidaCaja);
+
+/** Migración 368 · «¿Qué hacemos con la plata?». Se vuelve a armar con cualquier guardado de Finanzas. */
+export const useRepartoCaja = (opciones: OpcionesReparto) =>
+  useQuery({
+    queryKey: ['finanzas', 'plan-caja', 'reparto', opciones],
+    queryFn: () => planCajaRepository(browserDb()).reparto(opciones),
+    placeholderData: keepPreviousData,
+  });
+export const useGuardarReglasReparto = () => useEscritura(guardarReglasReparto);
+export const useGuardarMoraCaja = () => useEscritura(guardarMoraCaja);

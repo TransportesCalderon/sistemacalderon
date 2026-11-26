@@ -2,6 +2,7 @@
 
 import { createAction } from '@/server/actions/create-action';
 import { ajustarPlanSchema, cerrarPartidaSchema, partidaCajaSchema } from '../domain/plan-caja';
+import { moraCajaSchema, reglasRepartoSchema } from '../domain/reparto-caja';
 import { planCajaRepository } from '../repositories/plan-caja.repository';
 
 /**
@@ -28,5 +29,20 @@ export const cerrarPartidaCaja = createAction({
   permiso: 'finanzas.cobros_pagos:ver',
   schema: cerrarPartidaSchema,
   handler: (d, { db }) => planCajaRepository(db).cerrarPartida(d),
+  invalida: () => RUTAS,
+});
+
+// Migración 368 · «¿Qué hacemos con la plata?»: las reglas del reparto y el interés de cada deuda
+export const guardarReglasReparto = createAction({
+  permiso: 'finanzas.cobros_pagos:ver',
+  schema: reglasRepartoSchema,
+  handler: (d, { db }) => planCajaRepository(db).guardarReglas(d),
+  invalida: () => RUTAS,
+});
+
+export const guardarMoraCaja = createAction({
+  permiso: 'finanzas.cobros_pagos:ver',
+  schema: moraCajaSchema,
+  handler: (d, { db }) => planCajaRepository(db).guardarMora(d),
   invalida: () => RUTAS,
 });
