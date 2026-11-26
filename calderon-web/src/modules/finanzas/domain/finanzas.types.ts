@@ -22,9 +22,9 @@ export function dinero(valor: number | null | undefined, moneda = 'CLP'): string
 }
 
 /** «$ 1,2 M», «$ 850 mil» para ejes y tarjetas chicas. */
-export function dineroCorto(valor: number): string {
+export function dineroCorto(valor: number, moneda = 'CLP'): string {
   const a = Math.abs(valor);
-  const s = valor < 0 ? '−' : '';
+  const s = (valor < 0 ? '−' : '') + (moneda === 'USD' ? 'US' : moneda === 'CLP' ? '' : `${moneda} `);
   const dec = (x: number) => (x >= 10 || Number.isInteger(Math.round(x * 10) / 10) ? 0 : 1);
   if (a >= 1_000_000_000) return `${s}$ ${formatearNumero(a / 1_000_000_000, dec(a / 1_000_000_000))} mil M`;
   if (a >= 1_000_000) return `${s}$ ${formatearNumero(a / 1_000_000, dec(a / 1_000_000))} M`;
@@ -674,6 +674,10 @@ export interface TableroFinanzas {
   fijosSinGenerar: number;
   facturasSinAsiento: number;
   cobrosSinCuentaClp: number;
+  /** Migración 372: dólar de hoy (CLP por USD), su fecha y el de cada mes del gráfico. */
+  tcUsd: number | null;
+  tcUsdFecha: string | null;
+  tcUsdMeses: (number | null)[];
 }
 export function parsearTablero(raw: unknown): TableroFinanzas {
   const j = (raw ?? {}) as Obj;
@@ -703,6 +707,9 @@ export function parsearTablero(raw: unknown): TableroFinanzas {
     fijosSinGenerar: num(j.fijos_sin_generar),
     facturasSinAsiento: num(j.facturas_sin_asiento),
     cobrosSinCuentaClp: num(j.cobros_sin_cuenta_clp),
+    tcUsd: numN(j.tc_usd),
+    tcUsdFecha: j.tc_usd_fecha ? String(j.tc_usd_fecha) : null,
+    tcUsdMeses: Array.isArray(j.tc_usd_meses) ? (j.tc_usd_meses as unknown[]).map((v) => numN(v)) : [],
   };
 }
 

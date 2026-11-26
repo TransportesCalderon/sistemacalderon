@@ -69,7 +69,17 @@ function Leyenda({ items }: { items: { color: string; texto: string }[] }) {
 }
 
 /** Ingresos contra costos y gastos, mes a mes (barras agrupadas). */
-export function GraficoIngresosGastos({ meses, ingresos, egresos }: { meses: string[]; ingresos: number[]; egresos: number[] }) {
+export function GraficoIngresosGastos({
+  meses,
+  ingresos,
+  egresos,
+  moneda = 'CLP',
+}: {
+  meses: string[];
+  ingresos: number[];
+  egresos: number[];
+  moneda?: string;
+}) {
   const [foco, setFoco] = useState<number | null>(null);
   const { desde, hasta, marcas } = escala(0, Math.max(...ingresos, ...egresos, 1));
   const y = (v: number) => M.arr + ((hasta - v) / (hasta - desde)) * (AL - M.arr - M.aba);
@@ -84,7 +94,7 @@ export function GraficoIngresosGastos({ meses, ingresos, egresos }: { meses: str
             <g key={m}>
               <line x1={M.izq} x2={AN - M.der} y1={y(m)} y2={y(m)} stroke="currentColor" className="text-borde" strokeWidth={m === 0 ? 1.2 : 0.6} />
               <text x={M.izq - 8} y={y(m) + 4} textAnchor="end" className="fill-tinta-suave text-[13px]">
-                {dineroCorto(m)}
+                {dineroCorto(m, moneda)}
               </text>
             </g>
           ))}
@@ -107,7 +117,7 @@ export function GraficoIngresosGastos({ meses, ingresos, egresos }: { meses: str
                   onMouseEnter={() => setFoco(i)}
                   onFocus={() => setFoco(i)}
                   tabIndex={0}
-                  aria-label={`${mesCorto(mes)}: ingresos ${dinero(ingresos[i] ?? 0)}, costos y gastos ${dinero(egresos[i] ?? 0)}`}
+                  aria-label={`${mesCorto(mes)}: ingresos ${dinero(ingresos[i] ?? 0, moneda)}, costos y gastos ${dinero(egresos[i] ?? 0, moneda)}`}
                 />
               </g>
             );
@@ -116,10 +126,10 @@ export function GraficoIngresosGastos({ meses, ingresos, egresos }: { meses: str
         {foco !== null && (
           <Ayuda x={M.izq + foco * paso + paso / 2}>
             <p className="mb-1 font-medium text-tinta">{mesCorto(meses[foco]!)}</p>
-            <Renglon color={AZUL} texto="Ingresos" valor={dinero(ingresos[foco] ?? 0)} />
-            <Renglon color={NARANJA} texto="Costos y gastos" valor={dinero(egresos[foco] ?? 0)} />
+            <Renglon color={AZUL} texto="Ingresos" valor={dinero(ingresos[foco] ?? 0, moneda)} />
+            <Renglon color={NARANJA} texto="Costos y gastos" valor={dinero(egresos[foco] ?? 0, moneda)} />
             <p className="mt-1 border-t border-borde pt-1 text-tinta">
-              Resultado: <span className="font-medium tabular-nums">{dinero((ingresos[foco] ?? 0) - (egresos[foco] ?? 0))}</span>
+              Resultado: <span className="font-medium tabular-nums">{dinero((ingresos[foco] ?? 0) - (egresos[foco] ?? 0), moneda)}</span>
             </p>
           </Ayuda>
         )}
@@ -141,7 +151,7 @@ function Renglon({ color, texto, valor }: { color: string; texto: string; valor:
 }
 
 /** Resultado de cada mes: azul si ganó, rojo si perdió (con su leyenda: no depende solo del color). */
-export function GraficoResultado({ meses, resultado }: { meses: string[]; resultado: number[] }) {
+export function GraficoResultado({ meses, resultado, moneda = 'CLP' }: { meses: string[]; resultado: number[]; moneda?: string }) {
   const [foco, setFoco] = useState<number | null>(null);
   const { desde, hasta, marcas } = escala(Math.min(...resultado, 0), Math.max(...resultado, 1));
   const y = (v: number) => M.arr + ((hasta - v) / (hasta - desde)) * (AL - M.arr - M.aba);
@@ -157,7 +167,7 @@ export function GraficoResultado({ meses, resultado }: { meses: string[]; result
             <g key={m}>
               <line x1={M.izq} x2={AN - M.der} y1={y(m)} y2={y(m)} stroke="currentColor" className="text-borde" strokeWidth={m === 0 ? 1.2 : 0.6} />
               <text x={M.izq - 8} y={y(m) + 4} textAnchor="end" className="fill-tinta-suave text-[13px]">
-                {dineroCorto(m)}
+                {dineroCorto(m, moneda)}
               </text>
             </g>
           ))}
@@ -170,7 +180,7 @@ export function GraficoResultado({ meses, resultado }: { meses: string[]; result
                 <path d={barra(x0, y(0), y(v), ancho)} fill={v >= 0 ? AZUL : ROJO} />
                 {i === ultimo && v !== 0 && (
                   <text x={x0 + ancho / 2} y={v >= 0 ? y(v) - 6 : y(v) + 14} textAnchor="middle" className="fill-tinta text-[13px] font-medium">
-                    {dineroCorto(v)}
+                    {dineroCorto(v, moneda)}
                   </text>
                 )}
                 <text x={M.izq + i * paso + paso / 2} y={AL - 8} textAnchor="middle" className="fill-tinta-suave text-[13px]">
@@ -185,7 +195,7 @@ export function GraficoResultado({ meses, resultado }: { meses: string[]; result
                   onMouseEnter={() => setFoco(i)}
                   onFocus={() => setFoco(i)}
                   tabIndex={0}
-                  aria-label={`${mesCorto(mes)}: resultado ${dinero(v)}`}
+                  aria-label={`${mesCorto(mes)}: resultado ${dinero(v, moneda)}`}
                 />
               </g>
             );
@@ -195,7 +205,7 @@ export function GraficoResultado({ meses, resultado }: { meses: string[]; result
           <Ayuda x={M.izq + foco * paso + paso / 2}>
             <p className="font-medium text-tinta">{mesCorto(meses[foco]!)}</p>
             <p className="text-tinta-suave">
-              {(resultado[foco] ?? 0) >= 0 ? 'Ganancia' : 'Pérdida'}: <span className="font-medium text-tinta tabular-nums">{dinero(resultado[foco] ?? 0)}</span>
+              {(resultado[foco] ?? 0) >= 0 ? 'Ganancia' : 'Pérdida'}: <span className="font-medium text-tinta tabular-nums">{dinero(resultado[foco] ?? 0, moneda)}</span>
             </p>
           </Ayuda>
         )}
@@ -205,7 +215,7 @@ export function GraficoResultado({ meses, resultado }: { meses: string[]; result
 }
 
 /** En qué se fue la plata este mes (barras horizontales, una sola serie con su valor). Migración 366: lo estimado va más claro. */
-export function GraficoPrincipales({ items }: { items: { nombre: string; valor: number; estimado?: boolean }[] }) {
+export function GraficoPrincipales({ items, moneda = 'CLP' }: { items: { nombre: string; valor: number; estimado?: boolean }[]; moneda?: string }) {
   const max = Math.max(...items.map((i) => i.valor), 1);
   return (
     <ul className="space-y-2.5">
@@ -213,7 +223,7 @@ export function GraficoPrincipales({ items }: { items: { nombre: string; valor: 
         <li key={i.nombre} className="group">
           <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
             <span className={cn('min-w-0 truncate', i.estimado ? 'text-tinta-suave italic' : 'text-tinta')}>{i.nombre}</span>
-            <span className="font-medium text-tinta tabular-nums">{dinero(i.valor)}</span>
+            <span className="font-medium text-tinta tabular-nums">{dinero(i.valor, moneda)}</span>
           </div>
           <div className="h-2.5 rounded-full bg-hover">
             <div className={cn('h-2.5 rounded-full transition-opacity group-hover:opacity-80')} style={{ width: `${(i.valor / max) * 100}%`, background: AZUL, opacity: i.estimado ? 0.4 : undefined }} />
