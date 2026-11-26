@@ -79,6 +79,9 @@ export const useAuxiliares = (hasta: string | null) => useQuery({ queryKey: [...
 export const useTraza = (origen: string, id: number | null) =>
   useQuery({ queryKey: [...CLAVE, 'traza', origen, id], queryFn: () => repo().traza(origen, id!), enabled: !!id });
 export const useCombustibleFinanzas = () => useQuery({ queryKey: [...CLAVE, 'combustible'], queryFn: () => repo().combustible() });
+/** Migración 366 · Estimado de bono y km de los choferes del mes (tarda unos segundos: va aparte del tablero). */
+export const useEstimadoChoferes = () =>
+  useQuery({ queryKey: [...CLAVE, 'estimado-choferes'], queryFn: () => repo().estimadoChoferes(), staleTime: 600_000, retry: false });
 /** Migración 365 · Cruza los remitos del listado de la estación con las cargas (solo lee: no invalida nada). */
 export const useCruzarRemitos = () =>
   useMutation({ mutationFn: (d: { gastoId: number; remitos: RenglonRemito[] }) => repo().cruzarRemitos(d.gastoId, d.remitos) });

@@ -1862,6 +1862,8 @@ export type Database = {
       fn_vincular_cargas: { Args: { p_gasto: number; p_cargas: number[] }; Returns: number };
       // Migración 365: factura de la estación por remitos
       fn_cruzar_remitos: { Args: { p_gasto: number; p_remitos: Json }; Returns: Json };
+      // Migración 366: estimado de los choferes del mes
+      fn_estimado_choferes_mes: { Args: { p_recalcular?: boolean }; Returns: Json };
       // Fondo fijo del chofer, gastos y resumen para liquidar (61)
       fn_mi_fondo: { Args: Record<string, never>; Returns: Json };
       /** Migración 257: el chofer sube el gasto con la lectura de la IA; si el comprobante ya está cargado, devuelve repetido. */

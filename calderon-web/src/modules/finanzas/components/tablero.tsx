@@ -5,7 +5,10 @@ import { Cargando, Encabezado, ErrorLectura, Seccion } from '@/modules/combustib
 import { TD, TH } from '@/modules/catalogos/components/comun';
 import { cn } from '@/shared/lib/cn';
 import { dinero, mesCorto, type TableroFinanzas as Tablero } from '../domain/finanzas.types';
-import { useTableroFinanzas } from '../queries/hooks';
+import { useEstimadoChoferes, useTableroFinanzas } from '../queries/hooks';
+import { principalesConEstimado } from '../domain/estimado-choferes';
+import { fecha } from './comun';
+import { formatearNumero } from '@/shared/lib/numeros';
 import { Aviso, Indicador } from './comun';
 import { GraficoIngresosGastos, GraficoPrincipales, GraficoResultado } from './graficos';
 
@@ -15,6 +18,7 @@ import { GraficoIngresosGastos, GraficoPrincipales, GraficoResultado } from './g
  */
 export function TableroFinanzas() {
   const { data: t, isLoading, isError, error, refetch } = useTableroFinanzas();
+  const estimado = useEstimadoChoferes();
   if (isLoading) return <Cargando texto="Armando el tablero…" />;
   if (isError || !t) return <ErrorLectura texto="No se pudo leer el tablero financiero." onReintentar={() => void refetch()} error={error} />;
 
@@ -119,10 +123,19 @@ export function TableroFinanzas() {
 
       <div className="grid gap-5 xl:grid-cols-2">
         <Seccion titulo="En qué se fue la plata este mes">
-          {t.principalesGastos.length === 0 ? (
+          {t.principalesGastos.length === 0 && !estimado.data?.total ? (
             <p className="text-sm text-tinta-suave">Todavía no hay gastos cargados este mes.</p>
           ) : (
-            <GraficoPrincipales items={t.principalesGastos} />
+            <GraficoPrincipales items={principalesConEstimado(t.principalesGastos, estimado.data)} />
+          )}
+          {/* Migración 366: bono y km de los choferes, hasta que se apruebe la liquidación */}
+          {estimado.isLoading && <p className="mt-3 text-xs text-tinta-suave">Calculando el bono y los km de los choferes…</p>}
+          {estimado.data && estimado.data.total > 0 && (
+            <p className="mt-3 text-xs text-tinta-suave">
+              Choferes (en claro): bono por tramo {dinero(estimado.data.bono)} y {dinero(estimado.data.adicionalKm)} por {formatearNumero(estimado.data.km, 0)} km de línea, de{' '}
+              {estimado.data.choferes} chofer{estimado.data.choferes === 1 ? '' : 'es'}, con los movimientos de Operaciones del {fecha(estimado.data.desde)} al{' '}
+              {fecha(estimado.data.hasta)}. Es un estimado: cuando se aprueba la liquidación pasa a «Remuneraciones de choferes» con el monto real.
+            </p>
           )}
         </Seccion>
         <Seccion titulo="Saldos por cuenta">

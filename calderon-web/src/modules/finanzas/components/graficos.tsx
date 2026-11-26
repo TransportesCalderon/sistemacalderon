@@ -204,19 +204,19 @@ export function GraficoResultado({ meses, resultado }: { meses: string[]; result
   );
 }
 
-/** En qué se fue la plata este mes (barras horizontales, una sola serie con su valor). */
-export function GraficoPrincipales({ items }: { items: { nombre: string; valor: number }[] }) {
+/** En qué se fue la plata este mes (barras horizontales, una sola serie con su valor). Migración 366: lo estimado va más claro. */
+export function GraficoPrincipales({ items }: { items: { nombre: string; valor: number; estimado?: boolean }[] }) {
   const max = Math.max(...items.map((i) => i.valor), 1);
   return (
     <ul className="space-y-2.5">
       {items.map((i) => (
         <li key={i.nombre} className="group">
           <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-            <span className="min-w-0 truncate text-tinta">{i.nombre}</span>
+            <span className={cn('min-w-0 truncate', i.estimado ? 'text-tinta-suave italic' : 'text-tinta')}>{i.nombre}</span>
             <span className="font-medium text-tinta tabular-nums">{dinero(i.valor)}</span>
           </div>
           <div className="h-2.5 rounded-full bg-hover">
-            <div className={cn('h-2.5 rounded-full transition-opacity group-hover:opacity-80')} style={{ width: `${(i.valor / max) * 100}%`, background: AZUL }} />
+            <div className={cn('h-2.5 rounded-full transition-opacity group-hover:opacity-80')} style={{ width: `${(i.valor / max) * 100}%`, background: AZUL, opacity: i.estimado ? 0.4 : undefined }} />
           </div>
         </li>
       ))}
