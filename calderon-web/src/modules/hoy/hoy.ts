@@ -76,6 +76,32 @@ export function agruparTareas(tareas: readonly Tarea[]): { grupo: GrupoHoy; tare
   })).filter((g) => g.tareas.length > 0);
 }
 
+/**
+ * 26/11/2026 (migración 375): todo lo de cierres de viaje va arriba de todo, en su propio bloque, en este orden:
+ * vencidos, sin firma, sin hacer, para aprobar, quitar descuento y viajes por completar. Lo que esperás de otro
+ * usuario no sube: sigue en «Esperando a otro usuario».
+ */
+export const TIPOS_CIERRE = [
+  'cierres_vencidos',
+  'cierre_sin_firma',
+  'cierres_sin_firma',
+  'viajes_sin_cierre',
+  'cierre',
+  'quitar_descuento',
+  'viaje_chofer_incompleto',
+] as const;
+const PUESTO_CIERRE = new Map<string, number>(TIPOS_CIERRE.map((t, i) => [t, i]));
+
+export const esTareaDeCierre = (t: Pick<Tarea, 'tipo' | 'grupo'>): boolean => t.grupo !== 'esperando' && PUESTO_CIERRE.has(t.tipo);
+
+/** Separa lo de cierres (ordenado: primero el tipo más urgente, después lo más viejo) del resto de la lista. */
+export function separarCierres(tareas: readonly Tarea[]): { cierres: Tarea[]; resto: Tarea[] } {
+  const cierres = tareas
+    .filter(esTareaDeCierre)
+    .sort((a, b) => PUESTO_CIERRE.get(a.tipo)! - PUESTO_CIERRE.get(b.tipo)! || (a.fecha ?? '9999').localeCompare(b.fecha ?? '9999'));
+  return { cierres, resto: tareas.filter((t) => !esTareaDeCierre(t)) };
+}
+
 /** Lo que muestra el contador de la barra: lo que espera una acción tuya (no lo que esperás de otro). */
 export function contarPendientes(tareas: readonly Tarea[]): number {
   return tareas.filter((t) => t.grupo !== 'esperando').reduce((n, t) => n + t.cantidad, 0);
@@ -84,6 +110,12 @@ export function contarPendientes(tareas: readonly Tarea[]): number {
 /** Texto del botón de cada renglón. */
 const ACCION: Record<string, string> = {
   carga_sin_ticket: 'Adjuntar ticket',
+  // Cierres de viaje (migración 375)
+  cierres_vencidos: 'Hacer los cierres',
+  viajes_sin_cierre: 'Hacer los cierres',
+  cierre_sin_firma: 'Subir la firma',
+  cierres_sin_firma: 'Ver los cierres',
+  viaje_chofer_incompleto: 'Completar el viaje',
   // Sprint 4 (migración 117)
   op_sin_confirmar: 'Confirmar',
   op_sin_equipo: 'Asignar equipo',

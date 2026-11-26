@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowRightLeft, ChevronRight, ClipboardCheck, Fuel, Plus, Receipt, Truck, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowRightLeft, ChevronRight, ClipboardCheck, Fuel, Plus, Receipt, Truck, type LucideIcon } from 'lucide-react';
 import { Cargando, Chip, Encabezado, ErrorLectura, Seccion, Vacio } from '@/modules/combustible/components/comun/ui';
 import { useAbrirFicha, useFichaDeLaDireccion } from '@/modules/core/fichas/contexto';
 import { can } from '@/modules/core/permissions/resolver';
@@ -12,7 +12,7 @@ import { NotificacionesSinRevisar } from '@/modules/core/push/campana-notificaci
 import { PendientesPantalla } from '@/modules/pendientes/components/pendientes-pantalla';
 import { cn } from '@/shared/lib/cn';
 import { formatearFechaHora } from '@/shared/lib/fechas';
-import { accionDe, agruparTareas, ETIQUETA_GRUPO_HOY, type Tarea } from '../hoy';
+import { accionDe, agruparTareas, ETIQUETA_GRUPO_HOY, separarCierres, type Tarea } from '../hoy';
 import { useHoy } from '../use-hoy';
 import { AvisoOperacionesIncompletas } from './aviso-operaciones-incompletas';
 
@@ -57,11 +57,14 @@ export function HoyPantalla() {
       </div>
     );
   }
-  const grupos = agruparTareas(data ?? []);
+  // Migración 375: lo de cierres de viaje va arriba de todo, antes que cualquier otra cosa
+  const { cierres, resto } = separarCierres(data ?? []);
+  const grupos = agruparTareas(resto);
 
   return (
     <div className="space-y-5">
       <Encabezado titulo="Hoy" subtitulo="Lo que te toca, en una sola lista" />
+      {cierres.length > 0 && <CierresDeViaje tareas={cierres} />}
       {/* Migración 306: las notificaciones del teléfono que todavía no abrió */}
       <NotificacionesSinRevisar />
       <AvisoOperacionesIncompletas />
@@ -71,7 +74,7 @@ export function HoyPantalla() {
         <Cargando texto="Buscando lo que te toca…" />
       ) : isError ? (
         <ErrorLectura texto="No se pudo cargar la lista de hoy." onReintentar={() => void refetch()} error={error} />
-      ) : grupos.length === 0 ? (
+      ) : grupos.length === 0 && cierres.length === 0 ? (
         <Vacio icono={<ClipboardCheck className="size-6" />} texto="No tenés nada pendiente. ¡Al día!" />
       ) : (
         grupos.map((g) => (
@@ -87,6 +90,32 @@ export function HoyPantalla() {
         ))
       )}
     </div>
+  );
+}
+
+/**
+ * Migración 375 · los cierres de viaje, primero y destacados: vencidos, sin firma, sin hacer, para aprobar.
+ * Un cierre vencido frena el tractor; uno sin aprobar o sin el acta firmada frena los fondos del chofer.
+ */
+function CierresDeViaje({ tareas }: { tareas: Tarea[] }) {
+  const total = tareas.reduce((n, t) => n + t.cantidad, 0);
+  return (
+    <section className="space-y-3 rounded-xl border-2 border-error/40 bg-error-suave/40 p-5" aria-label="Cierres de viaje">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="mt-0.5 size-5 shrink-0 text-error" />
+        <div>
+          <h2 className="font-semibold text-error">Cierres de viaje ({total})</h2>
+          <p className="text-xs text-tinta-suave">
+            Van primero: un cierre vencido no deja salir al tractor, y un cierre sin aprobar o sin el acta firmada frena los fondos del chofer.
+          </p>
+        </div>
+      </div>
+      <ul className="divide-y divide-borde rounded-lg border border-borde bg-panel">
+        {tareas.map((t, i) => (
+          <RenglonTarea key={`${t.tipo}-${t.objeto ? `${t.objeto.tipo}:${t.objeto.id}` : t.ruta}-${i}`} t={t} />
+        ))}
+      </ul>
+    </section>
   );
 }
 
