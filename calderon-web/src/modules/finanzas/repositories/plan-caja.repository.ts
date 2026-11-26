@@ -78,9 +78,16 @@ export function planCajaRepository(db: Db) {
       });
       if (error) throw new RepoError(error);
     },
-    /** Cuánto cobra de interés por mes un contrato, un proveedor o una deuda a mano si se paga tarde. Vacío = sacarlo. */
+    /**
+     * Lo que se sabe de un acreedor (contrato, proveedor, deuda a mano o gasto suelto): cuánto cobra de interés por mes
+     * si se le paga tarde y, desde la migración 369, la marca «pagar primero». Sin interés y sin marca, la base lo borra.
+     */
     async guardarMora(d: MoraCajaEntrada): Promise<void> {
-      const { error } = await fin().rpc('fn_plan_caja_mora_guardar', { p_tipo: d.tipo, p_id: d.id, p_datos: { tasa_mensual: d.tasaMensual, nota: d.nota } as Json });
+      const { error } = await fin().rpc('fn_plan_caja_mora_guardar', {
+        p_tipo: d.tipo,
+        p_id: d.id,
+        p_datos: { tasa_mensual: d.tasaMensual, pagar_primero: d.pagarPrimero, nota: d.nota } as Json,
+      });
       if (error) throw new RepoError(error);
     },
     /** Ya se cumplió (entró o se pagó), no va más, o volver a abrirla. */

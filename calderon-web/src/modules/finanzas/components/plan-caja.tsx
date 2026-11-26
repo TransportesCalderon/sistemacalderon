@@ -34,7 +34,7 @@ import {
 } from '../domain/plan-caja';
 import { useAjustarPlanCaja, useCerrarPartidaCaja, useGuardarPartidaCaja, usePlanCaja } from '../queries/plan-caja.hooks';
 import { Aviso, Indicador, SeccionPlegada } from './comun';
-import { RepartoCaja } from './reparto-caja';
+import { DisponibleHoy, RepartoCaja } from './reparto-caja';
 
 const diaMes = (d: string | null) => (d ? formatearFechaDia(d).slice(0, 5) : '—');
 const MONEDAS_PARTIDA = ['CLP', 'USD', 'ARS'] as const;
@@ -126,6 +126,9 @@ export function PlanCaja({ onVerPorCobrar, onVerPorPagar }: { onVerPorCobrar?: (
           <FormPartida key={alta} plan={plan} tipo={alta} onCerrar={() => setAlta(null)} />
         </section>
       )}
+
+      {/* Migración 369: cuánta plata hay libre hoy, antes que nada */}
+      <DisponibleHoy />
 
       {/* La respuesta corta */}
       <p

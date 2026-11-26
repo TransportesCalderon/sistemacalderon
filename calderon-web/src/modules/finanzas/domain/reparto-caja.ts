@@ -26,8 +26,11 @@ export const NOMBRE_PASO: Record<PasoCodigo, string> = {
 };
 const esPaso = (v: unknown): v is PasoCodigo => PASOS_REPARTO.some((p) => p === v);
 
-/** A quién se le puede cargar el interés por mes: un contrato en cuotas, un proveedor o una deuda cargada a mano. */
-export const TIPOS_MORA = ['fijo', 'proveedor', 'partida'] as const;
+/**
+ * A quién se le puede cargar el interés por mes y la marca «pagar primero»: un contrato en cuotas, un proveedor,
+ * una deuda cargada a mano o (migración 369) un gasto suelto, sin proveedor ni gasto fijo.
+ */
+export const TIPOS_MORA = ['fijo', 'proveedor', 'partida', 'gasto'] as const;
 export type TipoMora = (typeof TIPOS_MORA)[number];
 const esTipoMora = (v: unknown): v is TipoMora => TIPOS_MORA.some((t) => t === v);
 
@@ -54,6 +57,8 @@ export interface ItemReparto {
   tasa: number | null;
   tasaFuente: 'cargada' | 'observada' | null;
   tasaNota: string | null;
+  /** Migración 369 · marcado «pagar primero»: va antes que el resto aunque no cobre interés. */
+  primero: boolean;
   /** En cuotas y deudas: si la plata alcanza para pagarla. null en los pasos que solo apartan plata. */
   sePaga: boolean | null;
   /** En «una cuota de cada contrato»: las otras cuotas vencidas del mismo contrato. */
@@ -94,9 +99,36 @@ export interface ReglasReparto {
   cuotasDias: number;
 }
 
+/** Migración 369 · la plata en una moneda: lo que hay y lo que entra, contra lo que la propuesta paga o guarda en ella. */
+export interface MonedaReparto {
+  moneda: string;
+  /** En su moneda: lo que hay en caja más lo que entra. */
+  tiene: number;
+  /** Lo mismo en pesos chilenos de hoy. */
+  tieneClp: number;
+  /** Lo que la propuesta paga o guarda en esa moneda (sin la espalda, que no tiene moneda fija). */
+  seUsa: number;
+  /** tiene − seUsa: negativo quiere decir que hay que comprar esa moneda. */
+  diferencia: number;
+}
+
+/** Migración 369 · «Disponible»: la plata menos lo que ya tiene destino. Negativo = lo que falta para cubrirlo. */
+export interface DisponibleReparto {
+  monto: number;
+  /** La plata de la que se parte: la caja de hoy más lo que entra. */
+  plata: number;
+  cuotas: number;
+  sueldos: number;
+  espalda: number;
+  deudasVencidas: number;
+  vence7Dias: number;
+}
+
 export interface RepartoCaja {
   hoy: string;
-  dinero: { enCaja: number; usaCaja: boolean; entra: number; entraMoneda: string; entraClp: number; total: number };
+  dinero: { enCaja: number; usaCaja: boolean; entra: number; entraMoneda: string; entraClp: number; total: number; porMoneda: MonedaReparto[] };
+  /** null si la base todavía no tiene la migración 369. */
+  disponible: DisponibleReparto | null;
   /** Las reglas con que se armó esta propuesta y las que están guardadas (pueden diferir si se está probando). */
   reglas: ReglasReparto & { guardadas: ReglasReparto };
   pasos: PasoReparto[];
@@ -138,6 +170,7 @@ const item = (e: Obj): ItemReparto => ({
   tasa: numN(e.tasa),
   tasaFuente: e.tasa_fuente === 'cargada' || e.tasa_fuente === 'observada' ? e.tasa_fuente : null,
   tasaNota: txt(e.tasa_nota),
+  primero: e.primero === true,
   sePaga: typeof e.se_paga === 'boolean' ? e.se_paga : null,
   masVencidas: num(e.mas_vencidas),
   masVencidasClp: num(e.mas_vencidas_clp),
@@ -148,6 +181,7 @@ export function parsearRepartoCaja(raw: unknown): RepartoCaja {
   const d = obj(j.dinero);
   const r = obj(j.reglas);
   const vp = obj(j.vence_pronto);
+  const dis = j.disponible && typeof j.disponible === 'object' ? obj(j.disponible) : null;
   return {
     hoy: String(j.hoy ?? ''),
     dinero: {
@@ -157,7 +191,25 @@ export function parsearRepartoCaja(raw: unknown): RepartoCaja {
       entraMoneda: String(d.entra_moneda ?? 'CLP'),
       entraClp: num(d.entra_clp),
       total: num(d.total),
+      porMoneda: arr(d.por_moneda).map((m) => ({
+        moneda: String(m.moneda ?? ''),
+        tiene: num(m.tiene),
+        tieneClp: num(m.tiene_clp),
+        seUsa: num(m.se_usa),
+        diferencia: num(m.diferencia),
+      })),
     },
+    disponible: dis
+      ? {
+          monto: num(dis.monto),
+          plata: num(dis.plata),
+          cuotas: num(dis.cuotas),
+          sueldos: num(dis.sueldos),
+          espalda: num(dis.espalda),
+          deudasVencidas: num(dis.deudas_vencidas),
+          vence7Dias: num(dis.vence_7_dias),
+        }
+      : null,
     reglas: { ...reglas(r), guardadas: reglas(r.guardadas) },
     pasos: arr(j.pasos)
       .filter((p) => esPaso(p.codigo))
@@ -235,6 +287,13 @@ export function resumenReparto(r: RepartoCaja): { tono: 'bien' | 'justo' | 'mal'
   };
 }
 
+/** La plata por moneda en una línea: «$ 3.650.000 · US$ 1.200,00 (≈ $ 1.140.000)». Vacío si toda está en pesos chilenos. */
+export function textoPorMoneda(r: Pick<RepartoCaja, 'dinero'>): string {
+  const con = r.dinero.porMoneda.filter((m) => m.tiene !== 0);
+  if (!con.some((m) => m.moneda !== 'CLP')) return '';
+  return con.map((m) => (m.moneda === 'CLP' ? dinero(m.tiene, 'CLP') : `${dinero(m.tiene, m.moneda)} (≈ ${dinero(m.tieneClp, 'CLP')})`)).join(' · ');
+}
+
 /** «2,5 % por mes» */
 export const textoTasa = (t: number) => `${String(Math.round(t * 100) / 100).replace('.', ',')} % por mes`;
 
@@ -251,8 +310,10 @@ export type ReglasRepartoEntrada = z.infer<typeof reglasRepartoSchema>;
 export const moraCajaSchema = z.object({
   tipo: z.enum(TIPOS_MORA),
   id: z.number().int().positive(),
-  /** Vacío = sacar lo cargado. */
+  /** Vacío = no se sabe (saca el interés cargado). */
   tasaMensual: numeroOpc.refine((v) => v === null || (v >= 0 && v <= 50), 'De 0 a 50.'),
+  /** Migración 369 · va antes que el resto en la propuesta. Sin interés y sin marca, la base borra el dato. */
+  pagarPrimero: z.boolean(),
   nota: z
     .string()
     .trim()

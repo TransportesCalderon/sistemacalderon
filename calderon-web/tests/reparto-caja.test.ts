@@ -6,6 +6,7 @@ import {
   reglasCambiadas,
   reglasRepartoSchema,
   resumenReparto,
+  textoPorMoneda,
   textoTasa,
 } from '@/modules/finanzas/domain/reparto-caja';
 
@@ -104,10 +105,69 @@ describe('migración 368: qué hacemos con la plata', () => {
     expect(reglasRepartoSchema.safeParse({ orden: ['sueldos', 'espalda'], espalda: 1, reservaSueldosDias: 10, cuotasDias: 7 }).success).toBe(false);
     expect(reglasRepartoSchema.safeParse({ orden: ['sueldos', 'espalda', 'cuotas', 'deudas'], espalda: '', reservaSueldosDias: 10, cuotasDias: 7 }).success).toBe(false);
     expect(reglasRepartoSchema.safeParse({ orden: ['sueldos', 'espalda', 'cuotas', 'deudas'], espalda: 1, reservaSueldosDias: 90, cuotasDias: 7 }).success).toBe(false);
-    expect(moraCajaSchema.safeParse({ tipo: 'proveedor', id: 9902, tasaMensual: '2,5', nota: '  ' }).data).toEqual({ tipo: 'proveedor', id: 9902, tasaMensual: 2.5, nota: null });
-    // Vacío = sacar el dato
-    expect(moraCajaSchema.safeParse({ tipo: 'fijo', id: 99301, tasaMensual: '', nota: null }).data?.tasaMensual).toBeNull();
-    expect(moraCajaSchema.safeParse({ tipo: 'fijo', id: 99301, tasaMensual: '80', nota: null }).success).toBe(false);
-    expect(moraCajaSchema.safeParse({ tipo: 'cliente', id: 1, tasaMensual: '1', nota: null }).success).toBe(false);
+    expect(moraCajaSchema.safeParse({ tipo: 'proveedor', id: 9902, tasaMensual: '2,5', pagarPrimero: false, nota: '  ' }).data).toEqual({
+      tipo: 'proveedor', id: 9902, tasaMensual: 2.5, pagarPrimero: false, nota: null,
+    });
+    // Vacío = no se sabe el interés
+    expect(moraCajaSchema.safeParse({ tipo: 'fijo', id: 99301, tasaMensual: '', pagarPrimero: false, nota: null }).data?.tasaMensual).toBeNull();
+    expect(moraCajaSchema.safeParse({ tipo: 'fijo', id: 99301, tasaMensual: '80', pagarPrimero: false, nota: null }).success).toBe(false);
+    expect(moraCajaSchema.safeParse({ tipo: 'cliente', id: 1, tasaMensual: '1', pagarPrimero: false, nota: null }).success).toBe(false);
+  });
+});
+
+describe('migración 369: disponible hoy, la plata por moneda y «pagar primero»', () => {
+  const con369 = {
+    ...crudo,
+    dinero: {
+      ...crudo.dinero,
+      por_moneda: [
+        { moneda: 'CLP', en_caja: 3650000, entra: 150000000, tiene: 153650000, tiene_clp: 153650000, se_usa: 31170000, se_usa_clp: 31170000, diferencia: 122480000, diferencia_clp: 122480000 },
+        { moneda: 'USD', en_caja: 1200, entra: 0, tiene: 1200, tiene_clp: 1140000, se_usa: 4800, se_usa_clp: 4560000, diferencia: -3600, diferencia_clp: -3420000 },
+      ],
+    },
+    disponible: { monto: 78610000, plata: 154790000, cuotas: 12260000, sueldos: 3920000, espalda: 60000000, protegido: 76180000, deudas_vencidas: 19550000, vence_7_dias: 2085000 },
+    pasos: [{ ...crudo.pasos[0], items: [{ ...cuota, primero: true, tasa_nota: 'ZZ avisó que corta' }] }, crudo.pasos[1], crudo.pasos[2], crudo.pasos[3]],
+  };
+  const r = parsearRepartoCaja(con369);
+
+  it('lee el disponible: la plata menos cuotas, sueldos y espalda', () => {
+    expect(r.disponible).toEqual({ monto: 78610000, plata: 154790000, cuotas: 12260000, sueldos: 3920000, espalda: 60000000, deudasVencidas: 19550000, vence7Dias: 2085000 });
+    // Lo que queda libre es lo que la propuesta manda a deudas más lo que sobra
+    expect(r.disponible!.monto).toBe(r.pasos[3]!.necesita + r.sobra);
+    // Puede dar negativo: es lo que falta
+    expect(parsearRepartoCaja({ ...con369, disponible: { ...con369.disponible, monto: -71390000, plata: 4790000 } }).disponible!.monto).toBe(-71390000);
+  });
+
+  it('lee la plata por moneda y la escribe en una línea solo si hay otra moneda', () => {
+    expect(r.dinero.porMoneda).toHaveLength(2);
+    expect(r.dinero.porMoneda[1]).toEqual({ moneda: 'USD', tiene: 1200, tieneClp: 1140000, seUsa: 4800, diferencia: -3600 });
+    expect(textoPorMoneda(r)).toBe('$ 153.650.000 · US$ 1.200,00 (≈ $ 1.140.000)');
+    const soloPesos = parsearRepartoCaja({ ...con369, dinero: { ...con369.dinero, por_moneda: [con369.dinero.por_moneda[0]] } });
+    expect(textoPorMoneda(soloPesos)).toBe('');
+    // Una moneda en cero no se nombra
+    const usdEnCero = parsearRepartoCaja({ ...con369, dinero: { ...con369.dinero, por_moneda: [con369.dinero.por_moneda[0], { ...con369.dinero.por_moneda[1], tiene: 0, tiene_clp: 0 }] } });
+    expect(textoPorMoneda(usdEnCero)).toBe('');
+  });
+
+  it('lee la marca «pagar primero» y su nota', () => {
+    expect(r.pasos[0]!.items[0]).toMatchObject({ primero: true, tasaNota: 'ZZ avisó que corta', tasaFuente: 'observada' });
+    expect(r.pasos[3]!.items[0]!.primero).toBe(false);
+  });
+
+  it('con la base sin la 369 no inventa nada', () => {
+    const viejo = parsearRepartoCaja(crudo);
+    expect(viejo.disponible).toBeNull();
+    expect(viejo.dinero.porMoneda).toEqual([]);
+    expect(textoPorMoneda(viejo)).toBe('');
+    expect(viejo.pasos[0]!.items[0]!.primero).toBe(false);
+  });
+
+  it('la marca se guarda con o sin interés, también en un gasto suelto', () => {
+    expect(moraCajaSchema.safeParse({ tipo: 'gasto', id: 99204, tasaMensual: '', pagarPrimero: true, nota: 'ZZ' }).data).toEqual({
+      tipo: 'gasto', id: 99204, tasaMensual: null, pagarPrimero: true, nota: 'ZZ',
+    });
+    expect(moraCajaSchema.safeParse({ tipo: 'fijo', id: 99301, tasaMensual: '1,8', pagarPrimero: true, nota: null }).data).toMatchObject({ tasaMensual: 1.8, pagarPrimero: true });
+    // Sin decir si va primero o no, no pasa
+    expect(moraCajaSchema.safeParse({ tipo: 'fijo', id: 99301, tasaMensual: '1,8', nota: null }).success).toBe(false);
   });
 });

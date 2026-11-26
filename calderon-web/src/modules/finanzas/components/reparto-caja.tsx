@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { AlertTriangle, ArrowDown, ArrowUp, Check, LoaderCircle, Save, Undo2, X } from 'lucide-react';
 import { TD, TH, useEnvio } from '@/modules/catalogos/components/comun';
 import { Cargando, Chip, ErrorBase, ErrorLectura } from '@/modules/combustible/components/comun/ui';
@@ -17,6 +17,7 @@ import {
   OPCIONES_REPARTO_INICIAL,
   reglasCambiadas,
   resumenReparto,
+  textoPorMoneda,
   textoTasa,
   type ItemReparto,
   type OpcionesReparto,
@@ -36,6 +37,51 @@ const aNumero = (t: string) => {
   const r = numeroOpc.safeParse(t);
   return r.success && r.data !== null && r.data > 0 ? r.data : 0;
 };
+
+/**
+ * Migración 369 · «Disponible hoy»: la caja menos lo que ya tiene destino (una cuota de cada leasing o crédito de estos
+ * días, los sueldos que vienen y la espalda). Sale de la misma propuesta, con las reglas guardadas y sin plata que
+ * entre; la cuenta la hace la base. Si la base todavía no tiene la 369, no se muestra.
+ */
+export function DisponibleHoy() {
+  const { data: r } = useRepartoCaja(OPCIONES_REPARTO_INICIAL);
+  const d = r?.disponible;
+  if (!d) return null;
+  const falta = d.monto < 0;
+  const cuenta: [string, number][] = [
+    ['Caja de hoy', d.plata],
+    ['Una cuota de cada leasing o crédito', -d.cuotas],
+    ['Sueldos que vienen', -d.sueldos],
+    ['Espalda para operar', -d.espalda],
+  ];
+  return (
+    <section className={cn(TARJETA, 'p-4')} aria-label="Disponible hoy">
+      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-3">
+        <div>
+          <p className="text-xs font-medium text-tinta-suave">Disponible hoy</p>
+          <p className={cn('mt-1 text-3xl font-semibold tabular-nums', falta ? 'text-error' : 'text-exito')}>{pesos(d.monto)}</p>
+          <p className="mt-1 text-sm text-tinta">
+            {falta ? 'Hoy no hay plata libre: es lo que falta para cubrir las cuotas, los sueldos y la espalda.' : 'Es lo que se puede usar hoy sin tocar lo planificado.'}
+          </p>
+        </div>
+        <dl className="grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5 text-sm">
+          {cuenta.map(([nombre, monto]) => (
+            <Fragment key={nombre}>
+              <dt className="text-tinta-suave">{nombre}</dt>
+              <dd className="text-right whitespace-nowrap text-tinta tabular-nums">{pesos(monto)}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      </div>
+      {(d.deudasVencidas > 0 || d.vence7Dias > 0) && (
+        <p className="mt-2 text-xs text-tinta-suave">
+          {d.deudasVencidas > 0 && `Deudas vencidas por cancelar: ${pesos(d.deudasVencidas)}. `}
+          {d.vence7Dias > 0 && `En 7 días vencen además ${pesos(d.vence7Dias)}.`}
+        </p>
+      )}
+    </section>
+  );
+}
 
 /**
  * Migración 368 · Planificador de caja › «¿Qué hacemos con la plata?».
@@ -64,6 +110,7 @@ export function RepartoCaja({ onVerPorPagar }: { onVerPorPagar?: (() => void) | 
   // Lo que falta en cada paso ya se ve en la tabla
   const avisos = r.avisos.filter((a) => !a.startsWith('No alcanza para'));
   const calcular = () => setOp({ ...op, entra: aNumero(entra), entraMoneda: moneda });
+  const porMoneda = textoPorMoneda(r);
 
   return (
     <section className={cn(TARJETA, 'space-y-4 p-4')} aria-label="Qué hacemos con la plata">
@@ -124,6 +171,7 @@ export function RepartoCaja({ onVerPorPagar }: { onVerPorPagar?: (() => void) | 
             {r.dinero.entraClp > 0 &&
               ` ${r.dinero.usaCaja ? '+' : '='} ${pesos(r.dinero.entraClp)} que entran${r.dinero.entraMoneda !== 'CLP' ? ` (${dinero(r.dinero.entra, r.dinero.entraMoneda)})` : ''}`}
           </span>
+          {porMoneda && <span className="block text-xs font-normal">Por moneda, al cambio de hoy: {porMoneda}</span>}
         </span>
       </p>
 
@@ -189,6 +237,12 @@ export function RepartoCaja({ onVerPorPagar }: { onVerPorPagar?: (() => void) | 
         </Aviso>
       )}
 
+      {r.disponible === null && (
+        <Aviso>
+          Para ver «Disponible hoy», la plata por moneda y marcar «pagar primero» falta correr la migración <b>20261126220000_disponible_hoy_y_pagar_primero.sql</b>.
+        </Aviso>
+      )}
+
       <Reglas key={JSON.stringify(r.reglas)} r={r} probando={probando} onProbar={(prueba) => setOp({ ...op, prueba })} />
     </section>
   );
@@ -244,7 +298,7 @@ function DetallePaso({ r, p, onVerPorPagar }: { r: Reparto; p: PasoReparto; onVe
   );
 }
 
-/** Los renglones de un paso. En cuotas y deudas, el renglón se abre debajo para cargar el interés que cobra. */
+/** Los renglones de un paso. En cuotas y deudas, el renglón se abre debajo para cargar el interés que cobra y la marca «pagar primero». */
 function ListaItems({ r, items, conInteres }: { r: Reparto; items: ItemReparto[]; conInteres: boolean }) {
   const fila = useFilaAbierta<string>();
   return (
@@ -278,6 +332,7 @@ function ListaItems({ r, items, conInteres }: { r: Reparto; items: ItemReparto[]
                     {i.masVencidas > 0 && ` · le quedan ${i.masVencidas} ${i.masVencidas === 1 ? 'cuota vencida más' : 'cuotas vencidas más'} (${pesos(i.masVencidasClp)})`}
                   </span>
                   <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                    {i.primero && <Chip tono="marca">Pagar primero</Chip>}
                     {i.sePaga === false && <Chip tono="neutro">No alcanza</Chip>}
                     {i.tasa !== null && <Chip tono={i.tasa > 0 ? 'alerta' : 'neutro'}>{i.tasa > 0 ? `Cobra ${textoTasa(i.tasa)}` : 'No cobra interés'}</Chip>}
                     {i.tasa !== null && i.tasaFuente === 'observada' && <span className="text-xs text-tinta-suave">por la mora que ya cobró</span>}
@@ -293,7 +348,13 @@ function ListaItems({ r, items, conInteres }: { r: Reparto; items: ItemReparto[]
               </>
             );
             return editable ? (
-              <FilaDesplegable key={i.clave} abierta={fila.es(i.clave)} onAlternar={() => fila.alternar(i.clave)} columnas={4} detalle={<EditorMora item={i} onListo={fila.cerrar} />}>
+              <FilaDesplegable
+                key={i.clave}
+                abierta={fila.es(i.clave)}
+                onAlternar={() => fila.alternar(i.clave)}
+                columnas={4}
+                detalle={<EditorAcreedor item={i} conMarca={r.disponible !== null} onListo={fila.cerrar} />}
+              >
                 {celdas}
                 <td className={cn(TD, 'w-8 px-1')}>
                   <FlechaFila abierta={fila.es(i.clave)} />
@@ -312,16 +373,20 @@ function ListaItems({ r, items, conInteres }: { r: Reparto; items: ItemReparto[]
   );
 }
 
-/** Cuánto cobra de interés por mes este contrato o proveedor si se le paga tarde: decide qué deuda va primero. */
-function EditorMora({ item, onListo }: { item: ItemReparto; onListo: () => void }) {
+/**
+ * Lo que Finanzas o Gerencia saben de este acreedor y el sistema no: cuánto cobra de interés por mes si se le paga
+ * tarde y si hay que pagarle primero. Con eso la base decide qué deuda va antes. Vale para todo lo que se le debe.
+ */
+function EditorAcreedor({ item, conMarca, onListo }: { item: ItemReparto; conMarca: boolean; onListo: () => void }) {
   const guardar = useGuardarMoraCaja();
   const envio = useEnvio();
   const cargada = item.tasaFuente === 'cargada';
   const [tasa, setTasa] = useState(cargada && item.tasa !== null ? String(item.tasa).replace('.', ',') : '');
-  const [nota, setNota] = useState(cargada ? (item.tasaNota ?? '') : '');
+  const [primero, setPrimero] = useState(item.primero);
+  const [nota, setNota] = useState(item.tasaNota ?? '');
   if (item.acreedorTipo === null || item.acreedorId === null) return null;
-  const mandar = (tasaMensual: string) =>
-    void envio.enviar(guardar.mutateAsync({ tipo: item.acreedorTipo!, id: item.acreedorId!, tasaMensual, nota: tasaMensual === '' ? null : nota }), onListo);
+  const mandar = () =>
+    void envio.enviar(guardar.mutateAsync({ tipo: item.acreedorTipo!, id: item.acreedorId!, tasaMensual: tasa.trim(), pagarPrimero: primero, nota: nota.trim() || null }), onListo);
 
   return (
     <div className="space-y-3">
@@ -331,27 +396,31 @@ function EditorMora({ item, onListo }: { item: ItemReparto; onListo: () => void 
           ayuda={
             item.tasaFuente === 'observada' && item.tasa !== null
               ? `Hoy se usa ${textoTasa(item.tasa)}: sale de la mora que ya cobró. Si cargás un número, vale ese.`
-              : 'Por ejemplo 2,5. Poné 0 si no cobra interés.'
+              : 'Por ejemplo 2,5. Poné 0 si no cobra interés; dejalo vacío si no lo sabés.'
           }
           error={envio.campo('tasaMensual')}
         >
           <input inputMode="decimal" value={tasa} placeholder="2,5" onChange={(e) => setTasa(e.target.value)} />
         </Campo>
         <Campo label="Nota (opcional)" error={envio.campo('nota')}>
-          <input value={nota} maxLength={300} placeholder="De dónde sale el dato" onChange={(e) => setNota(e.target.value)} />
+          <input value={nota} maxLength={300} placeholder="De dónde sale el dato o por qué va primero" onChange={(e) => setNota(e.target.value)} />
         </Campo>
       </div>
-      <p className="text-xs text-tinta-suave">Vale para todo lo que se le debe a {item.acreedor ?? 'este acreedor'}. Con este dato, las deudas más caras se cancelan primero.</p>
+      {conMarca && (
+        <label className="flex items-start gap-2 text-sm text-tinta">
+          <input type="checkbox" className="mt-0.5 accent-marca" checked={primero} onChange={(e) => setPrimero(e.target.checked)} />
+          <span>
+            Pagar primero
+            <span className="block text-xs text-tinta-suave">Va antes que las demás deudas en la propuesta, aunque no cobre interés.</span>
+          </span>
+        </label>
+      )}
+      <p className="text-xs text-tinta-suave">Vale para todo lo que se le debe a {item.acreedor ?? 'este acreedor'}.</p>
       <ErrorBase error={envio.error} />
       <div className="flex flex-wrap gap-2">
-        <button type="button" className={BOTON_PRIMARIO} disabled={guardar.isPending || tasa.trim() === ''} onClick={() => mandar(tasa.trim())}>
+        <button type="button" className={BOTON_PRIMARIO} disabled={guardar.isPending || (!conMarca && !cargada && tasa.trim() === '')} onClick={mandar}>
           {guardar.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />} Guardar
         </button>
-        {cargada && (
-          <button type="button" className={BOTON_SECUNDARIO} disabled={guardar.isPending} onClick={() => mandar('')}>
-            <Undo2 className="size-4" /> Sacar el dato
-          </button>
-        )}
       </div>
     </div>
   );
