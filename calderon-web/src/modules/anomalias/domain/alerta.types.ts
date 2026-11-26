@@ -187,6 +187,23 @@ export const ETIQUETA_DATO: Record<string, string> = {
   km_tramo: 'Cada cuántos km',
   pct_alta: 'Porcentaje para «alta»',
   cobertura_pct: 'Datos mínimos del tramo (%)',
+  // Cambio 362: falta registrar una carga (el sensor marca más de lo que calcula el sistema)
+  sensor_l: 'Sensor del tanque principal (L)',
+  sensor_pct: 'Sensor del tanque principal (%)',
+  sensor_ts: 'Lectura del sensor',
+  capacidad_sensor_l: 'Capacidad del tanque principal (L)',
+  sistema_l: 'Calcula el sistema para todo el camión (L)',
+  sistema: 'Cuenta del sistema',
+  diferencia_l: 'Diferencia (L)',
+  umbral_l: 'Diferencia mínima para avisar (L)',
+  ultimo_lleno_ts: 'Último tanque lleno registrado',
+  cargado_despues_l: 'Cargas registradas después (L)',
+  pendiente: 'Puede ser',
+  que_hacer: 'Qué hacer',
+  sensor_min: 'Minutos de lecturas del sensor (se toma la mediana)',
+  lecturas_min: 'Lecturas mínimas',
+  lectura_max_h: 'Horas máximas desde la última lectura',
+  avisar: 'Avisar al teléfono',
 };
 
 /** Evidencia que se muestra (sin coordenadas ni datos internos). */
