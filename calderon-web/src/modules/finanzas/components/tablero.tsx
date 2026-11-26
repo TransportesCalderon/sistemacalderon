@@ -94,6 +94,13 @@ export function TableroFinanzas() {
 
       <IndicadoresFinanzas t={t} />
 
+      {/* Migración 367: qué entra y qué sale cada semana, y si la caja alcanza */}
+      <p className="text-sm">
+        <Link href="/analisis/cobros-pagos?ver=plan" className="font-medium text-marca hover:underline">
+          ¿Alcanza la caja? Ver el planificador de caja →
+        </Link>
+      </p>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Indicador
           titulo="Fletes entregados sin facturar"

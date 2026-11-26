@@ -32,6 +32,7 @@ import { CuentaEstaciones } from "./cuenta-estaciones";
 // Migración 281: cuenta corriente de proveedores y orden de pago
 import { CuentaProveedores } from "./cuenta-proveedores";
 import { PagosCarga } from "./pagos-carga";
+import { PlanCaja } from "./plan-caja";
 import { SaldosLinea, SaldosResumen } from "./saldos";
 import { agruparSaldos } from "../domain/saldos-por-tercero";
 import { useBaseTiene } from "@/shared/hooks/use-version-base";
@@ -41,7 +42,8 @@ import { CuentaCorrienteVista } from "@/modules/ventas/components/cuenta-corrien
 import { useAbrirFicha } from "@/modules/core/fichas/contexto";
 
 // 20/11/2026 (plan de simplificación, cambio 4): «Entradas y salidas» pasó a Bancos › Movimientos (?ver=movimientos redirige)
-const VISTAS = ["cobrar", "cuenta", "pagar", "recibos"] as const;
+// Migración 367: el planificador de caja (?ver=plan)
+const VISTAS = ["cobrar", "cuenta", "pagar", "recibos", "plan"] as const;
 type Vista = (typeof VISTAS)[number];
 
 /** Finanzas › Cobros y pagos: lo por cobrar y lo por pagar. */
@@ -67,6 +69,7 @@ export function CobrosPagosPantalla() {
             ["cuenta", "Cuenta corriente"],
             ["pagar", "Por pagar"],
             ["recibos", "Recibos"],
+            ["plan", "Planificador de caja"],
           ] as const
         )
           .filter(([v]) => v !== "recibos" || hayRecibos)
@@ -101,6 +104,11 @@ export function CobrosPagosPantalla() {
         <Debemos />
       ) : vista === "recibos" && hayRecibos ? (
         <Recibos />
+      ) : vista === "plan" ? (
+        <PlanCaja
+          onVerPorCobrar={() => setVista("cobrar")}
+          onVerPorPagar={() => setVista("pagar")}
+        />
       ) : (
         <NosDeben />
       )}
