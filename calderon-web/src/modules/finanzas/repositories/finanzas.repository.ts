@@ -1,5 +1,6 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/database.generated';
+import { parsearCruceRemitos, type CruceRemitos, type RenglonRemito } from '../domain/listado-remitos';
 import {
   parsearAuxiliares,
   parsearCargas,
@@ -319,6 +320,10 @@ export const finanzasRepository = (db: Db) => {
           p_datos: { nombre: m.nombre, medio: m.medio, tipo: m.tipo, proveedor_id: m.proveedorId, cuenta_dinero_id: m.cuentaDineroId, activo: m.activo } as Json,
         }),
       );
+    },
+    /** Migración 365: busca la carga de cada remito del listado de la estación (no guarda nada). */
+    async cruzarRemitos(gasto: number, remitos: RenglonRemito[]): Promise<CruceRemitos> {
+      return parsearCruceRemitos(await leer(fin().rpc('fn_cruzar_remitos', { p_gasto: gasto, p_remitos: remitos as unknown as Json })));
     },
     async vincularCargas(gasto: number, cargas: number[]): Promise<number> {
       return leer(fin().rpc('fn_vincular_cargas', { p_gasto: gasto, p_cargas: cargas }));

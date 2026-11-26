@@ -32,6 +32,7 @@ import { finanzasRepository, type FiltroGastos } from '../repositories/finanzas.
 import { rentabilidadRepository } from '../repositories/rentabilidad.repository';
 import { cambiosRepository } from '../repositories/cambios.repository';
 import type { Agrupacion } from '../domain/rentabilidad';
+import type { RenglonRemito } from '../domain/listado-remitos';
 import { invalidar } from '@/shared/query/invalidar';
 
 const CLAVE = ['finanzas'] as const;
@@ -78,6 +79,9 @@ export const useAuxiliares = (hasta: string | null) => useQuery({ queryKey: [...
 export const useTraza = (origen: string, id: number | null) =>
   useQuery({ queryKey: [...CLAVE, 'traza', origen, id], queryFn: () => repo().traza(origen, id!), enabled: !!id });
 export const useCombustibleFinanzas = () => useQuery({ queryKey: [...CLAVE, 'combustible'], queryFn: () => repo().combustible() });
+/** Migración 365 · Cruza los remitos del listado de la estación con las cargas (solo lee: no invalida nada). */
+export const useCruzarRemitos = () =>
+  useMutation({ mutationFn: (d: { gastoId: number; remitos: RenglonRemito[] }) => repo().cruzarRemitos(d.gastoId, d.remitos) });
 export const useCargasPorFacturar = (proveedor: number | null, gasto: number | null) =>
   useQuery({ queryKey: [...CLAVE, 'cargas-por-facturar', proveedor, gasto], queryFn: () => repo().cargasPorFacturar(proveedor!, gasto), enabled: !!proveedor });
 export const usePendientesContables = () => useQuery({ queryKey: [...CLAVE, 'pendientes'], queryFn: () => repo().pendientes() });

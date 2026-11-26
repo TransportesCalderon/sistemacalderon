@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, LoaderCircle, Plus, Save, X } from 'lucide-react';
+import { ArrowLeft, FileText, LoaderCircle, Plus, Save, X } from 'lucide-react';
 import { useEnvio } from '@/modules/catalogos/components/comun';
 import { useProveedores } from '@/modules/catalogos/queries/hooks';
 import { AccionConMotivo, Cargando, Chip, Encabezado, ErrorBase, ErrorLectura, Seccion } from '@/modules/combustible/components/comun/ui';
@@ -15,6 +15,9 @@ import { useBaseTiene } from '@/shared/hooks/use-version-base';
 import { BOTON_PRIMARIO, BOTON_SECUNDARIO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { cuentasParaGasto, dinero, TIPOS_DOCUMENTO, type Gasto, type TipoDocumento } from '../domain/finanzas.types';
+import { leerListadoRemitos, renglonesPdf, type CruceRemitos, type ListadoRemitos } from '../domain/listado-remitos';
+import { textosPdf } from '@/shared/lib/pdf-texto';
+import { formatearNumero } from '@/shared/lib/numeros';
 import {
   useAnularGasto,
   useCamionesFinanzas,
@@ -26,6 +29,7 @@ import {
   useGuardarProveedorRapido,
   usePlanCuentas,
   usePagarConRecargos, useRegistrarMovimiento,
+  useCruzarRemitos,
 } from '../queries/hooks';
 import { fecha, MONEDAS, OpcionesCuentas } from './comun';
 import { TrazaContable } from './traza';
@@ -565,6 +569,7 @@ function CargasDeLaFactura({ gasto: g }: { gasto: Gasto }) {
         Son las cargas en cuenta corriente o con tarjeta de este proveedor que todavía no tienen factura. Marcá las que vienen en esta factura (las
         guías): así el combustible queda contado una sola vez y la diferencia (IVA, ajustes de precio) se ve sola.
       </p>
+      {editable && <ListadoDeRemitos gasto={g} onMarcar={(ids) => setMarcadas(new Set(ids))} />}
       <div className="max-h-96 overflow-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-panel text-xs text-tinta-suave">
@@ -623,5 +628,148 @@ function CargasDeLaFactura({ gasto: g }: { gasto: Gasto }) {
         </button>
       )}
     </Seccion>
+  );
+}
+
+const soloDigitos = (s: string | null) => (s ?? '').replace(/\D/g, '').replace(/^0+/, '');
+
+/**
+ * Migración 365 · La estación factura eligiendo remitos y manda el «Listado de facturación de remitos» (PDF). Se lee el
+ * PDF, la base busca la carga de cada remito (por número; si no, por fecha y litros o importe) y se marcan solas.
+ * Las diferencias se muestran y la persona decide: guarda con «Guardar las cargas de la factura».
+ */
+function ListadoDeRemitos({ gasto: g, onMarcar }: { gasto: Gasto; onMarcar: (cargas: number[]) => void }) {
+  const cruzar = useCruzarRemitos();
+  const [leyendo, setLeyendo] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [listado, setListado] = useState<ListadoRemitos | null>(null);
+  const [cruce, setCruce] = useState<CruceRemitos | null>(null);
+
+  const leer = async (archivo: File) => {
+    setError(null);
+    setListado(null);
+    setCruce(null);
+    setLeyendo(true);
+    try {
+      const l = leerListadoRemitos(renglonesPdf(await textosPdf(archivo)));
+      if (l.remitos.length === 0) {
+        setError('No se encontraron remitos en el PDF. Tiene que ser el «Listado de facturación de remitos» de la estación.');
+        return;
+      }
+      setListado(l);
+      const c = await cruzar.mutateAsync({ gastoId: g.id, remitos: l.remitos });
+      setCruce(c);
+      onMarcar(c.remitos.filter((r) => r.cargaId !== null && r.otraFactura === null).map((r) => r.cargaId as number));
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e);
+      setError(/fn_cruzar_remitos/.test(m) ? 'Falta correr la migración 365 en la base.' : `No se pudo leer el listado: ${m}`);
+    } finally {
+      setLeyendo(false);
+    }
+  };
+
+  const encontrados = cruce?.remitos.filter((r) => r.cargaId !== null && r.otraFactura === null) ?? [];
+  const faltan = cruce?.remitos.filter((r) => r.cargaId === null) ?? [];
+  const enOtra = cruce?.remitos.filter((r) => r.otraFactura !== null) ?? [];
+  const totalListado = listado?.remitos.reduce((s, r) => s + r.total, 0) ?? 0;
+  const totalCargas = encontrados.reduce((s, r) => s + (r.cargaImporte ?? 0), 0);
+  const otroNumero = listado?.comprobante && g.numeroDocumento && !soloDigitos(listado.comprobante).endsWith(soloDigitos(g.numeroDocumento));
+  const otroTotal = listado?.total !== null && listado?.total !== undefined && Math.abs(listado.total - g.total) > 1;
+
+  return (
+    <div className="space-y-2 rounded-lg border border-borde bg-hover/40 p-3">
+      <label className={cn(BOTON_SECUNDARIO, 'cursor-pointer', (leyendo || cruzar.isPending) && 'pointer-events-none opacity-60')}>
+        {leyendo ? <LoaderCircle className="size-4 animate-spin" /> : <FileText className="size-4" />} Leer el listado de remitos de la estación (PDF)
+        <input
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            const a = e.target.files?.[0];
+            e.target.value = '';
+            if (a) void leer(a);
+          }}
+        />
+      </label>
+      {error && <p className="text-sm text-error">{error}</p>}
+      {listado && cruce && (
+        <div className="space-y-2 text-sm">
+          <p className="text-tinta">
+            Listado {listado.comprobante ?? 's/n'} del {fecha(listado.fecha)}: {cruce.remitos.length} remitos ({listado.remitos.length} renglones) por{' '}
+            <strong>{dinero(totalListado, g.moneda)}</strong>. Se marcaron <strong>{encontrados.length}</strong> cargas por {dinero(totalCargas, g.moneda)}
+            {Math.abs(totalListado - totalCargas) >= 0.01 && <> (diferencia {dinero(totalListado - totalCargas, g.moneda)})</>}. Revisá y tocá «Guardar las cargas de la factura».
+          </p>
+          {otroNumero && <p className="text-alerta">El listado es de la factura {listado.comprobante} y este gasto dice {g.numeroDocumento}.</p>}
+          {otroTotal && (
+            <p className="text-alerta">
+              El listado suma {dinero(listado.total, g.moneda)} y el gasto es de {dinero(g.total, g.moneda)}.
+            </p>
+          )}
+          {faltan.length > 0 && (
+            <p className="text-error">
+              No están en el sistema: {faltan.map((r) => `${r.numero} (${fecha(r.fecha)}, ${formatearNumero(r.litros, 2)} L)`).join(' · ')}. Registrá esas cargas o
+              reclamale a la estación.
+            </p>
+          )}
+          {enOtra.length > 0 && (
+            <p className="text-alerta">Ya están en otra factura (no se marcaron): {enOtra.map((r) => `${r.numero} en ${r.otraFactura}`).join(' · ')}.</p>
+          )}
+          <div className="max-h-72 overflow-auto">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-panel text-tinta-suave">
+                <tr>
+                  <th className="py-1 text-left font-medium">Remito</th>
+                  <th className="py-1 text-left font-medium">Fecha</th>
+                  <th className="py-1 text-right font-medium">Litros</th>
+                  <th className="py-1 text-right font-medium">Importe</th>
+                  <th className="py-1 text-left font-medium">Carga</th>
+                  <th className="py-1 text-right font-medium">Diferencia</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-borde tabular-nums">
+                {cruce.remitos.map((r) => (
+                  <tr key={r.numero}>
+                    <td className="py-1">
+                      {r.numero}
+                      {r.renglones > 1 && <span className="text-tinta-suave"> ({r.renglones} renglones)</span>}
+                    </td>
+                    <td className="py-1">{fecha(r.fecha)}</td>
+                    <td className="py-1 text-right">{formatearNumero(r.litros, 2)}</td>
+                    <td className="py-1 text-right">{dinero(r.total, g.moneda)}</td>
+                    <td className="py-1">
+                      {r.cargaId === null ? (
+                        <span className="text-error">No está</span>
+                      ) : (
+                        <>
+                          #{r.cargaId} · {r.patente ?? '—'}
+                          <span className="text-tinta-suave">
+                            {' '}
+                            · {r.como === 'numero' ? 'por número' : r.como === 'litros' ? 'por fecha y litros' : 'por fecha e importe'}
+                          </span>
+                          {r.otraFactura && <span className="text-alerta"> · ya en {r.otraFactura}</span>}
+                        </>
+                      )}
+                    </td>
+                    <td className={cn('py-1 text-right', r.difImporte !== null && Math.abs(r.difImporte) >= 10 && 'font-semibold text-alerta')}>
+                      {r.difImporte === null
+                        ? '—'
+                        : Math.abs(r.difImporte) < 0.01 && Math.abs(r.difLitros ?? 0) < 0.01
+                          ? 'coincide'
+                          : `${r.difLitros ? `${formatearNumero(r.difLitros, 2)} L · ` : ''}${dinero(r.difImporte, g.moneda)}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {cruce.sinRemito.length > 0 && (
+            <p className="text-tinta-suave">
+              Cargas sin factura de esas fechas que el listado no trae (van en otra factura):{' '}
+              {cruce.sinRemito.map((c) => `#${c.cargaId} ${c.patente ?? ''} ${fecha(c.fecha)} ${formatearNumero(c.litros, 2)} L`).join(' · ')}.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
