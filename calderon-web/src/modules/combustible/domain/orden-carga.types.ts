@@ -169,6 +169,8 @@ export interface PreparadoGenset {
   correo: string | null;
   vigente: string | null;
   mail: EstadoMail;
+  /** Migración 357: estación de Chile: tarjeta de flota o transferencia, sin QR ni correo */
+  tarjeta: boolean;
 }
 export const parsearGensetsOrden = (d: unknown): GensetOpcion[] =>
   a(d).map((x) => ({ id: Number(x.id), codigo: t(x.codigo) ?? '', capacidadL: n(x.capacidad_l), tractor: t(x.tractor) }));
@@ -184,6 +186,7 @@ export const parsearPreparadoGenset = (d: unknown): PreparadoGenset => {
     correo: t(x.correo),
     vigente: t(x.vigente),
     mail: parsearEstadoMail(x.mail),
+    tarjeta: x.tarjeta === true,
   };
 };
 

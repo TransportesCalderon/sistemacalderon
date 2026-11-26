@@ -657,7 +657,10 @@ function TipoOrden({ valor, onCambiar }: { valor: 'camion' | 'genset'; onCambiar
   );
 }
 
-/** Migración 252 · Orden de carga para un genset: aparte de la del camión, con su palabra y su QR. */
+/**
+ * Migración 252 · Orden de carga para un genset: aparte de la del camión, con su palabra y su QR.
+ * Migración 357: en Chile, como la del camión: tarjeta de flota o transferencia, sin QR ni correo.
+ */
 function NuevaOrdenGenset({ onCerrar, onTipo }: { onCerrar: () => void; onTipo: (t: 'camion' | 'genset') => void }) {
   const gensets = useGensetsOrden(true);
   const estaciones = useEstaciones();
@@ -669,6 +672,7 @@ function NuevaOrdenGenset({ onCerrar, onTipo }: { onCerrar: () => void; onTipo: 
   const [litros, setLitros] = useState('');
   const [obs, setObs] = useState('');
   const [correo, setCorreo] = useState('');
+  const [pago, setPago] = useState<'tarjeta' | 'transferencia' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creada, setCreada] = useState<CreadaOrden | null>(null);
   const prep = usePrepararGenset(genset ? Number(genset) : null, estacion ? Number(estacion) : null);
@@ -680,7 +684,9 @@ function NuevaOrdenGenset({ onCerrar, onTipo }: { onCerrar: () => void; onTipo: 
 
   if (creada) return <OrdenCreada creada={creada} onCerrar={onCerrar} />;
   const lit = modo === 'litros' ? aNumero(litros) : null;
-  const listo = !!genset && !!estacion && choferElegido !== null && (modo === 'lleno' || (modo === 'litros' && lit !== null));
+  const enChile = !!estacion && p?.tarjeta === true;
+  const listo =
+    !!genset && !!estacion && choferElegido !== null && (modo === 'lleno' || (modo === 'litros' && lit !== null)) && (!enChile || pago !== null);
   const resumen =
     modo === 'lleno'
       ? `Genset: lleno${p?.capacidadL != null ? ` (capacidad ${formatearNumero(p.capacidadL, 0)} L)` : ''}`
@@ -737,7 +743,7 @@ function NuevaOrdenGenset({ onCerrar, onTipo }: { onCerrar: () => void; onTipo: 
                 <span className="text-tinta-suave">No se sabe en qué camión está: elegí el chofer que lo lleva.</span>
               )}
             </p>
-            <Campo label="Chofer (ve el QR en «Mi viaje»)">
+            <Campo label={enChile ? 'Chofer (le llega el aviso y lo ve en «Mi viaje»)' : 'Chofer (ve el QR en «Mi viaje»)'}>
               <select className="h-12 text-base" value={chofer} onChange={(e) => setChofer(e.target.value)}>
                 <option value="">{p.chofer ? `${p.chofer} (el que lo lleva)` : 'Elegí…'}</option>
                 {choferes.data
@@ -750,7 +756,7 @@ function NuevaOrdenGenset({ onCerrar, onTipo }: { onCerrar: () => void; onTipo: 
               </select>
             </Campo>
             {p.vigente && <p className="font-medium text-alerta">Este genset ya tiene la orden {p.vigente} vigente: anulala antes de hacer otra.</p>}
-            {estacion && !p.correo && (
+            {estacion && !enChile && !p.correo && (
               <div className="space-y-2 pt-1">
                 <Campo label="Correo de la estación (no tiene)" ayuda="Sin correo no se puede generar la orden. Para varios, separalos con coma.">
                   <input type="email" className="h-12 text-base" value={correo} onChange={(e) => setCorreo(e.target.value)} />
@@ -787,6 +793,16 @@ function NuevaOrdenGenset({ onCerrar, onTipo }: { onCerrar: () => void; onTipo: 
         {modo === 'litros' && <Litros valor={litros} onCambiar={setLitros} etiqueta="Litros para el genset" ejemplo="150" />}
       </Paso>
 
+      {/* Migración 357: en Chile, cómo se paga (igual que la del camión) */}
+      {enChile && (
+        <Paso numero={3} titulo="¿Cómo se paga?">
+          <div className="grid grid-cols-2 gap-2">
+            <Opcion activa={pago === 'tarjeta'} onClick={() => setPago('tarjeta')} titulo="Tarjeta de flota" detalle="Lo habitual. Finanzas la habilita" />
+            <Opcion activa={pago === 'transferencia'} onClick={() => setPago('transferencia')} titulo="Transferencia" detalle="Finanzas le transfiere a la estación" />
+          </div>
+        </Paso>
+      )}
+
       <Campo label="Observación (opcional)">
         <input className="h-12 text-base" maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} />
       </Campo>
@@ -812,12 +828,14 @@ function NuevaOrdenGenset({ onCerrar, onTipo }: { onCerrar: () => void; onTipo: 
             litros: lit,
             choferId: choferElegido,
             observacion: obs.trim() || null,
+            ...(enChile ? { medioPago: pago } : {}),
           });
           if (!r.ok) setError(r.error.mensaje);
           else setCreada(r.data);
         }}
       >
-        <QrCode className="size-5" /> {crear.isPending ? 'Generando…' : 'Generar la orden'}
+        {enChile ? <BadgeCheck className="size-5" /> : <QrCode className="size-5" />}{' '}
+        {crear.isPending ? 'Generando…' : enChile ? 'Autorizar la carga' : 'Generar la orden'}
       </button>
     </div>
   );

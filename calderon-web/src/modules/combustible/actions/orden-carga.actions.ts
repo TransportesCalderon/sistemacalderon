@@ -99,6 +99,8 @@ export const crearOrdenGenset = createAction({
     litros: z.number().finite().nullable(),
     choferId: id.nullable(),
     observacion: z.string().max(500).nullable(),
+    // Migración 357: en Chile, cómo se paga
+    medioPago: z.enum(['tarjeta', 'transferencia']).nullable().optional(),
   }),
   handler: (d, { db }) => ordenCargaRepository(db).crearGenset(d),
 });
