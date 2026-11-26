@@ -61,6 +61,12 @@ export interface CuentaProveedor {
   moneda: string;
   saldo: number;
   aCuenta: number;
+  /**
+   * Migración 370 · la base manda los movimientos por vencimiento, de lo más viejo a lo más nuevo (lo que no tiene
+   * vencimiento va por su fecha), con el saldo acumulado en ese orden. false = base anterior: por fecha, lo nuevo arriba.
+   */
+  porVencimiento: boolean;
+  /** En el orden en que los manda la base: acá no se reordenan (el saldo acumulado depende de ese orden). */
   movimientos: MovimientoProveedor[];
 }
 
@@ -72,6 +78,7 @@ export function parsearCuentaProveedor(raw: unknown): CuentaProveedor {
     moneda: String(j.moneda ?? 'CLP'),
     saldo: num(j.saldo),
     aCuenta: num(j.a_cuenta),
+    porVencimiento: j.orden === 'vencimiento',
     movimientos: arr(j.movimientos).map((m) => ({
       tipo: String(m.tipo) as TipoMovimientoProveedor,
       id: num(m.id),
