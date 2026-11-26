@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accionDe, agruparTareas, contarPendientes, parsearTareas, tareasVisibles } from '@/modules/hoy/hoy';
+import { accionDe, agruparTareas, contarPendientes, parsearTareas, separarCierres, tareasVisibles } from '@/modules/hoy/hoy';
 import { permisosDe } from '@/modules/core/permissions/resolver';
 
 /** Sprint 3 · «Hoy»: la lista de lo que le toca a cada uno (seg.fn_lo_mio_de_hoy). */
@@ -59,5 +59,33 @@ describe('«Hoy» (Sprint 3)', () => {
     expect(accionDe(t[1]!)).toBe('Adjuntar ticket');
     expect(accionDe(t[2]!)).toBe('Ir');
     expect(accionDe(t[3]!)).toBe('Abrir');
+  });
+});
+
+describe('«Hoy» · migración 375: lo de cierres de viaje va arriba de todo', () => {
+  const f = (tipo: string, grupo: string, fecha: string | null, id: number) => ({
+    grupo, tipo, objeto_tipo: 'cierre', objeto_id: id, fecha, titulo: tipo, detalle: null, ruta: null, pantalla: 'combustible.cierre_viaje', cantidad: 1,
+  });
+  const tareas = parsearTareas([
+    { ...filas[1] },
+    f('cierre', 'aprobar', '2026-11-20T10:00:00Z', 5),
+    f('cierre_sin_firma', 'revisar', '2026-11-25T10:00:00Z', 2),
+    f('cierre_sin_firma', 'revisar', '2026-11-22T10:00:00Z', 1),
+    { grupo: 'revisar', tipo: 'cierres_vencidos', objeto_tipo: null, objeto_id: null, fecha: null, titulo: '2 cierres vencidos', detalle: null, ruta: '/analisis/cierres/por-hacer', pantalla: 'combustible.cierre_viaje', cantidad: 2 },
+    f('cierre', 'esperando', '2026-11-19T10:00:00Z', 9),
+  ]);
+
+  it('separa los cierres: primero los vencidos, después sin firma (lo más viejo primero) y después para aprobar', () => {
+    const { cierres, resto } = separarCierres(tareas);
+    expect(cierres.map((t) => `${t.tipo}:${t.objeto?.id ?? '-'}`)).toEqual(['cierres_vencidos:-', 'cierre_sin_firma:1', 'cierre_sin_firma:2', 'cierre:5']);
+    // Lo que espera a otro usuario no sube; lo demás queda en sus grupos de siempre
+    expect(resto.map((t) => t.tipo)).toEqual(['carga_sin_ticket', 'cierre']);
+    expect(agruparTareas(resto).map((g) => g.grupo)).toEqual(['revisar', 'esperando']);
+  });
+
+  it('el botón dice qué hacer y el contador no cambia', () => {
+    expect(accionDe(tareas.find((t) => t.tipo === 'cierre_sin_firma')!)).toBe('Subir la firma');
+    expect(accionDe(tareas.find((t) => t.tipo === 'cierres_vencidos')!)).toBe('Hacer los cierres');
+    expect(contarPendientes(tareas)).toBe(1 + 1 + 1 + 1 + 2);
   });
 });
