@@ -8,6 +8,7 @@ import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { NIVEL_HEX } from '@/shared/ui/niveles';
 import { FUENTE_CONSUMO_MES, haceTexto, minutosDesde, senalDe, type CamionEnVivo, type DetalleMapa, type EstadoMotor } from '../domain/flota.types';
+import { BuscadorMapa } from './buscador-mapa';
 import { RankingMapa } from './ranking-mapa';
 import {
   CAPAS_CLIMA,
@@ -23,6 +24,7 @@ import {
   type ZonaMapa,
 } from '../domain/clima.types';
 import { useClimaMapa } from '../queries/hooks';
+import type { ResultadoMapa } from '../domain/buscar-en-mapa';
 import { iniciarVientoAnimado } from './viento-animado';
 import { ubicarEtiquetas } from '../domain/ubicar-etiquetas';
 
@@ -595,7 +597,10 @@ export function MapaFlota({
       // (se marca antes de mover: el zoom vuelve a dibujar el mapa)
       centrado.current = c.camionId;
       abierto.current = c.camionId;
-      m.setView([c.latitud, c.longitud], Math.max(m.getZoom(), 11));
+      // 26/11/2026: el camión queda más abajo del centro, así su ficha (que se abre arriba de él) entra en el mapa
+      const zoom = Math.max(m.getZoom(), 11);
+      const bajar = Math.min(170, Math.max(0, m.getSize().y / 2 - 60));
+      m.setView(m.unproject(m.project([c.latitud, c.longitud], zoom).subtract([0, bajar]), zoom), zoom);
     }
     if (abierto.current === c.camionId) marcador.openPopup();
   }
@@ -618,6 +623,20 @@ export function MapaFlota({
 
   redibujar.current = dibujar;
 
+  /** 26/11/2026 · Buscador: el camión elegido se centra y abre su ficha (aunque ya estuviera elegido); el celular, se centra. */
+  const irA = (r: ResultadoMapa) => {
+    const m = mapa.current;
+    if (!m) return;
+    if (r.tipo === 'celular') {
+      m.setView([r.lat, r.lng], Math.max(m.getZoom(), 13));
+      return;
+    }
+    centrado.current = null;
+    abierto.current = r.id;
+    if (r.id === seleccionado) void import('leaflet').then((L) => dibujar(L));
+    else onSeleccionar(r.id);
+  };
+
   return (
     <>
     <div
@@ -627,81 +646,98 @@ export function MapaFlota({
       <div ref={div} className="h-full w-full" aria-label="Mapa de la flota" />
       {/* Migración 103: ranking de hoy. En pantalla completa flota sobre el mapa; si no, va debajo */}
       {completa && <RankingMapa camiones={camiones} detalles={detalles} onSeleccionar={onSeleccionar} abierto={rankingAbierto} onAlternar={alternarRanking} />}
-      <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
-        {seleccionado !== null && (
+      {/* 26/11/2026: arriba a la izquierda, al lado del zoom, el buscador (y debajo «Ver la estela de todos»); a la
+          derecha los botones, que en pantallas angostas bajan a otra fila (en el celular, sin el texto) en vez de quedar tapados */}
+      <div className="pointer-events-none absolute top-3 right-3 left-[52px] z-[1000] flex flex-wrap items-start gap-2">
+        <div className="flex w-full flex-col items-start gap-2 sm:w-56">
+          <BuscadorMapa
+            camiones={camiones}
+            detalles={detalles}
+            celulares={celulares}
+            verCelulares={verCelulares}
+            onVerCelulares={onVerCelulares}
+            onElegir={irA}
+            className="pointer-events-auto w-full"
+          />
+          {seleccionado !== null && (
+            <button
+              type="button"
+              className="pointer-events-auto rounded-md bg-white/95 px-2 py-1 text-xs font-medium text-marca shadow"
+              onClick={() => {
+                centrado.current = null;
+                abierto.current = null;
+                mapa.current?.closePopup();
+                onSeleccionar(null);
+              }}
+            >
+              Ver la estela de todos
+            </button>
+          )}
+        </div>
+        <div className="pointer-events-auto ml-auto flex flex-wrap items-center justify-end gap-2">
           <button
             type="button"
-            className="rounded-md bg-white/95 px-2 py-1 text-xs font-medium text-marca shadow"
-            onClick={() => {
-              centrado.current = null;
-              abierto.current = null;
-              mapa.current?.closePopup();
-              onSeleccionar(null);
-            }}
-          >
-            Ver la estela de todos
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setAgrupar((a) => !a)}
-          className="inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs font-medium text-tinta shadow hover:bg-white"
-          title={agrupar ? 'Ver cada camión en su lugar, con su nombre' : 'Juntar los camiones cercanos en un círculo con la cantidad'}
-        >
-          {agrupar ? <Ungroup className="size-4" /> : <Group className="size-4" />}
-          {agrupar ? 'Desagrupar' : 'Agrupar'}
-        </button>
-        {onVerCelulares && (
-          <button
-            type="button"
-            onClick={() => onVerCelulares(!verCelulares)}
-            aria-pressed={verCelulares === true}
+            onClick={() => setAgrupar((a) => !a)}
             className="inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs font-medium text-tinta shadow hover:bg-white"
-            title={verCelulares ? 'Dejar de ver los celulares de los choferes' : 'Ver dónde están los celulares de los choferes'}
+            title={agrupar ? 'Ver cada camión en su lugar, con su nombre' : 'Juntar los camiones cercanos en un círculo con la cantidad'}
+            aria-label={agrupar ? 'Desagrupar' : 'Agrupar'}
           >
-            <Smartphone className="size-4" />
-            {verCelulares ? 'Ocultar celulares' : 'Ver celulares'}
+            {agrupar ? <Ungroup className="size-4" /> : <Group className="size-4" />}
+            <span className="hidden sm:inline">{agrupar ? 'Desagrupar' : 'Agrupar'}</span>
           </button>
-        )}
-        <label className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
-          <CloudSun className="size-4" />
-          <select
-            aria-label="Capa de clima"
-            className="bg-transparent text-xs font-medium outline-none"
-            value={capaClima}
-            onChange={(e) => setCapaClima(e.target.value as CapaClima)}
+          {onVerCelulares && (
+            <button
+              type="button"
+              onClick={() => onVerCelulares(!verCelulares)}
+              aria-pressed={verCelulares === true}
+              className="inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs font-medium text-tinta shadow hover:bg-white"
+              title={verCelulares ? 'Dejar de ver los celulares de los choferes' : 'Ver dónde están los celulares de los choferes'}
+              aria-label={verCelulares ? 'Ocultar celulares' : 'Ver celulares'}
+            >
+              <Smartphone className="size-4" />
+              <span className="hidden sm:inline">{verCelulares ? 'Ocultar celulares' : 'Ver celulares'}</span>
+            </button>
+          )}
+          <label className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
+            <CloudSun className="size-4" />
+            <select
+              aria-label="Capa de clima"
+              className="bg-transparent text-xs font-medium outline-none"
+              value={capaClima}
+              onChange={(e) => setCapaClima(e.target.value as CapaClima)}
+            >
+              {CAPAS_CLIMA.map((o) => (
+                <option key={o.valor} value={o.valor}>
+                  {o.texto}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
+            Estela
+            <select
+              aria-label="Cuánto de la estela mostrar"
+              className="bg-transparent text-xs font-medium outline-none"
+              value={minutosEstela}
+              onChange={(e) => onMinutosEstela(Number(e.target.value))}
+            >
+              {OPCIONES_ESTELA.map((o) => (
+                <option key={o.minutos} value={o.minutos}>
+                  {o.texto}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => void alternarCompleta()}
+            className="inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs font-medium text-tinta shadow hover:bg-white"
+            aria-label={completa ? 'Salir de pantalla completa' : 'Ver el mapa en pantalla completa'}
           >
-            {CAPAS_CLIMA.map((o) => (
-              <option key={o.valor} value={o.valor}>
-                {o.texto}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
-          Estela
-          <select
-            aria-label="Cuánto de la estela mostrar"
-            className="bg-transparent text-xs font-medium outline-none"
-            value={minutosEstela}
-            onChange={(e) => onMinutosEstela(Number(e.target.value))}
-          >
-            {OPCIONES_ESTELA.map((o) => (
-              <option key={o.minutos} value={o.minutos}>
-                {o.texto}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          onClick={() => void alternarCompleta()}
-          className="inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-xs font-medium text-tinta shadow hover:bg-white"
-          aria-label={completa ? 'Salir de pantalla completa' : 'Ver el mapa en pantalla completa'}
-        >
-          {completa ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
-          {completa ? 'Salir' : 'Pantalla completa'}
-        </button>
+            {completa ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            {completa ? 'Salir' : <span className="hidden sm:inline">Pantalla completa</span>}
+          </button>
+        </div>
       </div>
       {capaClima && (
         <BarraClima
