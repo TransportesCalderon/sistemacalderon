@@ -73,6 +73,16 @@ export const useAvisosCarga = (horas = 12) =>
   });
 
 /** Migración 182: clima de la zona del mapa (se pide solo con una capa prendida; la base lo guarda 60 min). */
+/** Migración 385: la ruta asignada al chofer del tractor elegido (se vuelve a leer cada 5 minutos). */
+export const useRutaAsignada = (choferId: number | null) =>
+  useQuery({
+    queryKey: ['telemetria', 'ruta-asignada', choferId],
+    queryFn: () => flotaRepository(browserDb()).rutaAsignada(choferId!),
+    enabled: choferId !== null,
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+
 export const useClimaMapa = (zona: ZonaMapa | null) =>
   useQuery({
     queryKey: ['telemetria', 'clima', zona],

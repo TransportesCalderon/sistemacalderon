@@ -23,7 +23,8 @@ import {
   type ClimaMapa,
   type ZonaMapa,
 } from '../domain/clima.types';
-import { useClimaMapa } from '../queries/hooks';
+import { useClimaMapa, useRutaAsignada } from '../queries/hooks';
+import { lineaDeRuta, rutaPrincipal, type RutaAsignada } from '../domain/ruta-asignada';
 import type { ResultadoMapa } from '../domain/buscar-en-mapa';
 import { iniciarVientoAnimado } from './viento-animado';
 import { ubicarEtiquetas } from '../domain/ubicar-etiquetas';
@@ -83,6 +84,9 @@ export interface CelularEnMapa {
   latitud: number;
   longitud: number;
 }
+
+/** Migración 385: la ruta asignada al chofer del tractor elegido. */
+const AZUL_RUTA = '#2563eb';
 
 /** Migración 96: color del programador y del Eco Score del día (lo decide la base). */
 const ABUSIVO = '#dc2626';
@@ -158,6 +162,11 @@ export function MapaFlota({
     setZona((a) => (a && a.sur === z.sur && a.oeste === z.oeste && a.norte === z.norte && a.este === z.este ? a : z));
   };
   const alternarRanking = () => setRankingAbierto((a) => !a);
+  // Migración 385: la ruta que Telemetría le asignó al chofer del tractor elegido (Logística › Rutas de choferes)
+  const choferElegido = seleccionado !== null ? (detalles.find((d) => d.camionId === seleccionado)?.choferId ?? null) : null;
+  const rutaQ = useRutaAsignada(choferElegido);
+  const rutas: RutaAsignada[] = choferElegido !== null ? (rutaQ.data ?? []) : [];
+  const principal = rutaPrincipal(rutas);
 
   // Crea el mapa una sola vez
   useEffect(() => {
@@ -208,7 +217,7 @@ export function MapaFlota({
     if (!mapa.current) return;
     void import('leaflet').then((L) => dibujar(L));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camiones, detalles, celulares, seleccionado, agrupar]);
+  }, [camiones, detalles, celulares, seleccionado, agrupar, rutaQ.data]);
 
   // Migración 182: al prender una capa se pide el clima de la zona que se ve
   useEffect(() => {
@@ -415,6 +424,7 @@ export function MapaFlota({
       ...camiones.filter((c) => c.latitud !== null && c.longitud !== null).map((c) => ({ lat: c.latitud!, lng: c.longitud!, camion: c })),
       ...celulares.map((c) => ({ lat: c.latitud, lng: c.longitud, celular: c })),
     ];
+    dibujarRuta(L, g);
     if (!agrupar) {
       dibujarEstelas(L, g, porCamion);
       dibujarDesagrupados(L, m, g, items, porCamion);
@@ -453,6 +463,46 @@ export function MapaFlota({
       encuadrado.current = true;
       m.fitBounds(L.latLngBounds(puntos), { padding: [40, 40], maxZoom: 11 });
     }
+  }
+
+  /**
+   * Migración 385 · la ruta asignada al chofer del tractor elegido, en azul: la que está siguiendo ahora, fuerte y con
+   * sus puntos numerados del 1 al último; las que vienen después, punteadas. Va debajo de la estela y de los camiones.
+   */
+  function dibujarRuta(L: typeof import('leaflet'), g: LayerGroup) {
+    if (seleccionado === null || !principal) return;
+    for (const r of rutas) {
+      if (r === principal) continue;
+      const { linea } = lineaDeRuta(r);
+      if (linea.length >= 2) L.polyline(linea, { color: AZUL_RUTA, weight: 3, opacity: 0.55, dashArray: '8 8', interactive: false }).addTo(g);
+    }
+    const { linea, porCamino } = lineaDeRuta(principal);
+    if (linea.length >= 2) {
+      L.polyline(linea, { color: '#ffffff', weight: 9, opacity: 0.8, interactive: false }).addTo(g);
+      L.polyline(linea, { color: AZUL_RUTA, weight: 5, opacity: 0.9, dashArray: porCamino ? undefined : '12 6', lineCap: 'round' }).addTo(g);
+    }
+    principal.puntos.forEach((p, i) => {
+      if (p.lat === null || p.lng === null) return;
+      const icono = L.divIcon({
+        className: '',
+        html: `<span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:9999px;background:${AZUL_RUTA};color:#fff;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);font:700 11px/1 system-ui,sans-serif">${i + 1}</span>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+      });
+      L.marker([p.lat, p.lng], { icon: icono, zIndexOffset: 200, keyboard: false })
+        .bindTooltip(`${i + 1} · ${escapar(p.nombre)}`, { direction: 'top', offset: [0, -10] })
+        .addTo(g);
+    });
+  }
+
+  /** Migración 385: encuadra la ruta asignada entera (del punto 1 al último). */
+  function verRutaEntera() {
+    const m = mapa.current;
+    if (!m || !principal) return;
+    void import('leaflet').then((L) => {
+      const todos = rutas.flatMap((r) => lineaDeRuta(r).linea);
+      if (todos.length >= 2) m.fitBounds(L.latLngBounds(todos), { padding: [50, 50], maxZoom: 12 });
+    });
   }
 
   /** Estelas: de dónde viene cada camión (más transparente cuanto más vieja). Con un camión elegido, solo la suya. */
@@ -672,6 +722,33 @@ export function MapaFlota({
             >
               Ver la estela de todos
             </button>
+          )}
+          {/* Migración 385: la ruta asignada al chofer del tractor elegido */}
+          {seleccionado !== null && rutaQ.data !== null && (
+            <div className="pointer-events-auto max-w-full rounded-md bg-white/95 px-2 py-1 text-xs text-tinta shadow">
+              {choferElegido === null ? (
+                <span className="text-tinta-suave">Sin chofer: no hay ruta asignada para mostrar</span>
+              ) : rutaQ.isPending ? (
+                <span className="text-tinta-suave">Buscando la ruta asignada…</span>
+              ) : rutaQ.isError ? (
+                <span className="text-error">No se pudo leer la ruta asignada</span>
+              ) : !principal ? (
+                <span className="text-tinta-suave">El chofer no tiene ruta asignada por hacer</span>
+              ) : (
+                <>
+                  <span className="mr-1 inline-block h-1 w-4 rounded-full align-middle" style={{ background: AZUL_RUTA }} />
+                  <b>Ruta asignada</b>
+                  {principal.numeroOperacion !== null && ` · Op. ${principal.numeroOperacion}`}
+                  {` · ${principal.puntos.length} puntos`}
+                  {principal.km !== null && ` · ${formatearNumero(principal.km, 0)} km`}
+                  {rutas.length > 1 && ` · después ${rutas.length - 1} más (punteadas)`}
+                  {!principal.camino && <span className="block text-tinta-suave">En línea recta entre los puntos: el camino por las rutas todavía no está calculado</span>}
+                  <button type="button" className="ml-1 font-medium text-marca hover:underline" onClick={verRutaEntera}>
+                    Ver entera
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
         <div className="pointer-events-auto ml-auto flex flex-wrap items-center justify-end gap-2">

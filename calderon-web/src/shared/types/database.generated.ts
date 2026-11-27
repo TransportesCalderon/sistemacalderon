@@ -2167,6 +2167,8 @@ export type Database = {
       fn_importar_todas: { Args: { p_origen?: string }; Returns: Json };
       /** Migración 84. */
       fn_mapa_flota: { Args: { p_minutos?: number }; Returns: Json };
+      // Migración 385: la ruta asignada al chofer, en azul en el mapa
+      fn_ruta_asignada: { Args: { p_chofer: number }; Returns: Json };
       fn_clima_mapa: { Args: { p_sur: number; p_oeste: number; p_norte: number; p_este: number }; Returns: Json };
       // Migración 194: seguimiento de los viajes en curso
       fn_seguimiento_viajes: { Args: Record<string, never>; Returns: Json };
