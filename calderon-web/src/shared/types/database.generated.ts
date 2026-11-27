@@ -1805,6 +1805,10 @@ export type Database = {
       fn_por_pagar: { Args: Record<string, never>; Returns: Json };
       fn_cartola: { Args: { p_cuenta: number; p_solo_pendientes?: boolean }; Returns: Json };
       fn_estado_resultados: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
+      fn_iva_por_recuperar: { Args: Record<string, never>; Returns: Json };
+      fn_guardar_iva_recuperacion: { Args: { p_datos: Json }; Returns: Json };
+      fn_resolver_iva_recuperacion: { Args: { p_id: number; p_recuperada: boolean; p_fecha: string; p_monto: number; p_nota?: string | null }; Returns: undefined };
+      fn_anular_iva_recuperacion: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_flujo_caja: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       fn_libro_diario: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       fn_tablero_finanzas: { Args: Record<string, never>; Returns: Json };
