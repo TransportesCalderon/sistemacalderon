@@ -2251,6 +2251,7 @@ export type Database = {
       fn_anular_pedido_tablero: { Args: { p_id: number }; Returns: undefined };
       fn_pedidos_tablero: { Args: Record<string, never>; Returns: Json };
       fn_mis_pedidos_tablero: { Args: Record<string, never>; Returns: Json };
+      fn_mi_manejo: { Args: Record<string, never>; Returns: Json };
       fn_trackerway_buscar: { Args: Record<string, never>; Returns: Json };
       fn_trackerway_enlazar: { Args: { p_imei: string; p_camion: number | null }; Returns: undefined };
       fn_trackerway_importar: { Args: { p_imei: string; p_importar: boolean }; Returns: undefined };

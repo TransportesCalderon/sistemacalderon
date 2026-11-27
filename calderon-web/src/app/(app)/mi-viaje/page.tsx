@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { requirePermiso } from '@/modules/core/auth/guards';
 import { MiViaje } from '@/modules/chofer/components/mi-viaje';
+import { MiManejoPantalla } from '@/modules/chofer/components/mi-manejo';
 import { MisGastos } from '@/modules/chofer/components/mis-gastos';
 import { MisLiquidaciones } from '@/modules/liquidacion/components/mis-liquidaciones';
 import { TableroChofer } from '@/modules/telemetria/components/tablero-chofer';
@@ -25,5 +26,7 @@ export default async function Pagina({ searchParams }: Props) {
   }
   await requirePermiso('chofer.mi_carga:ver');
   if (ver === 'tablero') return <TableroChofer />;
+  // Migración 387: Cómo voy manejando
+  if (ver === 'manejo') return <MiManejoPantalla />;
   return <MiViaje />;
 }

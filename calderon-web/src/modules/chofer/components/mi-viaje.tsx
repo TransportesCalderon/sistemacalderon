@@ -22,6 +22,7 @@ import { CompartirUbicacion } from './compartir-ubicacion';
 import { OrdenCargaChofer } from './orden-carga-chofer';
 import { CargaSiguiente, TarjetaCarga } from './mi-carga';
 import { TextoSaldo } from './mis-gastos';
+import { TarjetaManejo } from './mi-manejo';
 
 const BOTON_CHICO =
   'flex items-center justify-center gap-2 rounded-xl border border-borde bg-panel px-3 py-3 text-sm font-medium text-tinta shadow-sm active:bg-hover';
@@ -89,6 +90,9 @@ export function MiViaje() {
           ))}
         </section>
       )}
+
+      {/* Migración 387: cómo viene con el bono, el consumo, el ralentí y su manejo */}
+      <TarjetaManejo />
 
       {/* 4 · Lo demás: gasto, tablero, fondo y lo que va a cobrar */}
       <div className="grid grid-cols-2 gap-2">
