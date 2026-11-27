@@ -144,7 +144,7 @@ function PasoNovedades({ l }: { l: Liquidacion }) {
 
 /**
  * Liquidación por tramo: cada movimiento de «Quién la llevó» (Operaciones) es un tramo y se liquida una vez. Entran los
- * que empezaron hasta el fin del período; los que todavía no llegaron se ven «En curso» (migración 384). Tocar un tramo
+ * que el chofer tenía asignados hasta el fin del período; los que todavía no llegaron se ven «En curso» (migración 384). Tocar un tramo
  * abre debajo qué hacer con él: dejarlo, ajustar bono y km para esta liquidación, o «no se liquida acá».
  */
 function TramosDelPeriodo({ l }: { l: Liquidacion }) {
@@ -191,7 +191,7 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
         </p>
       )}
       {l.tramos.length === 0 ? (
-        <p className="mt-2 text-sm text-tinta-suave">Operaciones no registró movimientos de este chofer que hayan empezado hasta el fin del período.</p>
+        <p className="mt-2 text-sm text-tinta-suave">Operaciones no le asignó movimientos a este chofer hasta el fin del período.</p>
       ) : (
         <div className="mt-2 space-y-2 overflow-x-auto">
           {puede && (
