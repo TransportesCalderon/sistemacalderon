@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, Check, HandCoins, LoaderCircle, Send } from 'lucide-react';
 import { Chip } from '@/modules/combustible/components/comun/ui';
@@ -17,6 +17,8 @@ import { aTexto, parsearCuentaTransferencia, type CuentaTransferenciaTexto } fro
 import { CamposCuenta, cuentaCompleta } from './cuenta-transferencia';
 import { ElegirCuenta } from './cuentas-varias';
 import { parsearTrabas } from '../domain/trabas-pedido';
+import { parsearAnalisisTope } from '../domain/tope-fondo';
+import { AnalisisTopeFondo } from './analisis-tope';
 import { dinero } from '../domain/chofer.types';
 import { ESTADO_PEDIDO, parsearMisPedidos, type MiPedido } from '../domain/pedido-fondo';
 
@@ -25,6 +27,7 @@ const aNumero = (s: string) => {
   const t = s.trim().replace(/\./g, '').replace(',', '.');
   return t === '' ? NaN : Number(t);
 };
+const FUNCION_INEXISTENTE = new Set(['PGRST202', '42883']);
 
 export function PedirDinero() {
   const hay = useBaseTiene(278);
@@ -74,6 +77,27 @@ export function PedirDinero() {
   const cuenta = editandoCuenta ? cuentaEscrita.v : aTexto(guardada);
   const pedirCuenta = hayCuenta && !qCuenta.isPending && (editandoCuenta || !guardada);
   const [importe, setImporte] = useState('');
+  // Migración 386: el análisis de Iris (lo generado de sueldo contra lo sin rendir); con el monto que va escribiendo
+  const importeDiferido = useDeferredValue(importe);
+  const montoTope = abierto ? aNumero(importeDiferido) : 0;
+  const qTope = useQuery({
+    queryKey: ['chofer', 'fondo', 'mi-tope', abierto ? moneda : null, Number.isFinite(montoTope) ? montoTope : 0],
+    enabled: hay,
+    staleTime: 30_000,
+    placeholderData: (anterior) => anterior,
+    queryFn: async () => {
+      const { data, error } = await browserDb()
+        .schema('fin')
+        .rpc('fn_mi_tope_fondo', { p_moneda: abierto ? moneda : null, p_importe: Number.isFinite(montoTope) && montoTope > 0 ? montoTope : 0 });
+      if (error) {
+        if (FUNCION_INEXISTENTE.has(error.code ?? '')) return null;
+        throw error;
+      }
+      return parsearAnalisisTope(data);
+    },
+  });
+  const tope = qTope.data ?? null;
+  const topeTrabado = !abierto && tope?.estado === 'pasado';
   const [detalle, setDetalle] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +127,13 @@ export function PedirDinero() {
             ))}
           </ul>
           <p className="text-xs text-tinta-suave">Si ya lo hiciste o es urgente, hablá con Operaciones.</p>
+        </div>
+      )}
+      {/* Migración 386: pasado del límite no puede pedir; cerca del límite, el aviso */}
+      {!enCurso && !abierto && trabas.length === 0 && tope && (tope.estado === 'pasado' || tope.estado === 'cerca') && (
+        <div className="space-y-1">
+          <AnalisisTopeFondo a={tope} para="chofer" />
+          {topeTrabado && <p className="text-xs text-tinta-suave">Si es urgente, hablá con Operaciones: ellos pueden pedirlo por vos.</p>}
         </div>
       )}
       {abierto && trabas.length === 0 ? (
@@ -186,6 +217,7 @@ export function PedirDinero() {
               )}
             </div>
           )}
+          {tope && <AnalisisTopeFondo a={tope} para="chofer" compacto={!(montoTope > 0)} />}
           {error && <p className="text-sm text-error">{error}</p>}
           <div className="flex gap-2">
             <button type="submit" className={cn(BOTON_PRIMARIO, 'h-12 flex-1 justify-center text-base')} disabled={ocupado || (hayCuenta && qCuenta.isPending)}>
@@ -199,7 +231,8 @@ export function PedirDinero() {
       ) : (
         !enCurso &&
         !abierto &&
-        trabas.length === 0 && (
+        trabas.length === 0 &&
+        !topeTrabado && (
           <button type="button" className={cn(BOTON_SECUNDARIO, 'h-12 w-full justify-center text-base')} onClick={() => { setHecho(null); setAbierto(true); }}>
             <HandCoins className="size-5" /> Pedir dinero
           </button>
