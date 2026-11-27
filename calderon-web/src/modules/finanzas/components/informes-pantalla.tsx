@@ -13,8 +13,9 @@ import { BOTON_SECUNDARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
 import { aCsv, dinero, mesCorto, type EstadoResultados, type FlujoCaja, type RenglonDiario, SENTIDO_AUXILIAR, ETIQUETA_ORIGEN, saldoNatural, type SaldoTercero } from '../domain/finanzas.types';
 import { useAuxiliares, useEstadoResultados, useFlujoCaja, useLibroDiario, useMayor, usePlanCuentas } from '../queries/hooks';
 import { fecha } from './comun';
+import { IvaPorRecuperarPantalla } from './iva-recuperar';
 
-type Vista = 'resultados' | 'flujo' | 'diario' | 'mayor' | 'saldos';
+type Vista = 'resultados' | 'flujo' | 'diario' | 'mayor' | 'saldos' | 'iva';
 
 function bajar(nombre: string, contenido: string) {
   const url = URL.createObjectURL(new Blob([contenido], { type: 'text/csv;charset=utf-8' }));
@@ -30,7 +31,8 @@ export function InformesPantalla() {
   const { zonaHoraria } = useSesion();
   const hoy = hoyEnZona(zonaHoraria) as string;
   const pedida = Number(useSearchParams().get('mayor')) || null;
-  const [vista, setVista] = useState<Vista>(pedida ? 'mayor' : 'resultados');
+  const pideIva = useSearchParams().get('ver') === 'iva';
+  const [vista, setVista] = useState<Vista>(pedida ? 'mayor' : pideIva ? 'iva' : 'resultados');
   const [desde, setDesde] = useState(`${hoy.slice(0, 4)}-01-01`);
   const [hasta, setHasta] = useState(hoy);
   const [filtroMayor, setFiltroMayor] = useState<FiltroMayor>({ cuenta: pedida, terceroTipo: null, terceroId: null, tercero: null });
@@ -45,6 +47,8 @@ export function InformesPantalla() {
             ['diario', 'Libro diario'],
             ['mayor', 'Libro mayor'],
             ['saldos', 'Saldos por cliente, proveedor y chofer'],
+            // Migración 388
+            ['iva', 'IVA por recuperar'],
           ] as const
         ).map(([v, t]) => (
           <button
@@ -58,7 +62,7 @@ export function InformesPantalla() {
           </button>
         ))}
       </nav>
-      <div className="flex flex-wrap items-end gap-2">
+      <div className={cn('flex flex-wrap items-end gap-2', vista === 'iva' && 'hidden')}>
         <label className="flex items-center gap-1 text-sm text-tinta-suave">
           Desde <input type="date" className={CONTROL_FILTRO} value={desde} onChange={(e) => setDesde(e.target.value)} />
         </label>
@@ -88,6 +92,8 @@ export function InformesPantalla() {
         <Diario desde={desde} hasta={hasta} />
       ) : vista === 'mayor' ? (
         <LibroMayor desde={desde} hasta={hasta} filtro={filtroMayor} onFiltro={setFiltroMayor} />
+      ) : vista === 'iva' ? (
+        <IvaPorRecuperarPantalla />
       ) : (
         <Saldos hasta={hasta} onVer={(f) => (setFiltroMayor(f), setVista('mayor'))} />
       )}
