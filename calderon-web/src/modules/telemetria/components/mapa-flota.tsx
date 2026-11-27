@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Map as MapaLeaflet, LayerGroup } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { CloudSun, Group, Maximize2, Minimize2, Smartphone, Ungroup } from 'lucide-react';
+import { CloudSun, Group, Maximize2, Minimize2, Route, Smartphone, Ungroup } from 'lucide-react';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
 import { NIVEL_HEX } from '@/shared/ui/niveles';
@@ -23,7 +23,7 @@ import {
   type ClimaMapa,
   type ZonaMapa,
 } from '../domain/clima.types';
-import { useClimaMapa, useRutaAsignada } from '../queries/hooks';
+import { useClimaMapa, useRutaAsignada, useRutasAsignadas } from '../queries/hooks';
 import { lineaDeRuta, rutaPrincipal, type RutaAsignada } from '../domain/ruta-asignada';
 import type { ResultadoMapa } from '../domain/buscar-en-mapa';
 import { iniciarVientoAnimado } from './viento-animado';
@@ -167,6 +167,17 @@ export function MapaFlota({
   const rutaQ = useRutaAsignada(choferElegido);
   const rutas: RutaAsignada[] = choferElegido !== null ? (rutaQ.data ?? []) : [];
   const principal = rutaPrincipal(rutas);
+  // 27/11/2026: opcional, las rutas asignadas de todos los tractores del mapa (de entrada, apagado)
+  const [verRutas, setVerRutas] = useState(false);
+  const choferesMapa = [...new Set(detalles.map((d) => d.choferId).filter((x): x is number => x !== null))].sort((a, b) => a - b);
+  const rutasTodos = useRutasAsignadas(choferesMapa, verRutas);
+  const rutasDeTodos = verRutas
+    ? choferesMapa.flatMap((chofer, i) => {
+        const r = rutaPrincipal(rutasTodos[i]?.data ?? []);
+        return r && chofer !== choferElegido ? [{ chofer, ruta: r }] : [];
+      })
+    : [];
+  const firmaRutas = rutasDeTodos.map((x) => `${x.chofer}:${x.ruta.id}:${x.ruta.camino?.length ?? 0}`).join(',');
 
   // Crea el mapa una sola vez
   useEffect(() => {
@@ -217,7 +228,7 @@ export function MapaFlota({
     if (!mapa.current) return;
     void import('leaflet').then((L) => dibujar(L));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camiones, detalles, celulares, seleccionado, agrupar, rutaQ.data]);
+  }, [camiones, detalles, celulares, seleccionado, agrupar, rutaQ.data, firmaRutas]);
 
   // Migración 182: al prender una capa se pide el clima de la zona que se ve
   useEffect(() => {
@@ -470,6 +481,15 @@ export function MapaFlota({
    * sus puntos numerados del 1 al último; las que vienen después, punteadas. Va debajo de la estela y de los camiones.
    */
   function dibujarRuta(L: typeof import('leaflet'), g: LayerGroup) {
+    // «Ver las rutas de todos»: la ruta de ahora de cada chofer, fina y sin números (la del elegido va aparte, fuerte)
+    const patenteDe = new Map(detalles.filter((d) => d.choferId !== null).map((d) => [d.choferId!, camiones.find((c) => c.camionId === d.camionId)?.patente ?? '']));
+    for (const { chofer, ruta } of rutasDeTodos) {
+      const { linea, porCamino } = lineaDeRuta(ruta);
+      if (linea.length < 2) continue;
+      L.polyline(linea, { color: AZUL_RUTA, weight: 3, opacity: 0.55, dashArray: porCamino ? undefined : '10 6' })
+        .bindTooltip(`Ruta asignada · ${escapar(patenteDe.get(chofer) ?? '')}${ruta.numeroOperacion !== null ? ` · Op. ${ruta.numeroOperacion}` : ''}`, { sticky: true })
+        .addTo(g);
+    }
     if (seleccionado === null || !principal) return;
     for (const r of rutas) {
       if (r === principal) continue;
@@ -761,6 +781,17 @@ export function MapaFlota({
           >
             {agrupar ? <Ungroup className="size-4" /> : <Group className="size-4" />}
             <span className="hidden sm:inline">{agrupar ? 'Desagrupar' : 'Agrupar'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setVerRutas((v) => !v)}
+            aria-pressed={verRutas}
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium shadow ${verRutas ? 'bg-marca text-white' : 'bg-white/95 text-tinta hover:bg-white'}`}
+            title={verRutas ? 'Dejar de ver las rutas asignadas de todos' : 'Ver en azul la ruta asignada de cada chofer'}
+            aria-label={verRutas ? 'Ocultar las rutas de todos' : 'Ver las rutas de todos'}
+          >
+            <Route className="size-4" />
+            <span className="hidden sm:inline">{verRutas ? 'Ocultar rutas' : 'Rutas de todos'}</span>
           </button>
           {onVerCelulares && (
             <button
