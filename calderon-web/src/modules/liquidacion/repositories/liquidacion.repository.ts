@@ -16,6 +16,9 @@ import type {
 import type { NovedadChofer } from '../domain/novedades';
 import { parsearDatosLegales } from '../domain/legal.types';
 
+/** La base todavía no tiene la función (o no con esos datos): se usa la forma anterior. */
+const FUNCION_INEXISTENTE = new Set(['PGRST202', '42883']);
+
 /** Liquidaciones (migración 62). Todo pasa por funciones de la base; su mensaje se muestra tal cual. */
 export const liquidacionRepository = (db: Db) => {
   const fin = () => db.schema('fin');
@@ -203,17 +206,25 @@ export const liquidacionRepository = (db: Db) => {
         }),
       );
     },
+    /**
+     * Migración 384: manda la liquidación que se está mirando (con relevo de chofer, el mismo movimiento está en la de
+     * los dos). Si la base todavía no tiene esa migración, guarda como antes.
+     */
     async guardarTramo(t: TramoLiquidacionEntrada) {
-      await leer(
-        fin().rpc('fn_guardar_tramo_liquidacion', {
-          p_item: t.itemId,
-          p_liquidar: t.liquidar as boolean,
-          p_canon: t.canon as number,
-          p_moneda: t.moneda as string,
-          p_km: t.km as number,
-          p_motivo: t.motivo as string,
-        }),
-      );
+      const datos = {
+        p_item: t.itemId,
+        p_liquidar: t.liquidar as boolean,
+        p_canon: t.canon as number,
+        p_moneda: t.moneda as string,
+        p_km: t.km as number,
+        p_motivo: t.motivo as string,
+      };
+      if (t.liquidacionId) {
+        const { error } = await fin().rpc('fn_guardar_tramo_liquidacion', { ...datos, p_liq: t.liquidacionId });
+        if (!error) return;
+        if (!FUNCION_INEXISTENTE.has(error.code)) throw new RepoError(error);
+      }
+      await leer(fin().rpc('fn_guardar_tramo_liquidacion', datos));
     },
     async quitarBonoColaboradores(id: number) {
       await leer(fin().rpc('fn_quitar_bono_colaboradores', { p_liq: id }));

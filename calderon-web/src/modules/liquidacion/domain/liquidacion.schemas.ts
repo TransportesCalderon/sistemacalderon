@@ -145,6 +145,8 @@ export const tramoLiquidacionSchema = z.object({
   moneda: z.string().trim().max(3).nullish().transform((v) => (v ? v.toUpperCase() : null)),
   km: numeroOpc,
   motivo: texto(300),
+  /** Migración 384: la liquidación que se está mirando (con relevo de chofer, el mismo movimiento está en la de los dos) */
+  liquidacionId: id.nullish(),
 });
 export type TramoLiquidacionEntrada = z.infer<typeof tramoLiquidacionSchema>;
 export const motivoSchema = z.object({ id, motivo });
