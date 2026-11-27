@@ -1793,6 +1793,10 @@ export type Database = {
       // Migración 73: finanzas y contabilidad
       fn_plan_cuentas: { Args: Record<string, never>; Returns: Json };
       fn_cuentas_dinero: { Args: Record<string, never>; Returns: Json };
+      // Migración 388: las cuentas en «Hoy» y transferir entre cuentas (también dólares a pesos)
+      fn_cuentas_hoy: { Args: Record<string, never>; Returns: Json };
+      fn_pasar_plata: { Args: { p_datos: Json }; Returns: Json };
+      fn_pasar_plata_anular: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_gastos: { Args: { p_filtro?: Json }; Returns: Json };
       fn_gasto: { Args: { p_id: number }; Returns: Json };
       fn_gastos_fijos: { Args: Record<string, never>; Returns: Json };
