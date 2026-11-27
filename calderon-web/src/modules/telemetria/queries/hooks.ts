@@ -1,6 +1,6 @@
 'use client';
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { REFRESCO } from '@/shared/query/frescura';
 import { browserDb } from '@/shared/supabase/browser';
 import { importarTelemetriaAhora } from '../actions/flota.actions';
@@ -81,6 +81,21 @@ export const useRutaAsignada = (choferId: number | null) =>
     enabled: choferId !== null,
     staleTime: 60_000,
     refetchInterval: 5 * 60_000,
+  });
+
+/**
+ * 27/11/2026 · «Ver las rutas de todos» (opcional): la ruta asignada de cada chofer del mapa. Una lectura por chofer,
+ * con la misma clave que la del tractor elegido (se comparten). Solo se piden con el botón prendido.
+ */
+export const useRutasAsignadas = (choferIds: readonly number[], activo: boolean) =>
+  useQueries({
+    queries: choferIds.map((choferId) => ({
+      queryKey: ['telemetria', 'ruta-asignada', choferId],
+      queryFn: () => flotaRepository(browserDb()).rutaAsignada(choferId),
+      enabled: activo,
+      staleTime: 60_000,
+      refetchInterval: activo ? 5 * 60_000 : (false as const),
+    })),
   });
 
 export const useClimaMapa = (zona: ZonaMapa | null) =>

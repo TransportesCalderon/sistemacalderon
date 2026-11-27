@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidar } from '@/shared/query/invalidar';
 import { ArrowUpRight, Ban, Check, CircleAlert, ExternalLink, Landmark, LoaderCircle, Plus, Send, Wallet, X } from 'lucide-react';
@@ -27,6 +27,8 @@ import { parsearCuentasDePedidos, type CuentaTransferencia } from '../domain/cue
 import { CuentaDestino } from './cuenta-transferencia';
 import { CambiarCuentaPedido, ElegirCuenta } from './cuentas-varias';
 import { parsearTrabasDePedidos, type TrabaPedido } from '../domain/trabas-pedido';
+import { parsearAnalisisDePedidos, parsearAnalisisTope, type AnalisisTope } from '../domain/tope-fondo';
+import { AnalisisTopeFondo } from './analisis-tope';
 import { dinero } from '../domain/chofer.types';
 import { abrirArchivo, borrarArchivo, subirArchivo } from './archivos';
 
@@ -154,6 +156,44 @@ function useTrabasDePedidos() {
   });
 }
 
+const FUNCION_INEXISTENTE = new Set(['PGRST202', '42883']);
+
+/** Migración 386: el análisis de Iris guardado en cada pedido sin pagar (el de cuando se pidió). */
+function useAnalisisDePedidos() {
+  return useQuery({
+    queryKey: [...CLAVE, 'analisis'] as const,
+    refetchInterval: 120_000,
+    queryFn: async () => {
+      const { data, error } = await browserDb().schema('fin').rpc('fn_analisis_de_pedidos');
+      if (error) {
+        if (FUNCION_INEXISTENTE.has(error.code ?? '')) return {};
+        throw error;
+      }
+      return parsearAnalisisDePedidos(data);
+    },
+  });
+}
+
+/** Migración 386: el análisis de un chofer al pedir por él (con el monto que se va escribiendo). */
+function useTopeChofer(choferId: number, moneda: string, importe: number) {
+  return useQuery({
+    queryKey: [...CLAVE, 'tope', choferId, moneda, importe] as const,
+    enabled: choferId > 0,
+    staleTime: 30_000,
+    placeholderData: (anterior) => anterior,
+    queryFn: async () => {
+      const { data, error } = await browserDb()
+        .schema('fin')
+        .rpc('fn_tope_fondo_chofer', { p_chofer: choferId, p_moneda: moneda, p_importe: importe > 0 ? importe : 0 });
+      if (error) {
+        if (FUNCION_INEXISTENTE.has(error.code ?? '')) return null;
+        throw error;
+      }
+      return parsearAnalisisTope(data);
+    },
+  });
+}
+
 /** Liquidaciones › Fondos de choferes › Pedidos de FF. */
 export function PedidosFondo() {
   const [todos, setTodos] = useState(false);
@@ -161,6 +201,7 @@ export function PedidosFondo() {
   const q = usePedidos(todos);
   const destinos = useCuentasDestino();
   const trabas = useTrabasDePedidos();
+  const analisis = useAnalisisDePedidos();
 
   return (
     <div className="space-y-5">
@@ -174,7 +215,8 @@ export function PedidosFondo() {
       <p className="text-sm text-tinta-suave">
         El chofer pide el dinero del viaje desde su perfil (u Operaciones lo pide por él). Operaciones lo revisa y lo eleva; quien tiene «Aprueba fondos»
         autoriza el monto y elige de qué cuenta sale: queda anotado en el fondo del chofer y como egreso de esa cuenta. No se autoriza si el chofer tiene
-        cierres de viaje sin aprobar o sin el acta firmada.
+        cierres de viaje sin aprobar o sin el acta firmada. El chofer tampoco puede pedir si lo que tiene sin rendir supera lo que lleva generado de sueldo
+        en mano (lo analiza Iris); Operaciones sí puede pedir por él y el pedido queda con el análisis.
       </p>
       {nuevo && <NuevoPedido onCerrar={() => setNuevo(false)} />}
       {q.isPending ? (
@@ -186,7 +228,7 @@ export function PedidosFondo() {
       ) : (
         <ul className="space-y-3">
           {q.data.pedidos.map((p) => (
-            <FilaPedido key={p.id} p={p} puede={q.data.puede} cuentas={q.data.cuentas} destino={destinos.data ? (destinos.data[p.id] ?? null) : undefined} trabas={trabas.data?.[p.id]} />
+            <FilaPedido key={p.id} p={p} puede={q.data.puede} cuentas={q.data.cuentas} destino={destinos.data ? (destinos.data[p.id] ?? null) : undefined} trabas={trabas.data?.[p.id]} analisis={analisis.data?.[p.id]} />
           ))}
         </ul>
       )}
@@ -212,6 +254,8 @@ function NuevoPedido({ onCerrar }: { onCerrar: () => void }) {
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<ErrorAccion | null>(null);
   const [hecho, setHecho] = useState<{ numero: string; cierresPendientes: number } | null>(null);
+  const importeDiferido = aNumero(useDeferredValue(importe));
+  const tope = useTopeChofer(Number(chofer) || 0, moneda, Number.isFinite(importeDiferido) ? importeDiferido : 0);
 
   if (hecho)
     return (
@@ -305,6 +349,14 @@ function NuevoPedido({ onCerrar }: { onCerrar: () => void }) {
           <ElegirCuenta choferId={Number(chofer)} moneda={moneda} valor={cuentaId} onElegir={setCuentaId} />
         </div>
       )}
+      {Number(chofer) > 0 && tope.data && (
+        <div className="space-y-1">
+          <AnalisisTopeFondo a={tope.data} para="oficina" />
+          {tope.data.estado === 'pasado' && (
+            <p className="text-xs text-tinta-suave">Operaciones puede pedirlo igual: el pedido queda con este análisis para quien lo autoriza.</p>
+          )}
+        </div>
+      )}
       {error && (
         <p className="flex items-start gap-2 text-sm text-error">
           <CircleAlert className="mt-0.5 size-4 shrink-0" /> {error.mensaje}
@@ -323,6 +375,7 @@ function FilaPedido({
   cuentas,
   destino,
   trabas,
+  analisis,
 }: {
   p: Pedido;
   puede: Datos['puede'];
@@ -331,6 +384,8 @@ function FilaPedido({
   destino?: CuentaTransferencia | null;
   /** Migración 285: lo que le falta al chofer (a él le frena pedir; acá es un aviso para decidir). */
   trabas?: TrabaPedido[];
+  /** Migración 386: el análisis de Iris de cuando se pidió (solo los pedidos sin pagar). */
+  analisis?: AnalisisTope;
 }) {
   const { zonaHoraria } = useSesion();
   const nuevo = useBaseTiene(278);
@@ -378,6 +433,9 @@ function FilaPedido({
             ))}
           </ul>
         </div>
+      )}
+      {analisis && (p.estado === 'solicitado' || p.estado === 'pendiente' || p.estado === 'aprobado') && (
+        <AnalisisTopeFondo a={analisis} para="oficina" />
       )}
       {destino !== undefined && (p.estado === 'solicitado' || p.estado === 'pendiente' || p.estado === 'aprobado') && (
         <CuentaDestino
