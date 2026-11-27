@@ -18,8 +18,10 @@ import { BOTON_ICONO, BOTON_PRIMARIO, BOTON_SECUNDARIO } from '@/shared/ui/clase
 import { Campo } from '@/shared/ui/campo';
 import { clp } from '../domain/legal.types';
 import {
-  ETIQUETA_ESTADO_TRAMO,
+  bonoTramosDesactualizado,
+  etiquetaEstadoTramo,
   moverPeriodo,
+  tramoSinDecision,
   type BonoDesempeno,
   type DiaTrabajado,
   type Liquidacion,
@@ -141,8 +143,9 @@ function PasoNovedades({ l }: { l: Liquidacion }) {
 }
 
 /**
- * Liquidación por tramo: cada tramo de los viajes del chofer se liquida una vez. Tocar un tramo abre debajo
- * qué hacer con él: dejarlo, ajustar bono y km para esta liquidación, o «no se liquida acá».
+ * Liquidación por tramo: cada movimiento de «Quién la llevó» (Operaciones) es un tramo y se liquida una vez. Entran los
+ * que empezaron hasta el fin del período; los que todavía no llegaron se ven «En curso» (migración 384). Tocar un tramo
+ * abre debajo qué hacer con él: dejarlo, ajustar bono y km para esta liquidación, o «no se liquida acá».
  */
 function TramosDelPeriodo({ l }: { l: Liquidacion }) {
   const puede = useCan('liquidacion.liquidaciones:editar') && l.estado === 'borrador';
@@ -152,14 +155,14 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
   const [marcados, setMarcados] = useState<number[]>([]);
   const [motivo, setMotivo] = useState('Liquidado en octubre por fuera del sistema');
   const [avance, setAvance] = useState<string | null>(null);
-  const elegibles = l.tramos.filter((t) => t.estado !== 'en_otra' && t.estado !== 'despues_baja');
+  const elegibles = l.tramos.filter((t) => !tramoSinDecision(t.estado));
   const marcar = (id: number) => setMarcados((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
   /** Varios tramos a la vez: «no se liquida acá» (liquidar = false) o volver a lo del viaje (null). */
   const aplicar = async (liquidar: boolean | null) => {
     envio.setError(null);
     for (const [i, id] of marcados.entries()) {
       setAvance(`${i + 1} de ${marcados.length}…`);
-      const res = await guardar.mutateAsync({ itemId: id, liquidar, canon: null, moneda: null, km: null, motivo });
+      const res = await guardar.mutateAsync({ itemId: id, liquidar, canon: null, moneda: null, km: null, motivo, liquidacionId: l.id });
       if (!res.ok) {
         envio.setError(res.error);
         setAvance(null);
@@ -172,14 +175,23 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
   const incluidos = l.tramos.filter((t) => t.estado === 'incluido');
   const km = incluidos.reduce((a, t) => a + (t.km ?? 0), 0);
   const bono = incluidos.reduce((a, t) => a + (t.canonBase ?? 0), 0);
+  const enCurso = l.tramos.filter((t) => t.estado === 'en_curso').length;
+  const viejo = bonoTramosDesactualizado(l);
   return (
     <details className="rounded-lg bg-fondo/40 p-3" open>
       <summary className="cursor-pointer text-sm font-medium text-tinta">
         Tramos: {incluidos.length} se liquidan · {clp(km)} km · bono por tramo {clp(bono)}
+        {enCurso > 0 && <span className="text-marca"> · {enCurso} en curso</span>}
         {l.bajaChofer && <span className="text-alerta"> · baja del chofer {formatearFechaDia(l.bajaChofer)}</span>}
       </summary>
+      {viejo && (
+        <p className="mt-2 rounded-lg bg-alerta-suave p-2 text-sm text-alerta">
+          La lista cambió desde la última vez que se preparó (por ejemplo, llegó un tramo que estaba en curso): el bono por tramo de la liquidación
+          dice {clp(viejo.renglon)} y con esta lista da {clp(viejo.lista)}. Tocá «Volver a preparar» para actualizarlo.
+        </p>
+      )}
       {l.tramos.length === 0 ? (
-        <p className="mt-2 text-sm text-tinta-suave">Operaciones no registró movimientos terminados de este chofer en el período.</p>
+        <p className="mt-2 text-sm text-tinta-suave">Operaciones no registró movimientos de este chofer que hayan empezado hasta el fin del período.</p>
       ) : (
         <div className="mt-2 space-y-2 overflow-x-auto">
           {puede && (
@@ -235,14 +247,14 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
                   onAlternar={() => fila.alternar(t.itemId)}
                   columnas={puede ? 7 : 6}
                   className={cn(t.estado !== 'incluido' && 'text-tinta-suave opacity-70')}
-                  detalle={<DecidirTramo t={t} puede={puede} onListo={fila.cerrar} />}
+                  detalle={<DecidirTramo t={t} puede={puede} liquidacionId={l.id} onListo={fila.cerrar} />}
                 >
                   {puede && (
                     <td className="py-1.5" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         aria-label={`Tildar ${t.viaje} ${t.linea ?? ''}`}
-                        disabled={t.estado === 'en_otra' || t.estado === 'despues_baja'}
+                        disabled={tramoSinDecision(t.estado)}
                         checked={marcados.includes(t.itemId)}
                         onChange={() => marcar(t.itemId)}
                       />
@@ -257,7 +269,7 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
                     className="py-1.5 pr-3 tabular-nums"
                     title={`Viaje: ${t.viajeSalida ? formatearFechaDia(t.viajeSalida) : '—'} · ${t.viajeLlegada ? formatearFechaDia(t.viajeLlegada) : '—'}`}
                   >
-                    {t.salida ? formatearFechaDia(t.salida) : '—'} · {t.llegada ? formatearFechaDia(t.llegada) : '—'}
+                    {t.salida ? formatearFechaDia(t.salida) : '—'} · {t.llegada ? formatearFechaDia(t.llegada) : t.estado === 'en_curso' ? 'en curso' : '—'}
                     {t.fuenteFecha === 'estimada' && <span className="block text-xs text-tinta-suave">estimada por km (sin fechas en la operación)</span>}
                   </td>
                   <td className="py-1.5 pr-3 text-right tabular-nums">{t.km === null ? '—' : clp(t.km)}</td>
@@ -266,10 +278,10 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
                     <span
                       className={cn(
                         'text-xs font-semibold',
-                        t.estado === 'incluido' ? (t.detalle ? 'text-alerta' : 'text-exito') : t.estado === 'sin_linea' ? 'text-alerta' : 'text-tinta-suave',
+                        t.estado === 'incluido' ? (t.detalle ? 'text-alerta' : 'text-exito') : t.estado === 'sin_linea' ? 'text-alerta' : t.estado === 'en_curso' ? 'text-marca' : 'text-tinta-suave',
                       )}
                     >
-                      {t.ajustado ? 'Ajustado' : ETIQUETA_ESTADO_TRAMO[t.estado]}
+                      {t.ajustado ? 'Ajustado' : etiquetaEstadoTramo(t.estado)}
                     </span>
                     {t.detalle && <span className="block text-xs text-tinta-suave">{t.detalle}</span>}
                   </td>
@@ -291,7 +303,7 @@ function TramosDelPeriodo({ l }: { l: Liquidacion }) {
   );
 }
 
-function DecidirTramo({ t, puede, onListo }: { t: TramoLiquidacion; puede: boolean; onListo: () => void }) {
+function DecidirTramo({ t, puede, liquidacionId, onListo }: { t: TramoLiquidacion; puede: boolean; liquidacionId: number; onListo: () => void }) {
   const guardar = useGuardarTramo();
   const envio = useEnvio();
   const [v, setV] = useState({
@@ -301,11 +313,12 @@ function DecidirTramo({ t, puede, onListo }: { t: TramoLiquidacion; puede: boole
     motivo: t.motivo ?? '',
   });
   if (!puede) return <p className="text-sm text-tinta-suave">{t.detalle ?? 'Se liquida con el bono y los km del viaje.'}</p>;
-  if (t.estado === 'en_otra' || t.estado === 'despues_baja') return <p className="text-sm text-tinta-suave">{t.detalle}</p>;
+  if (tramoSinDecision(t.estado)) return <p className="text-sm text-tinta-suave">{t.detalle}</p>;
   const enviar = (liquidar: boolean | null, conAjuste = false) =>
     void envio.enviar(
       guardar.mutateAsync({
         itemId: t.itemId,
+        liquidacionId,
         liquidar,
         canon: conAjuste ? v.canon : null,
         moneda: conAjuste ? v.moneda : null,
@@ -316,6 +329,12 @@ function DecidirTramo({ t, puede, onListo }: { t: TramoLiquidacion; puede: boole
     );
   return (
     <div className="space-y-3 text-sm">
+      {t.estado === 'en_curso' && (
+        <p className="text-tinta">
+          Todavía está en curso: entra solo en esta liquidación cuando Operaciones registre la llegada. Si igual lo querés pagar ahora, poné
+          el bono y los km.
+        </p>
+      )}
       <p className="text-tinta-suave">
         Si no hay una línea con este recorrido o el bono no es el de la línea, poné el bono y los km. Si ya se pagó por fuera del sistema o no
         corresponde pagarlo, marcalo como «No se liquida acá». No cambia lo que registró Operaciones.

@@ -91,8 +91,14 @@ export interface Liquidacion {
   pagoFrenado: string | null;
 }
 
-/** Migración 20261125200000: los tramos salen de los movimientos que registra Operaciones (historial del chofer). */
-export type EstadoTramo = 'incluido' | 'no_se_liquida' | 'en_otra' | 'despues_baja' | 'vacio' | 'sin_linea';
+/**
+ * Migración 20261125200000: los tramos salen de los movimientos que registra Operaciones (historial del chofer).
+ * Migración 384 (20261127120000): un tramo por cada movimiento de «Quién la llevó», empezado hasta el fin del período.
+ *   en_curso = todavía no llegó (entra cuando Operaciones registre la llegada);
+ *   local = movimiento entre la base y la aduana (no lleva bono);
+ *   fuera = no entró en una liquidación ya aprobada o pagada (entra en la siguiente).
+ */
+export type EstadoTramo = 'incluido' | 'no_se_liquida' | 'en_otra' | 'despues_baja' | 'vacio' | 'sin_linea' | 'en_curso' | 'local' | 'fuera';
 export const ETIQUETA_ESTADO_TRAMO: Record<EstadoTramo, string> = {
   incluido: 'Se liquida',
   no_se_liquida: 'No se liquida acá',
@@ -100,11 +106,18 @@ export const ETIQUETA_ESTADO_TRAMO: Record<EstadoTramo, string> = {
   despues_baja: 'Después de la baja',
   vacio: 'Vacío',
   sin_linea: 'Sin línea: ajustalo',
+  en_curso: 'En curso',
+  local: 'En la base',
+  fuera: 'No entró',
 };
+/** Un estado que esta versión de la web todavía no conoce se muestra tal cual (no rompe la lista). */
+export const etiquetaEstadoTramo = (estado: string): string => (ETIQUETA_ESTADO_TRAMO as Record<string, string>)[estado] ?? estado;
+/** Estados en los que RRHH no decide nada sobre el tramo. */
+export const tramoSinDecision = (estado: string): boolean => estado === 'en_otra' || estado === 'despues_baja' || estado === 'fuera';
 export interface TramoLiquidacion {
   itemId: number;
   viaje: string;
-  /** Fechas del tramo (no del viaje). «estimada» = repartida por km entre fechas conocidas del viaje */
+  /** Fechas del tramo (no del viaje). «estimada» = repartida por km entre fechas conocidas del viaje. Sin llegada = en curso */
   salida: string | null;
   llegada: string | null;
   fuenteFecha: 'operacion' | 'estimada' | null;
@@ -144,6 +157,17 @@ export const parsearTramos = (v: unknown): TramoLiquidacion[] =>
       motivo: s(y.motivo),
     };
   });
+
+/**
+ * Migración 384: la lista de tramos se calcula al abrir la liquidación; el renglón «Bono por tramo», al prepararla.
+ * Si un tramo que estaba en curso ya llegó, no coinciden hasta que se vuelve a preparar. Solo importa en borrador.
+ */
+export const bonoTramosDesactualizado = (l: Pick<Liquidacion, 'estado' | 'tramos' | 'renglones'>): { renglon: number; lista: number } | null => {
+  if (l.estado !== 'borrador') return null;
+  const renglon = l.renglones.find((r) => r.codigo === 'CANON')?.importe ?? 0;
+  const lista = l.tramos.filter((t) => t.estado === 'incluido').reduce((a, t) => a + (t.canonBase ?? 0), 0);
+  return Math.round(renglon) === Math.round(lista) ? null : { renglon, lista };
+};
 
 export type FuenteDia = 'viaje' | 'operacion' | 'gps';
 export interface DiaTrabajado {
