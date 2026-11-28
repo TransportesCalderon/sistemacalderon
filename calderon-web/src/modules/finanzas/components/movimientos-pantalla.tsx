@@ -14,7 +14,9 @@ import { BOTON_PRIMARIO, CONTROL_FILTRO, TARJETA } from '@/shared/ui/clases';
 import { Campo } from '@/shared/ui/campo';
 import { cuentasParaMovimiento, dinero, ETIQUETA_MOVIMIENTO, type CuentaDinero } from '../domain/finanzas.types';
 import { useAnularMovimiento, useCambiarFechaCobro, useCuentasDinero, useMovimientos, usePlanCuentas, useRegistrarMovimiento } from '../queries/hooks';
+import { useCuentasHoy } from '../queries/pasar-plata.hooks';
 import { fecha, OpcionesCuentas } from './comun';
+import { TransferirEntreCuentas } from './pasar-plata';
 
 /**
  * Bancos › Movimientos (20/11/2026, plan de simplificación, cambio 4; antes Cobros y pagos › Entradas y salidas): lo que
@@ -59,6 +61,8 @@ function Movimientos({ cuentas, cuentaInicial }: { cuentas: CuentaDinero[]; cuen
   const [nuevo, setNuevo] = useState(false);
   const { data, isLoading, isError, error, refetch } = useMovimientos(cuenta, desde || null, hasta || null);
   const anular = useAnularMovimiento();
+  // Migración 388: transferir entre cuentas (también dólares a pesos) lo hace además Gerencia; quién puede lo dice la base
+  const cuentasHoy = useCuentasHoy();
   // Migración 273: un cobro cargado con la fecha equivocada se corrige sin anularlo
   const cambiarFecha = useCambiarFechaCobro();
   const envio = useEnvio();
@@ -88,6 +92,7 @@ function Movimientos({ cuentas, cuentaInicial }: { cuentas: CuentaDinero[]; cuen
           </button>
         )}
       </div>
+      {cuentasHoy.data && <TransferirEntreCuentas datos={cuentasHoy.data} cuentaInicial={cuenta} conUltimas={false} />}
       {nuevo && <NuevoMovimiento cuentas={cuentas.filter((c) => c.activa)} cuentaInicial={cuenta} onCerrar={() => setNuevo(false)} />}
       <ErrorBase error={envio.error} />
       {isLoading ? (

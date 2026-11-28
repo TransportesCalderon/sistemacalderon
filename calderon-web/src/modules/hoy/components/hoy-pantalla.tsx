@@ -20,6 +20,10 @@ import { AvisoOperacionesIncompletas } from './aviso-operaciones-incompletas';
 const TarjetasFinanzas = dynamic(() => import('@/modules/finanzas/components/tablero').then((m) => ({ default: m.TarjetasFinanzas })), {
   loading: () => <Cargando texto="Leyendo los números…" />,
 });
+// Migración 388: cada banco y caja con su saldo en su moneda (los dólares, en dólares) y «Transferir entre cuentas»
+const CuentasHoy = dynamic(() => import('@/modules/finanzas/components/pasar-plata').then((m) => ({ default: m.CuentasHoy })), {
+  loading: () => <Cargando texto="Leyendo las cuentas…" />,
+});
 const TarjetaTanqueBase = dynamic(() => import('@/modules/combustible/components/base/base-pantalla').then((m) => ({ default: m.TarjetaTanqueBase })), {
   loading: () => <Cargando texto="Cargando el tanque de base…" />,
 });
@@ -122,6 +126,7 @@ function CierresDeViaje({ tareas }: { tareas: Tarea[] }) {
 /**
  * Sprint 4: tarjetas arriba de la lista, según el rol (las mismas de sus pantallas):
  * los números de Finanzas para Finanzas y Gerencia, y el tanque para Base Mendoza.
+ * Migración 388: debajo de los números, cada banco y caja con su saldo en su moneda y «Transferir entre cuentas».
  */
 function Tarjetas() {
   const { rolesApp, permisos } = useSesion();
@@ -131,6 +136,7 @@ function Tarjetas() {
   return (
     <div className="space-y-4">
       {numeros && <TarjetasFinanzas />}
+      {numeros && <CuentasHoy />}
       {tanque && <TarjetaTanqueBase />}
     </div>
   );
