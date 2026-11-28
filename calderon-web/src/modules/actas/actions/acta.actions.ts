@@ -1,7 +1,7 @@
 'use server';
 
 import { createAction } from '@/server/actions/create-action';
-import { anularActaSchema, cambiarActaSchema, crearActaSchema, firmarActaSchema, fotoActaSchema, quitarFotoSchema } from '../domain/acta.types';
+import { agregarTipoActaSchema, anularActaSchema, cambiarActaSchema, crearActaSchema, firmarActaSchema, fotoActaSchema, quitarFotoSchema } from '../domain/acta.types';
 import { actaRepository } from '../repositories/acta.repository';
 
 /**
@@ -11,6 +11,14 @@ import { actaRepository } from '../repositories/acta.repository';
  *  - operacion.actas:transicionar → anular (la base exige Gerencia, Operaciones o TI).
  */
 const rutas = () => ({ paths: ['/actas'] });
+
+/** Migración 389: un tipo de acta nuevo (la base exige Gerencia, el jefe de Operaciones o TI). */
+export const agregarTipoActa = createAction({
+  permiso: 'operacion.actas:editar',
+  schema: agregarTipoActaSchema,
+  handler: (d, { db }) => actaRepository(db).agregarTipo(d.nombre),
+  invalida: rutas,
+});
 
 export const crearActa = createAction({
   permiso: 'operacion.actas:editar',

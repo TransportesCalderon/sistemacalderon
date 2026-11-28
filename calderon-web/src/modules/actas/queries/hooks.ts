@@ -4,7 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { ActionResult } from '@/server/actions/result';
 import { invalidar } from '@/shared/query/invalidar';
 import { browserDb } from '@/shared/supabase/browser';
-import { agregarFotoActa, anularActa, cambiarActa, crearActa, firmarActa, quitarFotoActa } from '../actions/acta.actions';
+import { agregarFotoActa, agregarTipoActa, anularActa, cambiarActa, crearActa, firmarActa, quitarFotoActa } from '../actions/acta.actions';
 import type { TipoActa } from '../domain/acta.types';
 import { actaRepository } from '../repositories/acta.repository';
 
@@ -25,6 +25,10 @@ export const useActas = (f: FiltroActas, activo = true) =>
     staleTime: 30_000,
   });
 
+/** Migración 389: los tipos de acta del catálogo. */
+export const useTiposActa = () =>
+  useQuery({ queryKey: ['actas', 'tipos'] as const, queryFn: () => actaRepository(browserDb()).tipos(), staleTime: 5 * 60_000 });
+
 function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
   const qc = useQueryClient();
   return useMutation({
@@ -37,6 +41,7 @@ function useEscritura<I, T>(accion: (input: I) => Promise<ActionResult<T>>) {
 }
 
 export const useCrearActa = () => useEscritura(crearActa);
+export const useAgregarTipoActa = () => useEscritura(agregarTipoActa);
 export const useCambiarActa = () => useEscritura(cambiarActa);
 export const useAgregarFotoActa = () => useEscritura(agregarFotoActa);
 export const useQuitarFotoActa = () => useEscritura(quitarFotoActa);

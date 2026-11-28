@@ -8,14 +8,66 @@ import type { FechaISO } from '@/shared/types/dominio';
  */
 export const VERSION_ACTAS = 122;
 
-export const TIPOS_ACTA = ['consumo_excesivo', 'danos_unidad', 'exceso_velocidad'] as const;
-export type TipoActa = (typeof TIPOS_ACTA)[number];
-export const ETIQUETA_TIPO_ACTA: Record<TipoActa, string> = {
+/**
+ * Migración 389: los tipos salen del catálogo de la base (ops.tipo_acta) y se pueden agregar. Esta lista es la que trae
+ * la migración, para mostrar algo mientras se lee el catálogo; un tipo nuevo se muestra con el nombre que manda la base.
+ */
+export type TipoActa = string;
+export const TIPOS_ACTA = [
+  'consumo_excesivo',
+  'danos_unidad',
+  'exceso_velocidad',
+  'fuera_horario',
+  'ralenti_excesivo',
+  'faltante_combustible',
+  'desvio_ruta',
+  'limpieza',
+  'documentacion',
+  'procedimiento',
+  'conducta',
+  'otra',
+] as const;
+export const ETIQUETA_TIPO_ACTA: Record<string, string> = {
   consumo_excesivo: 'Consumo excesivo',
   danos_unidad: 'Daños en la unidad',
   exceso_velocidad: 'Velocidad excesiva',
+  fuera_horario: 'Manejo fuera de horario sin permiso',
+  ralenti_excesivo: 'Ralentí excesivo',
+  faltante_combustible: 'Faltante de combustible',
+  desvio_ruta: 'Desvío de la ruta asignada',
+  limpieza: 'Falta de limpieza e higiene de la unidad',
+  documentacion: 'Documentación o rendición incompleta',
+  procedimiento: 'Incumplimiento de un procedimiento',
+  conducta: 'Conducta o trato inadecuado',
+  otra: 'Otra infracción',
 };
-export const esTipoActa = (v: unknown): v is TipoActa => typeof v === 'string' && (TIPOS_ACTA as readonly string[]).includes(v);
+export const esTipoActa = (v: unknown): v is TipoActa => typeof v === 'string' && /^[a-z][a-z0-9_]{2,40}$/.test(v);
+
+export interface TipoActaCatalogo {
+  codigo: TipoActa;
+  nombre: string;
+  activo: boolean;
+}
+export interface TiposActa {
+  tipos: TipoActaCatalogo[];
+  puedeAgregar: boolean;
+}
+/** Los tipos de la base; si todavía no está la migración 389, la lista de siempre. */
+export function parsearTiposActa(raw: unknown): TiposActa {
+  const j = obj(raw);
+  const tipos = (Array.isArray(j.tipos) ? (j.tipos as unknown[]) : [])
+    .map(obj)
+    .filter((t) => esTipoActa(t.codigo) && typeof t.nombre === 'string')
+    .map((t) => ({ codigo: String(t.codigo), nombre: String(t.nombre), activo: t.activo !== false }));
+  return {
+    tipos: tipos.length > 0 ? tipos : TIPOS_ACTA.map((c) => ({ codigo: c, nombre: ETIQUETA_TIPO_ACTA[c] ?? c, activo: true })),
+    puedeAgregar: j.puede_agregar === true,
+  };
+}
+/** El nombre de un tipo: el del catálogo, el conocido o el código legible. */
+export function etiquetaTipoActa(tipo: string, tipos?: readonly TipoActaCatalogo[], nombreBase?: string | null): string {
+  return nombreBase || tipos?.find((t) => t.codigo === tipo)?.nombre || ETIQUETA_TIPO_ACTA[tipo] || tipo.replace(/_/g, ' ');
+}
 
 export type EstadoActa = 'registrada' | 'firmada' | 'anulada';
 export const ETIQUETA_ESTADO_ACTA: Record<EstadoActa, string> = { registrada: 'Sin firmar', firmada: 'Firmada', anulada: 'Anulada' };
@@ -30,6 +82,8 @@ export interface Acta {
   id: number;
   numero: string;
   tipo: TipoActa;
+  /** Migración 389: el nombre del tipo según el catálogo. */
+  tipoNombre: string;
   estado: EstadoActa;
   fecha: FechaISO;
   choferId: number;
@@ -65,7 +119,7 @@ export interface Actas {
   puedeCrear: boolean;
   puedeMonto: boolean;
   actas: Acta[];
-  porTipo: Record<TipoActa, number> | null;
+  porTipo: Record<string, number> | null;
 }
 
 type Obj = Record<string, unknown>;
@@ -79,7 +133,8 @@ export function parsearActa(raw: unknown): Acta {
   return {
     id: Number(a.id),
     numero: String(a.numero ?? ''),
-    tipo: esTipoActa(a.tipo) ? a.tipo : 'danos_unidad',
+    tipo: esTipoActa(a.tipo) ? a.tipo : 'otra',
+    tipoNombre: etiquetaTipoActa(esTipoActa(a.tipo) ? a.tipo : 'otra', undefined, txt(a.tipo_nombre)),
     estado: (a.estado === 'firmada' || a.estado === 'anulada' ? a.estado : 'registrada') as EstadoActa,
     fecha: String(a.fecha ?? '') as FechaISO,
     choferId: Number(a.chofer_id),
@@ -119,9 +174,18 @@ export function parsearActas(raw: unknown): Actas {
     puedeCrear: j.puede_crear === true,
     puedeMonto: j.puede_monto === true,
     actas: (Array.isArray(j.actas) ? j.actas : []).map(parsearActa),
-    porTipo: pt ? { consumo_excesivo: Number(pt.consumo_excesivo ?? 0), danos_unidad: Number(pt.danos_unidad ?? 0), exceso_velocidad: Number(pt.exceso_velocidad ?? 0) } : null,
+    porTipo: pt ? Object.fromEntries(Object.entries(pt).map(([k, v]) => [k, Number(v ?? 0) || 0])) : null,
   };
 }
+
+/** «2 de velocidad excesiva, 1 de daños en la unidad»: solo los tipos que tiene (sin las anuladas). */
+export function resumenPorTipo(porTipo: Record<string, number> | null, tipos?: readonly TipoActaCatalogo[]): string {
+  const con = Object.entries(porTipo ?? {}).filter(([, n]) => n > 0);
+  if (con.length === 0) return 'ninguna acta';
+  return con.map(([t, n]) => `${n} de ${etiquetaTipoActa(t, tipos).toLowerCase()}`).join(', ');
+}
+
+export const agregarTipoActaSchema = z.object({ nombre: z.string().trim().min(3, 'Escribí el nombre del tipo').max(80, 'Hasta 80 letras') });
 
 /** Datos de la evidencia que se muestran (los nombres legibles salen del mismo diccionario de las alertas). */
 export const EVIDENCIA_OCULTA = new Set(['regla', 'desde', 'hasta']);
@@ -133,7 +197,7 @@ export const carpetaActa = (id: number) => `actas/${id}`;
 const monto = z.number().positive().nullable();
 export const crearActaSchema = z.object({
   alertaId: z.number().int().positive().nullable(),
-  tipo: z.enum(TIPOS_ACTA).nullable(),
+  tipo: z.string().regex(/^[a-z][a-z0-9_]{2,40}$/, 'Elegí el tipo').nullable(),
   choferId: z.number().int().positive().nullable(),
   camionId: z.number().int().positive().nullable(),
   fecha: z.string().nullable(),

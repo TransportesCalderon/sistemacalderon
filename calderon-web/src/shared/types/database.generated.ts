@@ -1411,6 +1411,8 @@ export type Database = {
       fn_actas: { Args: { p_desde?: string | null; p_hasta?: string | null; p_chofer?: number | null; p_tipo?: string | null }; Returns: Json };
       fn_acta: { Args: { p_id: number }; Returns: Json };
       fn_crear_acta: { Args: { p_datos: Json }; Returns: number };
+      fn_tipos_acta: { Args: Record<string, never>; Returns: Json };
+      fn_agregar_tipo_acta: { Args: { p_nombre: string }; Returns: string };
       fn_cambiar_acta: { Args: { p_id: number; p_version: number; p_datos: Json }; Returns: undefined };
       fn_agregar_foto_acta: { Args: { p_acta: number; p_ruta: string; p_nombre?: string | null }; Returns: number };
       fn_quitar_foto_acta: { Args: { p_foto: number }; Returns: string };
@@ -2249,6 +2251,8 @@ export type Database = {
       // Migración 286: horario de manejo (5:30 a 22:00) y habilitación fuera de horario
       fn_fuera_horario: { Args: Record<string, never>; Returns: Json };
       fn_habilitar_fuera_horario: { Args: { p_camion: number; p_motivo: string }; Returns: Json };
+      fn_labrar_acta_fuera_horario: { Args: { p_id: number; p_descripcion?: string | null; p_lugar?: string | null; p_chofer?: number | null }; Returns: Json };
+      fn_sin_sancion_fuera_horario: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       fn_anular_habilitacion_horario: { Args: { p_id: number; p_motivo: string | null }; Returns: undefined };
       // Migración 297: la foto del tablero solo a pedido de Telemetría (Mercedes y Scania)
       fn_pedir_tablero: { Args: { p_viaje: number; p_motivo?: string | null }; Returns: Json };

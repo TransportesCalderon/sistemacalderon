@@ -39,8 +39,9 @@ describe('Migración 121 · tipos de carga', () => {
 });
 
 describe('Migración 122 · actas de infracción', () => {
-  it('los tres tipos pedidos', () => {
-    expect(TIPOS_ACTA.map((t) => ETIQUETA_TIPO_ACTA[t])).toEqual(['Consumo excesivo', 'Daños en la unidad', 'Velocidad excesiva']);
+  it('los tipos de siempre siguen, y la migración 389 suma más', () => {
+    expect(TIPOS_ACTA.slice(0, 3).map((t) => ETIQUETA_TIPO_ACTA[t])).toEqual(['Consumo excesivo', 'Daños en la unidad', 'Velocidad excesiva']);
+    expect(ETIQUETA_TIPO_ACTA.fuera_horario).toBe('Manejo fuera de horario sin permiso');
     expect(VERSION_ACTAS).toBe(122);
     expect(carpetaActa(7)).toBe('actas/7');
   });

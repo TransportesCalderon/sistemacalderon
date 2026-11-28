@@ -1,6 +1,6 @@
 import { RepoError, type Db } from '@/shared/repository/types';
 import type { Json } from '@/shared/types/db';
-import { parsearActa, parsearActas, type Acta, type Actas, type CambiarActa, type CrearActa, type TipoActa } from '../domain/acta.types';
+import { parsearActa, parsearActas, parsearTiposActa, type Acta, type Actas, type CambiarActa, type CrearActa, type TipoActa, type TiposActa } from '../domain/acta.types';
 
 const nulo = (v: string | null | undefined) => (v === undefined || v === null || v.trim() === '' ? null : v.trim());
 
@@ -12,6 +12,22 @@ export const actaRepository = (db: Db) => {
       const { data, error } = await ops().rpc('fn_actas', { p_desde: f.desde, p_hasta: f.hasta, p_chofer: f.choferId, p_tipo: f.tipo });
       if (error) throw new RepoError(error);
       return parsearActas(data);
+    },
+
+    /** Migración 389: el catálogo de tipos (si la base todavía no lo tiene, la lista de siempre). */
+    async tipos(): Promise<TiposActa> {
+      const { data, error } = await ops().rpc('fn_tipos_acta');
+      if (error) {
+        if (error.code === 'PGRST202' || error.code === '42883') return parsearTiposActa(null);
+        throw new RepoError(error);
+      }
+      return parsearTiposActa(data);
+    },
+
+    async agregarTipo(nombre: string): Promise<string> {
+      const { data, error } = await ops().rpc('fn_agregar_tipo_acta', { p_nombre: nombre });
+      if (error) throw new RepoError(error);
+      return data;
     },
 
     async detalle(id: number): Promise<Acta> {

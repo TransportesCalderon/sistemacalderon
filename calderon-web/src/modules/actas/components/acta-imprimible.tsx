@@ -3,7 +3,7 @@ import { ETIQUETA_DATO } from '@/modules/anomalias/domain/alerta.types';
 import { BotonImprimir } from '@/modules/combustible/components/cierres/boton-imprimir';
 import { formatearFechaHora } from '@/shared/lib/fechas';
 import { formatearNumero } from '@/shared/lib/numeros';
-import { ETIQUETA_TIPO_ACTA, EVIDENCIA_OCULTA, type Acta } from '../domain/acta.types';
+import { EVIDENCIA_OCULTA, type Acta } from '../domain/acta.types';
 
 /** Documento del chofer para el acta: solo si el usuario puede verlo (el acceso queda registrado). */
 export interface DocumentoActa {
@@ -44,7 +44,11 @@ export function ActaImprimible({
       ? 'presenta los siguientes daños:'
       : a.tipo === 'consumo_excesivo'
         ? 'registró un consumo de combustible por encima del objetivo del viaje, según el siguiente detalle:'
-        : 'circuló por encima de la velocidad permitida, según el siguiente detalle:';
+        : a.tipo === 'exceso_velocidad'
+          ? 'circuló por encima de la velocidad permitida, según el siguiente detalle:'
+          : a.tipo === 'fuera_horario'
+            ? 'circuló fuera del horario de manejo permitido sin el permiso correspondiente, según el siguiente detalle:'
+            : `incurrió en la siguiente falta (${a.tipoNombre.toLowerCase()}):`;
 
   return (
     <div className="mx-auto max-w-[190mm] bg-white p-6 text-[13px] leading-relaxed text-black print:max-w-none print:p-0">
@@ -67,7 +71,7 @@ export function ActaImprimible({
         </p>
       )}
 
-      <p className="mt-4 border-b-2 border-black pb-0.5">Referencia: {ETIQUETA_TIPO_ACTA[a.tipo]}</p>
+      <p className="mt-4 border-b-2 border-black pb-0.5">Referencia: {a.tipoNombre}</p>
 
       <p className="mt-4 indent-12">
         En el día de la fecha indicada, se deja constancia que la unidad PATENTE: <b>{a.patente ?? linea}</b>, a cargo del conductor{' '}

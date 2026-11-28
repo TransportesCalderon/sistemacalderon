@@ -20,24 +20,23 @@ import { NombreEnlazado } from '@/shared/ui/nombre-enlazado';
 import {
   carpetaActa,
   ETIQUETA_ESTADO_ACTA,
-  ETIQUETA_TIPO_ACTA,
   esTipoActa,
   EVIDENCIA_OCULTA,
-  TIPOS_ACTA,
+  resumenPorTipo,
   type Acta,
   type EstadoActa,
   type TipoActa,
 } from '../domain/acta.types';
-import { useActas, useAgregarFotoActa, useAnularActa, useCambiarActa, useCrearActa, useFirmarActa, useQuitarFotoActa } from '../queries/hooks';
+import { useActas, useAgregarFotoActa, useAgregarTipoActa, useAnularActa, useCambiarActa, useCrearActa, useFirmarActa, useQuitarFotoActa, useTiposActa } from '../queries/hooks';
 
 const TONO_ESTADO: Record<EstadoActa, Tono> = { registrada: 'alerta', firmada: 'exito', anulada: 'neutro' };
-const TONO_TIPO: Record<TipoActa, Tono> = { consumo_excesivo: 'marca', danos_unidad: 'error', exceso_velocidad: 'alerta' };
+const TONO_TIPO: Record<string, Tono> = { consumo_excesivo: 'marca', danos_unidad: 'error', exceso_velocidad: 'alerta', fuera_horario: 'alerta' };
 const importe = (moneda: string | null, v: number | null) => (v === null ? '—' : `${moneda ?? ''} ${formatearNumero(v, 0)}`.trim());
 const mesDe = (periodo: string | null) =>
   periodo ? new Date(`${periodo}T12:00:00`).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) : '—';
 
 /**
- * Migración 122 · Actas de infracción (consumo excesivo, daños en la unidad, velocidad excesiva).
+ * Migración 122 · Actas de infracción. Migración 389: los tipos salen del catálogo de la base y se pueden agregar.
  * Se hacen desde una alerta confirmada (?alerta=ID) o a mano; se imprimen para que las firme el
  * chofer; el monto y el descuento en la liquidación los ponen Gerencia u Operaciones. Todo lo
  * decide la base: la pantalla muestra su mensaje tal cual.
@@ -54,6 +53,7 @@ export function ActasPantalla() {
   const [nueva, setNueva] = useState<boolean>(alertaUrl !== null || sp.get('nueva') === '1');
   const [abierta, setAbierta] = useState<number | null>(null);
   const { data: choferes } = useChoferesCombustible();
+  const tipos = useTiposActa().data?.tipos;
   const filtro = { desde: desde || null, hasta: hasta || null, choferId: chofer ? Number(chofer) : null, tipo: tipo || null };
   const { data, isPending, isError, error, isFetching, refetch } = useActas(filtro, true);
   const puedeEditar = useCan('operacion.actas:editar');
@@ -73,8 +73,8 @@ export function ActasPantalla() {
         )}
       </Encabezado>
       <p className="max-w-3xl text-sm text-tinta-suave">
-        Por consumo excesivo, daños en la unidad o velocidad excesiva. Las de consumo y velocidad se hacen desde la alerta confirmada; los daños, acá,
-        con fotos de la rotura. Se imprimen para que el chofer las firme. Descontarle al chofer es una opción: el monto lo ponen Gerencia o el jefe de
+        Por consumo excesivo, velocidad, manejo fuera de horario, daños en la unidad y otras faltas. Las de consumo y velocidad se hacen desde la alerta
+        confirmada y las de horario desde Seguimiento de viajes; las demás, acá, con fotos como prueba. Se imprimen para que el chofer las firme. Descontarle al chofer es una opción: el monto lo ponen Gerencia o el jefe de
         Operaciones.
       </p>
       <>
@@ -86,9 +86,9 @@ export function ActasPantalla() {
             <span className="block text-xs text-tinta-suave">Tipo</span>
             <select className={CONTROL_FILTRO} value={tipo} onChange={(e) => setTipo(esTipoActa(e.target.value) ? e.target.value : '')}>
               <option value="">Todos</option>
-              {TIPOS_ACTA.map((t) => (
-                <option key={t} value={t}>
-                  {ETIQUETA_TIPO_ACTA[t]}
+              {tipos?.map((t) => (
+                <option key={t.codigo} value={t.codigo}>
+                  {t.nombre}
                 </option>
               ))}
             </select>
@@ -116,7 +116,7 @@ export function ActasPantalla() {
         </div>
         {data?.porTipo && (
           <p className="text-sm text-tinta-suave">
-            Este chofer tiene {TIPOS_ACTA.map((t) => `${data.porTipo?.[t] ?? 0} de ${ETIQUETA_TIPO_ACTA[t].toLowerCase()}`).join(', ')} (sin contar las anuladas).
+            Este chofer tiene {resumenPorTipo(data.porTipo, tipos)} (sin contar las anuladas).
           </p>
         )}
         {isPending ? (
@@ -166,6 +166,9 @@ function FormNueva({
   const crear = useCrearActa();
   const agregarFoto = useAgregarFotoActa();
   const { error, setError } = useEnvio();
+  const catalogo = useTiposActa().data;
+  const agregarTipo = useAgregarTipoActa();
+  const [nuevoTipo, setNuevoTipo] = useState<string | null>(null);
   const [f, setF] = useState({
     tipo: 'danos_unidad' as TipoActa,
     choferId: choferInicial ? String(choferInicial) : '',
@@ -231,13 +234,45 @@ function FormNueva({
         {!alertaId && (
           <>
             <Campo label="Tipo">
-              <select value={f.tipo} onChange={(e) => esTipoActa(e.target.value) && set('tipo')(e.target.value)}>
-                {TIPOS_ACTA.map((t) => (
-                  <option key={t} value={t}>
-                    {ETIQUETA_TIPO_ACTA[t]}
-                  </option>
-                ))}
-              </select>
+              {nuevoTipo === null ? (
+                <span className="flex items-center gap-2">
+                  <select className="min-w-0 flex-1" value={f.tipo} onChange={(e) => esTipoActa(e.target.value) && set('tipo')(e.target.value)}>
+                    {catalogo?.tipos
+                      .filter((t) => t.activo)
+                      .map((t) => (
+                        <option key={t.codigo} value={t.codigo}>
+                          {t.nombre}
+                        </option>
+                      ))}
+                  </select>
+                  {catalogo?.puedeAgregar && (
+                    <button type="button" className="shrink-0 text-sm text-marca underline" onClick={() => setNuevoTipo('')}>
+                      Otro tipo
+                    </button>
+                  )}
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <input className="min-w-0 flex-1" maxLength={80} autoFocus placeholder="Nombre del tipo nuevo" value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)} />
+                  <button
+                    type="button"
+                    className={BOTON_SECUNDARIO}
+                    disabled={agregarTipo.isPending}
+                    onClick={async () => {
+                      setError(null);
+                      const r = await agregarTipo.mutateAsync({ nombre: nuevoTipo });
+                      if (!r.ok) return setError(r.error);
+                      set('tipo')(r.data);
+                      setNuevoTipo(null);
+                    }}
+                  >
+                    Agregar
+                  </button>
+                  <button type="button" className="text-sm text-tinta-suave underline" onClick={() => setNuevoTipo(null)}>
+                    Cancelar
+                  </button>
+                </span>
+              )}
             </Campo>
             <Campo label="Chofer">
               <select value={f.choferId} onChange={(e) => set('choferId')(e.target.value)}>
@@ -401,7 +436,7 @@ function FilaActa({ a, puedeEditar, puedeMonto, abierta, onAlternar }: { a: Acta
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono font-medium text-tinta">{a.numero}</span>
-            <Chip tono={TONO_TIPO[a.tipo]}>{ETIQUETA_TIPO_ACTA[a.tipo]}</Chip>
+            <Chip tono={TONO_TIPO[a.tipo] ?? 'neutro'}>{a.tipoNombre}</Chip>
             <Chip tono={TONO_ESTADO[a.estado]}>{a.estado === 'firmada' && a.seNegoFirmar ? 'Se negó a firmar' : ETIQUETA_ESTADO_ACTA[a.estado]}</Chip>
             {a.descontar && a.estado !== 'anulada' && <Chip tono="error">Se descuenta</Chip>}
           </div>
